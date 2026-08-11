@@ -1,0 +1,22 @@
+# Copy this file to `.github/CODEOWNERS` after replacing the placeholders
+# with the real GitHub usernames.
+
+# Global architecture-sensitive files
+/AGENTS.md                         @jessemezini
+/docs/ARCHITECTURE.md              @jessemezini
+/docs/DATABASE.md                  @jessemezini
+/docs/MULTI_TENANCY.md             @jessemezini
+/docs/AUTHORIZATION.md             @jessemezini
+/docs/decisions/                   @jessemezini
+
+# Infrastructure / integrations (activate paths as they are created)
+/lib/supabase/                     @jessemezini
+/lib/clerk/                        @jessemezini
+/lib/stripe/                       @jessemezini
+/supabase/migrations/              @jessemezini
+
+# Example feature ownership — replace usernames before activating
+# /app/dashboard/                  @Rafael-F-Amaral
+# /components/dashboard/           @Rafael-F-Amaral
+# /app/[storeSlug]/                @Rafael-F-Amaral
+# /components/storefront/          @Rafael-F-Amaral
