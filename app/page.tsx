@@ -1,19 +1,35 @@
-import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
-export default function Page() {
+import { buttonVariants } from "@/components/ui/button"
+
+export default function HomePage() {
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
+    <main className="relative flex min-h-svh items-center overflow-hidden px-6 py-16 sm:px-10 lg:px-16">
+      <div
+        aria-hidden="true"
+        className="absolute -top-24 -right-40 size-96 rounded-full border-[4rem] border-primary/20 sm:-right-24 sm:size-[30rem]"
+      />
+
+      <section className="relative mx-auto flex w-full max-w-6xl flex-col items-start gap-8">
+        <p className="text-sm font-medium tracking-[0.18em] text-muted-foreground uppercase">
+          Deli Plus
+        </p>
+
+        <div className="flex max-w-3xl flex-col gap-5">
+          <h1 className="text-5xl leading-[0.95] font-semibold tracking-[-0.05em] text-balance sm:text-6xl lg:text-7xl">
+            Seu delivery, do seu jeito.
+          </h1>
+          <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
+            Uma plataforma para restaurantes, pizzarias, lanchonetes, açaís e
+            outros estabelecimentos gerenciarem seus pedidos online em um só
+            lugar.
+          </p>
         </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
-      </div>
-    </div>
+
+        <Link href="/dashboard" className={buttonVariants({ size: "lg" })}>
+          Acessar Dashboard
+        </Link>
+      </section>
+    </main>
   )
 }
