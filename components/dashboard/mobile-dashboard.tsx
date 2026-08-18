@@ -40,7 +40,7 @@ function MobileHeader({ active }: { active: MobileView }) {
   const items = [
     { label: "Visão geral", href: "/dashboard", view: "overview" as MobileView },
     { label: "Pedidos", href: "/dashboard/orders", view: "orders" as MobileView },
-    { label: "Produção", href: "/dashboard", view: "performance" as MobileView },
+    { label: "Produção", href: "/dashboard/production", view: "performance" as MobileView },
     { label: "Cardápio", href: "/dashboard/menu", view: "performance" as MobileView },
     { label: "Clientes", href: "/dashboard", view: "performance" as MobileView },
     { label: "Marketing", href: "/dashboard", view: "performance" as MobileView },
@@ -74,7 +74,7 @@ function Chart() {
 }
 
 function BottomNav({ active }: { active: MobileView }) {
-  const items: Array<{ view: MobileView | "kitchen" | "menu" | "more"; label: string; icon: IconName; href: string }> = [{ view: "overview", label: "Visão geral", icon: "home", href: "/dashboard" }, { view: "orders", label: "Pedidos", icon: "orders", href: "/dashboard/orders" }, { view: "kitchen", label: "Produção", icon: "kitchen", href: "/dashboard" }, { view: "menu", label: "Cardápio", icon: "book", href: "/dashboard/menu" }, { view: "more", label: "Mais", icon: "more", href: "/dashboard" }]
+  const items: Array<{ view: MobileView | "kitchen" | "menu" | "more"; label: string; icon: IconName; href: string }> = [{ view: "overview", label: "Visão geral", icon: "home", href: "/dashboard" }, { view: "orders", label: "Pedidos", icon: "orders", href: "/dashboard/orders" }, { view: "kitchen", label: "Produção", icon: "kitchen", href: "/dashboard/production" }, { view: "menu", label: "Cardápio", icon: "book", href: "/dashboard/menu" }, { view: "more", label: "Mais", icon: "more", href: "/dashboard" }]
   return <nav className="sticky bottom-0 z-10 mt-7 grid grid-cols-5 border-t border-[#e8e8e3] bg-white px-1 pb-[max(14px,env(safe-area-inset-bottom))] pt-3" aria-label="Navegação móvel">{items.map((item) => <a key={item.label} href={item.href} className={`grid justify-items-center gap-1 text-[10px] ${item.view === active ? "font-semibold text-[#4a5b36]" : "text-[#555951]"}`}><Icon name={item.icon} className="size-5" /><span>{item.label}</span></a>)}</nav>
 }
 

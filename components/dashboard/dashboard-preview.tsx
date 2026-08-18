@@ -27,7 +27,7 @@ type GlyphName =
 const navItems: Array<{ label: string; icon: GlyphName; href: string }> = [
   { label: "Visão geral", icon: "home", href: "/dashboard" },
   { label: "Pedidos", icon: "orders", href: "/dashboard/orders" },
-  { label: "Produção", icon: "kitchen", href: "/dashboard" },
+  { label: "Produção", icon: "kitchen", href: "/dashboard/production" },
   { label: "Cardápio", icon: "menu", href: "/dashboard/menu" },
   { label: "Clientes", icon: "people", href: "/dashboard" },
   { label: "Marketing", icon: "megaphone", href: "/dashboard" },
