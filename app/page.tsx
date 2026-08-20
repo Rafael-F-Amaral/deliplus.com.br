@@ -1,3 +1,10 @@
+import {
+  OrganizationSwitcher,
+  Show,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+} from "@clerk/nextjs"
 import Link from "next/link"
 
 import { buttonVariants } from "@/components/ui/button"
@@ -26,9 +33,31 @@ export default function HomePage() {
           </p>
         </div>
 
-        <Link href="/dashboard" className={buttonVariants({ size: "lg" })}>
-          Acessar Dashboard
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Show when="signed-out">
+            <SignInButton>
+              <button
+                type="button"
+                className={buttonVariants({ variant: "outline", size: "lg" })}
+              >
+                Entrar
+              </button>
+            </SignInButton>
+            <SignUpButton>
+              <button type="button" className={buttonVariants({ size: "lg" })}>
+                Criar conta
+              </button>
+            </SignUpButton>
+          </Show>
+
+          <Show when="signed-in">
+            <Link href="/dashboard" className={buttonVariants({ size: "lg" })}>
+              Acessar Dashboard
+            </Link>
+            <OrganizationSwitcher />
+            <UserButton />
+          </Show>
+        </div>
       </section>
     </main>
   )
