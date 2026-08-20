@@ -132,11 +132,17 @@ The MVP may launch with one store per organization, but the domain should avoid 
 Responsible for:
 
 - authentication;
+- Organizations;
 - user identity;
 - sessions;
 - authentication UI/integration.
 
 Clerk is not the canonical source for DeliPlus domain authorization relationships.
+
+Server-side Supabase clients pass the current Clerk session token through
+Supabase Third-Party Auth. This authenticates the database request without
+creating a second application login or synchronizing Clerk records into
+PostgreSQL.
 
 ### Supabase / PostgreSQL
 
@@ -152,6 +158,9 @@ Responsible for:
 - tenant-aware application data.
 
 PostgreSQL is the canonical application data store.
+
+Application authorization and RLS remain separate from authentication. They
+must be introduced alongside the tenant-owned schema they protect.
 
 ### Stripe
 
