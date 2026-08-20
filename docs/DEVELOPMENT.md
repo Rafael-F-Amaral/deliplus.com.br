@@ -96,7 +96,7 @@ Never put server secrets into code reachable by the browser.
 
 ## Data access
 
-When Supabase is introduced, separate clients/helpers by execution context rather than using one universal privileged client.
+Keep Supabase clients/helpers separated by execution context rather than using one universal privileged client.
 
 Conceptual examples:
 
@@ -108,6 +108,21 @@ lib/supabase/client.ts
 Exact file names may change after implementation planning.
 
 Do not create a privileged service-role browser client.
+
+The current server-side Supabase client uses the publishable key and forwards
+the active Clerk session token through Supabase Third-Party Auth. Clerk remains
+the application's only authentication provider.
+
+Local development uses the Supabase stack configured under `supabase/`. Check
+its health with:
+
+```bash
+yarn supabase status
+```
+
+No application schema or RLS policies have been implemented yet. Those
+security boundaries must be designed together in the feature that introduces
+the first tenant-owned tables.
 
 ## Validation
 
