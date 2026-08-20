@@ -54,7 +54,15 @@ export default function HomePage() {
             <Link href="/dashboard" className={buttonVariants({ size: "lg" })}>
               Acessar Dashboard
             </Link>
-            <OrganizationSwitcher />
+            <OrganizationSwitcher
+              appearance={{
+                elements: {
+                  organizationSwitcherPopoverActionButton__createOrganization:
+                    "hidden!",
+                  organizationSwitcherPopoverActionsHoverable: "hidden!",
+                },
+              }}
+            />
             <UserButton />
           </Show>
         </div>
