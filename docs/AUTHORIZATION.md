@@ -2,104 +2,177 @@
 
 ## Separation of concerns
 
-DeliPlus separates authentication from application authorization.
+DeliPlus separates identity, tenant membership, application authorization and billing entitlement.
 
-### Authentication
+### Authentication — Clerk
 
 Clerk answers:
 
 > Who is this user?
 
-### Authorization
+### Organization membership — Clerk
 
-DeliPlus application data answers:
+Clerk answers:
 
-> Which organization/store does this user belong to, and what may they do there?
+> Which Clerk Organizations does this user belong to, which Organization is active, and what Clerk Organization role do they have?
 
-Do not collapse these into one concern.
+### Application authorization — DeliPlus + PostgreSQL/RLS
 
-## Identity mapping
+DeliPlus answers:
 
-The durable application relationship should conceptually be represented by membership data such as:
+> Given the verified active Clerk Organization, which internal organization and Store data may this request access or modify?
+
+### Billing entitlement — DeliPlus + Stripe state
+
+Billing answers:
+
+> Is this Organization currently entitled to this paid capability, including its allowed Store capacity?
+
+These concerns are related but must not be collapsed into one client-side check.
+
+## Tenant identity mapping
+
+The durable application mapping is:
 
 ```text
-organization_members
-  organization_id
-  clerk_user_id
-  role
+Clerk Organization
+  id: org_...
+
+      ↕
+
+public.organizations
+  id: internal UUID
+  clerk_organization_id: org_...
 ```
 
-A Clerk user ID identifies the external authenticated identity. PostgreSQL relationships determine DeliPlus access.
+Do not create a local `organization_members` table in the current architecture.
 
-## Initial roles
+Clerk remains the source of truth for Organization membership and Clerk Organization roles.
 
-Potential initial roles:
+The internal organization UUID is the canonical foreign-key target for DeliPlus domain data.
+
+## Active Organization
+
+Authenticated tenant-scoped requests must derive tenant context from the verified Clerk session/JWT.
+
+Conceptually:
 
 ```text
-owner
+Clerk session
+  -> active Clerk Organization
+  -> clerk_organization_id
+  -> internal DeliPlus organization
+  -> authorized Store(s)
+```
+
+If no active Organization exists, tenant-scoped database access must fail safely or return no tenant rows.
+
+Never trust a browser-supplied `organization_id` as proof of access.
+
+## Initial Clerk Organization roles
+
+The current tenant-core specification uses Clerk Organization role semantics conservatively:
+
+```text
 admin
-staff
+member
 ```
 
-Do not create a large permission matrix until product requirements justify it.
+For the tenant core:
 
-Until role behavior is formally specified, avoid scattering hard-coded role checks throughout components.
+- `admin` may create/update its own internal tenant core data;
+- `member` may read tenant core data;
+- neither receives authenticated delete access in the initial migration.
 
-## Authorization placement
+Do not invent application roles such as `owner`, `staff`, `manager` or custom permissions until a feature specification requires them.
 
-Authorization must occur at trusted server boundaries before privileged reads or writes.
+If custom Clerk roles/permissions are introduced later, document their semantics before relying on them.
 
-Examples:
+## Store authorization
 
-- Server Actions;
-- Route Handlers;
-- server-only data-access functions;
-- webhook handlers where application ownership is involved.
+A Store always belongs to an internal DeliPlus organization.
 
-Client-side route guards and hidden buttons improve UX but are not authorization controls.
+For tenant-scoped dashboard operations:
+
+```text
+verified active Clerk Organization
+  -> internal organization
+  -> Store ownership
+  -> requested operation
+```
+
+A Store ID or product/order ID supplied by a client must never be trusted without ownership verification.
 
 ## Recommended operation shape
 
 Conceptually:
 
 ```text
-1. obtain authenticated Clerk user
-2. resolve membership
-3. resolve organization/store context
-4. verify required permission
-5. perform tenant-scoped operation
+1. obtain authenticated Clerk session
+2. obtain verified active Clerk Organization
+3. resolve internal DeliPlus organization
+4. resolve Store context when required
+5. verify role/permission and billing entitlement where relevant
+6. perform tenant-scoped operation
 ```
 
-Prefer shared server-side authorization helpers over repeatedly reconstructing this logic inconsistently.
+Prefer shared server-side/data-layer authorization helpers when repeated patterns become concrete.
 
-Do not over-abstract before the first concrete authorization flows exist.
+Do not over-abstract before real flows exist.
+
+## RLS
+
+RLS is a database security boundary, not a substitute for good server-side design.
+
+Tenant-owned tables should derive Organization context from the verified Clerk JWT accepted through Supabase Third-Party Auth.
+
+Do not create RLS policies that trust `organization_id` from request bodies, route params or client state.
 
 ## Public vs private data
 
 ### Public storefront
 
-May expose deliberately published data such as:
+May expose deliberately published Store data such as:
 
-- store name;
+- Store name;
 - active categories;
 - active products;
 - public delivery information.
 
+Public database access is not part of the initial tenant-core migration and must be designed separately.
+
 ### Merchant dashboard
 
-Requires authenticated and authorized membership.
+Requires authenticated Clerk membership in the active Organization plus tenant-scoped application authorization.
 
 ### Sensitive/private data
 
-Never expose through public storefront queries merely because records share a store ID.
+Never expose through public storefront queries merely because records share a Store ID.
 
-## Billing authorization
+## Billing authorization and Store capacity
 
-A user's ability to enter the dashboard and an organization's subscription entitlement are related but distinct checks.
+Subscription entitlement belongs to the Organization.
 
-Billing access should be based on trusted server-side application/Stripe state.
+Conceptually:
 
-Do not grant paid functionality from client-controlled values.
+```text
+Organization
+  -> plan
+  -> max Stores / entitlements
+```
+
+Current product direction:
+
+- Essential supports one Store;
+- higher plans may support more Stores;
+- exact higher-plan limits remain a billing/product decision;
+- intended trial duration is 15 days on Essential.
+
+Creating a Clerk Organization does not itself grant a trial, create a Store or establish paid access.
+
+Trial eligibility and Store-capacity checks must be enforced server-side against trusted billing/application state.
+
+Repeated Organization creation must not be assumed to grant unlimited independent trials.
 
 ## Webhooks
 
@@ -109,8 +182,10 @@ Stripe webhooks must:
 
 - verify the signature;
 - handle replay/idempotency safely;
-- resolve the correct organization/customer association;
+- resolve the correct Organization/customer association;
 - update only the intended billing projection.
+
+If Clerk webhooks are introduced later, their purpose must be specified. They are not required merely to duplicate membership into PostgreSQL.
 
 ## Error behavior
 
@@ -122,10 +197,13 @@ For tenant-owned resource requests, prefer behavior that does not leak sensitive
 
 Before merging protected dashboard functionality:
 
-- Is authentication required?
-- Where is authorization checked?
-- Is the membership lookup server-side?
-- Is the requested resource tenant-scoped?
-- Can a client change an ID to access another tenant?
+- Is Clerk authentication required?
+- Is the active Clerk Organization verified?
+- How is the internal DeliPlus organization resolved?
+- Is the requested Store/resource tenant-scoped?
+- Where is role/permission authorization checked?
+- Is billing entitlement required for the operation?
+- Can a client alter an ID to access another tenant?
+- Does RLS enforce the tenant boundary?
 - Are privileged credentials client-visible?
 - Is UI-only access control being mistaken for security?

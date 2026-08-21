@@ -27,11 +27,13 @@ Current foundation:
 - shadcn/ui
 - Base UI
 - Hugeicons
-
-Planned application services:
-
+- Clerk for authentication, Organizations, membership and Organization roles
 - Supabase / PostgreSQL for application data
-- Clerk for authentication and identity
+- Supabase Third-Party Auth with Clerk
+- Supabase CLI for local development and migrations
+
+Planned application service:
+
 - Stripe for merchant subscription billing
 
 Do not add a new framework, state library, ORM, validation library, form library or infrastructure dependency unless the task explicitly requires it or an approved plan documents the need.
@@ -105,10 +107,10 @@ Preferred code organization:
 
 ```text
 components/
-  ui/             # shared shadcn/base UI primitives
-  marketing/      # marketing-only components
-  dashboard/      # merchant dashboard components
-  storefront/     # public storefront components
+  ui/
+  marketing/
+  dashboard/
+  storefront/
 
 lib/
   supabase/
@@ -158,17 +160,24 @@ DeliPlus is multi-tenant from the beginning.
 The conceptual ownership chain is:
 
 ```text
-organization
-  -> store
-     -> categories
-     -> products
-     -> delivery configuration
-     -> orders
+Clerk Organization
+  -> DeliPlus organization
+     -> stores
+        -> categories
+        -> products
+        -> delivery configuration
+        -> orders
 ```
 
-Even if the MVP initially uses one store per organization, do not hard-code that assumption into domain relationships unless the product decision is explicitly documented.
+A Clerk Organization represents the merchant account / tenant identity in Clerk.
 
-Every tenant-owned record must be scoped by an appropriate tenant/store relationship.
+A DeliPlus `organizations` row is the internal PostgreSQL representation of that same tenant and must map to exactly one Clerk Organization through `clerk_organization_id`.
+
+A Store is an establishment/storefront owned by an Organization.
+
+One Organization may own multiple Stores. Even if the MVP initially provisions one Store, do not hard-code a one-store limitation into domain relationships.
+
+Every tenant-owned record must be scoped by an appropriate organization/store relationship.
 
 Never query tenant-owned data only by a user-controlled record ID or slug when authorization also requires tenant ownership verification.
 
@@ -180,13 +189,29 @@ See `docs/MULTI_TENANCY.md` and `docs/AUTHORIZATION.md`.
 
 ## 7. Authentication and authorization
 
-Clerk is responsible for user identity and authentication.
+Clerk is the source of truth for:
 
-PostgreSQL/Supabase is responsible for application domain data and authorization relationships.
+- user identity;
+- authentication;
+- Organization membership;
+- active Organization;
+- Clerk Organization roles.
 
-Do not treat Clerk metadata alone as the canonical application authorization database.
+Do not create a local `organization_members` table unless a future approved feature establishes a concrete application need that Clerk cannot satisfy.
 
-Application roles should be represented through persisted membership relationships such as organization membership.
+Supabase/PostgreSQL is the source of truth for:
+
+- internal DeliPlus organization records;
+- Stores;
+- catalog;
+- orders;
+- delivery configuration;
+- billing projection/state;
+- other application/domain data.
+
+Tenant context for authenticated requests must be derived from the verified Clerk session/JWT and mapped to the internal DeliPlus organization.
+
+Do not trust an `organization_id` or `store_id` supplied by the browser without server-side/database verification.
 
 Never expose secrets or privileged Supabase credentials to client components.
 
@@ -201,18 +226,37 @@ When introducing or changing persisted data:
 - define tenant ownership explicitly;
 - consider indexes for tenant-scoped lookups;
 - define deletion behavior deliberately;
-- consider RLS before exposing data through Supabase;
+- design RLS together with tenant-owned schema;
 - update `docs/DATABASE.md` when the domain model materially changes.
 
-Do not create production tables directly from application code.
+Do not create production tables directly from application code or manually treat hosted dashboard changes as the source of truth.
 
-## 9. Stripe and subscriptions
+## 9. Stripe, plans and subscriptions
 
 Stripe is for the merchant's DeliPlus subscription in the initial scope.
 
+The subscription/plan boundary is the DeliPlus Organization, not an individual Store and not the Clerk User.
+
+Conceptually:
+
+```text
+Organization
+  -> Subscription / plan entitlement
+  -> allowed Store capacity
+  -> Stores
+```
+
+Current product direction:
+
+- the Essential plan supports one Store;
+- higher plans may support additional Stores;
+- exact higher-plan names, prices and limits must not be invented before product approval;
+- the intended trial is 15 days on the Essential plan;
+- trial eligibility must be enforced server-side and must not assume that creating unlimited Clerk Organizations automatically grants unlimited trials.
+
 Do not implement end-customer payment without an explicit product decision.
 
-Billing state must be verified server-side. Never grant paid access based only on client state or redirect query parameters.
+Billing state and Store-capacity entitlement must be verified server-side. Never grant paid access based only on client state or redirect query parameters.
 
 Webhook handlers must be idempotent and verify Stripe signatures.
 
@@ -260,63 +304,19 @@ Validate untrusted external input at server boundaries.
 
 Do not:
 
-- refactor unrelated files;
-- rename broad structures during a feature task;
-- replace working libraries without request;
-- add speculative abstractions;
-- implement out-of-scope future features;
-- make formatting-only repository-wide changes during feature work;
-- commit secrets or real credentials;
-- weaken authentication, authorization or RLS to make a feature work.
+- expand a feature into adjacent product work;
+- introduce speculative abstractions;
+- create empty architecture for future ideas;
+- add dependencies “just in case”;
+- silently alter auth, tenancy, billing or database strategy;
+- bypass RLS or authorization to make development easier.
 
-If you find an unrelated issue, report it separately instead of silently expanding scope.
+When a requirement is unclear but implementation can safely proceed within the approved spec, choose the smallest non-speculative solution and document the assumption.
 
-## 14. Documentation rules
+## 14. Collaboration
 
-Documentation is part of the implementation when behavior or architecture changes.
+AI-generated work follows the same Git and review rules as manual work.
 
-Use:
+Do not commit, push, merge, rebase or rewrite history unless the task explicitly authorizes it.
 
-- `docs/ARCHITECTURE.md` for system-level boundaries;
-- `docs/DATABASE.md` for the current data model;
-- `docs/MULTI_TENANCY.md` for tenant isolation;
-- `docs/AUTHORIZATION.md` for access rules;
-- `docs/GIT_WORKFLOW.md` for collaboration conventions;
-- `docs/DEVELOPMENT.md` for local engineering workflow;
-- `docs/features/` for feature specifications;
-- `docs/decisions/` for durable architectural decisions.
-
-Documentation should describe current approved behavior, not guesses presented as fact.
-
-## 15. Git rules for agents
-
-Do not commit directly to `main`.
-
-Keep changes focused enough to review in a pull request.
-
-Do not rewrite Git history, force push, delete branches or discard user changes unless explicitly instructed.
-
-Never include unrelated generated files or local environment files in a commit.
-
-Suggested branch names:
-
-```text
-feature/<short-name>
-fix/<short-name>
-chore/<short-name>
-docs/<short-name>
-```
-
-## 16. Definition of done
-
-A task is complete when:
-
-- requested behavior is implemented;
-- scope is respected;
-- types are sound;
-- relevant checks were run or limitations were stated;
-- tenant and authorization boundaries were considered;
-- new environment variables are documented;
-- migrations are included when required;
-- meaningful architectural changes are documented;
-- the final diff is reviewable and contains no unrelated work.
+Keep one coherent purpose per branch and review all generated diffs before merge.
