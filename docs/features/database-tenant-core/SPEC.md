@@ -3,7 +3,7 @@
 **Path:** `docs/features/database-tenant-core/SPEC.md`  
 **Status:** Approved  
 **Scope:** First business-domain database migration  
-**Last updated:** 2026-08-22
+**Last updated:** 2026-08-23
 
 ## 1. Purpose
 
@@ -264,7 +264,7 @@ Represents a delivery establishment/storefront owned by a DeliPlus organization.
 | Column | Type | Requirements |
 | --- | --- | --- |
 | `id` | `uuid` | Primary key. |
-| `organization_id` | `uuid` | `NOT NULL`, FK to `organizations.id`. |
+| `organization_id` | `uuid` | `NOT NULL`, FK to `organizations.id` with `ON DELETE RESTRICT`. |
 | `name` | `text` | `NOT NULL`. |
 | `slug` | `text` | `NOT NULL`, globally `UNIQUE`. |
 | `status` | `text` | `NOT NULL`, default `draft`. |
@@ -279,9 +279,10 @@ Allowed status values:
 
 Use a check constraint rather than a PostgreSQL enum.
 
-Foreign-key deletion behavior must not silently cascade tenant deletion.
-
-Provide an index on `organization_id`.
+The normal `id` primary key remains in place. Also define
+`UNIQUE(organization_id, id)` as the target of the composite
+`store_memberships` foreign key. Its leftmost `organization_id` prefix covers
+tenant-first Store lookups, so no redundant standalone index is required.
 
 ### Slug rules
 
@@ -311,7 +312,8 @@ It does **not** represent Organization membership. Clerk remains the canonical s
 | Column | Type | Requirements |
 | --- | --- | --- |
 | `id` | `uuid` | Primary key. |
-| `store_id` | `uuid` | `NOT NULL`, FK to `stores.id`. |
+| `organization_id` | `uuid` | `NOT NULL`, part of the composite Store FK. |
+| `store_id` | `uuid` | `NOT NULL`, part of the composite Store FK. |
 | `clerk_user_id` | `text` | `NOT NULL`, Clerk User ID. |
 | `created_at` | `timestamptz` | `NOT NULL`, default current timestamp. |
 | `updated_at` | `timestamptz` | `NOT NULL`, default current timestamp. |
@@ -319,18 +321,20 @@ It does **not** represent Organization membership. Clerk remains the canonical s
 Constraints/indexes:
 
 - `UNIQUE(store_id, clerk_user_id)`;
-- index for lookup by `clerk_user_id`;
-- Store FK deletion behavior must be explicit and reviewed.
+- `INDEX(organization_id, store_id)`;
+- `INDEX(organization_id, clerk_user_id)`;
+- `FOREIGN KEY (organization_id, store_id)` references
+  `stores(organization_id, id)` with `ON UPDATE RESTRICT` and
+  `ON DELETE CASCADE`.
 
 Do not add a Store-specific role column in this migration.
 
 ### Validity rule
 
-A membership row alone must never be sufficient for authorization.
-
-At request time, the Store must also belong to the active Clerk Organization.
-
-This prevents a stale/incorrect Store membership from crossing tenant boundaries.
+The composite foreign key prevents a membership from pairing an Organization
+with a Store owned by another Organization. A membership row alone still does
+not establish authorization: verified Clerk Organization and user claims remain
+required at request time.
 
 ---
 
@@ -394,16 +398,17 @@ Expected normal application capability in this migration:
 ```text
 organizations: SELECT
 stores: SELECT
+store_memberships: SELECT
 ```
-
-Direct `store_memberships` SELECT should be granted only if the final reviewed RLS design genuinely requires it.
 
 Do not grant generic authenticated:
 
 - INSERT;
 - UPDATE;
 - DELETE;
-- TRUNCATE
+- TRUNCATE;
+- REFERENCES;
+- TRIGGER
 
 on tenant-core tables.
 
@@ -464,18 +469,14 @@ No normal authenticated INSERT/UPDATE/DELETE policy in this first migration.
 
 ## 15. RLS: `store_memberships`
 
-This table exists primarily to support Store authorization and future team management.
+Create one SELECT policy for normal members. A row is visible only when:
 
-The first migration must avoid exposing other users' Store assignments unnecessarily.
+- `clerk_user_id` equals verified JWT `sub`;
+- `organization_id` is the internal Organization mapped from verified `o.id`;
+- verified `o.rol` is `member`.
 
-The implementation plan must choose the smallest safe approach for policy evaluation and direct table visibility.
-
-Required outcome:
-
-- normal members cannot enumerate arbitrary Store membership assignments;
-- Store RLS can still determine whether the current user has a matching assignment;
-- Organization admins do not require a membership row to access Stores;
-- cross-Organization assignment data cannot grant access.
+The policy must not query `stores`, keeping the RLS graph acyclic. Organization
+admins do not require or directly list Store memberships in this foundation.
 
 Do not add authenticated write policies in this migration.
 
@@ -631,6 +632,7 @@ Production is out of scope.
 - [ ] `stores` references `organizations.id`.
 - [ ] Multiple Stores per Organization are supported.
 - [ ] `store_memberships` exists for Store-specific assignments.
+- [ ] Its composite Organization/Store FK rejects cross-tenant assignments.
 - [ ] No local `organization_members` table exists.
 - [ ] `(store_id, clerk_user_id)` is unique.
 - [ ] Store-specific roles were not introduced.

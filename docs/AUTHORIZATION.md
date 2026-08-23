@@ -67,6 +67,7 @@ Conceptually:
 public.store_memberships
 
 id
+organization_id
 store_id
 clerk_user_id
 created_at
@@ -84,6 +85,16 @@ The pair:
 ```
 
 must be unique.
+
+The composite foreign key:
+
+```text
+(organization_id, store_id)
+  -> stores(organization_id, id)
+```
+
+prevents a Store assignment from pairing one Organization with another
+Organization's Store.
 
 A Store membership does not prove Organization membership by itself. The authenticated user must also have a verified active Clerk Organization matching the Store's parent Organization.
 

@@ -99,6 +99,7 @@ Initial tenant-core shape:
 
 ```text
 id
+organization_id
 store_id
 clerk_user_id
 created_at
@@ -113,10 +114,12 @@ stores N <-> N Clerk users through store_memberships
 
 Requirements:
 
-- `store_id` references `stores.id`;
+- `(organization_id, store_id)` references `stores(organization_id, id)`;
+- the composite FK rejects Organization/Store mismatches and cascades on Store deletion;
 - `clerk_user_id` stores the external Clerk User ID;
 - `(store_id, clerk_user_id)` is unique;
-- indexes should support lookup by `store_id` and `clerk_user_id`;
+- indexes support `(organization_id, store_id)` and
+  `(organization_id, clerk_user_id)` lookups;
 - Store-specific roles are intentionally deferred.
 
 An Organization admin does not need a `store_memberships` row to access Stores in their active Organization.
@@ -287,7 +290,7 @@ Normal `authenticated` access should be read-only for:
 
 - organizations;
 - stores;
-- store_memberships where direct read is actually required by approved RLS/UI design.
+- store_memberships, limited by RLS to the active member's own assignments.
 
 Generic authenticated INSERT/UPDATE/DELETE for tenant-core records is not part of the first migration.
 

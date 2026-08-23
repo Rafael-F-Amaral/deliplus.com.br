@@ -84,6 +84,7 @@ Conceptually:
 store_memberships
 
 id
+organization_id
 store_id
 clerk_user_id
 created_at
@@ -94,9 +95,13 @@ Constraints:
 
 ```text
 UNIQUE(store_id, clerk_user_id)
+
+FOREIGN KEY (organization_id, store_id)
+  REFERENCES stores(organization_id, id)
 ```
 
-`store_id` references the DeliPlus Store.
+The composite foreign key makes the Store's Organization identity explicit and
+prevents cross-Organization assignment rows.
 
 `clerk_user_id` is an external Clerk identifier, not a domain primary key.
 
