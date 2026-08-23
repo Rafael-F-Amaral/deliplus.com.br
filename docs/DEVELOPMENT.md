@@ -81,31 +81,6 @@ Before adding a package:
 
 Do not add `@supabase/ssr` unless a concrete requirement for Supabase-managed cookie sessions appears. Clerk currently manages authentication/session state and the application passes the Clerk token to `@supabase/supabase-js`.
 
-## UI development
-
-The project uses shadcn/ui and Tailwind.
-
-Guidelines:
-
-- reuse `components/ui` primitives;
-- use composition for feature-specific components;
-- keep marketing/dashboard/storefront components in their own boundaries as they appear;
-- preserve accessibility;
-- avoid introducing another component system without an architectural decision.
-
-## Server and client components
-
-Default to server-side code in the App Router.
-
-Use Client Components only when required for:
-
-- local interactive state;
-- event handlers;
-- browser APIs;
-- client-only third-party libraries.
-
-Never put server secrets into code reachable by the browser.
-
 ## Data access
 
 Keep Supabase clients/helpers separated by execution context rather than using one universal privileged client.
@@ -125,7 +100,26 @@ lib/supabase/server.ts
 
 Do not create a browser Supabase client until a concrete feature requires one.
 
-Local development uses the Supabase stack configured under `supabase/`.
+## Identity and Store access during development
+
+Clerk remains the source of:
+
+- user identity;
+- Organization membership;
+- active Organization;
+- Organization roles.
+
+PostgreSQL contains Store assignment data.
+
+When implementing Store-scoped features, test at minimum:
+
+- Organization admin accessing any Store in own Organization;
+- Organization member accessing an assigned Store;
+- Organization member denied from an unassigned Store in the same Organization;
+- user denied from a Store in another Organization;
+- authenticated user with no active Organization denied from tenant/Store data.
+
+Do not simulate authorization only in the UI.
 
 ## Database workflow
 
@@ -152,17 +146,40 @@ The first tenant-owned schema is specified in:
 docs/features/database-tenant-core/SPEC.md
 ```
 
-It introduces the `organizations` / `stores` tenant core and RLS foundation.
+It introduces:
 
-## Multi-tenant development
+- organizations;
+- stores;
+- Store membership/assignment foundation;
+- tenant/Store RLS foundation.
 
-Clerk is the source of truth for Organization membership and Organization roles.
+## Initial write posture
 
-PostgreSQL stores the internal DeliPlus tenant and Store relationships.
+The initial tenant-core migration should not expose generic authenticated write access for tenant-core objects.
 
-Do not create a local `organization_members` mirror unless a future approved feature requires application-specific membership data.
+Provisioning and team-access mutations will come later through trusted server-side features.
 
-When testing tenant-owned data, include cross-tenant negative cases, not only successful same-tenant cases.
+This avoids allowing a browser/Data API caller to bypass:
+
+- onboarding;
+- subscription/Store-capacity rules;
+- team-management rules.
+
+## Team-management development
+
+Future DeliPlus team UX should integrate Clerk Organization membership and PostgreSQL Store assignments behind one application flow.
+
+Do not require the merchant to understand internal provider boundaries.
+
+A future team-management implementation may need to coordinate:
+
+```text
+Clerk invite/member lifecycle
++
+DeliPlus store_memberships
+```
+
+Its pending-invite behavior, rollback/error handling and authorization require a dedicated specification.
 
 ## Billing development
 
@@ -178,8 +195,6 @@ Current product direction:
 
 Do not implement trial eligibility or higher-plan limits speculatively.
 
-In particular, do not assume that every new Clerk Organization automatically receives another free trial.
-
 ## Validation
 
 Treat form input, URL parameters, webhook payloads and external API data as untrusted.
@@ -188,27 +203,15 @@ A validation library has not yet been selected in the current foundation. Do not
 
 When a feature genuinely requires schema validation, select/introduce the solution through that feature's plan rather than embedding an undocumented new project convention.
 
-## Errors
-
-Features should provide deliberate:
-
-- loading states;
-- empty states;
-- validation feedback;
-- recoverable error messages;
-- server-side logging where appropriate.
-
-Do not expose secrets, stack traces or cross-tenant details to end users.
-
 ## Tests
 
-A project-wide automated test stack is not defined yet.
+A project-wide application test stack is not defined yet.
 
-Do not invent a test framework silently. When critical domain logic appears, define the testing approach in an explicit task/decision.
+Database security features should use the Supabase/PostgreSQL testing approach approved by the relevant feature plan.
+
+For tenant/Store security, include negative cross-tenant and same-tenant/unassigned-Store cases.
 
 Regardless of test framework, `lint`, `typecheck` and production `build` remain baseline checks.
-
-Database security features must also include appropriate local isolation verification.
 
 ## Documentation workflow
 

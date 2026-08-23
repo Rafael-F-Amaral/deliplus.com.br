@@ -20,7 +20,7 @@ Treating every Clerk User as the tenant would prevent one person from participat
 
 ## Decision
 
-DeliPlus uses three distinct concepts:
+DeliPlus uses distinct tenant and Store concepts:
 
 ```text
 Clerk User
@@ -49,6 +49,7 @@ Supabase/PostgreSQL is the source of truth for:
 
 - internal DeliPlus organization;
 - Stores;
+- Store-specific access assignments;
 - catalog/orders/delivery;
 - normalized billing projection;
 - tenant-owned application data and RLS.
@@ -56,6 +57,8 @@ Supabase/PostgreSQL is the source of truth for:
 The internal DeliPlus organization uses its own UUID and stores a unique `clerk_organization_id`.
 
 No `organization_members` mirror is created in the current architecture.
+
+Store-specific access is defined separately in `ADR-002-store-level-access-model.md`.
 
 The subscription boundary is the Organization.
 
@@ -67,23 +70,24 @@ Current product direction:
 - exact higher-plan prices/limits remain outside this ADR;
 - trial eligibility must not assume that repeatedly creating Clerk Organizations grants unlimited free trials.
 
-Creating a Clerk Organization does not itself create an internal organization, Store or Stripe subscription. DeliPlus onboarding/provisioning performs those actions explicitly.
+Creating a Clerk Organization does not itself create an internal organization, Store or Stripe subscription.
 
 ## Consequences
 
 ### Benefits
 
 - one user can manage independent businesses without separate logins;
-- one business can operate multiple Stores under shared membership and billing;
+- one business can operate multiple Stores under shared Organization membership and billing;
 - chains can upgrade Store capacity without changing tenant relationships;
 - Store limits remain business entitlements rather than schema constraints;
-- tenant membership is not duplicated unnecessarily between Clerk and PostgreSQL.
+- Organization membership is not duplicated unnecessarily between Clerk and PostgreSQL.
 
 ### Requirements
 
 - the active Clerk Organization must be verified on tenant-scoped requests;
 - every internal organization must map to exactly one Clerk Organization;
 - Store ownership must always resolve through the internal organization;
+- Store-level user access must follow ADR-002;
 - billing features must enforce Store-capacity limits server-side;
 - onboarding must detect an unprovisioned Clerk Organization and route it through provisioning;
 - trial eligibility needs a dedicated billing rule before production.
@@ -92,7 +96,8 @@ Creating a Clerk Organization does not itself create an internal organization, S
 
 - Organization switching becomes a real product concept;
 - Store selection becomes necessary for Store-scoped dashboard features when an Organization owns multiple Stores;
-- onboarding/provisioning must coordinate Clerk, PostgreSQL and eventually Stripe safely.
+- onboarding/provisioning must coordinate Clerk, PostgreSQL and eventually Stripe safely;
+- team management needs DeliPlus Store assignment in addition to Clerk Organization membership.
 
 ## Alternatives considered
 
@@ -104,6 +109,6 @@ Rejected because chains would require multiple tenants, memberships and subscrip
 
 Rejected because users may own or participate in multiple independent businesses and Organizations may have multiple members.
 
-### Local `organization_members` table as the membership source
+### Local `organization_members` table as the Organization membership source
 
-Rejected for the current architecture because Clerk Organizations already provide membership and Organization roles. A local membership model may be reconsidered only if future product requirements cannot be represented through Clerk.
+Rejected because Clerk Organizations already provide tenant membership and Organization roles. PostgreSQL is used only for DeliPlus-specific Store assignment and domain data.

@@ -13,14 +13,15 @@ The first tenant-owned schema is specified in:
 1. PostgreSQL is the canonical DeliPlus application data store.
 2. Clerk is the canonical source of user identity, Organization membership, active Organization and Clerk Organization roles.
 3. Persist DeliPlus tenant ownership explicitly.
-4. Prefer UUID primary keys unless a migration establishes another convention.
-5. External provider IDs such as Clerk Organization IDs must not become domain primary keys.
-6. Use foreign keys for domain relationships.
-7. Use migrations for every schema change.
-8. Index common tenant-scoped access paths.
-9. Treat RLS and server-side authorization as part of schema design.
-10. Avoid duplicating the same source-of-truth state independently across Clerk, Stripe and PostgreSQL.
-11. Billing/plan limits are application entitlements and must not be represented as destructive schema cardinality constraints.
+4. Persist Store-specific user access explicitly when it is not represented by Clerk.
+5. Prefer UUID primary keys unless a migration establishes another convention.
+6. External provider IDs such as Clerk Organization/User IDs must not become domain primary keys.
+7. Use foreign keys for domain relationships.
+8. Use migrations for every schema change.
+9. Index common tenant/Store-scoped access paths.
+10. Treat RLS and server-side authorization as part of schema design.
+11. Avoid duplicating the same source-of-truth state independently across Clerk, Stripe and PostgreSQL.
+12. Billing/plan limits are application entitlements and must not be represented as destructive schema cardinality constraints.
 
 ## Initial domain entities
 
@@ -48,7 +49,7 @@ Responsibilities:
 
 Do not use `clerk_organization_id` as the PostgreSQL primary key.
 
-Clerk-managed Organization metadata such as membership and Clerk roles should not be duplicated without a concrete application requirement.
+Clerk-managed Organization membership and Organization roles should not be duplicated locally.
 
 ### organization_members
 
@@ -62,13 +63,11 @@ Clerk is the source of truth for:
 - active Organization;
 - Clerk Organization roles.
 
-A future feature may introduce application-specific membership data only if a concrete requirement cannot be represented reliably through Clerk.
-
 ### stores
 
 Represents a public merchant establishment/storefront owned by one DeliPlus organization.
 
-Current tenant-core fields are defined by its SPEC and include conceptually:
+Current tenant-core fields include conceptually:
 
 ```text
 id
@@ -90,7 +89,41 @@ The database must support multiple Stores even when a billing plan limits how ma
 
 `slug` is the public Store identifier and is independent from the Clerk Organization slug.
 
-Potential future fields should not be added until required, e.g. custom domain, theme configuration, contact information and operating hours.
+### store_memberships
+
+Represents Store-specific access for a Clerk Organization member.
+
+This table exists because Clerk Organization membership is tenant-wide while Store access may be narrower.
+
+Initial tenant-core shape:
+
+```text
+id
+store_id
+clerk_user_id
+created_at
+updated_at
+```
+
+Relationship:
+
+```text
+stores N <-> N Clerk users through store_memberships
+```
+
+Requirements:
+
+- `store_id` references `stores.id`;
+- `clerk_user_id` stores the external Clerk User ID;
+- `(store_id, clerk_user_id)` is unique;
+- indexes should support lookup by `store_id` and `clerk_user_id`;
+- Store-specific roles are intentionally deferred.
+
+An Organization admin does not need a `store_memberships` row to access Stores in their active Organization.
+
+A normal Organization member requires an explicit Store membership for Store-scoped access.
+
+A Store membership never replaces the requirement that the user belongs to the Store's Clerk Organization.
 
 ### categories
 
@@ -160,17 +193,6 @@ orders
 order_items
 ```
 
-Important future decisions include:
-
-- order status lifecycle;
-- customer snapshot fields;
-- address snapshot fields;
-- delivery/pickup;
-- price snapshots;
-- product/modifier snapshots;
-- cancellation rules;
-- merchant notifications.
-
 Order history must not depend on mutable product names/prices remaining unchanged.
 
 ### subscriptions / billing projection
@@ -190,8 +212,6 @@ subscription
   -> trial state
   -> current period metadata
 ```
-
-Exact columns must be defined by the billing specification.
 
 The Organization owns the subscription.
 
@@ -219,6 +239,7 @@ DeliPlus organizations
   1 -> billing/subscription projection as designed
 
 stores
+  N <-> N Clerk users via store_memberships
   1 -> N categories
   1 -> N products
   1 -> N orders
@@ -229,17 +250,48 @@ stores
 
 Creating a Clerk Organization does not automatically create PostgreSQL records.
 
-DeliPlus onboarding/provisioning will explicitly create the internal organization and initial Store at the appropriate point in the product flow.
+Adding a member to Clerk does not automatically grant Store access.
 
-This boundary is intentional so billing/trial eligibility and application state can be validated coherently.
+DeliPlus onboarding/team-management will explicitly create:
 
-The exact transaction/order of provisioning and Stripe subscription creation belongs to the onboarding/billing specification.
+- internal organization records;
+- initial/additional Stores;
+- Store membership assignments.
 
-## Tenant-scoped indexes
+The exact transaction/order of provisioning and Stripe subscription creation belongs to onboarding/billing specs.
 
-As the schema becomes concrete, common access paths should generally have tenant-aware indexes.
+Store membership mutation belongs to a dedicated team-access feature and must use a trusted server-side boundary.
 
-Examples must be derived from actual queries rather than copied speculatively.
+## Tenant and Store access lookup
+
+For authenticated Store-scoped access, the application/database conceptually resolves:
+
+```text
+Clerk JWT sub
+Clerk JWT o.id
+Clerk JWT o.rol
+        ↓
+internal organization
+        ↓
+Store
+        ↓
+if admin: tenant Store ownership is sufficient
+if member: matching store_membership is also required
+```
+
+## Initial Data API posture
+
+The first tenant-core migration should be conservative.
+
+Normal `authenticated` access should be read-only for:
+
+- organizations;
+- stores;
+- store_memberships where direct read is actually required by approved RLS/UI design.
+
+Generic authenticated INSERT/UPDATE/DELETE for tenant-core records is not part of the first migration.
+
+Provisioning and team membership mutations will be implemented separately so billing and access rules cannot be bypassed directly through the Data API.
 
 ## Money
 
@@ -256,21 +308,18 @@ Never rely on JavaScript binary floating-point for authoritative money calculati
 
 Use timezone-aware timestamps for persisted system events. Display/localization belongs at application boundaries.
 
-## Soft delete
-
-Do not apply soft deletion universally. Prefer explicit active/archive semantics where the product requires recoverability or historical preservation.
-
-Orders and audit-relevant records require special retention decisions.
-
 ## Schema change checklist
 
 Every migration should answer:
 
 - Who owns this record?
-- Which foreign key enforces that ownership?
+- Which Organization owns the Store/resource?
+- Is Store-level assignment relevant?
+- Which foreign key enforces ownership?
 - Does tenant context come from the verified Clerk Organization?
+- Does user identity come from verified Clerk `sub`?
 - Does it need RLS?
-- Which roles may read/write it?
+- Which roles/memberships may read/write it?
 - Is billing entitlement relevant?
 - Is deletion safe?
 - Does it need an index?
