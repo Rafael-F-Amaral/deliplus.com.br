@@ -3,6 +3,8 @@ import "server-only"
 import { auth } from "@clerk/nextjs/server"
 import { createClient } from "@supabase/supabase-js"
 
+import type { Database } from "./database.types"
+
 export function createServerSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabasePublishableKey =
@@ -12,7 +14,7 @@ export function createServerSupabaseClient() {
     throw new Error("Missing required Supabase environment variables")
   }
 
-  return createClient(supabaseUrl, supabasePublishableKey, {
+  return createClient<Database>(supabaseUrl, supabasePublishableKey, {
     async accessToken() {
       return (await auth()).getToken()
     },

@@ -9,7 +9,7 @@ DeliPlus is a multi-tenant SaaS for food delivery businesses such as restaurants
 The platform has three primary surfaces:
 
 1. Marketing and SaaS acquisition: landing page, pricing, authentication and billing.
-2. Merchant dashboard: products, categories, orders, delivery configuration and store settings.
+2. Merchant dashboard: products, categories, orders, delivery configuration, team access and store settings.
 3. Public storefront: customer-facing store pages available by store slug, e.g. `/store-slug`.
 
 The end customer places an order through the storefront. End-customer online payment is out of scope for the initial product. Stripe is used for merchant SaaS subscriptions.
@@ -27,11 +27,13 @@ Current foundation:
 - shadcn/ui
 - Base UI
 - Hugeicons
+- Clerk for authentication, Organizations, Organization membership and Organization roles
+- Supabase / PostgreSQL for application data and Store-level authorization
+- Supabase Third-Party Auth with Clerk
+- Supabase CLI for local development and migrations
 
-Planned application services:
+Planned application service:
 
-- Supabase / PostgreSQL for application data
-- Clerk for authentication and identity
 - Stripe for merchant subscription billing
 
 Do not add a new framework, state library, ORM, validation library, form library or infrastructure dependency unless the task explicitly requires it or an approved plan documents the need.
@@ -80,8 +82,8 @@ Before finishing:
 
 - inspect the diff;
 - remove unrelated edits;
-- verify tenant isolation concerns;
-- verify authorization boundaries;
+- verify Organization isolation;
+- verify Store-level authorization;
 - mention migrations or environment-variable changes;
 - document meaningful architectural decisions.
 
@@ -105,10 +107,10 @@ Preferred code organization:
 
 ```text
 components/
-  ui/             # shared shadcn/base UI primitives
-  marketing/      # marketing-only components
-  dashboard/      # merchant dashboard components
-  storefront/     # public storefront components
+  ui/
+  marketing/
+  dashboard/
+  storefront/
 
 lib/
   supabase/
@@ -127,10 +129,11 @@ Create folders only when they are needed. Do not prebuild empty architecture.
 The following areas are considered architecture-sensitive:
 
 - `AGENTS.md`
-- `docs/architecture*` and architecture decision records
+- architecture decision records
 - authentication architecture
 - authorization rules
 - Clerk configuration
+- Store membership/access model
 - Supabase clients and security model
 - PostgreSQL schema and migrations
 - Row Level Security policies
@@ -158,35 +161,88 @@ DeliPlus is multi-tenant from the beginning.
 The conceptual ownership chain is:
 
 ```text
-organization
-  -> store
-     -> categories
-     -> products
-     -> delivery configuration
-     -> orders
+Clerk Organization
+  -> DeliPlus organization
+     -> stores
+        -> categories
+        -> products
+        -> delivery configuration
+        -> orders
 ```
 
-Even if the MVP initially uses one store per organization, do not hard-code that assumption into domain relationships unless the product decision is explicitly documented.
+A Clerk Organization represents the merchant account / tenant identity in Clerk.
 
-Every tenant-owned record must be scoped by an appropriate tenant/store relationship.
+A DeliPlus `organizations` row is the internal PostgreSQL representation of that same tenant and must map to exactly one Clerk Organization through `clerk_organization_id`.
 
-Never query tenant-owned data only by a user-controlled record ID or slug when authorization also requires tenant ownership verification.
+A Store is an establishment/storefront owned by an Organization.
+
+One Organization may own multiple Stores. Even if the MVP initially provisions one Store, do not hard-code a one-store limitation into domain relationships.
+
+Clerk Organization membership does **not** automatically grant access to every Store.
+
+Store access rules are:
+
+```text
+Clerk Organization admin
+  -> may access all Stores in the active Organization
+
+Clerk Organization member
+  -> may access only Stores explicitly assigned through DeliPlus Store membership
+```
+
+The Store assignment relation belongs to PostgreSQL because Store is a DeliPlus domain entity.
+
+Do not recreate a local `organization_members` table merely to duplicate Clerk membership.
+
+Every tenant-owned record must be scoped by an appropriate Organization/Store relationship.
+
+Never query tenant-owned data only by a user-controlled record ID or slug when authorization also requires tenant/Store ownership verification.
 
 Do not rely on UI hiding for authorization.
 
 Database policies and server-side authorization are mandatory security boundaries.
 
-See `docs/MULTI_TENANCY.md` and `docs/AUTHORIZATION.md`.
+See `docs/MULTI_TENANCY.md`, `docs/AUTHORIZATION.md`, and `docs/decisions/ADR-002-store-level-access-model.md`.
 
 ## 7. Authentication and authorization
 
-Clerk is responsible for user identity and authentication.
+Clerk is the source of truth for:
 
-PostgreSQL/Supabase is responsible for application domain data and authorization relationships.
+- user identity;
+- authentication;
+- Organization membership;
+- active Organization;
+- Clerk Organization roles.
 
-Do not treat Clerk metadata alone as the canonical application authorization database.
+Supabase/PostgreSQL is the source of truth for:
 
-Application roles should be represented through persisted membership relationships such as organization membership.
+- internal DeliPlus organization records;
+- Stores;
+- Store membership/assignment;
+- catalog;
+- orders;
+- delivery configuration;
+- billing projection/state;
+- other application/domain data.
+
+Do not create a local `organization_members` table unless a future approved feature establishes a concrete application need that Clerk cannot satisfy.
+
+The initial Store-level assignment entity is `store_memberships`.
+
+A Store membership answers only:
+
+> Which Store(s) inside the active Organization may this Clerk user access?
+
+It does not replace Clerk Organization membership.
+
+Tenant context for authenticated requests must be derived from the verified Clerk session/JWT and mapped to the internal DeliPlus organization.
+
+Store-scoped authorization must additionally resolve either:
+
+- Organization admin access to all Stores in the tenant; or
+- an explicit `store_memberships` assignment for the current Clerk user.
+
+Do not trust an `organization_id`, `store_id`, or `clerk_user_id` supplied by the browser without server-side/database verification.
 
 Never expose secrets or privileged Supabase credentials to client components.
 
@@ -198,25 +254,62 @@ When introducing or changing persisted data:
 
 - use migrations;
 - use stable foreign keys;
-- define tenant ownership explicitly;
-- consider indexes for tenant-scoped lookups;
+- define Organization ownership explicitly;
+- define Store access explicitly;
+- consider indexes for tenant/Store-scoped lookups;
 - define deletion behavior deliberately;
-- consider RLS before exposing data through Supabase;
+- design RLS together with tenant-owned schema;
 - update `docs/DATABASE.md` when the domain model materially changes.
 
-Do not create production tables directly from application code.
+Do not create production tables directly from application code or manually treat hosted dashboard changes as the source of truth.
 
-## 9. Stripe and subscriptions
+## 9. Stripe, plans and subscriptions
 
 Stripe is for the merchant's DeliPlus subscription in the initial scope.
 
+The subscription/plan boundary is the DeliPlus Organization, not an individual Store and not the Clerk User.
+
+Conceptually:
+
+```text
+Organization
+  -> Subscription / plan entitlement
+  -> allowed Store capacity
+  -> Stores
+```
+
+Current product direction:
+
+- the Essential plan supports one Store;
+- higher plans may support additional Stores;
+- exact higher-plan names, prices and limits must not be invented before product approval;
+- the intended trial is 15 days on the Essential plan;
+- trial eligibility must be enforced server-side and must not assume that creating unlimited Clerk Organizations automatically grants unlimited trials.
+
+Store access assignments do not change Store-capacity billing rules.
+
 Do not implement end-customer payment without an explicit product decision.
 
-Billing state must be verified server-side. Never grant paid access based only on client state or redirect query parameters.
+Billing state and Store-capacity entitlement must be verified server-side. Never grant paid access based only on client state or redirect query parameters.
 
-Webhook handlers must be idempotent and verify Stripe signatures.
+## 10. Team-management UX
 
-## 10. Next.js rules
+The Clerk Organization UI may remain available for Organization-level account management and switching.
+
+DeliPlus will own Store-specific team-access UX.
+
+A future dashboard team flow should be able to conceptually perform:
+
+```text
+invite/add Organization member through Clerk
+  -> assign one or more Stores in DeliPlus
+```
+
+The merchant should not be required to understand the internal split between Clerk and Supabase.
+
+Do not implement this UI or provisioning flow unless requested by its own feature specification.
+
+## 11. Next.js rules
 
 Use the App Router and current repository conventions.
 
@@ -228,95 +321,23 @@ Prefer server-side data access for authenticated dashboard data unless there is 
 
 Do not add API routes when a Server Action or server-side module is a clearer boundary; do not force Server Actions where an HTTP endpoint is required, such as third-party webhooks.
 
-## 11. UI rules
-
-Reuse existing shadcn/ui primitives before creating replacements.
-
-Keep reusable primitives in `components/ui` and feature-specific composition outside it.
-
-Do not modify generated/shared UI primitives for one isolated screen if composition or variants can solve the requirement.
-
-Use Tailwind utilities consistently with the existing project.
-
-Maintain accessibility:
-
-- semantic elements;
-- keyboard access;
-- visible focus states;
-- labels for controls;
-- meaningful loading/error states.
-
-## 12. TypeScript rules
-
-Keep TypeScript strict and avoid `any` unless an unavoidable boundary is documented.
-
-Prefer domain-specific types over large generic objects.
-
-Do not duplicate database/domain types across unrelated files if a shared canonical type already exists.
-
-Validate untrusted external input at server boundaries.
-
-## 13. Scope discipline
+## 12. Scope discipline
 
 Do not:
 
-- refactor unrelated files;
-- rename broad structures during a feature task;
-- replace working libraries without request;
-- add speculative abstractions;
-- implement out-of-scope future features;
-- make formatting-only repository-wide changes during feature work;
-- commit secrets or real credentials;
-- weaken authentication, authorization or RLS to make a feature work.
+- expand a feature into adjacent product work;
+- introduce speculative abstractions;
+- create empty architecture for future ideas;
+- add dependencies “just in case”;
+- silently alter auth, tenancy, Store access, billing or database strategy;
+- bypass RLS or authorization to make development easier.
 
-If you find an unrelated issue, report it separately instead of silently expanding scope.
+When a requirement is unclear but implementation can safely proceed within the approved spec, choose the smallest non-speculative solution and document the assumption.
 
-## 14. Documentation rules
+## 13. Collaboration
 
-Documentation is part of the implementation when behavior or architecture changes.
+AI-generated work follows the same Git and review rules as manual work.
 
-Use:
+Do not commit, push, merge, rebase or rewrite history unless the task explicitly authorizes it.
 
-- `docs/ARCHITECTURE.md` for system-level boundaries;
-- `docs/DATABASE.md` for the current data model;
-- `docs/MULTI_TENANCY.md` for tenant isolation;
-- `docs/AUTHORIZATION.md` for access rules;
-- `docs/GIT_WORKFLOW.md` for collaboration conventions;
-- `docs/DEVELOPMENT.md` for local engineering workflow;
-- `docs/features/` for feature specifications;
-- `docs/decisions/` for durable architectural decisions.
-
-Documentation should describe current approved behavior, not guesses presented as fact.
-
-## 15. Git rules for agents
-
-Do not commit directly to `main`.
-
-Keep changes focused enough to review in a pull request.
-
-Do not rewrite Git history, force push, delete branches or discard user changes unless explicitly instructed.
-
-Never include unrelated generated files or local environment files in a commit.
-
-Suggested branch names:
-
-```text
-feature/<short-name>
-fix/<short-name>
-chore/<short-name>
-docs/<short-name>
-```
-
-## 16. Definition of done
-
-A task is complete when:
-
-- requested behavior is implemented;
-- scope is respected;
-- types are sound;
-- relevant checks were run or limitations were stated;
-- tenant and authorization boundaries were considered;
-- new environment variables are documented;
-- migrations are included when required;
-- meaningful architectural changes are documented;
-- the final diff is reviewable and contains no unrelated work.
+Keep one coherent purpose per branch and review all generated diffs before merge.

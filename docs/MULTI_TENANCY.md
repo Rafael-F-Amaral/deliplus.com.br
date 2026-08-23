@@ -2,130 +2,323 @@
 
 ## Goal
 
-Ensure one merchant cannot accidentally or intentionally read or modify another merchant's data.
+Ensure one merchant cannot accidentally or intentionally read or modify another merchant's data while supporting:
+
+- users who participate in more than one business;
+- businesses that operate more than one Store;
+- Organization members who are authorized for only a subset of Stores.
 
 Multi-tenancy is a core architectural requirement, not a later optimization.
 
-## Tenant model
+## Terminology
 
-The initial conceptual boundary is:
+### Clerk User
+
+A person authenticated by Clerk.
+
+One User may belong to multiple Clerk Organizations.
+
+### Clerk Organization
+
+The merchant/business tenant identity managed by Clerk.
+
+Clerk is the source of truth for:
+
+- Organization membership;
+- active Organization;
+- Clerk Organization roles.
+
+### DeliPlus organization
+
+The internal PostgreSQL representation of the same tenant.
+
+It maps one-to-one to a Clerk Organization using:
 
 ```text
-organization
-  -> store
+organizations.clerk_organization_id
 ```
 
-An organization represents the DeliPlus customer account. A store represents a public ordering storefront.
+It has its own internal UUID for DeliPlus foreign keys.
 
-Store-owned entities include, at minimum as they are introduced:
+### Store
 
-- categories;
-- products;
-- delivery settings;
-- orders.
+An establishment/storefront owned by a DeliPlus organization.
 
-## MVP assumption
+A Store is not the tenant itself.
 
-The MVP may expose a single store per organization. The database should still preserve the `organization -> stores` relationship unless an explicit product decision changes this.
+One Organization can own multiple Stores.
+
+### Store membership
+
+A DeliPlus relationship that grants a normal Clerk Organization member access to a specific Store.
+
+Store membership is not a replacement for Clerk Organization membership.
+
+It exists because a member of a business may operate only one or some of its units.
+
+## Tenant model
+
+The conceptual boundary is:
+
+```text
+Clerk User
+  -> one or more Clerk Organizations
+
+Clerk Organization
+  <-> DeliPlus organization
+        -> one or more Stores
+             -> Store memberships
+             -> categories
+             -> products
+             -> delivery settings
+             -> orders
+```
+
+## Why Organization and Store are separate
+
+For a simple merchant:
+
+```text
+Organization: Pizzaria do João
+  -> Store: Pizzaria do João
+```
+
+For a chain:
+
+```text
+Organization: Grupo Bella
+  -> Store: Bella Centro
+  -> Store: Bella Shopping
+  -> Store: Bella Norte
+```
+
+For one person with independent businesses:
+
+```text
+User: João
+  -> Organization: Napoli Pizzarias
+       -> Store: Napoli Centro
+       -> Store: Napoli Shopping
+
+  -> Organization: Tropical Açaí
+       -> Store: Tropical Açaí
+```
+
+Organization is the administrative/financial boundary.
+
+Store is the operational boundary.
+
+## Why Store membership exists
+
+Organization membership alone is intentionally broader than Store access.
+
+Example:
+
+```text
+Organization: Grupo Bella
+
+Stores:
+- Bella Centro
+- Bella Norte
+- Bella Shopping
+
+João
+- Clerk role: admin
+- Store access: all Stores
+
+Rafael
+- Clerk role: member
+- Store access: Bella Centro only
+
+Maria
+- Clerk role: member
+- Store access: Bella Centro + Bella Shopping
+```
+
+DeliPlus therefore keeps Store assignments in PostgreSQL.
+
+## Current access rule
+
+### Organization admin
+
+An Organization admin may access all Stores belonging to the active Organization.
+
+The admin does not require explicit Store membership rows.
+
+### Organization member
+
+An Organization member may access only Stores for which an explicit Store membership exists for their verified Clerk User ID.
+
+Both checks still require the Store to belong to the active Organization.
+
+## Multiple Organizations
+
+DeliPlus may support a user belonging to multiple Organizations.
+
+The active Clerk Organization determines the current tenant context.
+
+Switching Organizations switches tenant context; it must never merge data between tenants.
+
+The Clerk configuration may temporarily limit how many Organizations a user can create. That product/configuration limit does not change the database model.
+
+## Store capacity and plans
+
+Subscription entitlement belongs to the Organization.
+
+Conceptually:
+
+```text
+Organization
+  -> plan/subscription entitlement
+  -> Store capacity
+  -> Stores
+```
+
+Current product direction:
+
+- Essential permits one Store;
+- higher plans may permit more Stores;
+- database cardinality remains `1 -> N`;
+- Store-count limits are enforced by trusted application/billing rules;
+- intended trial is 15 days on Essential.
+
+Store memberships do not affect Store capacity.
+
+## Provisioning flow
+
+Creating an Organization in Clerk does not automatically create a DeliPlus organization or Store in PostgreSQL.
+
+Adding a Clerk Organization member does not automatically assign a Store.
+
+Future product flow is conceptually:
+
+```text
+sign up / sign in
+  -> create/select Clerk Organization
+  -> onboarding/billing eligibility
+  -> provision internal organization
+  -> provision initial Store
+  -> dashboard
+```
+
+Future team flow is conceptually:
+
+```text
+dashboard/team
+  -> invite/add Organization member through Clerk
+  -> assign Store(s) in DeliPlus
+  -> persist store_memberships
+```
+
+The exact invitation/assignment lifecycle requires its own feature specification.
 
 ## Tenant context
 
-Authenticated dashboard operations should establish tenant context from trusted server-side relationships.
+Authenticated dashboard operations establish tenant context from the verified Clerk session.
 
 Conceptually:
 
 ```text
-Clerk session
-  -> clerk user ID
-  -> organization_members
-  -> organization
-  -> authorized store(s)
+Clerk JWT
+  sub   -> Clerk user ID
+  o.id  -> active Clerk Organization
+  o.rol -> Organization role
+        ↓
+DeliPlus organizations.clerk_organization_id
+        ↓
+internal organization UUID
 ```
 
-Do not accept `organization_id` or `store_id` from a client and trust it without verifying membership.
+Do not accept `organization_id`, `store_id`, or `clerk_user_id` from a client as proof of access.
 
-## Public storefront context
+## Store context
 
-Public storefront data is intentionally public, but it remains scoped to one store.
-
-Conceptually:
+For Store-scoped features:
 
 ```text
-storeSlug
-  -> active store
-  -> canonical store ID
-  -> published catalog/configuration for that store
+requested/active Store
+  -> Store.organization_id must equal active internal Organization
+
+if o.rol = admin
+  -> Store access allowed
+
+if o.rol = member
+  -> matching store_membership for JWT sub is also required
 ```
 
-A request for `/store-a` must never combine data from `store-b` due to an unscoped query.
+A user with access to Organization A must never gain access to a Store in Organization B merely by changing an ID.
+
+A member of Organization A must never gain access to another Store in A merely by knowing its ID.
 
 ## Query rule
-
-Tenant-owned database queries must include the tenant/store relationship appropriate for the operation.
 
 Unsafe conceptual pattern:
 
 ```text
-update product where id = productId
+select orders where store_id = clientStoreId
 ```
 
 Safer conceptual pattern:
 
 ```text
-verify membership/store access
-update product where id = productId and store_id = authorizedStoreId
+verified active Organization
+  -> resolve Store owned by Organization
+  -> verify admin or explicit Store membership
+  -> query orders using authorized Store ID
 ```
 
-RLS should provide an additional database-level boundary where Supabase access paths make it applicable.
+RLS must provide an additional database-level boundary for Supabase access.
 
 ## Row Level Security
 
-RLS policies should be designed alongside tables, not appended after features are complete.
+RLS policies are designed alongside tenant/Store-owned tables, not appended later.
+
+The database must be able to derive:
+
+- current Clerk user ID;
+- active Clerk Organization ID;
+- active Clerk Organization role.
+
+The Store membership model should not require trusting caller-provided user IDs.
 
 Do not disable RLS to unblock development without an explicitly temporary and reviewed reason.
-
-The exact strategy depends on how Clerk identity is securely propagated to Supabase/PostgreSQL and must be documented before production use.
 
 ## Service-role access
 
 Privileged Supabase/service credentials bypassing normal client restrictions must remain server-only.
 
-Code using privileged access is responsible for explicit authorization before executing tenant-sensitive operations.
+Code using privileged access is responsible for explicit authorization before tenant/Store-sensitive operations.
 
-Service-role access is not a substitute for authorization.
+Service-role access is not a substitute for authorization or billing entitlement checks.
 
 ## Slugs
 
 Store slugs are public identifiers, not secrets and not authorization credentials.
 
-A valid slug allows discovery of intentionally public storefront data only.
+Clerk Organization slugs and DeliPlus Store slugs are different concepts.
 
-Never use knowledge of a slug to grant dashboard access.
+Never use knowledge of a Store slug to grant dashboard access.
 
 ## Caching
 
-Tenant/store context must be part of any cache key for tenant-scoped data.
+Organization, Store and authorization context must be part of any cache key for scoped data.
 
-Do not create shared caches where data for different stores can collide.
-
-## Files and images
-
-When product/store media storage is introduced:
-
-- storage paths should include stable tenant/store ownership context;
-- upload authorization must verify tenant access;
-- deletion must verify ownership;
-- public read policy should match the product's publication model.
+Do not create shared caches where data for different Organizations/Stores can collide.
 
 ## Review checklist
 
 For every feature involving merchant data, verify:
 
-- What is the tenant boundary?
-- How is tenant context derived?
-- Is any tenant ID supplied by the browser?
-- Where is membership verified?
-- Does every mutation scope by tenant/store?
-- Could an IDOR-style request access another tenant's record?
-- Is RLS applicable?
+- What is the Organization boundary?
+- What is the Store boundary?
+- How is the active Clerk Organization derived?
+- How is the current Clerk user ID derived?
+- Is the user an Organization admin?
+- If not admin, is explicit Store membership required and verified?
+- Is any tenant/Store/user ID supplied by the browser?
+- Where are feature permissions checked?
+- Is billing/Store-capacity entitlement relevant?
+- Does every mutation scope by Organization and Store?
+- Could an IDOR-style request access another Store/tenant?
+- Does RLS enforce the boundary?
 - Are cache/storage keys tenant-aware?
