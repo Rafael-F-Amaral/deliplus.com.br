@@ -10,7 +10,8 @@
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
-    "test:tenant-provisioning": "node --conditions=react-server --experimental-strip-types --test tests/tenant-provisioning/*.test.mjs"
+    "test:tenant-provisioning": "node --conditions=react-server --experimental-strip-types --test tests/tenant-provisioning/*.test.mjs",
+    "test:onboarding-state-resolver": "node --test tests/onboarding/resolve-onboarding-state.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
