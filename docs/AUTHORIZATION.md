@@ -248,7 +248,18 @@ Current product direction:
 
 The current billing database foundation contains Organization-owned local trial history, canonical Stripe Customer identity, paid Subscription projection, and webhook Event ledger tables. RLS is enabled on all four.
 
-In this first schema slice, neither `anon` nor `authenticated` has direct access to any billing table. There are no billing RLS policies and no generic billing writes. A future `resolveOrganizationEntitlement()` feature must define a narrow trusted read interface before application billing reads are enabled.
+Neither `anon` nor `authenticated` has direct access to any billing table. There are no billing RLS policies and no generic billing writes. Normal server-side billing authorization uses `resolveOrganizationEntitlement()`, which calls the zero-argument `public.resolve_active_organization_entitlement_facts()` function through the Clerk-JWT Supabase client.
+
+The entitlement facts function:
+
+- derives the tenant exclusively from `private.clerk_organization_id()`;
+- accepts no Organization, Clerk, Store, Customer, or Subscription identifier;
+- is `STABLE` and `SECURITY DEFINER` with an empty `search_path`;
+- is executable only by `authenticated` among Data API client roles;
+- returns only the resolved active-trial plan/end and current paid plan/status/collection-pause facts;
+- does not grant direct billing-table access or perform mutations.
+
+The server resolver treats missing authentication, missing active Organization, and missing internal Organization as explicit precondition failures. It validates all returned facts before applying paid-over-trial descriptive precedence. Only `active` and `past_due` with collection active grant paid entitlement; a valid local trial may still grant entitlement while paid collection is paused. Unknown or inconsistent facts fail closed.
 
 Paid projection mutation is now restricted to this verified boundary:
 
@@ -263,7 +274,7 @@ raw Stripe request
 
 The webhook does not use Clerk because the Stripe signature authenticates that machine-to-machine request. It cannot choose an Organization from browser input or Stripe metadata: the internal Organization is derived only from the local canonical `billing_customers.stripe_customer_id` relation. The transactional RPC is `SECURITY INVOKER`, is executable only by `service_role`, and does not grant `anon` or `authenticated` any billing capability.
 
-Webhook processing never creates or changes `billing_trial_grants`. Invoice and Checkout Events trigger reconciliation only; they do not grant entitlement directly. The future entitlement resolver remains responsible for interpreting the trusted local trial and paid projections.
+Webhook processing never creates or changes `billing_trial_grants`. Invoice and Checkout Events trigger reconciliation only; they do not grant entitlement directly. The Organization entitlement resolver interprets the trusted local trial and paid projections without calling Stripe on the normal request path.
 
 Creating a Clerk Organization does not itself grant a trial, create a Store or establish paid access.
 

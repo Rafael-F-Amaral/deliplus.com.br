@@ -321,7 +321,24 @@ Generic authenticated INSERT/UPDATE/DELETE for tenant-core records is not part o
 
 Provisioning and team membership mutations will be implemented separately so billing and access rules cannot be bypassed directly through the Data API.
 
-The billing foundation is stricter: `anon` and `authenticated` currently have no direct reads or writes on any billing table. RLS is default-deny until a dedicated entitlement read model is approved.
+The billing foundation is stricter: `anon` and `authenticated` have no direct reads or writes on any billing table. RLS remains default-deny. The dedicated entitlement read model exposes only a zero-argument function to `authenticated`, not table access.
+
+### Organization entitlement read boundary
+
+`public.resolve_active_organization_entitlement_facts()` is the narrow Data API read boundary for normalized Organization entitlement. It:
+
+- is `STABLE` and `SECURITY DEFINER` with `search_path = ''`;
+- is owned by the reviewed `postgres` migration role;
+- accepts no arguments and derives the active Clerk Organization through `private.clerk_organization_id()`;
+- maps the Clerk Organization to the internal `organizations.id` inside PostgreSQL;
+- uses one statement snapshot and one PostgreSQL clock reference for trial validity;
+- aggregates concurrently valid same-plan grants with `MAX(ends_at)`;
+- raises an error for concurrently valid grants with different plans;
+- returns only trial plan/end and paid plan/status/collection-pause facts;
+- performs no mutation and exposes no provider or tenant identifiers;
+- is executable by `authenticated`, while `PUBLIC`, `anon`, and `service_role` have no execution grant.
+
+The server-only `resolveOrganizationEntitlement()` calls this function through the normal Clerk-JWT Supabase client. It derives `maxStores` from the application plan registry, validates unknown/partial data fail-closed, and never reads Stripe or a privileged Supabase client.
 
 ## Money
 

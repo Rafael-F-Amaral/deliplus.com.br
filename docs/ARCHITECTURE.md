@@ -78,7 +78,7 @@ Current product direction:
 - four or more Stores use a sales-assisted path;
 - trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
 
-The PostgreSQL billing schema, server-only Stripe configuration, and verified webhook projection foundation exist. Trial activation, entitlement resolution, Stripe Checkout, Customer Portal, and Store-capacity enforcement remain separate implementation slices.
+The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, and server-only Organization entitlement resolver exist. Trial activation, Stripe Checkout, Customer Portal, and Store-capacity enforcement remain separate implementation slices.
 
 ### 4. Merchant dashboard
 
@@ -240,7 +240,9 @@ The current billing database foundation separates:
 - `billing_subscriptions` for the current paid Subscription projection;
 - `stripe_webhook_events` for minimum webhook idempotency metadata.
 
-All four tables currently have RLS enabled and no direct `anon` or `authenticated` Data API access. Paid projection writes use one atomic `SECURITY INVOKER` PostgreSQL function callable only by `service_role`; that role receives only the table privileges required by this webhook slice. A later entitlement feature must introduce an explicitly reviewed narrow read boundary rather than broad table grants.
+All four tables have RLS enabled and no direct `anon` or `authenticated` Data API access. Paid projection writes use one atomic `SECURITY INVOKER` PostgreSQL function callable only by `service_role`; that role receives only the table privileges required by the webhook slice.
+
+Normal Organization entitlement reads use the zero-argument `public.resolve_active_organization_entitlement_facts()` function. It is a reviewed, `STABLE`, `SECURITY DEFINER` read boundary with an empty `search_path`, derives the active tenant only from the verified Clerk JWT, and returns only local-trial and paid-projection facts needed by the server resolver. Only `authenticated` may execute it; the billing tables remain unavailable for direct authenticated reads.
 
 ### Stripe
 
