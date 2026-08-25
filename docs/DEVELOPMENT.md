@@ -58,14 +58,36 @@ Current external-service categories:
 ```text
 Clerk
 Supabase
+Stripe server foundation
 ```
 
-Planned:
+The Stripe server foundation recognizes these server-only variables:
 
 ```text
-Stripe
-application URL/configuration as required
+STRIPE_SECRET_KEY
+STRIPE_PRICE_ESSENTIAL
+STRIPE_PRICE_MULTI_2
+STRIPE_PRICE_MULTI_3
+BILLING_RETURN_ORIGIN
 ```
+
+The configuration is lazy. Missing Stripe Price IDs or return origin do not break unrelated pages or `next build`; an error is raised only when a future billing operation requests the missing value.
+
+Use separate Stripe resources for each environment:
+
+```text
+Local           -> Stripe Test/Sandbox
+Preview/Staging -> Stripe Test/Sandbox
+Production      -> Stripe Live
+```
+
+Prefer a restricted Stripe API key with only the permissions required by the server integration. Store it in ignored local environment configuration or as a sensitive hosted environment variable. Never document, log, commit, or prefix a Stripe secret with `NEXT_PUBLIC_`.
+
+Each approved `PlanCode` maps to a different environment-specific Stripe Price ID. A Test/Sandbox Price ID must never be reused as a Live Price ID. The code validates the `price_...` shape locally, but Stripe Price IDs do not encode Test/Live mode, so matching-mode verification remains an environment/deployment responsibility.
+
+Stable Local, Staging, and Production deployments use an explicit `BILLING_RETURN_ORIGIN`. Ephemeral Vercel Preview deployments may fall back to the system-provided `VERCEL_URL`. Request headers are never an authority for billing return URLs.
+
+No publishable Stripe key is required for the approved future server-created, Stripe-hosted Checkout redirect. `STRIPE_WEBHOOK_SECRET` is intentionally absent until the webhook feature is implemented.
 
 Do not document real keys in repository markdown.
 
@@ -203,7 +225,9 @@ Current product rules:
 - four or more Stores: sales-assisted;
 - initial trial: 15 days on Essential, local/PostgreSQL, no card.
 
-The schema/RLS slice does not implement trial activation, entitlement resolution, Stripe SDK/configuration, Checkout, Portal, webhooks, Products, Prices, or Store-capacity enforcement.
+The Stripe Node SDK, server-only client/configuration, approved plan registry, Price mapping convention, and trusted origin resolver are implemented. They perform no Stripe network calls during import, build, or tests.
+
+The current slices still do not implement trial activation, entitlement resolution, Checkout, Portal, webhooks, Products, Prices, or Store-capacity enforcement.
 
 Database validation for this slice includes:
 
