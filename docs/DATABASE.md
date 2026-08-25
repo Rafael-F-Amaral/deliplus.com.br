@@ -214,7 +214,7 @@ Stores the canonical one-to-zero-or-one relationship between a DeliPlus Organiza
 
 ### billing_subscriptions
 
-Stores at most one current paid Stripe Subscription projection for an Organization with a canonical billing Customer. It contains provider identifiers, internal `plan_code`, status and period/recovery metadata. Local trial fields and `maxStores` are deliberately absent.
+Stores at most one current paid Stripe Subscription projection for an Organization with a canonical billing Customer. Verified webhook reconciliation now maintains its provider identifiers, internal `plan_code`, status and period/recovery metadata. Local trial fields and `maxStores` are deliberately absent.
 
 Approved plan codes are:
 
@@ -228,11 +228,28 @@ Capacity remains application configuration and not a schema cardinality or subsc
 
 ### stripe_webhook_events
 
-Stores minimum Stripe Event metadata for future idempotency/auditing. The full webhook payload and `organization_id` are not persisted.
+Stores minimum Stripe Event metadata for webhook idempotency/auditing. `processed_at` is written only in the same database transaction that applies or safely ignores the paid projection. A failed transaction leaves the Event retryable. The full webhook payload and `organization_id` are not persisted.
+
+### Paid webhook projection transaction
+
+`public.apply_stripe_subscription_projection(...)` is the narrow atomic boundary for paid webhook writes. It:
+
+- runs as `SECURITY INVOKER` with an empty `search_path`;
+- accepts only normalized Event and current-Subscription fields, never the full Stripe payload;
+- resolves Organization ownership from a ready canonical `billing_customers.stripe_customer_id`;
+- serializes projection changes with a transaction-scoped advisory lock keyed by Organization;
+- deduplicates by `stripe_webhook_events.stripe_event_id`;
+- applies ledger and projection changes in one short transaction;
+- preserves the first `past_due_since` while status remains `past_due` and clears it after recovery;
+- permits a different Subscription to replace the canonical row only after the prior row is terminal (`canceled` or `incomplete_expired`);
+- leaves competing non-terminal Subscription Events retryable instead of prematurely acknowledging an ambiguous canonical transition;
+- acknowledges stale non-canonical Subscription Events without allowing them to overwrite the current row.
+
+The function is executable only by `service_role`. That role has read-only access to `billing_customers` and only `SELECT`/`INSERT`/`UPDATE` on the paid projection and Event ledger for this slice; it receives no `DELETE` or `TRUNCATE` capability there. External Stripe API retrieval happens before the transaction begins.
 
 ### Billing access posture
 
-All four billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They currently expose no policies or direct table privileges to `anon` or `authenticated`. Future mutations use reviewed trusted server boundaries, and a later entitlement resolver must define any narrow read surface.
+All four billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. The paid webhook uses the restricted trusted boundary described above; a later entitlement resolver must define any narrow read surface.
 
 ## Relationship overview
 

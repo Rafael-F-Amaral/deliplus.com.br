@@ -1,5 +1,6 @@
 export type StripeServerEnvironment = {
   STRIPE_SECRET_KEY?: string
+  STRIPE_WEBHOOK_SECRET?: string
   BILLING_RETURN_ORIGIN?: string
   VERCEL_ENV?: string
   VERCEL_URL?: string
@@ -43,6 +44,31 @@ export function parseStripeSecretKey(environment: StripeServerEnvironment) {
   }
 
   return secretKey
+}
+
+export function parseStripeApiLivemode(environment: StripeServerEnvironment) {
+  const secretKey = parseStripeSecretKey(environment)
+  const match = /^(?:sk|rk)_(test|live)_.+$/u.exec(secretKey)
+
+  if (!match) {
+    throw new StripeConfigurationError(
+      "Invalid Stripe server configuration: STRIPE_SECRET_KEY"
+    )
+  }
+
+  return match[1] === "live"
+}
+
+export function parseStripeWebhookSecret(environment: StripeServerEnvironment) {
+  const webhookSecret = getRequiredValue(environment, "STRIPE_WEBHOOK_SECRET")
+
+  if (!/^whsec_[A-Za-z0-9]+$/u.test(webhookSecret)) {
+    throw new StripeConfigurationError(
+      "Invalid Stripe server configuration: STRIPE_WEBHOOK_SECRET"
+    )
+  }
+
+  return webhookSecret
 }
 
 export function parseBillingReturnOrigin(value: string) {

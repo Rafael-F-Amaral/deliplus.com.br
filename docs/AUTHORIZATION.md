@@ -250,6 +250,21 @@ The current billing database foundation contains Organization-owned local trial 
 
 In this first schema slice, neither `anon` nor `authenticated` has direct access to any billing table. There are no billing RLS policies and no generic billing writes. A future `resolveOrganizationEntitlement()` feature must define a narrow trusted read interface before application billing reads are enabled.
 
+Paid projection mutation is now restricted to this verified boundary:
+
+```text
+raw Stripe request
+  -> Stripe-Signature verification
+  -> current Stripe Subscription retrieval
+  -> canonical billing Customer lookup
+  -> known Price-to-PlanCode mapping
+  -> atomic Event ledger + paid projection RPC
+```
+
+The webhook does not use Clerk because the Stripe signature authenticates that machine-to-machine request. It cannot choose an Organization from browser input or Stripe metadata: the internal Organization is derived only from the local canonical `billing_customers.stripe_customer_id` relation. The transactional RPC is `SECURITY INVOKER`, is executable only by `service_role`, and does not grant `anon` or `authenticated` any billing capability.
+
+Webhook processing never creates or changes `billing_trial_grants`. Invoice and Checkout Events trigger reconciliation only; they do not grant entitlement directly. The future entitlement resolver remains responsible for interpreting the trusted local trial and paid projections.
+
 Creating a Clerk Organization does not itself grant a trial, create a Store or establish paid access.
 
 Adding Store memberships does not change billing Store capacity.

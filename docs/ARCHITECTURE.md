@@ -78,7 +78,7 @@ Current product direction:
 - four or more Stores use a sales-assisted path;
 - trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
 
-The PostgreSQL billing schema and server-only Stripe configuration foundation exist, but trial activation, entitlement resolution, Stripe Checkout, webhooks and Store-capacity enforcement remain separate implementation slices.
+The PostgreSQL billing schema, server-only Stripe configuration, and verified webhook projection foundation exist. Trial activation, entitlement resolution, Stripe Checkout, Customer Portal, and Store-capacity enforcement remain separate implementation slices.
 
 ### 4. Merchant dashboard
 
@@ -238,9 +238,9 @@ The current billing database foundation separates:
 - `billing_trial_grants` for local trial history;
 - `billing_customers` for canonical Organization-to-Stripe-Customer identity;
 - `billing_subscriptions` for the current paid Subscription projection;
-- `stripe_webhook_events` for minimum future webhook idempotency metadata.
+- `stripe_webhook_events` for minimum webhook idempotency metadata.
 
-All four tables currently have RLS enabled and no direct `anon` or `authenticated` Data API access. A later entitlement feature must introduce an explicitly reviewed narrow read boundary rather than broad table grants.
+All four tables currently have RLS enabled and no direct `anon` or `authenticated` Data API access. Paid projection writes use one atomic `SECURITY INVOKER` PostgreSQL function callable only by `service_role`; that role receives only the table privileges required by this webhook slice. A later entitlement feature must introduce an explicitly reviewed narrow read boundary rather than broad table grants.
 
 ### Stripe
 
@@ -252,15 +252,19 @@ Initial responsibility:
 - billing webhooks;
 - plan/Store-capacity entitlement source in conjunction with DeliPlus billing projection.
 
-The current Stripe server foundation provides:
+The current Stripe server and webhook foundations provide:
 
 - the exact official Stripe Node SDK;
 - a lazy server-only client using only `STRIPE_SECRET_KEY`;
 - a typed registry for `essential`, `multi_2`, and `multi_3` with Store capacities 1, 2, and 3;
 - environment-specific Price resolution performed lazily from approved `PlanCode` values;
-- trusted return-origin validation with an explicit stable origin or Vercel Preview fallback.
+- trusted return-origin validation with an explicit stable origin or Vercel Preview fallback;
+- a public Node-runtime webhook route authenticated by the Stripe signature rather than Clerk;
+- raw-body verification before Event processing;
+- current-Subscription reconciliation for the approved Checkout, Subscription, and Invoice Event set;
+- a single paid-subscription reducer and atomic Event-ledger/projection transaction.
 
-It performs no Stripe network operation and does not create Customers, Checkout Sessions, Portal Sessions, Products, Prices, or webhooks. The initial trial remains local to DeliPlus/PostgreSQL.
+Only supported, verified webhook processing may retrieve the current Stripe Subscription. Imports, builds, tests, and unrelated Events perform no Stripe API call. This foundation does not create Customers, Checkout Sessions, Portal Sessions, Products, Prices, or local trials. The initial trial remains local to DeliPlus/PostgreSQL.
 
 End-customer payment for food orders is outside the initial scope.
 
