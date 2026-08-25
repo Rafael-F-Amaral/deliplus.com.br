@@ -241,7 +241,28 @@ invoice.payment_failed
 
 Checkout and Invoice Events only trigger current-Subscription reconciliation. The Subscription snapshot remains authoritative for paid projection status. Async Checkout Events are not implemented because the approved MVP configuration is card-based; if delayed payment methods are enabled later, add and test `checkout.session.async_payment_succeeded` and `checkout.session.async_payment_failed` before relying on them.
 
-The current slices still do not implement trial activation, entitlement resolution, Checkout creation, Customer creation, Portal, Products, Prices, or Store-capacity enforcement.
+The current slices still do not implement trial activation, Checkout creation, Customer creation, Portal, Products, Prices, or Store-capacity enforcement.
+
+### Organization entitlement resolution
+
+Normal server requests resolve Organization entitlement through:
+
+```text
+await auth()
+  → normal Clerk-JWT Supabase client
+  → resolve_active_organization_entitlement_facts()
+  → validated local trial + paid projection
+  → plan registry maxStores
+```
+
+The RPC accepts no arguments and derives the tenant from the verified Clerk JWT. It is the only authenticated billing read surface; direct reads of billing tables remain denied. The application resolver is server-only, uses no admin Supabase client, performs no Store query, and makes no Stripe API request.
+
+Focused validation:
+
+```bash
+yarn test:organization-entitlement
+yarn supabase test db
+```
 
 ### Local Stripe webhook workflow
 

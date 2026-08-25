@@ -291,6 +291,16 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_active_organization_entitlement_facts: {
+        Args: never
+        Returns: {
+          subscription_collection_paused: boolean
+          subscription_plan_code: string
+          subscription_status: string
+          trial_plan_code: string
+          trial_valid_until: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
