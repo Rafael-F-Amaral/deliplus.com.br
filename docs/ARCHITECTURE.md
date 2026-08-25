@@ -73,12 +73,12 @@ sign up / sign in
 Current product direction:
 
 - subscriptions are owned by the Organization;
-- Essential supports one Store;
-- higher plans may increase the Store limit;
-- the intended introductory trial is 15 days on Essential;
+- the local introductory trial is 15 days on Essential and does not require Stripe;
+- paid plan codes are `essential` (one Store), `multi_2` (two Stores), and `multi_3` (three Stores);
+- four or more Stores use a sales-assisted path;
 - trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
 
-Exact Stripe checkout timing, trial eligibility and higher-plan limits belong to the billing specification.
+The PostgreSQL billing schema exists, but trial activation, entitlement resolution, Stripe Checkout, webhooks and Store-capacity enforcement remain separate implementation slices.
 
 ### 4. Merchant dashboard
 
@@ -141,7 +141,9 @@ Clerk User
 
 Clerk Organization
   <-> DeliPlus organization
-        ├── Subscription / plan entitlement
+        ├── Local trial grants
+        ├── Canonical Stripe Customer identity
+        ├── Paid subscription projection
         └── Stores
              ├── Store memberships
              ├── Categories
@@ -164,7 +166,7 @@ Organization 1 -> N Stores
 Clerk Users N -> N Stores through store_memberships
 ```
 
-The Essential plan may initially limit entitlement to one Store, but that is a billing/business rule, not a database cardinality constraint.
+Plan capacity may limit entitlement to one, two, or three Stores, but that is a billing/business rule, not a database cardinality constraint.
 
 ## Authorization layers
 
@@ -231,15 +233,26 @@ PostgreSQL is the canonical source for Store assignment because Store is a DeliP
 
 The DeliPlus organization maps to Clerk through a unique `clerk_organization_id`, while keeping an internal UUID as its primary key.
 
+The current billing database foundation separates:
+
+- `billing_trial_grants` for local trial history;
+- `billing_customers` for canonical Organization-to-Stripe-Customer identity;
+- `billing_subscriptions` for the current paid Subscription projection;
+- `stripe_webhook_events` for minimum future webhook idempotency metadata.
+
+All four tables currently have RLS enabled and no direct `anon` or `authenticated` Data API access. A later entitlement feature must introduce an explicitly reviewed narrow read boundary rather than broad table grants.
+
 ### Stripe
 
 Initial responsibility:
 
 - Organization-level merchant subscription checkout;
-- trial/subscription lifecycle;
+- paid Customer/Subscription lifecycle;
 - billing portal when implemented;
 - billing webhooks;
 - plan/Store-capacity entitlement source in conjunction with DeliPlus billing projection.
+
+The Stripe application integration is not implemented by the current database-only foundation. The initial trial remains local to DeliPlus/PostgreSQL.
 
 End-customer payment for food orders is outside the initial scope.
 
@@ -348,3 +361,5 @@ Relevant ADRs:
 
 - `ADR-001-tenant-and-store-billing-model.md`
 - `ADR-002-store-level-access-model.md`
+- `ADR-003-trusted-server-write-boundary.md`
+- `ADR-004-stripe-billing-and-entitlement-model.md`

@@ -176,13 +176,17 @@ Organization
 
 Current product direction:
 
-- Essential permits one Store;
-- higher plans may permit more Stores;
+- `essential` permits one Store;
+- `multi_2` permits two Stores;
+- `multi_3` permits three Stores;
+- four or more Stores use a sales-assisted path;
 - database cardinality remains `1 -> N`;
 - Store-count limits are enforced by trusted application/billing rules;
 - intended trial is 15 days on Essential.
 
 Store memberships do not affect Store capacity.
+
+The current Organization-owned billing tables have RLS enabled but no direct `anon` or `authenticated` grants or policies. This default-deny posture prevents both cross-tenant billing reads and unnecessary same-tenant exposure until a narrow entitlement read model is approved.
 
 ## Provisioning flow
 

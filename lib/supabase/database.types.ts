@@ -9,6 +9,141 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      billing_customers: {
+        Row: {
+          created_at: string
+          creation_idempotency_key: string
+          organization_id: string
+          provisioning_status: string
+          stripe_customer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creation_idempotency_key: string
+          organization_id: string
+          provisioning_status: string
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creation_idempotency_key?: string
+          organization_id?: string
+          provisioning_status?: string
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          collection_paused: boolean
+          created_at: string
+          current_period_end: string | null
+          last_synced_at: string
+          organization_id: string
+          past_due_since: string | null
+          plan_code: string
+          status: string
+          stripe_price_id: string
+          stripe_subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          collection_paused?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          last_synced_at: string
+          organization_id: string
+          past_due_since?: string | null
+          plan_code: string
+          status: string
+          stripe_price_id: string
+          stripe_subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          collection_paused?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          last_synced_at?: string
+          organization_id?: string
+          past_due_since?: string | null
+          plan_code?: string
+          status?: string
+          stripe_price_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "billing_customers"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
+      billing_trial_grants: {
+        Row: {
+          clerk_user_id: string
+          created_at: string
+          ends_at: string
+          grant_kind: string
+          id: string
+          organization_id: string
+          plan_code: string
+          revoked_at: string | null
+          starts_at: string
+          updated_at: string
+        }
+        Insert: {
+          clerk_user_id: string
+          created_at?: string
+          ends_at: string
+          grant_kind: string
+          id?: string
+          organization_id: string
+          plan_code: string
+          revoked_at?: string | null
+          starts_at: string
+          updated_at?: string
+        }
+        Update: {
+          clerk_user_id?: string
+          created_at?: string
+          ends_at?: string
+          grant_kind?: string
+          id?: string
+          organization_id?: string
+          plan_code?: string
+          revoked_at?: string | null
+          starts_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_trial_grants_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           clerk_organization_id: string
@@ -103,6 +238,36 @@ export type Database = {
           },
         ]
       }
+      stripe_webhook_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          livemode: boolean
+          processed_at: string | null
+          stripe_created_at: string
+          stripe_event_id: string
+          stripe_object_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          livemode: boolean
+          processed_at?: string | null
+          stripe_created_at: string
+          stripe_event_id: string
+          stripe_object_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          livemode?: boolean
+          processed_at?: string | null
+          stripe_created_at?: string
+          stripe_event_id?: string
+          stripe_object_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -127,12 +292,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -154,13 +319,12 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -179,13 +343,12 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -204,13 +367,12 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -223,11 +385,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -241,4 +403,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

@@ -8,6 +8,10 @@ The first tenant-owned schema is specified in:
 
 `docs/features/database-tenant-core/SPEC.md`
 
+The current billing schema is specified in:
+
+`docs/features/billing-foundation/SPEC.md`
+
 ## Principles
 
 1. PostgreSQL is the canonical DeliPlus application data store.
@@ -45,7 +49,7 @@ Responsibilities:
 - stable internal tenant identity;
 - ownership boundary for DeliPlus data;
 - parent of one or more Stores;
-- future subscription/billing projection association.
+- owner of local trial and paid billing records.
 
 Do not use `clerk_organization_id` as the PostgreSQL primary key.
 
@@ -198,35 +202,37 @@ order_items
 
 Order history must not depend on mutable product names/prices remaining unchanged.
 
-### subscriptions / billing projection
+### billing_trial_grants
 
-Stripe will remain the external billing source for payment/subscription lifecycle events.
+Stores local trial grants and consumed-trial history independently from Stripe.
 
-DeliPlus may persist a normalized server-trusted projection associated with the internal Organization.
+Initial grants are exactly 15 days on `essential`, with at most one initial grant per Organization and per Clerk User. `manual_override` rows may use an approved plan code without replacing initial history.
 
-Conceptually:
+### billing_customers
+
+Stores the canonical one-to-zero-or-one relationship between a DeliPlus Organization and Stripe Customer. A pending claim may exist before `stripe_customer_id` is known. Customer creation itself is not implemented yet.
+
+### billing_subscriptions
+
+Stores at most one current paid Stripe Subscription projection for an Organization with a canonical billing Customer. It contains provider identifiers, internal `plan_code`, status and period/recovery metadata. Local trial fields and `maxStores` are deliberately absent.
+
+Approved plan codes are:
 
 ```text
-subscription
-  -> organization_id
-  -> Stripe customer/subscription references
-  -> status
-  -> plan / entitlement projection
-  -> trial state
-  -> current period metadata
+essential -> maxStores 1
+multi_2   -> maxStores 2
+multi_3   -> maxStores 3
 ```
 
-The Organization owns the subscription.
+Capacity remains application configuration and not a schema cardinality or subscription column.
 
-Stores do not each own an independent subscription in the current product direction.
+### stripe_webhook_events
 
-Current business direction:
+Stores minimum Stripe Event metadata for future idempotency/auditing. The full webhook payload and `organization_id` are not persisted.
 
-- Essential permits one Store;
-- higher plans may permit additional Stores;
-- exact higher-plan names, prices and Store limits are not yet fixed;
-- intended trial duration is 15 days on Essential;
-- trial eligibility rules must prevent repeated Organization creation from automatically becoming unlimited free trials.
+### Billing access posture
+
+All four billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They currently expose no policies or direct table privileges to `anon` or `authenticated`. Future mutations use reviewed trusted server boundaries, and a later entitlement resolver must define any narrow read surface.
 
 ## Relationship overview
 
@@ -239,7 +245,9 @@ Clerk Organization
 
 DeliPlus organizations
   1 -> N stores
-  1 -> billing/subscription projection as designed
+  1 -> N billing_trial_grants
+  1 -> 0..1 billing_customers
+  1 -> 0..1 current billing_subscriptions through billing_customers
 
 stores
   N <-> N Clerk users via store_memberships
@@ -295,6 +303,8 @@ Normal `authenticated` access should be read-only for:
 Generic authenticated INSERT/UPDATE/DELETE for tenant-core records is not part of the first migration.
 
 Provisioning and team membership mutations will be implemented separately so billing and access rules cannot be bypassed directly through the Data API.
+
+The billing foundation is stricter: `anon` and `authenticated` currently have no direct reads or writes on any billing table. RLS is default-deny until a dedicated entitlement read model is approved.
 
 ## Money
 

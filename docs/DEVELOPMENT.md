@@ -187,13 +187,32 @@ The Organization is the SaaS billing boundary.
 
 Store limits are plan entitlements.
 
-Current product direction:
+Current database foundation:
 
-- Essential: one Store;
-- intended trial: 15 days on Essential;
-- higher Store capacities: to be defined by billing/product specification.
+- `billing_trial_grants` stores local trial history;
+- `billing_customers` stores canonical Customer claims/identity;
+- `billing_subscriptions` stores the current paid projection only;
+- `stripe_webhook_events` stores minimum future Event idempotency metadata;
+- all four tables have RLS enabled and no direct `anon`/`authenticated` grants or policies.
 
-Do not implement trial eligibility or higher-plan limits speculatively.
+Current product rules:
+
+- `essential`: one Store;
+- `multi_2`: two Stores;
+- `multi_3`: three Stores;
+- four or more Stores: sales-assisted;
+- initial trial: 15 days on Essential, local/PostgreSQL, no card.
+
+The schema/RLS slice does not implement trial activation, entitlement resolution, Stripe SDK/configuration, Checkout, Portal, webhooks, Products, Prices, or Store-capacity enforcement.
+
+Database validation for this slice includes:
+
+```bash
+yarn supabase db reset
+yarn supabase test db
+```
+
+The pgTAP suite contains the existing tenant-core regression tests plus Billing Foundation structure, constraint and default-deny security coverage.
 
 ## Validation
 
