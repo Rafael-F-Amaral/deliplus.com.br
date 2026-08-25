@@ -32,6 +32,13 @@ yarn install
 yarn dev
 ```
 
+Supabase local development also requires the Docker-compatible local stack:
+
+```bash
+yarn supabase start
+yarn supabase status
+```
+
 Before opening a PR:
 
 ```bash
@@ -44,16 +51,44 @@ yarn build
 
 Do not commit real secrets.
 
-When the first external services are configured, add a committed `.env.example` containing variable names and safe placeholders.
+The project keeps safe variable names/placeholders in `.env.example` and real local values in ignored environment files.
 
-Expected categories over time:
+Current external-service categories:
 
 ```text
 Clerk
 Supabase
-Stripe
-application URL/configuration
+Stripe server foundation
 ```
+
+The Stripe server foundation recognizes these server-only variables:
+
+```text
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
+STRIPE_PRICE_ESSENTIAL
+STRIPE_PRICE_MULTI_2
+STRIPE_PRICE_MULTI_3
+BILLING_RETURN_ORIGIN
+```
+
+The configuration is lazy. Missing Stripe secrets, Price IDs, or return origin do not break unrelated pages or `next build`; an error is raised only when the route or billing operation that needs a value executes.
+
+Use separate Stripe resources for each environment:
+
+```text
+Local           -> Stripe Test/Sandbox
+Preview/Staging -> Stripe Test/Sandbox
+Production      -> Stripe Live
+```
+
+Prefer a restricted Stripe API key with only the permissions required by the server integration. Store it in ignored local environment configuration or as a sensitive hosted environment variable. Never document, log, commit, or prefix a Stripe secret with `NEXT_PUBLIC_`.
+
+Each approved `PlanCode` maps to a different environment-specific Stripe Price ID. A Test/Sandbox Price ID must never be reused as a Live Price ID. The code validates the `price_...` shape locally, but Stripe Price IDs do not encode Test/Live mode, so matching-mode verification remains an environment/deployment responsibility.
+
+Stable Local, Staging, and Production deployments use an explicit `BILLING_RETURN_ORIGIN`. Ephemeral Vercel Preview deployments may fall back to the system-provided `VERCEL_URL`. Request headers are never an authority for billing return URLs.
+
+No publishable Stripe key is required for the approved future server-created, Stripe-hosted Checkout redirect. `STRIPE_WEBHOOK_SECRET` is the endpoint-specific `whsec_...` signing secret; it is not an API key and must remain server-only.
 
 Do not document real keys in repository markdown.
 
@@ -67,47 +102,182 @@ Before adding a package:
 4. avoid overlapping libraries solving the same concern;
 5. keep package additions inside the feature that requires them.
 
-Planned services such as Clerk, Supabase and Stripe should be added when their implementation begins, not merely because they appear in architecture documents.
-
-## UI development
-
-The project uses shadcn/ui and Tailwind.
-
-Guidelines:
-
-- reuse `components/ui` primitives;
-- use composition for feature-specific components;
-- keep marketing/dashboard/storefront components in their own boundaries as they appear;
-- preserve accessibility;
-- avoid introducing another component system without an architectural decision.
-
-## Server and client components
-
-Default to server-side code in the App Router.
-
-Use Client Components only when required for:
-
-- local interactive state;
-- event handlers;
-- browser APIs;
-- client-only third-party libraries.
-
-Never put server secrets into code reachable by the browser.
+Do not add `@supabase/ssr` unless a concrete requirement for Supabase-managed cookie sessions appears. Clerk currently manages authentication/session state and the application passes the Clerk token to `@supabase/supabase-js`.
 
 ## Data access
 
-When Supabase is introduced, separate clients/helpers by execution context rather than using one universal privileged client.
+Keep Supabase clients/helpers separated by execution context rather than using one universal privileged client.
 
-Conceptual examples:
+The current server-side Supabase client:
+
+- uses the Supabase publishable key;
+- forwards the active Clerk session token through Supabase Third-Party Auth;
+- does not use Supabase Auth as a second application login;
+- does not use a service-role key for normal tenant access.
+
+Current helper:
 
 ```text
 lib/supabase/server.ts
-lib/supabase/client.ts
 ```
 
-Exact file names may change after implementation planning.
+Do not create a browser Supabase client until a concrete feature requires one.
 
-Do not create a privileged service-role browser client.
+## Identity and Store access during development
+
+Clerk remains the source of:
+
+- user identity;
+- Organization membership;
+- active Organization;
+- Organization roles.
+
+PostgreSQL contains Store assignment data.
+
+When implementing Store-scoped features, test at minimum:
+
+- Organization admin accessing any Store in own Organization;
+- Organization member accessing an assigned Store;
+- Organization member denied from an unassigned Store in the same Organization;
+- user denied from a Store in another Organization;
+- authenticated user with no active Organization denied from tenant/Store data.
+
+Do not simulate authorization only in the UI.
+
+## Database workflow
+
+Database changes use Supabase migrations as the source of truth.
+
+Typical feature flow:
+
+```text
+SPEC
+  -> PLAN
+  -> migration
+  -> yarn supabase db reset
+  -> local RLS / isolation verification
+  -> review
+  -> yarn supabase db push --dry-run
+  -> explicit Staging push only after approval
+```
+
+Do not create application tables manually in the hosted Dashboard as the canonical schema.
+
+The first tenant-owned schema is specified in:
+
+```text
+docs/features/database-tenant-core/SPEC.md
+```
+
+It introduces:
+
+- organizations;
+- stores;
+- Store membership/assignment foundation;
+- tenant/Store RLS foundation.
+
+## Initial write posture
+
+The initial tenant-core migration should not expose generic authenticated write access for tenant-core objects.
+
+Provisioning and team-access mutations will come later through trusted server-side features.
+
+This avoids allowing a browser/Data API caller to bypass:
+
+- onboarding;
+- subscription/Store-capacity rules;
+- team-management rules.
+
+## Team-management development
+
+Future DeliPlus team UX should integrate Clerk Organization membership and PostgreSQL Store assignments behind one application flow.
+
+Do not require the merchant to understand internal provider boundaries.
+
+A future team-management implementation may need to coordinate:
+
+```text
+Clerk invite/member lifecycle
++
+DeliPlus store_memberships
+```
+
+Its pending-invite behavior, rollback/error handling and authorization require a dedicated specification.
+
+## Billing development
+
+The Organization is the SaaS billing boundary.
+
+Store limits are plan entitlements.
+
+Current database foundation:
+
+- `billing_trial_grants` stores local trial history;
+- `billing_customers` stores canonical Customer claims/identity;
+- `billing_subscriptions` stores the current paid projection only;
+- `stripe_webhook_events` stores minimum Event idempotency metadata;
+- all four tables have RLS enabled and no direct `anon`/`authenticated` grants or policies.
+
+Current product rules:
+
+- `essential`: one Store;
+- `multi_2`: two Stores;
+- `multi_3`: three Stores;
+- four or more Stores: sales-assisted;
+- initial trial: 15 days on Essential, local/PostgreSQL, no card.
+
+The Stripe Node SDK, server-only client/configuration, approved plan registry, Price mapping convention, trusted origin resolver, verified webhook route, paid-subscription reducer, and atomic Event/projection RPC are implemented. Imports, builds, unit tests, duplicate short-circuits, and unsupported Events perform no Stripe API calls. Supported webhook processing retrieves the current Subscription from Stripe before starting the short database transaction.
+
+The webhook supports:
+
+```text
+checkout.session.completed
+customer.subscription.created
+customer.subscription.updated
+customer.subscription.deleted
+invoice.paid
+invoice.payment_failed
+```
+
+Checkout and Invoice Events only trigger current-Subscription reconciliation. The Subscription snapshot remains authoritative for paid projection status. Async Checkout Events are not implemented because the approved MVP configuration is card-based; if delayed payment methods are enabled later, add and test `checkout.session.async_payment_succeeded` and `checkout.session.async_payment_failed` before relying on them.
+
+The current slices still do not implement trial activation, entitlement resolution, Checkout creation, Customer creation, Portal, Products, Prices, or Store-capacity enforcement.
+
+### Local Stripe webhook workflow
+
+Install the Stripe CLI outside the project by following the official Stripe CLI instructions, then authenticate:
+
+```bash
+stripe login
+```
+
+Start the application and the local Supabase stack, then forward only the implemented Event set:
+
+```bash
+stripe listen \
+  --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_failed \
+  --forward-to localhost:3000/api/stripe/webhook
+```
+
+Copy the CLI-provided local signing secret into the ignored local environment file:
+
+```env
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+Do not copy that value into `.env.example` or repository documentation. The CLI secret is local and must not be reused for a hosted endpoint.
+
+Real paid-projection reconciliation additionally requires a Test/Sandbox `STRIPE_SECRET_KEY`, the matching configured `STRIPE_PRICE_*`, and a controlled local `billing_customers` row that maps the Stripe Customer to a DeliPlus Organization. The future Checkout feature will establish that canonical Customer relation in normal product flows; do not create Customers or Products merely to satisfy unit tests for this foundation.
+
+Database validation for this slice includes:
+
+```bash
+yarn supabase db reset
+yarn supabase test db
+yarn test:stripe-webhook-foundation
+```
+
+The pgTAP suite contains tenant-core and Billing Foundation regressions plus webhook RPC privilege, atomicity, duplicate, retry, recovery-state, and replaced-Subscription coverage.
 
 ## Validation
 
@@ -117,23 +287,13 @@ A validation library has not yet been selected in the current foundation. Do not
 
 When a feature genuinely requires schema validation, select/introduce the solution through that feature's plan rather than embedding an undocumented new project convention.
 
-## Errors
-
-Features should provide deliberate:
-
-- loading states;
-- empty states;
-- validation feedback;
-- recoverable error messages;
-- server-side logging where appropriate.
-
-Do not expose secrets, stack traces or cross-tenant details to end users.
-
 ## Tests
 
-A project-wide automated test stack is not defined yet.
+A project-wide application test stack is not defined yet.
 
-Do not invent a test framework silently. When critical domain logic appears, define the testing approach in an explicit task/decision.
+Database security features should use the Supabase/PostgreSQL testing approach approved by the relevant feature plan.
+
+For tenant/Store security, include negative cross-tenant and same-tenant/unassigned-Store cases.
 
 Regardless of test framework, `lint`, `typecheck` and production `build` remain baseline checks.
 

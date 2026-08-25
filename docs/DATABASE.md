@@ -2,71 +2,76 @@
 
 ## Status
 
-This document describes the **initial domain model**, not a finalized SQL schema. Exact columns, constraints and RLS policies should be defined through reviewed Supabase migrations.
+This document describes the current domain model and ownership boundaries, not a finalized SQL schema. Exact columns, constraints and RLS policies are defined through reviewed feature specifications and Supabase migrations.
+
+The first tenant-owned schema is specified in:
+
+`docs/features/database-tenant-core/SPEC.md`
+
+The current billing schema is specified in:
+
+`docs/features/billing-foundation/SPEC.md`
 
 ## Principles
 
-1. PostgreSQL is the canonical application data store.
-2. Persist tenant ownership explicitly.
-3. Prefer UUID primary keys unless a migration establishes another convention.
-4. Use foreign keys for domain relationships.
-5. Use migrations for every schema change.
-6. Index common tenant-scoped access paths.
-7. Treat RLS and server-side authorization as part of schema design.
-8. Avoid storing the same source-of-truth state independently in Clerk, Stripe and PostgreSQL.
+1. PostgreSQL is the canonical DeliPlus application data store.
+2. Clerk is the canonical source of user identity, Organization membership, active Organization and Clerk Organization roles.
+3. Persist DeliPlus tenant ownership explicitly.
+4. Persist Store-specific user access explicitly when it is not represented by Clerk.
+5. Prefer UUID primary keys unless a migration establishes another convention.
+6. External provider IDs such as Clerk Organization/User IDs must not become domain primary keys.
+7. Use foreign keys for domain relationships.
+8. Use migrations for every schema change.
+9. Index common tenant/Store-scoped access paths.
+10. Treat RLS and server-side authorization as part of schema design.
+11. Avoid duplicating the same source-of-truth state independently across Clerk, Stripe and PostgreSQL.
+12. Billing/plan limits are application entitlements and must not be represented as destructive schema cardinality constraints.
 
 ## Initial domain entities
 
 ### organizations
 
-Represents the SaaS customer/business account.
+Represents the internal DeliPlus tenant/business account.
 
-Potential responsibilities:
+Each row maps to exactly one Clerk Organization.
 
-- business-level identity;
-- ownership boundary;
-- subscription association;
-- one or more stores.
-
-Candidate fields:
+Current tenant-core fields:
 
 ```text
-id
-name
+id                    UUID primary key
+clerk_organization_id unique external Clerk Organization ID
 created_at
 updated_at
 ```
+
+Responsibilities:
+
+- stable internal tenant identity;
+- ownership boundary for DeliPlus data;
+- parent of one or more Stores;
+- owner of local trial and paid billing records.
+
+Do not use `clerk_organization_id` as the PostgreSQL primary key.
+
+Clerk-managed Organization membership and Organization roles should not be duplicated locally.
 
 ### organization_members
 
-Connects authenticated Clerk users to DeliPlus organizations.
+Not part of the current architecture.
 
-Candidate fields:
+Do not create this table merely to mirror Clerk membership.
 
-```text
-id
-organization_id
-clerk_user_id
-role
-created_at
-updated_at
-```
+Clerk is the source of truth for:
 
-Initial role vocabulary may include:
-
-```text
-owner
-admin
-staff
-```
-
-Do not implement unused permission complexity prematurely. Role semantics must be documented before being relied on for authorization.
+- Organization membership;
+- active Organization;
+- Clerk Organization roles.
 
 ### stores
 
-Represents a public merchant storefront.
+Represents a public merchant establishment/storefront owned by one DeliPlus organization.
 
-Candidate fields:
+Current tenant-core fields include conceptually:
 
 ```text
 id
@@ -78,13 +83,58 @@ created_at
 updated_at
 ```
 
-`slug` must be unique according to the chosen public routing strategy.
+Relationship:
 
-Potential future fields should not be added until required, e.g. custom domain, theme configuration, contact information and operating hours.
+```text
+organization 1 -> N stores
+```
+
+The database must support multiple Stores even when a billing plan limits how many may be active/created.
+
+`slug` is the public Store identifier and is independent from the Clerk Organization slug.
+
+### store_memberships
+
+Represents Store-specific access for a Clerk Organization member.
+
+This table exists because Clerk Organization membership is tenant-wide while Store access may be narrower.
+
+Initial tenant-core shape:
+
+```text
+id
+organization_id
+store_id
+clerk_user_id
+created_at
+updated_at
+```
+
+Relationship:
+
+```text
+stores N <-> N Clerk users through store_memberships
+```
+
+Requirements:
+
+- `(organization_id, store_id)` references `stores(organization_id, id)`;
+- the composite FK rejects Organization/Store mismatches and cascades on Store deletion;
+- `clerk_user_id` stores the external Clerk User ID;
+- `(store_id, clerk_user_id)` is unique;
+- indexes support `(organization_id, store_id)` and
+  `(organization_id, clerk_user_id)` lookups;
+- Store-specific roles are intentionally deferred.
+
+An Organization admin does not need a `store_memberships` row to access Stores in their active Organization.
+
+A normal Organization member requires an explicit Store membership for Store-scoped access.
+
+A Store membership never replaces the requirement that the user belongs to the Store's Clerk Organization.
 
 ### categories
 
-Groups products within one store.
+Groups products within one Store.
 
 Candidate fields:
 
@@ -99,7 +149,7 @@ created_at
 updated_at
 ```
 
-Category uniqueness rules should be scoped to a store where appropriate.
+Category uniqueness rules should be scoped to a Store where appropriate.
 
 ### products
 
@@ -121,9 +171,9 @@ created_at
 updated_at
 ```
 
-Use an appropriate exact numeric representation for money. Do not use floating-point arithmetic for monetary values.
+Use an appropriate exact numeric representation for money. Do not use floating-point arithmetic for authoritative monetary values.
 
-Product variants, modifiers, extras and inventory are not assumed in the initial model until specified.
+Product variants, modifiers, extras and inventory are not assumed until specified.
 
 ### delivery configuration
 
@@ -150,65 +200,128 @@ orders
 order_items
 ```
 
-Important future decisions include:
-
-- order status lifecycle;
-- customer snapshot fields;
-- address snapshot fields;
-- delivery/pickup;
-- price snapshots;
-- product/modifier snapshots;
-- cancellation rules;
-- merchant notifications.
-
 Order history must not depend on mutable product names/prices remaining unchanged.
 
-### subscriptions
+### billing_trial_grants
 
-Stripe remains the billing source for payment/subscription lifecycle events, while DeliPlus may persist a normalized application projection.
+Stores local trial grants and consumed-trial history independently from Stripe.
 
-Potential fields:
+Initial grants are exactly 15 days on `essential`, with at most one initial grant per Organization and per Clerk User. `manual_override` rows may use an approved plan code without replacing initial history.
+
+### billing_customers
+
+Stores the canonical one-to-zero-or-one relationship between a DeliPlus Organization and Stripe Customer. A pending claim may exist before `stripe_customer_id` is known. Customer creation itself is not implemented yet.
+
+### billing_subscriptions
+
+Stores at most one current paid Stripe Subscription projection for an Organization with a canonical billing Customer. Verified webhook reconciliation now maintains its provider identifiers, internal `plan_code`, status and period/recovery metadata. Local trial fields and `maxStores` are deliberately absent.
+
+Approved plan codes are:
 
 ```text
-id
-organization_id
-stripe_customer_id
-stripe_subscription_id
-status
-price_id
-current_period_end
-created_at
-updated_at
+essential -> maxStores 1
+multi_2   -> maxStores 2
+multi_3   -> maxStores 3
 ```
 
-Exact fields should follow the billing implementation and should not duplicate Stripe indiscriminately.
+Capacity remains application configuration and not a schema cardinality or subscription column.
+
+### stripe_webhook_events
+
+Stores minimum Stripe Event metadata for webhook idempotency/auditing. `processed_at` is written only in the same database transaction that applies or safely ignores the paid projection. A failed transaction leaves the Event retryable. The full webhook payload and `organization_id` are not persisted.
+
+### Paid webhook projection transaction
+
+`public.apply_stripe_subscription_projection(...)` is the narrow atomic boundary for paid webhook writes. It:
+
+- runs as `SECURITY INVOKER` with an empty `search_path`;
+- accepts only normalized Event and current-Subscription fields, never the full Stripe payload;
+- resolves Organization ownership from a ready canonical `billing_customers.stripe_customer_id`;
+- serializes projection changes with a transaction-scoped advisory lock keyed by Organization;
+- deduplicates by `stripe_webhook_events.stripe_event_id`;
+- applies ledger and projection changes in one short transaction;
+- preserves the first `past_due_since` while status remains `past_due` and clears it after recovery;
+- permits a different Subscription to replace the canonical row only after the prior row is terminal (`canceled` or `incomplete_expired`);
+- leaves competing non-terminal Subscription Events retryable instead of prematurely acknowledging an ambiguous canonical transition;
+- acknowledges stale non-canonical Subscription Events without allowing them to overwrite the current row.
+
+The function is executable only by `service_role`. That role has read-only access to `billing_customers` and only `SELECT`/`INSERT`/`UPDATE` on the paid projection and Event ledger for this slice; it receives no `DELETE` or `TRUNCATE` capability there. External Stripe API retrieval happens before the transaction begins.
+
+### Billing access posture
+
+All four billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. The paid webhook uses the restricted trusted boundary described above; a later entitlement resolver must define any narrow read surface.
 
 ## Relationship overview
 
 ```text
-organizations
-  1 -> N organization_members
+Clerk User
+  N <-> N Clerk Organizations
+
+Clerk Organization
+  1 <-> 1 DeliPlus organization
+
+DeliPlus organizations
   1 -> N stores
-  1 -> 0..N subscription records/events as designed
+  1 -> N billing_trial_grants
+  1 -> 0..1 billing_customers
+  1 -> 0..1 current billing_subscriptions through billing_customers
 
 stores
+  N <-> N Clerk users via store_memberships
   1 -> N categories
   1 -> N products
   1 -> N orders
   1 -> N delivery configuration records
 ```
 
-## Tenant-scoped indexes
+## Provisioning
 
-As the schema becomes concrete, common access paths should generally have tenant-aware indexes, for example conceptually:
+Creating a Clerk Organization does not automatically create PostgreSQL records.
+
+Adding a member to Clerk does not automatically grant Store access.
+
+DeliPlus onboarding/team-management will explicitly create:
+
+- internal organization records;
+- initial/additional Stores;
+- Store membership assignments.
+
+The exact transaction/order of provisioning and Stripe subscription creation belongs to onboarding/billing specs.
+
+Store membership mutation belongs to a dedicated team-access feature and must use a trusted server-side boundary.
+
+## Tenant and Store access lookup
+
+For authenticated Store-scoped access, the application/database conceptually resolves:
 
 ```text
-(store_id, is_active)
-(store_id, category_id)
-(organization_id, clerk_user_id)
+Clerk JWT sub
+Clerk JWT o.id
+Clerk JWT o.rol
+        ↓
+internal organization
+        ↓
+Store
+        ↓
+if admin: tenant Store ownership is sufficient
+if member: matching store_membership is also required
 ```
 
-Do not copy these literally without validating actual queries.
+## Initial Data API posture
+
+The first tenant-core migration should be conservative.
+
+Normal `authenticated` access should be read-only for:
+
+- organizations;
+- stores;
+- store_memberships, limited by RLS to the active member's own assignments.
+
+Generic authenticated INSERT/UPDATE/DELETE for tenant-core records is not part of the first migration.
+
+Provisioning and team membership mutations will be implemented separately so billing and access rules cannot be bypassed directly through the Data API.
+
+The billing foundation is stricter: `anon` and `authenticated` currently have no direct reads or writes on any billing table. RLS is default-deny until a dedicated entitlement read model is approved.
 
 ## Money
 
@@ -225,20 +338,19 @@ Never rely on JavaScript binary floating-point for authoritative money calculati
 
 Use timezone-aware timestamps for persisted system events. Display/localization belongs at application boundaries.
 
-## Soft delete
-
-Do not apply soft deletion universally. Prefer explicit active/archive semantics where the product requires recoverability or historical preservation.
-
-Orders and audit-relevant records require special retention decisions.
-
 ## Schema change checklist
 
 Every migration should answer:
 
 - Who owns this record?
-- Which foreign key enforces that ownership?
+- Which Organization owns the Store/resource?
+- Is Store-level assignment relevant?
+- Which foreign key enforces ownership?
+- Does tenant context come from the verified Clerk Organization?
+- Does user identity come from verified Clerk `sub`?
 - Does it need RLS?
-- Which roles may read/write it?
+- Which roles/memberships may read/write it?
+- Is billing entitlement relevant?
 - Is deletion safe?
 - Does it need an index?
 - Does it affect existing data?

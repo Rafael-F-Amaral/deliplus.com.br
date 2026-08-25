@@ -2,7 +2,7 @@
 
 ## Purpose
 
-DeliPlus is a multi-tenant SaaS for food-delivery businesses. This document defines the initial architectural boundaries. It is intentionally high-level and should evolve through explicit decisions rather than accidental implementation.
+DeliPlus is a multi-tenant SaaS for food-delivery businesses. This document defines the current architectural boundaries. It should evolve through explicit decisions rather than accidental implementation.
 
 ## Product surfaces
 
@@ -24,7 +24,7 @@ Responsibilities:
 - calls to authentication;
 - merchant subscription entry points.
 
-### 2. Authentication
+### 2. Authentication and tenant selection
 
 Merchant authentication is handled by Clerk.
 
@@ -35,9 +35,52 @@ Examples:
 /sign-up
 ```
 
-Authentication answers **who the user is**. Application authorization answers **what that user may access**.
+Clerk owns:
 
-### 3. Merchant dashboard
+- user identity;
+- sessions;
+- Organizations;
+- Organization membership;
+- active Organization;
+- Organization roles.
+
+Authentication answers **who the user is**.
+
+The active Clerk Organization establishes **which business/tenant context is active**.
+
+DeliPlus application rules and PostgreSQL/RLS then answer **which Stores and data inside that tenant the user may access**.
+
+A user may belong to multiple Clerk Organizations.
+
+### 3. Merchant onboarding and billing
+
+A newly created/selected Clerk Organization is not automatically a DeliPlus database tenant merely because it exists in Clerk.
+
+DeliPlus must explicitly provision the application-side tenant.
+
+Conceptual flow:
+
+```text
+sign up / sign in
+  -> create or select Clerk Organization
+  -> detect whether DeliPlus organization exists
+  -> onboarding / plan entitlement
+  -> create internal organization when appropriate
+  -> provision initial Store
+  -> dashboard
+```
+
+Current product direction:
+
+- subscriptions are owned by the Organization;
+- the local introductory trial is 15 days on Essential and does not require Stripe;
+- paid plan codes are `essential` (one Store), `multi_2` (two Stores), and `multi_3` (three Stores);
+- four or more Stores use a sales-assisted path;
+- trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
+
+The PostgreSQL billing schema, server-only Stripe configuration, and verified webhook projection foundation exist. Trial activation, entitlement resolution, Stripe Checkout, Customer Portal, and Store-capacity enforcement remain separate implementation slices.
+
+### 4. Merchant dashboard
 
 Authenticated area for businesses using DeliPlus.
 
@@ -55,13 +98,21 @@ Expected feature areas over time:
 /dashboard/products
 /dashboard/categories
 /dashboard/delivery
+/dashboard/team
+/dashboard/stores
 /dashboard/settings
 /dashboard/billing
 ```
 
-### 4. Public storefront
+A user with multiple Organizations operates within one active Organization at a time.
 
-Each store is publicly accessible through a stable slug.
+When an Organization owns multiple Stores, Store-scoped dashboard features also require an active/authorized Store context.
+
+DeliPlus will provide the Store selector and Store-specific team-management UX because Store is a DeliPlus domain entity, not a Clerk Organization.
+
+### 5. Public storefront
+
+Each Store is publicly accessible through a stable slug.
 
 Examples:
 
@@ -76,54 +127,74 @@ Conceptual route:
 /[storeSlug]
 ```
 
-The slug resolves to a store; all subsequent storefront queries must be scoped to the resolved store.
+The slug resolves to a Store; all subsequent storefront queries must be scoped to the resolved Store.
 
-Potential future custom domains should resolve to the same internal store entity instead of creating a second storefront model.
-
-## Application boundaries
-
-The project begins as one Next.js application. Avoid splitting into multiple deployables before operational needs justify it.
-
-Conceptual structure:
-
-```text
-app/
-  (marketing)/
-  (auth)/
-  dashboard/
-  [storeSlug]/
-
-components/
-  ui/
-  marketing/
-  dashboard/
-  storefront/
-
-lib/
-  supabase/
-  clerk/
-  stripe/
-  validations/
-```
-
-Route groups such as `(marketing)` are organizational and should not alter public URLs.
+Potential future custom domains should resolve to the same internal Store entity instead of creating a second storefront model.
 
 ## Core domain
 
-Initial conceptual hierarchy:
+Current conceptual hierarchy:
 
 ```text
-Organization
-  ├── Memberships
-  ├── Subscription
-  └── Stores
-       ├── Categories
-       ├── Products
-       ├── Delivery configuration
-       └── Orders
+Clerk User
+  -> membership in one or more Clerk Organizations
+
+Clerk Organization
+  <-> DeliPlus organization
+        ├── Local trial grants
+        ├── Canonical Stripe Customer identity
+        ├── Paid subscription projection
+        └── Stores
+             ├── Store memberships
+             ├── Categories
+             ├── Products
+             ├── Delivery configuration
+             └── Orders
 ```
 
-The MVP may launch with one store per organization, but the domain should avoid making this irreversible.
+The Clerk Organization and DeliPlus `organizations` row represent the same tenant at different system boundaries:
+
+- Clerk Organization: identity, Organization membership, active Organization and Organization roles;
+- DeliPlus organization: stable internal UUID and application-domain ownership.
+
+A Store represents an establishment/storefront inside an Organization.
+
+The database supports:
+
+```text
+Organization 1 -> N Stores
+Clerk Users N -> N Stores through store_memberships
+```
+
+Plan capacity may limit entitlement to one, two, or three Stores, but that is a billing/business rule, not a database cardinality constraint.
+
+## Authorization layers
+
+DeliPlus uses two related but distinct membership levels.
+
+### Organization membership — Clerk
+
+Answers:
+
+> Is this user a member of this business/tenant, and what Organization role do they have?
+
+### Store membership — DeliPlus / PostgreSQL
+
+Answers:
+
+> If this user is an Organization member, which Store(s) inside that Organization may they operate?
+
+Current rule:
+
+```text
+Organization admin
+  -> all Stores in the active Organization
+
+Organization member
+  -> only explicitly assigned Stores
+```
+
+Store assignments do not replace Clerk membership. A user must still belong to the Clerk Organization.
 
 ## Service responsibilities
 
@@ -134,35 +205,100 @@ Responsible for:
 - authentication;
 - user identity;
 - sessions;
-- authentication UI/integration.
+- Organizations;
+- Organization membership;
+- active Organization;
+- Clerk Organization roles;
+- Organization invitations/member lifecycle.
 
-Clerk is not the canonical source for DeliPlus domain authorization relationships.
+Clerk is the canonical source of Organization membership.
+
+Server-side Supabase clients pass the current Clerk session token through Supabase Third-Party Auth.
 
 ### Supabase / PostgreSQL
 
 Responsible for:
 
-- organizations;
-- memberships;
-- stores;
+- internal DeliPlus organizations;
+- Stores;
+- Store memberships/assignments;
 - catalog;
 - delivery configuration;
 - orders;
-- billing projection/state used by the application;
-- tenant-aware application data.
+- normalized billing projection/state used by the application;
+- tenant/Store-aware application data;
+- RLS authorization boundaries over application data.
 
-PostgreSQL is the canonical application data store.
+PostgreSQL is the canonical source for Store assignment because Store is a DeliPlus entity.
+
+The DeliPlus organization maps to Clerk through a unique `clerk_organization_id`, while keeping an internal UUID as its primary key.
+
+The current billing database foundation separates:
+
+- `billing_trial_grants` for local trial history;
+- `billing_customers` for canonical Organization-to-Stripe-Customer identity;
+- `billing_subscriptions` for the current paid Subscription projection;
+- `stripe_webhook_events` for minimum webhook idempotency metadata.
+
+All four tables currently have RLS enabled and no direct `anon` or `authenticated` Data API access. Paid projection writes use one atomic `SECURITY INVOKER` PostgreSQL function callable only by `service_role`; that role receives only the table privileges required by this webhook slice. A later entitlement feature must introduce an explicitly reviewed narrow read boundary rather than broad table grants.
 
 ### Stripe
 
 Initial responsibility:
 
-- merchant subscription checkout;
-- subscription lifecycle;
+- Organization-level merchant subscription checkout;
+- paid Customer/Subscription lifecycle;
 - billing portal when implemented;
-- billing webhooks.
+- billing webhooks;
+- plan/Store-capacity entitlement source in conjunction with DeliPlus billing projection.
+
+The current Stripe server and webhook foundations provide:
+
+- the exact official Stripe Node SDK;
+- a lazy server-only client using only `STRIPE_SECRET_KEY`;
+- a typed registry for `essential`, `multi_2`, and `multi_3` with Store capacities 1, 2, and 3;
+- environment-specific Price resolution performed lazily from approved `PlanCode` values;
+- trusted return-origin validation with an explicit stable origin or Vercel Preview fallback;
+- a public Node-runtime webhook route authenticated by the Stripe signature rather than Clerk;
+- raw-body verification before Event processing;
+- current-Subscription reconciliation for the approved Checkout, Subscription, and Invoice Event set;
+- a single paid-subscription reducer and atomic Event-ledger/projection transaction.
+
+Only supported, verified webhook processing may retrieve the current Stripe Subscription. Imports, builds, tests, and unrelated Events perform no Stripe API call. This foundation does not create Customers, Checkout Sessions, Portal Sessions, Products, Prices, or local trials. The initial trial remains local to DeliPlus/PostgreSQL.
 
 End-customer payment for food orders is outside the initial scope.
+
+## Provisioning boundary
+
+Creating a Clerk Organization does not itself create:
+
+- a Supabase `organizations` row;
+- a Store;
+- a Stripe subscription.
+
+Adding a Clerk Organization member does not itself assign Store access.
+
+Those effects occur only through explicit DeliPlus onboarding/team-management flows.
+
+This allows DeliPlus to validate billing/trial eligibility, Store ownership and Store assignment coherently.
+
+## Team management
+
+The user-facing goal is one DeliPlus management experience even though Clerk and PostgreSQL have different responsibilities.
+
+Conceptual future flow:
+
+```text
+dashboard/team
+  -> invite/add member
+  -> Clerk Organization membership
+  -> assign Store(s)
+  -> store_memberships
+```
+
+For Organization admins, Store assignment is not required for their own access because admins may access all Stores in the Organization.
+
+For normal Organization members, one or more Store assignments are required before Store-scoped access is granted.
 
 ## Server/client boundary
 
@@ -170,6 +306,8 @@ Prefer server execution for:
 
 - authenticated data access;
 - authorization decisions;
+- tenant/Store provisioning;
+- Store membership mutations;
 - privileged Supabase access;
 - Stripe operations;
 - webhook processing;
@@ -179,6 +317,24 @@ Prefer Client Components only where interaction requires browser-side state or A
 
 Never use a Client Component as a security boundary.
 
+## Dashboard resolution
+
+A Store-scoped dashboard request conceptually follows:
+
+```text
+authenticated Clerk user
+  -> verified active Clerk Organization
+  -> resolve internal DeliPlus organization
+  -> resolve requested/active Store
+  -> if Organization admin: verify Store belongs to Organization
+  -> if Organization member: verify Store belongs to Organization
+       AND matching store_membership exists for Clerk user
+  -> authorize requested action
+  -> query Store-scoped data
+```
+
+Do not accept Organization/Store context supplied by the client without verification.
+
 ## Store resolution
 
 A storefront request conceptually follows:
@@ -186,49 +342,36 @@ A storefront request conceptually follows:
 ```text
 request /<storeSlug>
   -> validate slug
-  -> resolve active store
-  -> use canonical store ID
-  -> load only data belonging to that store
+  -> resolve active Store
+  -> use canonical Store ID
+  -> load only explicitly public data belonging to that Store
   -> render storefront
 ```
 
-Do not continue using a raw slug as the sole authorization/ownership predicate after resolution.
-
-## Dashboard resolution
-
-A dashboard request conceptually follows:
-
-```text
-authenticated Clerk user
-  -> resolve application membership
-  -> resolve active organization/store context
-  -> authorize requested action
-  -> query tenant-scoped data
-```
-
-The exact active-store UX is intentionally not fixed yet.
+Public storefront access is separate from merchant dashboard authorization.
 
 ## Cross-cutting concerns
 
 The following need explicit treatment throughout implementation:
 
 - tenant isolation;
-- authorization;
+- Store-level authorization;
+- Organization admin bypass rules;
 - RLS;
+- Organization-to-Store entitlement;
 - server/client boundaries;
 - validation of untrusted input;
 - webhook idempotency;
 - observability and error handling;
 - feature scope and migrations.
 
-## Architecture changes
+## Architecture decisions
 
-When a decision changes a durable system assumption, add an ADR under `docs/decisions/`.
+Durable decisions are recorded under `docs/decisions/`.
 
-Examples:
+Relevant ADRs:
 
-- one store vs multiple stores per organization;
-- custom domains;
-- order lifecycle design;
-- RLS strategy;
-- Stripe subscription ownership model.
+- `ADR-001-tenant-and-store-billing-model.md`
+- `ADR-002-store-level-access-model.md`
+- `ADR-003-trusted-server-write-boundary.md`
+- `ADR-004-stripe-billing-and-entitlement-model.md`
