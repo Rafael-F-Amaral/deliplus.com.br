@@ -28,11 +28,11 @@ DeliPlus answers:
 
 > Given the active Organization, Store access and requested resource, what may this request read or modify?
 
-### Billing entitlement — DeliPlus + Stripe state
+### Billing entitlement — DeliPlus + projected Stripe paid state
 
 Billing answers:
 
-> Is this Organization currently entitled to this paid capability, including its allowed Store capacity?
+> Does this Organization have a valid local trial or paid-subscription projection for the requested capability and Store capacity?
 
 These concerns are related but must not be collapsed into one client-side check.
 
@@ -240,10 +240,15 @@ Organization
 
 Current product direction:
 
-- Essential supports one Store;
-- higher plans may support more Stores;
-- exact higher-plan limits remain a billing/product decision;
-- intended trial duration is 15 days on Essential.
+- `essential` supports one Store;
+- `multi_2` supports two Stores;
+- `multi_3` supports three Stores;
+- four or more Stores use a sales-assisted path;
+- the initial self-service trial is 15 days on Essential, with no card and no Stripe trial.
+
+The current billing database foundation contains Organization-owned local trial history, canonical Stripe Customer identity, paid Subscription projection, and webhook Event ledger tables. RLS is enabled on all four.
+
+In this first schema slice, neither `anon` nor `authenticated` has direct access to any billing table. There are no billing RLS policies and no generic billing writes. A future `resolveOrganizationEntitlement()` feature must define a narrow trusted read interface before application billing reads are enabled.
 
 Creating a Clerk Organization does not itself grant a trial, create a Store or establish paid access.
 
