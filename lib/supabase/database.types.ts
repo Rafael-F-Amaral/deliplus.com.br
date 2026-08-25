@@ -273,7 +273,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      apply_stripe_subscription_projection: {
+        Args: {
+          p_cancel_at_period_end: boolean
+          p_collection_paused: boolean
+          p_current_period_end: string
+          p_event_type: string
+          p_livemode: boolean
+          p_plan_code: string
+          p_status: string
+          p_stripe_created_at: string
+          p_stripe_customer_id: string
+          p_stripe_event_id: string
+          p_stripe_object_id: string
+          p_stripe_price_id: string
+          p_stripe_subscription_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

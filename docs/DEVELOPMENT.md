@@ -65,13 +65,14 @@ The Stripe server foundation recognizes these server-only variables:
 
 ```text
 STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
 STRIPE_PRICE_ESSENTIAL
 STRIPE_PRICE_MULTI_2
 STRIPE_PRICE_MULTI_3
 BILLING_RETURN_ORIGIN
 ```
 
-The configuration is lazy. Missing Stripe Price IDs or return origin do not break unrelated pages or `next build`; an error is raised only when a future billing operation requests the missing value.
+The configuration is lazy. Missing Stripe secrets, Price IDs, or return origin do not break unrelated pages or `next build`; an error is raised only when the route or billing operation that needs a value executes.
 
 Use separate Stripe resources for each environment:
 
@@ -87,7 +88,7 @@ Each approved `PlanCode` maps to a different environment-specific Stripe Price I
 
 Stable Local, Staging, and Production deployments use an explicit `BILLING_RETURN_ORIGIN`. Ephemeral Vercel Preview deployments may fall back to the system-provided `VERCEL_URL`. Request headers are never an authority for billing return URLs.
 
-No publishable Stripe key is required for the approved future server-created, Stripe-hosted Checkout redirect. `STRIPE_WEBHOOK_SECRET` is intentionally absent until the webhook feature is implemented.
+No publishable Stripe key is required for the approved future server-created, Stripe-hosted Checkout redirect. `STRIPE_WEBHOOK_SECRET` is the endpoint-specific `whsec_...` signing secret; it is not an API key and must remain server-only.
 
 Do not document real keys in repository markdown.
 
@@ -214,7 +215,7 @@ Current database foundation:
 - `billing_trial_grants` stores local trial history;
 - `billing_customers` stores canonical Customer claims/identity;
 - `billing_subscriptions` stores the current paid projection only;
-- `stripe_webhook_events` stores minimum future Event idempotency metadata;
+- `stripe_webhook_events` stores minimum Event idempotency metadata;
 - all four tables have RLS enabled and no direct `anon`/`authenticated` grants or policies.
 
 Current product rules:
@@ -225,18 +226,58 @@ Current product rules:
 - four or more Stores: sales-assisted;
 - initial trial: 15 days on Essential, local/PostgreSQL, no card.
 
-The Stripe Node SDK, server-only client/configuration, approved plan registry, Price mapping convention, and trusted origin resolver are implemented. They perform no Stripe network calls during import, build, or tests.
+The Stripe Node SDK, server-only client/configuration, approved plan registry, Price mapping convention, trusted origin resolver, verified webhook route, paid-subscription reducer, and atomic Event/projection RPC are implemented. Imports, builds, unit tests, duplicate short-circuits, and unsupported Events perform no Stripe API calls. Supported webhook processing retrieves the current Subscription from Stripe before starting the short database transaction.
 
-The current slices still do not implement trial activation, entitlement resolution, Checkout, Portal, webhooks, Products, Prices, or Store-capacity enforcement.
+The webhook supports:
+
+```text
+checkout.session.completed
+customer.subscription.created
+customer.subscription.updated
+customer.subscription.deleted
+invoice.paid
+invoice.payment_failed
+```
+
+Checkout and Invoice Events only trigger current-Subscription reconciliation. The Subscription snapshot remains authoritative for paid projection status. Async Checkout Events are not implemented because the approved MVP configuration is card-based; if delayed payment methods are enabled later, add and test `checkout.session.async_payment_succeeded` and `checkout.session.async_payment_failed` before relying on them.
+
+The current slices still do not implement trial activation, entitlement resolution, Checkout creation, Customer creation, Portal, Products, Prices, or Store-capacity enforcement.
+
+### Local Stripe webhook workflow
+
+Install the Stripe CLI outside the project by following the official Stripe CLI instructions, then authenticate:
+
+```bash
+stripe login
+```
+
+Start the application and the local Supabase stack, then forward only the implemented Event set:
+
+```bash
+stripe listen \
+  --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_failed \
+  --forward-to localhost:3000/api/stripe/webhook
+```
+
+Copy the CLI-provided local signing secret into the ignored local environment file:
+
+```env
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+Do not copy that value into `.env.example` or repository documentation. The CLI secret is local and must not be reused for a hosted endpoint.
+
+Real paid-projection reconciliation additionally requires a Test/Sandbox `STRIPE_SECRET_KEY`, the matching configured `STRIPE_PRICE_*`, and a controlled local `billing_customers` row that maps the Stripe Customer to a DeliPlus Organization. The future Checkout feature will establish that canonical Customer relation in normal product flows; do not create Customers or Products merely to satisfy unit tests for this foundation.
 
 Database validation for this slice includes:
 
 ```bash
 yarn supabase db reset
 yarn supabase test db
+yarn test:stripe-webhook-foundation
 ```
 
-The pgTAP suite contains the existing tenant-core regression tests plus Billing Foundation structure, constraint and default-deny security coverage.
+The pgTAP suite contains tenant-core and Billing Foundation regressions plus webhook RPC privilege, atomicity, duplicate, retry, recovery-state, and replaced-Subscription coverage.
 
 ## Validation
 

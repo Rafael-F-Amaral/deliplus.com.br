@@ -39,6 +39,13 @@ const stripePriceEnvironmentNameByPlan = {
   multi_3: "STRIPE_PRICE_MULTI_3",
 } as const satisfies Record<PlanCode, StripePriceEnvironmentName>
 
+export class UnknownStripePriceError extends Error {
+  constructor() {
+    super("Unsupported Stripe Price")
+    this.name = "UnknownStripePriceError"
+  }
+}
+
 export class UnsupportedPlanCodeError extends Error {
   constructor() {
     super("Unsupported billing plan")
@@ -93,4 +100,43 @@ export function resolveStripePriceIdFromEnvironment(
   }
 
   return stripePriceId
+}
+
+export function resolvePlanCodeFromStripePriceIdFromEnvironment(
+  stripePriceId: unknown,
+  environment: StripePriceEnvironment
+) {
+  if (
+    typeof stripePriceId !== "string" ||
+    stripePriceId !== stripePriceId.trim() ||
+    !/^price_[A-Za-z0-9]+$/u.test(stripePriceId)
+  ) {
+    throw new UnknownStripePriceError()
+  }
+
+  const matchingPlans = PLAN_CODES.filter((planCode) => {
+    const environmentName = stripePriceEnvironmentNameByPlan[planCode]
+    const configuredPriceId = environment[environmentName]
+
+    if (!configuredPriceId) {
+      return false
+    }
+
+    if (
+      configuredPriceId !== configuredPriceId.trim() ||
+      !/^price_[A-Za-z0-9]+$/u.test(configuredPriceId)
+    ) {
+      throw new PlanPriceConfigurationError(
+        `Invalid Stripe server configuration: ${environmentName}`
+      )
+    }
+
+    return configuredPriceId === stripePriceId
+  })
+
+  if (matchingPlans.length !== 1) {
+    throw new UnknownStripePriceError()
+  }
+
+  return matchingPlans[0]
 }
