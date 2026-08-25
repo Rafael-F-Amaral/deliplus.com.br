@@ -78,7 +78,7 @@ Current product direction:
 - four or more Stores use a sales-assisted path;
 - trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
 
-The PostgreSQL billing schema exists, but trial activation, entitlement resolution, Stripe Checkout, webhooks and Store-capacity enforcement remain separate implementation slices.
+The PostgreSQL billing schema and server-only Stripe configuration foundation exist, but trial activation, entitlement resolution, Stripe Checkout, webhooks and Store-capacity enforcement remain separate implementation slices.
 
 ### 4. Merchant dashboard
 
@@ -252,7 +252,15 @@ Initial responsibility:
 - billing webhooks;
 - plan/Store-capacity entitlement source in conjunction with DeliPlus billing projection.
 
-The Stripe application integration is not implemented by the current database-only foundation. The initial trial remains local to DeliPlus/PostgreSQL.
+The current Stripe server foundation provides:
+
+- the exact official Stripe Node SDK;
+- a lazy server-only client using only `STRIPE_SECRET_KEY`;
+- a typed registry for `essential`, `multi_2`, and `multi_3` with Store capacities 1, 2, and 3;
+- environment-specific Price resolution performed lazily from approved `PlanCode` values;
+- trusted return-origin validation with an explicit stable origin or Vercel Preview fallback.
+
+It performs no Stripe network operation and does not create Customers, Checkout Sessions, Portal Sessions, Products, Prices, or webhooks. The initial trial remains local to DeliPlus/PostgreSQL.
 
 End-customer payment for food orders is outside the initial scope.
 
