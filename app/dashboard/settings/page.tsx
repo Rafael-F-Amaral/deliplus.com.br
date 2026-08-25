@@ -1,0 +1,1 @@
+export default function Page() { return <div className="flex h-full items-center justify-center p-20"><h1 className="text-3xl text-gray-400 font-medium">Em construção</h1></div>; }
