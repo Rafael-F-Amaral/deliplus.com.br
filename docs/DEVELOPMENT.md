@@ -15,6 +15,7 @@ yarn start
 yarn lint
 yarn format
 yarn typecheck
+yarn test:store-provisioning-setup
 ```
 
 ## Package manager
@@ -182,11 +183,41 @@ The initial tenant-core migration should not expose generic authenticated write 
 
 Provisioning and team-access mutations will come later through trusted server-side features.
 
+Store draft/setup mutations now use a narrow server-only domain service and
+repository. Normal Store/Organization reads remain Clerk-JWT/RLS-bound, while
+the existing privileged Supabase client is created only for explicitly scoped
+draft creation, name/slug updates, and `draft → ready`. The boundary does not
+activate Stores or resolve billing entitlement.
+
 This avoids allowing a browser/Data API caller to bypass:
 
 - onboarding;
 - subscription/Store-capacity rules;
 - team-management rules.
+
+### Store setup development
+
+The current Store setup modules are:
+
+```text
+lib/stores/store-setup.ts
+lib/stores/store-setup.internal.ts
+lib/stores/store-setup.rules.ts
+lib/stores/store-setup.repository.ts
+```
+
+Use only the public server-only facade from dashboard/server boundaries. Do not
+import `lib/supabase/admin.ts` or `store-setup.repository.ts` from `app/` or
+`components/`.
+
+The shared rules normalize Store names/slugs, enforce the central reserved-slug
+set, and validate readiness. Draft/ready Store setup requires neither billing
+entitlement nor trial state. Validate this slice with:
+
+```bash
+yarn test:store-provisioning-setup
+yarn supabase test db
+```
 
 ## Team-management development
 

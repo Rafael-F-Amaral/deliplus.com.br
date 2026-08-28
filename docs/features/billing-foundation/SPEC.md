@@ -1106,15 +1106,20 @@ Do not add a one-Store Organization cardinality constraint. The domain relations
 Organization 1 → N Stores
 ```
 
-Future Store creation/activation must atomically:
+Future Store activation must atomically:
 
 1. resolve trusted Organization context;
 2. resolve normalized entitlement;
-3. count the relevant Stores under the approved capacity semantics;
+3. count Stores with `status = 'active'`;
 4. compare with `maxStores`;
-5. insert/activate only when capacity remains.
+5. activate the ready Store only when capacity remains.
 
-A non-transactional `count → insert` sequence is insufficient under concurrency.
+A non-transactional `count → activate` sequence is insufficient under
+concurrency. Draft and ready Store creation/setup does not consume capacity and
+must not require entitlement.
+
+Future initial-trial activation must additionally verify that no Store in the
+Organization has ever been activated (`activated_at IS NOT NULL`).
 
 Store memberships do not alter Store capacity.
 
@@ -1296,7 +1301,7 @@ Implement as separate, reviewable slices:
    - compose Store setup and billing facts into approved UI states.
 
 9. **Store-capacity enforcement**
-   - atomic capacity verification in Store creation/activation.
+   - atomic active-Store capacity verification during Store activation; draft/ready setup remains outside capacity.
 
 10. **Order entitlement enforcement**
     - part of the future order feature, using the shared resolver.

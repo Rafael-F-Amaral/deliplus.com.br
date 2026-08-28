@@ -13,6 +13,7 @@
     "test:tenant-provisioning": "node --conditions=react-server --experimental-strip-types --test tests/tenant-provisioning/*.test.mjs",
     "test:onboarding-state-resolver": "node --test tests/onboarding/resolve-onboarding-state.test.mjs",
     "test:organization-entitlement": "node --experimental-strip-types --test tests/organization-entitlement/*.test.mjs",
+    "test:store-provisioning-setup": "node --conditions=react-server --experimental-strip-types --test tests/store-provisioning-setup/*.test.mjs",
     "test:stripe-server-foundation": "node --conditions=react-server --experimental-strip-types --test tests/stripe-server-foundation/*.test.mjs",
     "test:stripe-webhook-foundation": "node --conditions=react-server --experimental-strip-types --test tests/stripe-webhook-foundation/*.test.mjs"
   },
