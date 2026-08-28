@@ -64,10 +64,11 @@ Conceptual flow:
 sign up / sign in
   -> create or select Clerk Organization
   -> detect whether DeliPlus organization exists
-  -> onboarding / plan entitlement
   -> create internal organization when appropriate
-  -> provision initial Store
-  -> dashboard
+  -> create and configure a draft Store
+  -> mark Store ready
+  -> later activate through an approved trial/paid entitlement boundary
+  -> operational dashboard
 ```
 
 Current product direction:
@@ -76,9 +77,10 @@ Current product direction:
 - the local introductory trial is 15 days on Essential and does not require Stripe;
 - paid plan codes are `essential` (one Store), `multi_2` (two Stores), and `multi_3` (three Stores);
 - four or more Stores use a sales-assisted path;
+- `maxStores` counts only Stores with `status = 'active'`; draft and ready Stores do not consume capacity;
 - trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
 
-The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, and server-only Organization entitlement resolver exist. Trial activation, Stripe Checkout, Customer Portal, and Store-capacity enforcement remain separate implementation slices.
+The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, and Store setup foundation exist. Store setup now supports Organization-admin reads, draft creation, name/slug editing, and readiness through a narrow server-only domain boundary. Trial activation, Stripe Checkout, Customer Portal, and Store-capacity enforcement remain separate implementation slices.
 
 ### 4. Merchant dashboard
 
@@ -94,13 +96,16 @@ Expected feature areas over time:
 
 ```text
 /dashboard
-/dashboard/orders
-/dashboard/products
-/dashboard/categories
-/dashboard/delivery
-/dashboard/team
 /dashboard/stores
-/dashboard/settings
+/dashboard/stores/new
+/dashboard/stores/[storeId]
+/dashboard/stores/[storeId]/setup
+/dashboard/stores/[storeId]/products
+/dashboard/stores/[storeId]/categories
+/dashboard/stores/[storeId]/orders
+/dashboard/stores/[storeId]/delivery
+/dashboard/stores/[storeId]/settings
+/dashboard/team
 /dashboard/billing
 ```
 
@@ -166,7 +171,7 @@ Organization 1 -> N Stores
 Clerk Users N -> N Stores through store_memberships
 ```
 
-Plan capacity may limit entitlement to one, two, or three Stores, but that is a billing/business rule, not a database cardinality constraint.
+Plan capacity may limit entitlement to one, two, or three active Stores, but that is a billing/business rule, not a database cardinality constraint. Draft and ready Store records do not consume capacity.
 
 ## Authorization layers
 
@@ -282,7 +287,12 @@ Adding a Clerk Organization member does not itself assign Store access.
 
 Those effects occur only through explicit DeliPlus onboarding/team-management flows.
 
-This allows DeliPlus to validate billing/trial eligibility, Store ownership and Store assignment coherently.
+This allows DeliPlus to validate Store ownership and Store assignment during setup, then validate billing/trial eligibility and active-Store capacity at the separate activation boundary.
+
+The current Store setup write path uses the privileged Supabase client only
+behind `lib/stores/store-setup.repository.ts`, after Clerk admin authorization
+and RLS-backed tenant/Store resolution. Normal `authenticated` Data API access
+remains SELECT-only. Store activation is not part of this boundary.
 
 ## Team management
 

@@ -109,6 +109,10 @@ one initial trial per DeliPlus Organization
 
 An initial grant remains consumed after expiration or revocation.
 
+The future initial-trial activation boundary must also verify that no Store in
+the Organization has ever been activated (`activated_at IS NOT NULL`). Draft or
+ready Store setup does not start or consume a trial.
+
 Deli Plus may create exceptional `manual_override` grants through an administrative boundary. A Clerk Organization admin cannot self-grant an override.
 
 The model may later support a Deli Plus-administered multi-Store override/pilot using an approved plan code. This decision does not define its workflow, eligibility, duration, or self-service availability.
@@ -326,7 +330,7 @@ When the remote Stripe catalog is approved, each selectable plan uses its own St
 
 Four-or-more-Store demand follows a Deli Plus contact/sales-assisted path. No `multi_4` or fourth Price is inferred automatically.
 
-Store capacity is a trusted entitlement rule, not an `Organization → exactly one Store` schema cardinality constraint. Future Store creation/activation must enforce capacity atomically.
+Store capacity is a trusted entitlement rule, not an `Organization → exactly one Store` schema cardinality constraint. `maxStores` counts only Stores with `status = 'active'`; draft and ready Stores may be created and configured without consuming capacity. Future Store activation must enforce entitlement and capacity atomically.
 
 ### Security boundaries
 

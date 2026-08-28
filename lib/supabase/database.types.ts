@@ -202,6 +202,7 @@ export type Database = {
       }
       stores: {
         Row: {
+          activated_at: string | null
           created_at: string
           id: string
           name: string
@@ -211,6 +212,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          activated_at?: string | null
           created_at?: string
           id?: string
           name: string
@@ -220,6 +222,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          activated_at?: string | null
           created_at?: string
           id?: string
           name?: string

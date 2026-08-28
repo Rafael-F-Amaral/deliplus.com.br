@@ -186,7 +186,17 @@ Do not grant generic authenticated writes to:
 - stores;
 - store_memberships.
 
-Provisioning and Store-membership mutation will be implemented later through an explicitly trusted server-side boundary so billing/Store-capacity and membership lifecycle rules cannot be bypassed.
+Tenant provisioning uses its reviewed server-only boundary. Store setup uses a
+separate narrow server-only service that can create only draft Stores, update
+name/slug, and mark valid drafts ready; it does not activate Stores or grant entitlement. Future
+Store activation must enforce trial/paid entitlement and active-Store capacity
+atomically. Store-membership mutation also requires its own reviewed trusted
+boundary.
+
+Every Store setup operation authenticates with Clerk, requires the active
+Organization's `org:admin` role, resolves the internal Organization through the
+normal Clerk-JWT/RLS client, and scopes Store selectors to that Organization.
+Missing and cross-tenant Stores share the same safe public outcome.
 
 ## Team management
 
@@ -245,6 +255,15 @@ Current product direction:
 - `multi_3` supports three Stores;
 - four or more Stores use a sales-assisted path;
 - the initial self-service trial is 15 days on Essential, with no card and no Stripe trial.
+
+`maxStores` is operational capacity: it counts only Stores with
+`status = 'active'`. Draft and ready Stores do not consume capacity. Creating or
+configuring a draft Store therefore grants no operational entitlement. A future
+activation boundary must count and activate atomically.
+
+Initial-trial activation must also verify that the Organization has no Store
+that was previously activated (`activated_at IS NOT NULL`), in addition to the
+approved User- and Organization-level trial history rules.
 
 The current billing database foundation contains Organization-owned local trial history, canonical Stripe Customer identity, paid Subscription projection, and webhook Event ledger tables. RLS is enabled on all four.
 

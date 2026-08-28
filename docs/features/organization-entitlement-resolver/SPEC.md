@@ -1127,20 +1127,21 @@ planCode
 maxStores
 ```
 
-will be consumed by a future trusted Store-creation or Store-activation
-boundary.
+will be consumed by a future trusted Store-activation boundary. Draft and ready
+Store creation/setup does not consume capacity and does not call this resolver.
 
 This feature must not:
 
 - query or count Stores;
-- determine whether an additional Store can be created;
+- determine whether an additional Store can be activated;
 - accept `maxStores` as sufficient authorization;
-- insert or activate a Store.
+- activate a Store.
 
 Future capacity enforcement must atomically combine trusted Organization
 resolution, normalized entitlement, the approved Store-count semantics, and the
-Store insertion/activation. A non-transactional `count → insert` sequence is not
-sufficient under concurrency.
+ready-to-active transition. It must count only Stores with `status = 'active'`.
+A non-transactional `count → activate` sequence is not sufficient under
+concurrency.
 
 ## 37. Future order-acceptance consumer
 

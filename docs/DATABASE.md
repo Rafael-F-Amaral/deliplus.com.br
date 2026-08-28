@@ -79,6 +79,7 @@ organization_id
 name
 slug
 status
+activated_at
 created_at
 updated_at
 ```
@@ -89,9 +90,23 @@ Relationship:
 organization 1 -> N stores
 ```
 
-The database must support multiple Stores even when a billing plan limits how many may be active/created.
+The database supports multiple Store records independently from plan capacity.
+`maxStores` counts only Stores whose status is `active`; draft and ready Stores
+do not consume capacity.
 
 `slug` is the public Store identifier and is independent from the Clerk Organization slug.
+
+Current persisted lifecycle:
+
+```text
+draft <-> ready -> active <-> inactive
+```
+
+`activated_at` is null for draft/ready and required for active/inactive. The
+first activation timestamp is immutable, and active/inactive Stores cannot
+return to setup states. The database accepts new Stores only as unactivated
+drafts and rejects blank names. Store activation itself remains outside the
+current Store setup feature.
 
 ### store_memberships
 
@@ -280,10 +295,10 @@ Creating a Clerk Organization does not automatically create PostgreSQL records.
 
 Adding a member to Clerk does not automatically grant Store access.
 
-DeliPlus onboarding/team-management will explicitly create:
+DeliPlus application flows explicitly create or will create:
 
 - internal organization records;
-- initial/additional Stores;
+- initial/additional Store drafts through the Store setup domain boundary;
 - Store membership assignments.
 
 The exact transaction/order of provisioning and Stripe subscription creation belongs to onboarding/billing specs.
@@ -319,7 +334,11 @@ Normal `authenticated` access should be read-only for:
 
 Generic authenticated INSERT/UPDATE/DELETE for tenant-core records is not part of the first migration.
 
-Provisioning and team membership mutations will be implemented separately so billing and access rules cannot be bypassed directly through the Data API.
+Tenant provisioning and Store draft/setup mutations use separate narrow
+server-only boundaries. Team membership mutation remains separate. Store setup
+uses RLS-backed reads and an explicitly scoped privileged repository for simple
+writes; it does not activate a Store, grant entitlement, or expose generic
+authenticated writes.
 
 The billing foundation is stricter: `anon` and `authenticated` have no direct reads or writes on any billing table. RLS remains default-deny. The dedicated entitlement read model exposes only a zero-argument function to `authenticated`, not table access.
 
