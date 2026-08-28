@@ -16,6 +16,8 @@ yarn lint
 yarn format
 yarn typecheck
 yarn test:store-provisioning-setup
+yarn test:store-trial-activation
+yarn test:store-trial-activation:concurrency
 ```
 
 ## Package manager
@@ -183,11 +185,13 @@ The initial tenant-core migration should not expose generic authenticated write 
 
 Provisioning and team-access mutations will come later through trusted server-side features.
 
-Store draft/setup mutations now use a narrow server-only domain service and
+Store draft/setup mutations use a narrow server-only domain service and
 repository. Normal Store/Organization reads remain Clerk-JWT/RLS-bound, while
 the existing privileged Supabase client is created only for explicitly scoped
 draft creation, name/slug updates, and `draft → ready`. The boundary does not
-activate Stores or resolve billing entitlement.
+activate Stores or resolve billing entitlement. First-Store trial activation uses a
+separate normal Clerk-JWT Supabase client plus the narrow transactional RPC and never
+uses the privileged application client.
 
 This avoids allowing a browser/Data API caller to bypass:
 
@@ -272,7 +276,35 @@ invoice.payment_failed
 
 Checkout and Invoice Events only trigger current-Subscription reconciliation. The Subscription snapshot remains authoritative for paid projection status. Async Checkout Events are not implemented because the approved MVP configuration is card-based; if delayed payment methods are enabled later, add and test `checkout.session.async_payment_succeeded` and `checkout.session.async_payment_failed` before relying on them.
 
-The current slices still do not implement trial activation, Checkout creation, Customer creation, Portal, Products, Prices, or Store-capacity enforcement.
+The current slices implement first-Store initial-trial activation, but still do not implement generic paid/manual-entitlement activation, Checkout creation, Customer creation, Portal, Products, Prices, or Store-capacity enforcement.
+
+### Store trial activation development
+
+The server-only Store trial activation modules are:
+
+```text
+lib/stores/activate-first-store-with-initial-trial.ts
+lib/stores/activate-first-store-with-initial-trial.internal.ts
+```
+
+The public operation accepts only `storeId`, uses `await auth()`, requires the active
+Organization's `org:admin`, and invokes
+`activate_first_store_with_initial_trial(p_store_id)` through the normal Clerk-JWT
+Supabase client. Do not import the admin client, Stripe, Store setup mutations, or a
+browser-provided tenant/User/role into this path.
+
+Focused validation requires:
+
+```bash
+yarn test:store-trial-activation
+yarn test:store-trial-activation:concurrency
+yarn supabase test db supabase/tests/database/store_trial_activation_test.sql
+```
+
+The concurrency harness uses independent `pg` sessions and only accepts a local
+PostgreSQL host. It reads `SUPABASE_TEST_DB_URL` when explicitly supplied and otherwise
+uses the standard local Supabase database endpoint. It never reads `.env.local` or
+prints connection credentials. The local database must have all migrations applied.
 
 ### Organization entitlement resolution
 
@@ -329,7 +361,7 @@ yarn supabase test db
 yarn test:stripe-webhook-foundation
 ```
 
-The pgTAP suite contains tenant-core and Billing Foundation regressions plus webhook RPC privilege, atomicity, duplicate, retry, recovery-state, and replaced-Subscription coverage.
+The pgTAP suite contains tenant-core and Billing Foundation regressions plus webhook and Store-trial RPC privilege, isolation, atomicity, retry, recovery-state, and concurrency-related invariant coverage. Real concurrency is proven separately by the multi-session Node harness rather than sequential pgTAP.
 
 ## Validation
 

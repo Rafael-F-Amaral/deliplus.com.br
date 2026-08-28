@@ -105,8 +105,9 @@ draft <-> ready -> active <-> inactive
 `activated_at` is null for draft/ready and required for active/inactive. The
 first activation timestamp is immutable, and active/inactive Stores cannot
 return to setup states. The database accepts new Stores only as unactivated
-drafts and rejects blank names. Store activation itself remains outside the
-current Store setup feature.
+drafts and rejects blank names. Store setup itself still stops at `ready`; the
+separate initial-trial activation RPC now owns the first eligible `ready -> active`
+transition.
 
 ### store_memberships
 
@@ -264,7 +265,7 @@ The function is executable only by `service_role`. That role has read-only acces
 
 ### Billing access posture
 
-All four billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. The paid webhook uses the restricted trusted boundary described above; a later entitlement resolver must define any narrow read surface.
+All four billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. Narrow entitlement-read and first-Store trial-activation functions expose only their reviewed fact/result surfaces; they do not grant table access.
 
 ## Relationship overview
 
@@ -358,6 +359,37 @@ The billing foundation is stricter: `anon` and `authenticated` have no direct re
 - is executable by `authenticated`, while `PUBLIC`, `anon`, and `service_role` have no execution grant.
 
 The server-only `resolveOrganizationEntitlement()` calls this function through the normal Clerk-JWT Supabase client. It derives `maxStores` from the application plan registry, validates unknown/partial data fail-closed, and never reads Stripe or a privileged Supabase client.
+
+### First-Store trial activation boundary
+
+`public.activate_first_store_with_initial_trial(p_store_id uuid)` is the narrow atomic
+write boundary for an eligible first Store and initial local trial. It:
+
+- is `VOLATILE` and `SECURITY DEFINER` with `search_path = ''`;
+- is owned by the reviewed `postgres` migration role;
+- accepts only a Store UUID and derives Clerk User, active Organization and role from
+  private JWT helpers;
+- requires the verified Organization database role `admin`;
+- resolves the internal Organization before scoping and locking the target Store;
+- serializes Organization operations with the same advisory-lock convention used by
+  paid projection writes;
+- serializes historical Clerk User trial eligibility with a separate stable advisory
+  transaction lock;
+- rejects any prior initial grant for the Organization or Clerk User, including expired
+  or revoked grants;
+- rejects current paid entitlement or valid manual override because those cases belong
+  to generic Store activation;
+- requires no Store in the Organization to have a prior non-null `activated_at`;
+- inserts the 15-day Essential initial grant and updates the target Store from `ready`
+  to `active` in one transaction using one PostgreSQL timestamp;
+- returns only `outcome` and `trial_ends_at`;
+- is executable by `authenticated`, while `PUBLIC`, `anon`, and `service_role` receive
+  no execution grant.
+
+Direct authenticated writes to `stores`, `billing_trial_grants`, and
+`billing_subscriptions` remain denied. Coherent retries of the same Store during the
+active initial trial return `already_activated` without changing any persisted date or
+historical Clerk User.
 
 ## Money
 

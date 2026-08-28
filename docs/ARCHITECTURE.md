@@ -67,7 +67,7 @@ sign up / sign in
   -> create internal organization when appropriate
   -> create and configure a draft Store
   -> mark Store ready
-  -> later activate through an approved trial/paid entitlement boundary
+  -> activate the first eligible Store with a local initial trial
   -> operational dashboard
 ```
 
@@ -80,7 +80,7 @@ Current product direction:
 - `maxStores` counts only Stores with `status = 'active'`; draft and ready Stores do not consume capacity;
 - trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
 
-The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, and Store setup foundation exist. Store setup now supports Organization-admin reads, draft creation, name/slug editing, and readiness through a narrow server-only domain boundary. Trial activation, Stripe Checkout, Customer Portal, and Store-capacity enforcement remain separate implementation slices.
+The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, Store setup foundation, and first-Store trial activation boundary exist. Store setup supports Organization-admin reads, draft creation, name/slug editing, and readiness. The separate `activateFirstStoreWithInitialTrial(storeId)` boundary atomically activates the first eligible ready Store and creates its 15-day Essential trial. Generic paid/manual-entitlement activation, Stripe Checkout, Customer Portal, and Store-capacity enforcement remain separate implementation slices.
 
 ### 4. Merchant dashboard
 
@@ -249,6 +249,8 @@ All four tables have RLS enabled and no direct `anon` or `authenticated` Data AP
 
 Normal Organization entitlement reads use the zero-argument `public.resolve_active_organization_entitlement_facts()` function. It is a reviewed, `STABLE`, `SECURITY DEFINER` read boundary with an empty `search_path`, derives the active tenant only from the verified Clerk JWT, and returns only local-trial and paid-projection facts needed by the server resolver. Only `authenticated` may execute it; the billing tables remain unavailable for direct authenticated reads.
 
+First-Store trial activation uses the narrow `public.activate_first_store_with_initial_trial(uuid)` function. It is a `VOLATILE`, `SECURITY DEFINER` transaction boundary with an empty `search_path`. It derives the Clerk User, active Organization and admin role from the verified JWT, serializes both Organization and Clerk User eligibility, and commits the initial grant plus `ready -> active` transition atomically. `authenticated` receives only EXECUTE on this function; direct Store and billing writes remain denied.
+
 ### Stripe
 
 Initial responsibility:
@@ -292,7 +294,9 @@ This allows DeliPlus to validate Store ownership and Store assignment during set
 The current Store setup write path uses the privileged Supabase client only
 behind `lib/stores/store-setup.repository.ts`, after Clerk admin authorization
 and RLS-backed tenant/Store resolution. Normal `authenticated` Data API access
-remains SELECT-only. Store activation is not part of this boundary.
+remains SELECT-only. Store setup does not activate Stores. The separate initial-trial
+activation path uses the normal Clerk-JWT Supabase client and the transactional
+database RPC; it does not use the privileged application client.
 
 ## Team management
 

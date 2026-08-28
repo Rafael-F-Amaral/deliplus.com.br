@@ -188,10 +188,11 @@ Do not grant generic authenticated writes to:
 
 Tenant provisioning uses its reviewed server-only boundary. Store setup uses a
 separate narrow server-only service that can create only draft Stores, update
-name/slug, and mark valid drafts ready; it does not activate Stores or grant entitlement. Future
-Store activation must enforce trial/paid entitlement and active-Store capacity
-atomically. Store-membership mutation also requires its own reviewed trusted
-boundary.
+name/slug, and mark valid drafts ready; it does not activate Stores or grant entitlement.
+The separate first-Store activation boundary now enforces historical initial-trial
+eligibility and commits the initial grant plus Store activation atomically. Generic
+paid/manual-entitlement activation and active-Store capacity enforcement remain future
+features. Store-membership mutation also requires its own reviewed trusted boundary.
 
 Every Store setup operation authenticates with Clerk, requires the active
 Organization's `org:admin` role, resolves the internal Organization through the
@@ -264,6 +265,23 @@ activation boundary must count and activate atomically.
 Initial-trial activation must also verify that the Organization has no Store
 that was previously activated (`activated_at IS NOT NULL`), in addition to the
 approved User- and Organization-level trial history rules.
+
+The implemented `activateFirstStoreWithInitialTrial(storeId)` operation:
+
+- runs server-side and accepts only the Store UUID as a resource selector;
+- requires authenticated Clerk state, an active Organization and `org:admin`;
+- repeats the admin-role check inside PostgreSQL from the verified JWT;
+- derives both internal Organization and Clerk User identity without browser authority;
+- treats missing and cross-tenant Stores as the same `store_unavailable` outcome;
+- permits only the first historical `ready -> active` transition;
+- denies a new initial trial after any Organization/User initial grant, including expired or revoked grants;
+- directs valid paid/manual-entitlement cases to the future generic activation flow;
+- uses one PostgreSQL timestamp for trial start and Store activation;
+- makes no Stripe request and uses no Supabase admin client.
+
+The corresponding `SECURITY DEFINER` RPC is executable only by `authenticated` among
+Data API roles. It grants no generic authenticated write capability on Store or billing
+tables.
 
 The current billing database foundation contains Organization-owned local trial history, canonical Stripe Customer identity, paid Subscription projection, and webhook Event ledger tables. RLS is enabled on all four.
 
