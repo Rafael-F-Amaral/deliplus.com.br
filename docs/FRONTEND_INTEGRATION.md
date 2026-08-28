@@ -119,8 +119,19 @@ from verified server auth. A `storeId` is only a resource selector; the domain
 operation must scope the lookup to the resolved internal Organization.
 
 The Store setup API does not activate a Store, start a trial, consult Stripe,
-or enforce paid Store capacity. Those behaviors belong to a future reviewed
-activation boundary.
+or enforce paid Store capacity. Initial-trial activation is now provided by the
+separate server-only operation:
+
+```text
+activateFirstStoreWithInitialTrial(storeId)
+```
+
+It accepts only `storeId`, requires the verified active Organization admin, and returns
+`activated`, `already_activated`, `not_ready`, `trial_not_eligible`,
+`store_unavailable`, or explicit auth/Organization precondition outcomes. Successful
+results include the database-derived `trialEndsAt`. A future UI must invoke it through
+a thin reviewed server boundary and must not predict eligibility or mutate Store/billing
+tables directly.
 
 ## Frontend developer freedoms
 
@@ -232,7 +243,15 @@ draft/setup CRUD
   → Supabase admin client
 
 trial activation / paid activation / capacity
-  → future transactional PostgreSQL RPC
+  → transactional PostgreSQL RPC
+
+implemented initial-trial activation
+  → activateFirstStoreWithInitialTrial(storeId)
+  → normal Clerk-JWT Supabase client
+  → activate_first_store_with_initial_trial(uuid)
+
+future paid/manual activation + capacity
+  → separate reviewed transactional PostgreSQL RPC
 ```
 
 The privileged client is an internal persistence mechanism, not a domain API.
@@ -264,7 +283,6 @@ model, UI, or audit schema.
 The following remain feature-specific and require their own approved specs:
 
 - Store activation and deactivation operations;
-- initial-trial activation and historical trial eligibility;
 - paid activation and atomic Store-capacity enforcement;
 - post-activation slug policy;
 - storefront visibility and cache behavior;

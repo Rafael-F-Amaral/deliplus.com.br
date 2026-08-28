@@ -14,6 +14,8 @@
     "test:onboarding-state-resolver": "node --test tests/onboarding/resolve-onboarding-state.test.mjs",
     "test:organization-entitlement": "node --experimental-strip-types --test tests/organization-entitlement/*.test.mjs",
     "test:store-provisioning-setup": "node --conditions=react-server --experimental-strip-types --test tests/store-provisioning-setup/*.test.mjs",
+    "test:store-trial-activation": "node --conditions=react-server --experimental-strip-types --test tests/store-trial-activation/store-trial-activation.test.mjs",
+    "test:store-trial-activation:concurrency": "node --test tests/store-trial-activation/store-trial-activation.concurrency.test.mjs",
     "test:stripe-server-foundation": "node --conditions=react-server --experimental-strip-types --test tests/stripe-server-foundation/*.test.mjs",
     "test:stripe-webhook-foundation": "node --conditions=react-server --experimental-strip-types --test tests/stripe-webhook-foundation/*.test.mjs"
   },
@@ -43,6 +45,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "pg": "^8.23.0",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "supabase": "^2.115.0",
