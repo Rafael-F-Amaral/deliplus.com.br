@@ -190,9 +190,10 @@ Tenant provisioning uses its reviewed server-only boundary. Store setup uses a
 separate narrow server-only service that can create only draft Stores, update
 name/slug, and mark valid drafts ready; it does not activate Stores or grant entitlement.
 The separate first-Store activation boundary now enforces historical initial-trial
-eligibility and commits the initial grant plus Store activation atomically. Generic
-paid/manual-entitlement activation and active-Store capacity enforcement remain future
-features. Store-membership mutation also requires its own reviewed trusted boundary.
+eligibility and commits the initial grant plus Store activation atomically. The
+separate generic activation/deactivation boundary now consumes paid, manual-override,
+or valid initial-trial entitlement and enforces active-Store capacity atomically.
+Store-membership mutation also requires its own reviewed trusted boundary.
 
 Every Store setup operation authenticates with Clerk, requires the active
 Organization's `org:admin` role, resolves the internal Organization through the
@@ -259,8 +260,8 @@ Current product direction:
 
 `maxStores` is operational capacity: it counts only Stores with
 `status = 'active'`. Draft and ready Stores do not consume capacity. Creating or
-configuring a draft Store therefore grants no operational entitlement. A future
-activation boundary must count and activate atomically.
+configuring a draft Store therefore grants no operational entitlement. The generic
+activation boundary counts and activates inside one database transaction.
 
 Initial-trial activation must also verify that the Organization has no Store
 that was previously activated (`activated_at IS NOT NULL`), in addition to the
@@ -275,13 +276,38 @@ The implemented `activateFirstStoreWithInitialTrial(storeId)` operation:
 - treats missing and cross-tenant Stores as the same `store_unavailable` outcome;
 - permits only the first historical `ready -> active` transition;
 - denies a new initial trial after any Organization/User initial grant, including expired or revoked grants;
-- directs valid paid/manual-entitlement cases to the future generic activation flow;
+- directs valid paid/manual-entitlement cases to the separate generic activation flow;
+- leaves generic reactivation or Store switching under an already valid initial trial
+  to that same generic flow, subject to Essential capacity of one active Store;
 - uses one PostgreSQL timestamp for trial start and Store activation;
 - makes no Stripe request and uses no Supabase admin client.
 
 The corresponding `SECURITY DEFINER` RPC is executable only by `authenticated` among
 Data API roles. It grants no generic authenticated write capability on Store or billing
 tables.
+
+The implemented `activateStoreWithinEntitlement(storeId)` operation:
+
+- accepts only a Store UUID and requires the active Organization's `org:admin` role;
+- repeats verified Clerk User, Organization, and role resolution inside PostgreSQL;
+- treats missing and cross-tenant Stores as the same `store_unavailable` outcome;
+- accepts eligible paid projections, valid manual overrides, and valid initial trials;
+- gives eligible paid entitlement descriptive precedence without adding capacities;
+- maps `essential`, `multi_2`, and `multi_3` to 1, 2, and 3 active Stores inside SQL;
+- counts only `status = 'active'` and commits capacity plus lifecycle mutation atomically;
+- returns `already_active` before entitlement/capacity rejection for an idempotent retry;
+- reactivates inactive Stores without changing immutable `activated_at`;
+- never creates or changes a trial, billing row, Stripe object, or Store setup field.
+
+The companion `deactivateStore(storeId)` requires the same Organization-admin and tenant
+checks, serializes on the same Organization lock, and changes only `active -> inactive`.
+It preserves `activated_at` and remains available without current entitlement so an
+over-capacity Organization can reduce its active count. A downgrade never deactivates a
+Store automatically.
+
+Both RPCs are executable only by `authenticated` among Data API roles. Their private
+entitlement/capacity helpers are not Data API capabilities. Direct authenticated writes
+to Store and billing tables remain denied.
 
 The current billing database foundation contains Organization-owned local trial history, canonical Stripe Customer identity, paid Subscription projection, and webhook Event ledger tables. RLS is enabled on all four.
 
@@ -317,7 +343,7 @@ Creating a Clerk Organization does not itself grant a trial, create a Store or e
 
 Adding Store memberships does not change billing Store capacity.
 
-Trial eligibility and Store-capacity checks must be enforced server-side against trusted billing/application state.
+Trial eligibility and Store-capacity checks are enforced server-side against trusted billing/application state. Future storefront, order-intake, and protected-operation boundaries must still require current entitlement independently; persisted Store `active` status alone is not authorization.
 
 ## Error behavior
 

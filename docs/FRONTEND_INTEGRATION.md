@@ -133,6 +133,21 @@ results include the database-derived `trialEndsAt`. A future UI must invoke it t
 a thin reviewed server boundary and must not predict eligibility or mutate Store/billing
 tables directly.
 
+Later activation and deactivation are now available through separate server-only domain
+operations:
+
+```text
+activateStoreWithinEntitlement(storeId)
+deactivateStore(storeId)
+```
+
+Both require the verified active Organization admin and accept only `storeId` as a
+resource selector. Activation may return `activated`, `already_active`, `not_ready`,
+`not_entitled`, `capacity_reached`, or `store_unavailable`; deactivation may return
+`deactivated`, `already_inactive`, `not_active`, or `store_unavailable`. Both also use
+the existing auth/Organization precondition outcomes. A future UI may treat these
+results as flow hints but must not calculate or override entitlement/capacity locally.
+
 ## Frontend developer freedoms
 
 Dashboard and storefront developers may:
@@ -250,8 +265,15 @@ implemented initial-trial activation
   → normal Clerk-JWT Supabase client
   → activate_first_store_with_initial_trial(uuid)
 
-future paid/manual activation + capacity
-  → separate reviewed transactional PostgreSQL RPC
+implemented generic entitlement activation + capacity
+  → activateStoreWithinEntitlement(storeId)
+  → normal Clerk-JWT Supabase client
+  → activate_store_within_entitlement(uuid)
+
+implemented deactivation
+  → deactivateStore(storeId)
+  → normal Clerk-JWT Supabase client
+  → deactivate_store(uuid)
 ```
 
 The privileged client is an internal persistence mechanism, not a domain API.
@@ -282,8 +304,8 @@ model, UI, or audit schema.
 
 The following remain feature-specific and require their own approved specs:
 
-- Store activation and deactivation operations;
-- paid activation and atomic Store-capacity enforcement;
+- Store-capacity read-model/dashboard presentation;
+- automatic downgrade remediation policy;
 - post-activation slug policy;
 - storefront visibility and cache behavior;
 - order-intake authorization;

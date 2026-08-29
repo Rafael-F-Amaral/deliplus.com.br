@@ -18,6 +18,8 @@ yarn typecheck
 yarn test:store-provisioning-setup
 yarn test:store-trial-activation
 yarn test:store-trial-activation:concurrency
+yarn test:store-entitlement-activation
+yarn test:store-entitlement-activation:concurrency
 ```
 
 ## Package manager
@@ -191,7 +193,8 @@ the existing privileged Supabase client is created only for explicitly scoped
 draft creation, name/slug updates, and `draft → ready`. The boundary does not
 activate Stores or resolve billing entitlement. First-Store trial activation uses a
 separate normal Clerk-JWT Supabase client plus the narrow transactional RPC and never
-uses the privileged application client.
+uses the privileged application client. Generic entitlement activation and
+deactivation follow that same normal-client/RPC boundary.
 
 This avoids allowing a browser/Data API caller to bypass:
 
@@ -276,7 +279,7 @@ invoice.payment_failed
 
 Checkout and Invoice Events only trigger current-Subscription reconciliation. The Subscription snapshot remains authoritative for paid projection status. Async Checkout Events are not implemented because the approved MVP configuration is card-based; if delayed payment methods are enabled later, add and test `checkout.session.async_payment_succeeded` and `checkout.session.async_payment_failed` before relying on them.
 
-The current slices implement first-Store initial-trial activation, but still do not implement generic paid/manual-entitlement activation, Checkout creation, Customer creation, Portal, Products, Prices, or Store-capacity enforcement.
+The current slices implement first-Store initial-trial activation plus generic entitlement-based Store activation/deactivation and atomic active-Store capacity enforcement. Checkout creation, Customer creation, Portal, Products, and Prices remain unimplemented.
 
 ### Store trial activation development
 
@@ -305,6 +308,41 @@ The concurrency harness uses independent `pg` sessions and only accepts a local
 PostgreSQL host. It reads `SUPABASE_TEST_DB_URL` when explicitly supplied and otherwise
 uses the standard local Supabase database endpoint. It never reads `.env.local` or
 prints connection credentials. The local database must have all migrations applied.
+
+### Store entitlement activation development
+
+The generic server-only Store lifecycle modules are:
+
+```text
+lib/stores/activate-store-within-entitlement.ts
+lib/stores/activate-store-within-entitlement.internal.ts
+lib/stores/deactivate-store.ts
+lib/stores/deactivate-store.internal.ts
+```
+
+Both public operations accept only `storeId`, use `await auth()`, require the active
+Organization's `org:admin`, and call their narrow RPC through the normal Clerk-JWT
+Supabase client. Do not pass Organization, User, role, plan, capacity, lifecycle, or
+entitlement authority from the browser.
+
+The migration keeps a closed private SQL capacity mapping for transactional enforcement
+and leaves the TypeScript registry authoritative for application/read results. The
+focused Node suite compares the real registries through a local PostgreSQL connection.
+The concurrency suite uses independent sessions and deterministic advisory-lock barriers
+for the last slot, same Store, activation/deactivation, initial trial, paid projection,
+and different-Organization cases.
+
+Validate this slice with:
+
+```bash
+yarn test:store-entitlement-activation
+yarn test:store-entitlement-activation:concurrency
+yarn supabase test db supabase/tests/database/store_entitlement_activation_test.sql
+```
+
+Start/apply the local Supabase migrations before either focused script because the Node
+suite performs real SQL/TypeScript plan parity and the concurrency suite calls the RPCs.
+Neither script reads `.env.local` or prints credentials.
 
 ### Organization entitlement resolution
 

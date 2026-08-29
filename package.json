@@ -16,6 +16,8 @@
     "test:store-provisioning-setup": "node --conditions=react-server --experimental-strip-types --test tests/store-provisioning-setup/*.test.mjs",
     "test:store-trial-activation": "node --conditions=react-server --experimental-strip-types --test tests/store-trial-activation/store-trial-activation.test.mjs",
     "test:store-trial-activation:concurrency": "node --test tests/store-trial-activation/store-trial-activation.concurrency.test.mjs",
+    "test:store-entitlement-activation": "node --conditions=react-server --experimental-strip-types --test tests/store-entitlement-activation/store-entitlement-activation.test.mjs",
+    "test:store-entitlement-activation:concurrency": "node --test tests/store-entitlement-activation/store-entitlement-activation.concurrency.test.mjs",
     "test:stripe-server-foundation": "node --conditions=react-server --experimental-strip-types --test tests/stripe-server-foundation/*.test.mjs",
     "test:stripe-webhook-foundation": "node --conditions=react-server --experimental-strip-types --test tests/stripe-webhook-foundation/*.test.mjs"
   },

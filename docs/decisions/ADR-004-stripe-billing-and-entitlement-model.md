@@ -132,6 +132,13 @@ normal intake of new orders
 
 There is no reduced Essential trial tier.
 
+After the initial grant exists, its still-valid entitlement may be consumed by generic
+Store activation or reactivation. The Organization may deactivate Store A and activate
+Store B while remaining within `maxStores = 1`. This switching does not create a new
+grant, restore eligibility, or change `starts_at`/`ends_at`. The historical
+no-previously-activated-Store rule applies only when the initial grant and first Store
+activation are created.
+
 At expiration, new actions requiring entitlement are denied unless paid entitlement exists. Organization, Store, product/configuration, and historical order data are not destructively deleted.
 
 ### Paid Stripe lifecycle
@@ -322,7 +329,12 @@ multi_3
 
 All three plans initially offer the same principal functionality. Store capacity is their approved product distinction; no feature gates are inferred from these codes.
 
-The application plan registry is canonical for `maxStores`. The paid subscription projection stores `plan_code` and the actual Stripe Price ID but does not persist `maxStores` redundantly.
+The application plan registry is canonical for application/read-model `maxStores`.
+Transactional Store-capacity mutations use a private, closed SQL mapping for the same
+three PlanCodes so capacity is enforced inside the database transaction. Explicit
+cross-layer parity tests must keep both mappings identical. The paid subscription
+projection stores `plan_code` and the actual Stripe Price ID but does not persist
+`maxStores` redundantly.
 
 The browser may select only an approved internal plan code and never an arbitrary Stripe Price ID or capacity value. The server maps the code to the environment-specific Price. Test/Sandbox and Live Price IDs remain distinct.
 
