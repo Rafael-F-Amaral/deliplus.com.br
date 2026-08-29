@@ -106,8 +106,9 @@ draft <-> ready -> active <-> inactive
 first activation timestamp is immutable, and active/inactive Stores cannot
 return to setup states. The database accepts new Stores only as unactivated
 drafts and rejects blank names. Store setup itself still stops at `ready`; the
-separate initial-trial activation RPC now owns the first eligible `ready -> active`
-transition.
+separate initial-trial activation RPC owns the first eligible `ready -> active`
+transition, while the generic entitlement RPC owns later `ready|inactive -> active`
+transitions and active-Store capacity enforcement.
 
 ### store_memberships
 
@@ -265,7 +266,7 @@ The function is executable only by `service_role`. That role has read-only acces
 
 ### Billing access posture
 
-All four billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. Narrow entitlement-read and first-Store trial-activation functions expose only their reviewed fact/result surfaces; they do not grant table access.
+All four billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. Narrow entitlement-read, first-Store trial-activation, and generic Store lifecycle functions expose only their reviewed fact/result surfaces; they do not grant table access.
 
 ## Relationship overview
 
@@ -378,7 +379,8 @@ write boundary for an eligible first Store and initial local trial. It:
 - rejects any prior initial grant for the Organization or Clerk User, including expired
   or revoked grants;
 - rejects current paid entitlement or valid manual override because those cases belong
-  to generic Store activation;
+  to generic Store activation; once an initial trial exists, its still-valid
+  entitlement may also be consumed by that separate generic activation boundary;
 - requires no Store in the Organization to have a prior non-null `activated_at`;
 - inserts the 15-day Essential initial grant and updates the target Store from `ready`
   to `active` in one transaction using one PostgreSQL timestamp;
@@ -390,6 +392,43 @@ Direct authenticated writes to `stores`, `billing_trial_grants`, and
 `billing_subscriptions` remain denied. Coherent retries of the same Store during the
 active initial trial return `already_activated` without changing any persisted date or
 historical Clerk User.
+
+### Generic Store entitlement activation boundary
+
+`public.activate_store_within_entitlement(p_store_id uuid)` and
+`public.deactivate_store(p_store_id uuid)` are the narrow atomic boundaries for later
+Store lifecycle changes. They:
+
+- are `VOLATILE`, `SECURITY DEFINER`, owned by `postgres`, and use `search_path = ''`;
+- accept only a Store UUID and derive Clerk User, active Organization, and admin role
+  from private verified-JWT helpers;
+- revalidate and lock the internal Organization and tenant-scoped Store;
+- serialize on `pg_advisory_xact_lock(hashtextextended(organization_id::text, 0))`,
+  matching initial-trial and paid-projection writers;
+- keep missing and cross-tenant Store selectors indistinguishable;
+- grant EXECUTE only to `authenticated` among Data API roles;
+- preserve existing RLS and direct table grants.
+
+Activation captures database time after lock acquisition, resolves the current paid
+projection plus valid local grants through shared private helpers, gives eligible paid
+state precedence, and derives capacity through the closed private SQL mapping:
+
+```text
+essential -> 1
+multi_2   -> 2
+multi_3   -> 3
+```
+
+Only active Stores count. `ready -> active` sets the first database-derived
+`activated_at`; `inactive -> active` preserves it. An already-active Store returns
+idempotently before entitlement/capacity rejection. At or above capacity, another
+activation is denied without automatically deactivating any Store.
+
+Deactivation requires no entitlement and changes only `active -> inactive`, preserving
+`activated_at`. Neither RPC mutates trial grants, subscription projections, Stripe
+state, Store setup fields, or generic grants. The public
+`resolve_active_organization_entitlement_facts()` return contract remains unchanged and
+delegates to the same private fact-resolution logic used by transactional enforcement.
 
 ## Money
 

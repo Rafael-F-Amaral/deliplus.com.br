@@ -80,7 +80,7 @@ Current product direction:
 - `maxStores` counts only Stores with `status = 'active'`; draft and ready Stores do not consume capacity;
 - trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
 
-The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, Store setup foundation, and first-Store trial activation boundary exist. Store setup supports Organization-admin reads, draft creation, name/slug editing, and readiness. The separate `activateFirstStoreWithInitialTrial(storeId)` boundary atomically activates the first eligible ready Store and creates its 15-day Essential trial. Generic paid/manual-entitlement activation, Stripe Checkout, Customer Portal, and Store-capacity enforcement remain separate implementation slices.
+The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, Store setup foundation, first-Store trial activation, and generic Store entitlement activation boundaries exist. Store setup supports Organization-admin reads, draft creation, name/slug editing, and readiness. `activateFirstStoreWithInitialTrial(storeId)` atomically activates the first eligible ready Store and creates its 15-day Essential trial. `activateStoreWithinEntitlement(storeId)` and `deactivateStore(storeId)` enforce the current paid/local plan capacity for later lifecycle changes. Stripe Checkout and Customer Portal remain separate implementation slices.
 
 ### 4. Merchant dashboard
 
@@ -251,6 +251,8 @@ Normal Organization entitlement reads use the zero-argument `public.resolve_acti
 
 First-Store trial activation uses the narrow `public.activate_first_store_with_initial_trial(uuid)` function. It is a `VOLATILE`, `SECURITY DEFINER` transaction boundary with an empty `search_path`. It derives the Clerk User, active Organization and admin role from the verified JWT, serializes both Organization and Clerk User eligibility, and commits the initial grant plus `ready -> active` transition atomically. `authenticated` receives only EXECUTE on this function; direct Store and billing writes remain denied.
 
+Generic Store lifecycle changes use `public.activate_store_within_entitlement(uuid)` and `public.deactivate_store(uuid)`. Both are narrow `VOLATILE`, `SECURITY DEFINER` boundaries that accept only a Store selector, rederive Organization-admin authority from the verified Clerk JWT, and serialize through the same Organization advisory lock as trial and paid-projection writers. Activation resolves paid-first entitlement from local PostgreSQL facts, maps `essential`/`multi_2`/`multi_3` to capacities 1/2/3 inside the transaction, counts only active Stores, and atomically performs `ready|inactive -> active`. Deactivation performs `active -> inactive` without requiring entitlement. Neither operation changes billing rows or grants generic table writes.
+
 ### Stripe
 
 Initial responsibility:
@@ -294,9 +296,10 @@ This allows DeliPlus to validate Store ownership and Store assignment during set
 The current Store setup write path uses the privileged Supabase client only
 behind `lib/stores/store-setup.repository.ts`, after Clerk admin authorization
 and RLS-backed tenant/Store resolution. Normal `authenticated` Data API access
-remains SELECT-only. Store setup does not activate Stores. The separate initial-trial
-activation path uses the normal Clerk-JWT Supabase client and the transactional
-database RPC; it does not use the privileged application client.
+remains SELECT-only. Store setup does not activate Stores. Initial-trial activation,
+generic entitlement activation, and deactivation use the normal Clerk-JWT Supabase
+client plus their transactional database RPCs; they do not use the privileged
+application client.
 
 ## Team management
 

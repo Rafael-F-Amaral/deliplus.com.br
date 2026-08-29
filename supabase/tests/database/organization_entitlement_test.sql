@@ -95,11 +95,15 @@ where namespace.nspname = 'public'
 select ok(
   position('private.clerk_organization_id()' in function.prosrc) > 0
   and position('public.organizations' in function.prosrc) > 0
-  and position('public.billing_trial_grants' in function.prosrc) > 0
-  and position('public.billing_subscriptions' in function.prosrc) > 0
+  and position(
+    'private.resolve_organization_entitlement_facts('
+    in function.prosrc
+  ) > 0
+  and position('public.billing_trial_grants' in function.prosrc) = 0
+  and position('public.billing_subscriptions' in function.prosrc) = 0
   and position('public.stores' in function.prosrc) = 0
   and position('public.store_memberships' in function.prosrc) = 0,
-  'entitlement function uses only the approved fully-qualified tenant and billing objects'
+  'entitlement function derives the approved tenant and delegates only to the shared private billing-facts helper'
 )
 from pg_catalog.pg_proc as function
 join pg_catalog.pg_namespace as namespace

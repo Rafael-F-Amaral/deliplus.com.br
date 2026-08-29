@@ -24,9 +24,9 @@ The public domain operation is:
 activateFirstStoreWithInitialTrial(storeId)
 ```
 
-This operation is intentionally not the generic Store activation path. Activating
-another Store within an existing paid or administratively granted entitlement is a
-future feature with a separate operation:
+This operation is intentionally not the generic Store activation path. Activating or
+reactivating a Store within an already valid paid, manual-override, or initial-trial
+entitlement is a separate feature with a separate operation:
 
 ```text
 activateStoreWithinEntitlement(storeId)
@@ -94,7 +94,7 @@ The implementation described by this SPEC will include:
 
 This feature does not implement:
 
-- a generic paid Store activation flow;
+- a generic entitlement-based Store activation flow;
 - activation of an additional Store under `multi_2` or `multi_3`;
 - Store-capacity enforcement for generic activation;
 - trial checkout, card collection or Stripe Checkout;
@@ -334,6 +334,12 @@ trial_not_eligible
 
 The future generic operation `activateStoreWithinEntitlement(storeId)` will own that
 activation path and its Store-capacity enforcement.
+
+After an initial trial has already been granted, that same generic operation may also
+consume the still-valid initial-trial entitlement. It may activate or reactivate a
+Store subject to Essential `maxStores = 1`, without creating another grant, changing
+trial dates, or restoring initial-trial eligibility. This does not change the
+specialized responsibility of this operation.
 
 Starting an eligible initial trial does not require any pre-existing entitlement row.
 
@@ -1058,15 +1064,23 @@ activateStoreWithinEntitlement(storeId)
 
 will be responsible for:
 
-- activating a ready Store under an already valid paid/manual entitlement;
+- activating or reactivating a Store under an already valid paid, manual-override, or
+  initial-trial entitlement;
 - deriving `maxStores` from the plan registry;
 - counting capacity with approved lifecycle semantics;
 - serializing all capacity-consuming Store activations with the same Organization lock;
 - supporting `essential`, `multi_2` and `multi_3` without inventing feature gates;
 - handling sales-assisted 4+ Store scenarios only after separate product approval.
 
+For a valid initial trial, generic activation may switch which Store consumes the
+single Essential capacity slot. The Organization must first deactivate its active
+Store before activating another one. Historical `activated_at IS NOT NULL` rows do
+not consume generic capacity; only `status = 'active'` does. Switching never restarts
+or extends the 15-day trial.
+
 It must not be folded into the initial-trial operation. Conversely,
-`activateFirstStoreWithInitialTrial()` must not grow generic paid activation branches.
+`activateFirstStoreWithInitialTrial()` must not grow generic entitlement activation
+branches.
 
 ## 34. Documentation relationships
 
@@ -1149,7 +1163,7 @@ None for Store Trial Activation implementation.
 The following product/architecture work remains intentionally deferred and does not
 block this feature:
 
-- generic paid/manual-entitlement Store activation;
+- generic entitlement-based Store activation and capacity enforcement;
 - multi-Store capacity enforcement;
 - frontend onboarding integration;
 - trial-expiration access UX;
