@@ -4,9 +4,11 @@ import {
   resolvePlanCodeFromStripePriceIdFromEnvironment,
   resolveStripePriceIdFromEnvironment,
   type StripePriceEnvironment,
+  type PlanCode,
 } from "../billing/plans"
 import {
   parseStripeApiLivemode,
+  parseCheckoutPaymentMethodConfiguration,
   parseStripeSecretKey,
   parseStripeWebhookSecret,
   resolveBillingReturnOrigin,
@@ -18,6 +20,8 @@ function getStripeServerEnvironment(): StripeServerEnvironment &
   return {
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    STRIPE_CHECKOUT_PAYMENT_METHOD_CONFIGURATION:
+      process.env.STRIPE_CHECKOUT_PAYMENT_METHOD_CONFIGURATION,
     STRIPE_PRICE_ESSENTIAL: process.env.STRIPE_PRICE_ESSENTIAL,
     STRIPE_PRICE_MULTI_2: process.env.STRIPE_PRICE_MULTI_2,
     STRIPE_PRICE_MULTI_3: process.env.STRIPE_PRICE_MULTI_3,
@@ -55,6 +59,27 @@ export function resolvePlanCodeFromStripePriceId(stripePriceId: unknown) {
 
 export function getBillingReturnOrigin() {
   return resolveBillingReturnOrigin(getStripeServerEnvironment())
+}
+
+export function getStripeCheckoutConfiguration(planCode: PlanCode) {
+  const stripePriceId = resolveStripePriceId(planCode)
+  if (resolvePlanCodeFromStripePriceId(stripePriceId) !== planCode) {
+    throw new Error("Invalid Checkout Price mapping")
+  }
+  const origin = getBillingReturnOrigin()
+  return {
+    stripePriceId,
+    currency: "brl" as const,
+    recurringInterval: "month" as const,
+    recurringIntervalCount: 1 as const,
+    paymentMethodConfigurationId: parseCheckoutPaymentMethodConfiguration(
+      getStripeServerEnvironment()
+    ),
+    livemode: getStripeApiLivemode(),
+    stripeApiVersion: "2026-07-29.dahlia" as const,
+    successUrl: `${origin}/dashboard/billing/success`,
+    cancelUrl: `${origin}/dashboard/billing`,
+  }
 }
 
 export { StripeConfigurationError } from "./config.internal"

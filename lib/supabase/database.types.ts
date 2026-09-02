@@ -9,6 +9,83 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      billing_checkout_attempts: {
+        Row: {
+          cancel_url: string
+          created_at: string
+          ended_at: string | null
+          expires_at: string
+          id: string
+          integration_identifier: string
+          livemode: boolean
+          organization_id: string
+          payload_version: number
+          payment_method_configuration_id: string
+          plan_code: string
+          revision: number
+          state: string
+          stripe_api_version: string
+          stripe_checkout_session_id: string | null
+          stripe_customer_id: string
+          stripe_idempotency_key: string
+          stripe_price_id: string
+          success_url: string
+          updated_at: string
+        }
+        Insert: {
+          cancel_url: string
+          created_at: string
+          ended_at?: string | null
+          expires_at: string
+          id: string
+          integration_identifier: string
+          livemode: boolean
+          organization_id: string
+          payload_version: number
+          payment_method_configuration_id: string
+          plan_code: string
+          revision?: number
+          state: string
+          stripe_api_version: string
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id: string
+          stripe_idempotency_key: string
+          stripe_price_id: string
+          success_url: string
+          updated_at: string
+        }
+        Update: {
+          cancel_url?: string
+          created_at?: string
+          ended_at?: string | null
+          expires_at?: string
+          id?: string
+          integration_identifier?: string
+          livemode?: boolean
+          organization_id?: string
+          payload_version?: number
+          payment_method_configuration_id?: string
+          plan_code?: string
+          revision?: number
+          state?: string
+          stripe_api_version?: string
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string
+          stripe_idempotency_key?: string
+          stripe_price_id?: string
+          success_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_checkout_attempts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "billing_customers"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
       billing_customers: {
         Row: {
           created_at: string
@@ -307,9 +384,94 @@ export type Database = {
         }
         Returns: string
       }
+      claim_billing_checkout_attempt: {
+        Args: {
+          p_cancel_url: string
+          p_livemode: boolean
+          p_organization_id: string
+          p_payment_method_configuration_id: string
+          p_plan_code: string
+          p_stripe_customer_id: string
+          p_stripe_price_id: string
+          p_success_url: string
+        }
+        Returns: {
+          attempt: Json
+          outcome: string
+        }[]
+      }
+      claim_billing_customer: {
+        Args: { p_organization_id: string }
+        Returns: {
+          created_at: string
+          creation_idempotency_key: string
+          organization_id: string
+          provisioning_status: string
+          stripe_customer_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "billing_customers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       deactivate_store: {
         Args: { p_store_id: string }
         Returns: {
+          outcome: string
+        }[]
+      }
+      end_billing_checkout_attempt: {
+        Args: {
+          p_attempt_id: string
+          p_correlated_subscription_terminal: boolean
+          p_expected_revision: number
+          p_expected_state: string
+          p_external_session_status: string
+          p_no_nonterminal_subscriptions: boolean
+          p_organization_id: string
+          p_session_id: string
+        }
+        Returns: {
+          attempt: Json
+          outcome: string
+        }[]
+      }
+      finalize_billing_customer: {
+        Args: {
+          p_creation_idempotency_key: string
+          p_organization_id: string
+          p_stripe_customer_id: string
+        }
+        Returns: {
+          created_at: string
+          creation_idempotency_key: string
+          organization_id: string
+          provisioning_status: string
+          stripe_customer_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "billing_customers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reconcile_billing_checkout_attempt: {
+        Args: {
+          p_attempt_id: string
+          p_expected_revision: number
+          p_expected_session_id: string
+          p_expected_state: string
+          p_organization_id: string
+          p_session_id: string
+          p_state: string
+        }
+        Returns: {
+          attempt: Json
           outcome: string
         }[]
       }
