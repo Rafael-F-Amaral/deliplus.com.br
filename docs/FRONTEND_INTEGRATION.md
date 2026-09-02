@@ -148,6 +148,33 @@ resource selector. Activation may return `activated`, `already_active`, `not_rea
 the existing auth/Organization precondition outcomes. A future UI may treat these
 results as flow hints but must not calculate or override entitlement/capacity locally.
 
+## Stripe Checkout backend contract
+
+The server-only `createSubscriptionCheckoutSession(planCode)` backend is available.
+It accepts only `essential`, `multi_2` or `multi_3`; it reauthenticates, requires the
+active Organization admin and resolves the internal tenant through Clerk-JWT/RLS.
+Do not import its internal repository, Stripe adapter or Supabase admin client from UI.
+
+The only successful payload is `{ status: "checkout_ready", checkoutUrl: string }`.
+Other outcomes are `invalid_plan`, `already_subscribed`, `billing_recovery_required`,
+`checkout_in_progress`, `checkout_processing`, `unauthenticated`,
+`no_active_organization`, `not_admin` and `organization_not_provisioned`.
+Infrastructure/configuration/invariant failures throw a sanitized `StripeCheckoutError`.
+No provider IDs, Organization UUID, raw errors or Stripe objects belong in UI results.
+
+A separately approved thin Server Action may eventually call it after explicit form
+submission and redirect to the returned URL. Never call it during render or GET.
+No Action, button, billing page or success page is included in this backend slice.
+The fixed return-route contracts are `/dashboard/billing/success` and
+`/dashboard/billing`; they contain no initial `session_id` query parameter.
+
+Cancel navigation does not end an attempt. An ongoing different-plan attempt returns
+`checkout_in_progress`; same-plan retry reuses the owned Session. Recovery must not
+be implemented as blind new acquisition. After Checkout, only webhook-projected
+`source: "paid_subscription"` indicates recognized paid entitlement; a valid local
+trial or visiting the success URL is not proof of payment. Checkout never activates
+a Store or changes trial dates.
+
 ## Frontend developer freedoms
 
 Dashboard and storefront developers may:

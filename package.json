@@ -4,6 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "test:stripe-checkout": "node --conditions=react-server --experimental-strip-types --test tests/stripe-checkout/stripe-checkout.test.mjs tests/stripe-checkout/stripe-checkout.stripe.test.mjs",
+    "test:stripe-checkout:concurrency": "node --conditions=react-server --experimental-strip-types --test tests/stripe-checkout/stripe-checkout.concurrency.test.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

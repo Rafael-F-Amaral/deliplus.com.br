@@ -227,7 +227,48 @@ Initial grants are exactly 15 days on `essential`, with at most one initial gran
 
 ### billing_customers
 
-Stores the canonical one-to-zero-or-one relationship between a DeliPlus Organization and Stripe Customer. A pending claim may exist before `stripe_customer_id` is known. Customer creation itself is not implemented yet.
+Stores the canonical one-to-zero-or-one relationship between a DeliPlus Organization and Stripe Customer. A pending claim may exist before `stripe_customer_id` is known. The Checkout backend now owns Customer claim/create/finalize: one persistent key per claim, no admin-email binding, compare-and-set finalization, and no automatic replacement of an established identity.
+
+### billing_checkout_attempts
+
+Migration `20260902120000_stripe_checkout.sql` adds the bounded 20-column acquisition
+record defined in the Stripe Checkout SPEC. It persists Organization/plan/Price/Customer,
+an operation-specific idempotency key, nullable once-attached Session ID, lifecycle,
+frozen expiration/return URLs/payment configuration/integration/API recipe, revision,
+and timestamps. It stores neither Checkout URL nor arbitrary Stripe JSON, money,
+capacity, email or card data.
+
+The FK to `billing_customers.organization_id` uses ON UPDATE/DELETE RESTRICT. A partial
+unique index on `organization_id WHERE ended_at IS NULL` enforces one reservation
+across all plans; an Organization/history index covers historical ownership lookups.
+Only `ended` releases the reservation. `creating`, `open`, `completed` and
+`recovery_required` retain it. A guard enforces immutable snapshots, once-attached
+Session identity, allowed transitions and monotonic revision. Idempotent RPC calls
+perform no UPDATE. Attempt decision/update timestamps use `clock_timestamp()` after
+locks, rather than the existing generic `now()` helper's transaction-start timestamp.
+
+Five service-only operations are exposed:
+
+```text
+claim_billing_customer
+finalize_billing_customer
+claim_billing_checkout_attempt
+reconcile_billing_checkout_attempt
+end_billing_checkout_attempt
+```
+
+Each is VOLATILE/SECURITY DEFINER, owned by `postgres`, with `search_path = ''`,
+fully qualified static SQL and explicit EXECUTE revocations from PUBLIC/anon/authenticated.
+Private helpers have no Data API execution grants. Direct Customer and attempt access
+for `service_role` remains SELECT-only. No generic billing CRUD is introduced.
+
+Lock order is the existing Organization advisory lock
+`pg_advisory_xact_lock(hashtextextended(organization_id::text, 0))`, then Organization,
+Customer, attempt and the local subscription guard. Stripe calls occur only between
+committed RPC transactions. Session attachment/closure checks Organization, attempt,
+revision, state and Session identity. Closure requires trusted server evidence of
+terminal external state and no blocking subscription, plus a locked local recheck;
+elapsed time or browser cancellation alone never releases an attempt.
 
 ### billing_subscriptions
 
@@ -266,7 +307,7 @@ The function is executable only by `service_role`. That role has read-only acces
 
 ### Billing access posture
 
-All four billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. Narrow entitlement-read, first-Store trial-activation, and generic Store lifecycle functions expose only their reviewed fact/result surfaces; they do not grant table access.
+All five billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. Narrow entitlement-read, first-Store trial-activation, and generic Store lifecycle functions expose only their reviewed fact/result surfaces; they do not grant table access. Checkout RPCs are instead service-only operations behind the reviewed application-admin boundary.
 
 ## Relationship overview
 
@@ -282,6 +323,7 @@ DeliPlus organizations
   1 -> N billing_trial_grants
   1 -> 0..1 billing_customers
   1 -> 0..1 current billing_subscriptions through billing_customers
+  1 -> N billing_checkout_attempts through billing_customers (one non-ended)
 
 stores
   N <-> N Clerk users via store_memberships

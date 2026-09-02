@@ -80,7 +80,7 @@ Current product direction:
 - `maxStores` counts only Stores with `status = 'active'`; draft and ready Stores do not consume capacity;
 - trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
 
-The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, Store setup foundation, first-Store trial activation, and generic Store entitlement activation boundaries exist. Store setup supports Organization-admin reads, draft creation, name/slug editing, and readiness. `activateFirstStoreWithInitialTrial(storeId)` atomically activates the first eligible ready Store and creates its 15-day Essential trial. `activateStoreWithinEntitlement(storeId)` and `deactivateStore(storeId)` enforce the current paid/local plan capacity for later lifecycle changes. Stripe Checkout and Customer Portal remain separate implementation slices.
+The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, Store setup foundation, first-Store trial activation, and generic Store entitlement activation boundaries exist. Store setup supports Organization-admin reads, draft creation, name/slug editing, and readiness. `activateFirstStoreWithInitialTrial(storeId)` atomically activates the first eligible ready Store and creates its 15-day Essential trial. `activateStoreWithinEntitlement(storeId)` and `deactivateStore(storeId)` enforce the current paid/local plan capacity for later lifecycle changes. The Stripe Checkout backend now exists; its UI/transport and Customer Portal remain separate implementation slices.
 
 ### 4. Merchant dashboard
 
@@ -244,8 +244,10 @@ The current billing database foundation separates:
 - `billing_customers` for canonical Organization-to-Stripe-Customer identity;
 - `billing_subscriptions` for the current paid Subscription projection;
 - `stripe_webhook_events` for minimum webhook idempotency metadata.
+- `billing_checkout_attempts` for immutable acquisition intents, Session correlation,
+  retry/recovery and one non-ended reservation per Organization across plans.
 
-All four tables have RLS enabled and no direct `anon` or `authenticated` Data API access. Paid projection writes use one atomic `SECURITY INVOKER` PostgreSQL function callable only by `service_role`; that role receives only the table privileges required by the webhook slice.
+All five tables have RLS enabled and no direct `anon` or `authenticated` Data API access. Paid projection writes use one atomic `SECURITY INVOKER` PostgreSQL function callable only by `service_role`; that role receives only the table privileges required by the webhook slice. Checkout Customer/attempt writes use five narrow service-only `SECURITY DEFINER` RPCs; direct Customer/attempt access remains SELECT-only for `service_role`.
 
 Normal Organization entitlement reads use the zero-argument `public.resolve_active_organization_entitlement_facts()` function. It is a reviewed, `STABLE`, `SECURITY DEFINER` read boundary with an empty `search_path`, derives the active tenant only from the verified Clerk JWT, and returns only local-trial and paid-projection facts needed by the server resolver. Only `authenticated` may execute it; the billing tables remain unavailable for direct authenticated reads.
 
@@ -275,7 +277,25 @@ The current Stripe server and webhook foundations provide:
 - current-Subscription reconciliation for the approved Checkout, Subscription, and Invoice Event set;
 - a single paid-subscription reducer and atomic Event-ledger/projection transaction.
 
-Only supported, verified webhook processing may retrieve the current Stripe Subscription. Imports, builds, tests, and unrelated Events perform no Stripe API call. This foundation does not create Customers, Checkout Sessions, Portal Sessions, Products, Prices, or local trials. The initial trial remains local to DeliPlus/PostgreSQL.
+Supported, verified webhook processing retrieves current Stripe Subscription state.
+The explicit `createSubscriptionCheckoutSession(planCode)` billing action also reads
+Stripe to validate catalog, Customer, subscriptions and owned Sessions. It requires
+the verified active Organization admin, resolves the internal Organization through
+normal Clerk-JWT/RLS reads, then uses the narrow billing repository. Customer
+claim/create/finalize precedes durable attempt claim/create/attach. External calls
+never span database transactions. Stable persisted keys and frozen snapshots protect
+retries; unknown outcomes retain the reservation instead of rotating keys.
+
+Hosted Checkout uses one quantity-1 monthly BRL Price and a dedicated card-only
+Payment Method Configuration, with Adaptive Pricing disabled. MVP commercial
+configuration is Essencial R$ 99,90, Duo R$ 189,90 and Trio R$ 279,90 per month;
+these amounts are not domain identity or authorization constants.
+
+Imports, builds, tests and unrelated Events perform no real Stripe API call. No
+Checkout UI, Action, billing page, Portal, remote catalog creation, tax, Stripe
+trial, Store mutation or entitlement grant from redirect is introduced. Paid
+entitlement still comes only from the verified webhook projection. See
+`docs/features/stripe-checkout/SPEC.md` for the acquisition/recovery contract.
 
 End-customer payment for food orders is outside the initial scope.
 

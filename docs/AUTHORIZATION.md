@@ -309,7 +309,28 @@ Both RPCs are executable only by `authenticated` among Data API roles. Their pri
 entitlement/capacity helpers are not Data API capabilities. Direct authenticated writes
 to Store and billing tables remain denied.
 
-The current billing database foundation contains Organization-owned local trial history, canonical Stripe Customer identity, paid Subscription projection, and webhook Event ledger tables. RLS is enabled on all four.
+The current billing database foundation contains Organization-owned local trial history, canonical Stripe Customer identity, paid Subscription projection, webhook Event ledger and durable Checkout attempts. RLS is enabled on all five.
+
+### Explicit Checkout acquisition boundary
+
+`createSubscriptionCheckoutSession(planCode)` authenticates on every invocation with
+`await auth()`, requires active Organization `org:admin`, accepts only a runtime-validated
+PlanCode, and resolves the internal Organization with the normal Clerk-JWT/RLS client.
+There is no implicit Organization provisioning. Only the internal billing repository
+then creates the privileged Supabase client for scoped billing reads and five exact
+Customer/attempt RPCs. The RPCs are `VOLATILE`, `SECURITY DEFINER`, owned by `postgres`,
+with empty `search_path`, static SQL and EXECUTE only for `service_role`.
+
+Unlike JWT-authenticated Store RPCs, these server-internal RPCs receive an already
+authorized internal Organization from the service; the admin client forwards no Clerk
+JWT. Their execution grants do not authenticate a merchant. Application authorization
+and scoped database invariants are both mandatory and tested separately.
+
+Neither browser nor UI can choose Customer, Price, Organization, amount, currency,
+interval, quantity or return origin. Customer/attempt direct table writes remain denied
+even for `service_role`. One non-ended attempt reserves acquisition across plans;
+existing nonterminal subscriptions block a new payable path. Read-only entitlement
+resolution stays unchanged and no trial or Store access is granted by Checkout.
 
 Neither `anon` nor `authenticated` has direct access to any billing table. There are no billing RLS policies and no generic billing writes. Normal server-side billing authorization uses `resolveOrganizationEntitlement()`, which calls the zero-argument `public.resolve_active_organization_entitlement_facts()` function through the Clerk-JWT Supabase client.
 

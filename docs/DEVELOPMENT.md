@@ -74,6 +74,7 @@ STRIPE_WEBHOOK_SECRET
 STRIPE_PRICE_ESSENTIAL
 STRIPE_PRICE_MULTI_2
 STRIPE_PRICE_MULTI_3
+STRIPE_CHECKOUT_PAYMENT_METHOD_CONFIGURATION
 BILLING_RETURN_ORIGIN
 ```
 
@@ -89,7 +90,7 @@ Production      -> Stripe Live
 
 Prefer a restricted Stripe API key with only the permissions required by the server integration. Store it in ignored local environment configuration or as a sensitive hosted environment variable. Never document, log, commit, or prefix a Stripe secret with `NEXT_PUBLIC_`.
 
-Each approved `PlanCode` maps to a different environment-specific Stripe Price ID. A Test/Sandbox Price ID must never be reused as a Live Price ID. The code validates the `price_...` shape locally, but Stripe Price IDs do not encode Test/Live mode, so matching-mode verification remains an environment/deployment responsibility.
+Each approved `PlanCode` maps to a different environment-specific Stripe Price ID. A Test/Sandbox Price ID must never be reused as a Live Price ID. Checkout validates the mapping round trip and retrieves the Price during the explicit billing action to check identity, active state, mode, BRL, fixed per-unit licensed pricing and monthly recurrence (`month`, count 1). Deployment review still verifies the approved commercial amount on each Price.
 
 Stable Local, Staging, and Production deployments use an explicit `BILLING_RETURN_ORIGIN`. Ephemeral Vercel Preview deployments may fall back to the system-provided `VERCEL_URL`. Request headers are never an authority for billing return URLs.
 
@@ -254,7 +255,8 @@ Current database foundation:
 - `billing_customers` stores canonical Customer claims/identity;
 - `billing_subscriptions` stores the current paid projection only;
 - `stripe_webhook_events` stores minimum Event idempotency metadata;
-- all four tables have RLS enabled and no direct `anon`/`authenticated` grants or policies.
+- `billing_checkout_attempts` stores durable acquisition reservations and frozen replay parameters;
+- all five tables have RLS enabled and no direct `anon`/`authenticated` grants or policies.
 
 Current product rules:
 
@@ -279,7 +281,56 @@ invoice.payment_failed
 
 Checkout and Invoice Events only trigger current-Subscription reconciliation. The Subscription snapshot remains authoritative for paid projection status. Async Checkout Events are not implemented because the approved MVP configuration is card-based; if delayed payment methods are enabled later, add and test `checkout.session.async_payment_succeeded` and `checkout.session.async_payment_failed` before relying on them.
 
-The current slices implement first-Store initial-trial activation plus generic entitlement-based Store activation/deactivation and atomic active-Store capacity enforcement. Checkout creation, Customer creation, Portal, Products, and Prices remain unimplemented.
+The current slices implement first-Store initial-trial activation, generic entitlement-based Store activation/deactivation, atomic active-Store capacity enforcement, and the server-only Customer/Checkout acquisition backend. Checkout UI/transport, Portal and real Product/Price configuration remain separate work.
+
+### Stripe Checkout development
+
+Use only `createSubscriptionCheckoutSession(planCode)` from the public billing facade.
+It accepts no tenant/provider/money/URL authority. Its internal repository is the only
+Checkout module importing the admin Supabase client. The Stripe adapter validates
+provider contracts and uses bounded retries (two retries, ten-second request timeout).
+Tests inject exact SDK-method mocks; no real Stripe resources are created.
+
+MVP catalog: Essencial R$ 99,90/month, Duo R$ 189,90/month, Trio R$ 279,90/month, BRL.
+The interval is fixed server-side, not selected by the browser or new interval env vars.
+Annual plans remain future scope. Configure one Product/Price per approved plan and
+environment only under separate authorization. Keep amounts outside authorization logic.
+
+Runtime requires the dedicated `STRIPE_CHECKOUT_PAYMENT_METHOD_CONFIGURATION`, active
+in the correct mode and limited to card/card wallets. No fallback to the account default,
+Link, Pix, boleto, delayed methods, Adaptive Pricing, promotion codes, Stripe trial or
+automatic tax. Prefer a restricted key with Customer create/read, Price read,
+Subscription list/read, Payment Method Configuration read and Checkout Session
+create/read permissions; validate exact permissions before real rollout.
+
+Validation:
+
+```bash
+yarn test:stripe-checkout
+yarn test:stripe-checkout:concurrency
+yarn supabase test db
+yarn supabase db lint --local
+yarn lint
+yarn typecheck
+yarn build
+```
+
+The concurrency harness uses independent local PostgreSQL sessions, observed lock
+barriers and an idempotent Stripe fake. It never reads `.env.local` or uses hosted
+credentials. Apply the pending migration locally; a destructive reset requires fresh
+explicit permission and is not assumed from an earlier feature.
+
+Customer creation retains one claim/key with a conservative 23-hour cutoff and a
+two-minute request-budget margin. Attempts freeze one-hour expiration; unknown-ID POST
+replay stops when fewer than 32 minutes remain. Unknown old operations stay reserved
+for recovery, not automatic new keys. Known Sessions are retrieved and checked against
+all paginated Customer subscriptions and local projection before safe closure/reuse.
+No current operator recovery UI exists. Do not manually rotate keys to bypass uncertainty.
+
+Return paths are future `/dashboard/billing/success` and `/dashboard/billing`, without
+`session_id`. No pages or Actions are implemented. Real Stripe Test E2E and return-page
+integration remain pending separate authorization; webhook projection is mandatory
+before recognizing paid access. Stripe Tax remains disabled pending separate fiscal review.
 
 ### Store trial activation development
 
@@ -389,7 +440,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 
 Do not copy that value into `.env.example` or repository documentation. The CLI secret is local and must not be reused for a hosted endpoint.
 
-Real paid-projection reconciliation additionally requires a Test/Sandbox `STRIPE_SECRET_KEY`, the matching configured `STRIPE_PRICE_*`, and a controlled local `billing_customers` row that maps the Stripe Customer to a DeliPlus Organization. The future Checkout feature will establish that canonical Customer relation in normal product flows; do not create Customers or Products merely to satisfy unit tests for this foundation.
+Real paid-projection reconciliation additionally requires a Test/Sandbox `STRIPE_SECRET_KEY`, the matching configured `STRIPE_PRICE_*`, and a canonical ready `billing_customers` row. The Checkout backend establishes that relation before Session creation; do not create Customers or Products merely to satisfy mocked unit tests.
 
 Database validation for this slice includes:
 
