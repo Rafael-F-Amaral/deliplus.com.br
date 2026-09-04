@@ -659,7 +659,7 @@ Production is out of scope.
 
 ### Tenant provisioning
 
-`Clerk Organization → billing/trial eligibility → DeliPlus organization → initial Store`
+`Clerk Organization → DeliPlus organization → draft Store → setup → ready Store → future trial/paid activation`
 
 ### Team management
 

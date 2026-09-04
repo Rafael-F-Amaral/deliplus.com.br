@@ -64,13 +64,34 @@ The subscription boundary is the Organization.
 
 Current product direction:
 
-- Essential allows one Store;
-- higher plans may allow more Stores;
+- `essential` allows one active Store;
+- `multi_2` allows two active Stores;
+- `multi_3` allows three active Stores;
+- four or more Stores use a sales-assisted path;
 - the intended trial is 15 days on Essential;
-- exact higher-plan prices/limits remain outside this ADR;
+- exact plan prices and billing intervals remain outside this ADR;
 - trial eligibility must not assume that repeatedly creating Clerk Organizations grants unlimited free trials.
 
 Creating a Clerk Organization does not itself create an internal organization, Store or Stripe subscription.
+
+### Durable Store lifecycle
+
+Store setup and Store operation are distinct lifecycle phases:
+
+```text
+draft <-> ready -> active <-> inactive
+```
+
+`stores.activated_at` is nullable for `draft` and `ready`, required for `active`
+and `inactive`, set on first activation, and immutable afterward. Active or
+inactive Stores never return to draft/ready. Billing expiration does not
+automatically change Store status; operation authorization separately evaluates
+current Organization entitlement.
+
+Plan capacity is operational capacity. `maxStores` counts only Stores with
+`status = 'active'`; draft and ready Stores do not consume capacity. The
+Organization-to-Store relationship remains one-to-many, without a schema
+cardinality constraint derived from the current plan.
 
 ## Consequences
 
@@ -88,7 +109,8 @@ Creating a Clerk Organization does not itself create an internal organization, S
 - every internal organization must map to exactly one Clerk Organization;
 - Store ownership must always resolve through the internal organization;
 - Store-level user access must follow ADR-002;
-- billing features must enforce Store-capacity limits server-side;
+- billing features must enforce active-Store capacity limits server-side and
+  atomically at activation;
 - onboarding must detect an unprovisioned Clerk Organization and route it through provisioning;
 - trial eligibility needs a dedicated billing rule before production.
 

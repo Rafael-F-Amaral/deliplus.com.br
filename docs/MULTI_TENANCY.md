@@ -181,10 +181,23 @@ Current product direction:
 - `multi_3` permits three Stores;
 - four or more Stores use a sales-assisted path;
 - database cardinality remains `1 -> N`;
-- Store-count limits are enforced by trusted application/billing rules;
+- `maxStores` counts only Stores whose persisted status is `active`;
+- draft and ready Stores do not consume billing capacity;
+- Store activation limits are enforced atomically by trusted application/billing rules;
 - intended trial is 15 days on Essential.
 
 Store memberships do not affect Store capacity.
+
+The durable Store lifecycle direction is:
+
+```text
+draft <-> ready -> active <-> inactive
+```
+
+Only the first activation sets the immutable `activated_at` timestamp.
+Active/inactive Stores cannot return to setup states. Billing expiration does
+not rewrite Store lifecycle status; protected operations separately revalidate
+current Organization entitlement.
 
 The current Organization-owned billing tables have RLS enabled but no direct `anon` or `authenticated` grants or policies. This default-deny posture prevents both cross-tenant billing reads and unnecessary same-tenant exposure until a narrow entitlement read model is approved.
 
@@ -199,10 +212,11 @@ Future product flow is conceptually:
 ```text
 sign up / sign in
   -> create/select Clerk Organization
-  -> onboarding/billing eligibility
   -> provision internal organization
-  -> provision initial Store
-  -> dashboard
+  -> create draft Store
+  -> configure and mark Store ready
+  -> later activate through an approved trial/paid entitlement boundary
+  -> operational dashboard
 ```
 
 Future team flow is conceptually:

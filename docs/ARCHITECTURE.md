@@ -64,10 +64,11 @@ Conceptual flow:
 sign up / sign in
   -> create or select Clerk Organization
   -> detect whether DeliPlus organization exists
-  -> onboarding / plan entitlement
   -> create internal organization when appropriate
-  -> provision initial Store
-  -> dashboard
+  -> create and configure a draft Store
+  -> mark Store ready
+  -> activate the first eligible Store with a local initial trial
+  -> operational dashboard
 ```
 
 Current product direction:
@@ -76,9 +77,10 @@ Current product direction:
 - the local introductory trial is 15 days on Essential and does not require Stripe;
 - paid plan codes are `essential` (one Store), `multi_2` (two Stores), and `multi_3` (three Stores);
 - four or more Stores use a sales-assisted path;
+- `maxStores` counts only Stores with `status = 'active'`; draft and ready Stores do not consume capacity;
 - trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
 
-The PostgreSQL billing schema, server-only Stripe configuration, and verified webhook projection foundation exist. Trial activation, entitlement resolution, Stripe Checkout, Customer Portal, and Store-capacity enforcement remain separate implementation slices.
+The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, Store setup foundation, first-Store trial activation, and generic Store entitlement activation boundaries exist. Store setup supports Organization-admin reads, draft creation, name/slug editing, and readiness. `activateFirstStoreWithInitialTrial(storeId)` atomically activates the first eligible ready Store and creates its 15-day Essential trial. `activateStoreWithinEntitlement(storeId)` and `deactivateStore(storeId)` enforce the current paid/local plan capacity for later lifecycle changes. The Stripe Checkout backend now exists; its UI/transport and Customer Portal remain separate implementation slices.
 
 ### 4. Merchant dashboard
 
@@ -94,13 +96,16 @@ Expected feature areas over time:
 
 ```text
 /dashboard
-/dashboard/orders
-/dashboard/products
-/dashboard/categories
-/dashboard/delivery
-/dashboard/team
 /dashboard/stores
-/dashboard/settings
+/dashboard/stores/new
+/dashboard/stores/[storeId]
+/dashboard/stores/[storeId]/setup
+/dashboard/stores/[storeId]/products
+/dashboard/stores/[storeId]/categories
+/dashboard/stores/[storeId]/orders
+/dashboard/stores/[storeId]/delivery
+/dashboard/stores/[storeId]/settings
+/dashboard/team
 /dashboard/billing
 ```
 
@@ -166,7 +171,7 @@ Organization 1 -> N Stores
 Clerk Users N -> N Stores through store_memberships
 ```
 
-Plan capacity may limit entitlement to one, two, or three Stores, but that is a billing/business rule, not a database cardinality constraint.
+Plan capacity may limit entitlement to one, two, or three active Stores, but that is a billing/business rule, not a database cardinality constraint. Draft and ready Store records do not consume capacity.
 
 ## Authorization layers
 
@@ -239,8 +244,16 @@ The current billing database foundation separates:
 - `billing_customers` for canonical Organization-to-Stripe-Customer identity;
 - `billing_subscriptions` for the current paid Subscription projection;
 - `stripe_webhook_events` for minimum webhook idempotency metadata.
+- `billing_checkout_attempts` for immutable acquisition intents, Session correlation,
+  retry/recovery and one non-ended reservation per Organization across plans.
 
-All four tables currently have RLS enabled and no direct `anon` or `authenticated` Data API access. Paid projection writes use one atomic `SECURITY INVOKER` PostgreSQL function callable only by `service_role`; that role receives only the table privileges required by this webhook slice. A later entitlement feature must introduce an explicitly reviewed narrow read boundary rather than broad table grants.
+All five tables have RLS enabled and no direct `anon` or `authenticated` Data API access. Paid projection writes use one atomic `SECURITY INVOKER` PostgreSQL function callable only by `service_role`; that role receives only the table privileges required by the webhook slice. Checkout Customer/attempt writes use five narrow service-only `SECURITY DEFINER` RPCs; direct Customer/attempt access remains SELECT-only for `service_role`.
+
+Normal Organization entitlement reads use the zero-argument `public.resolve_active_organization_entitlement_facts()` function. It is a reviewed, `STABLE`, `SECURITY DEFINER` read boundary with an empty `search_path`, derives the active tenant only from the verified Clerk JWT, and returns only local-trial and paid-projection facts needed by the server resolver. Only `authenticated` may execute it; the billing tables remain unavailable for direct authenticated reads.
+
+First-Store trial activation uses the narrow `public.activate_first_store_with_initial_trial(uuid)` function. It is a `VOLATILE`, `SECURITY DEFINER` transaction boundary with an empty `search_path`. It derives the Clerk User, active Organization and admin role from the verified JWT, serializes both Organization and Clerk User eligibility, and commits the initial grant plus `ready -> active` transition atomically. `authenticated` receives only EXECUTE on this function; direct Store and billing writes remain denied.
+
+Generic Store lifecycle changes use `public.activate_store_within_entitlement(uuid)` and `public.deactivate_store(uuid)`. Both are narrow `VOLATILE`, `SECURITY DEFINER` boundaries that accept only a Store selector, rederive Organization-admin authority from the verified Clerk JWT, and serialize through the same Organization advisory lock as trial and paid-projection writers. Activation resolves paid-first entitlement from local PostgreSQL facts, maps `essential`/`multi_2`/`multi_3` to capacities 1/2/3 inside the transaction, counts only active Stores, and atomically performs `ready|inactive -> active`. Deactivation performs `active -> inactive` without requiring entitlement. Neither operation changes billing rows or grants generic table writes.
 
 ### Stripe
 
@@ -264,7 +277,25 @@ The current Stripe server and webhook foundations provide:
 - current-Subscription reconciliation for the approved Checkout, Subscription, and Invoice Event set;
 - a single paid-subscription reducer and atomic Event-ledger/projection transaction.
 
-Only supported, verified webhook processing may retrieve the current Stripe Subscription. Imports, builds, tests, and unrelated Events perform no Stripe API call. This foundation does not create Customers, Checkout Sessions, Portal Sessions, Products, Prices, or local trials. The initial trial remains local to DeliPlus/PostgreSQL.
+Supported, verified webhook processing retrieves current Stripe Subscription state.
+The explicit `createSubscriptionCheckoutSession(planCode)` billing action also reads
+Stripe to validate catalog, Customer, subscriptions and owned Sessions. It requires
+the verified active Organization admin, resolves the internal Organization through
+normal Clerk-JWT/RLS reads, then uses the narrow billing repository. Customer
+claim/create/finalize precedes durable attempt claim/create/attach. External calls
+never span database transactions. Stable persisted keys and frozen snapshots protect
+retries; unknown outcomes retain the reservation instead of rotating keys.
+
+Hosted Checkout uses one quantity-1 monthly BRL Price and a dedicated card-only
+Payment Method Configuration, with Adaptive Pricing disabled. MVP commercial
+configuration is Essencial R$ 99,90, Duo R$ 189,90 and Trio R$ 279,90 per month;
+these amounts are not domain identity or authorization constants.
+
+Imports, builds, tests and unrelated Events perform no real Stripe API call. No
+Checkout UI, Action, billing page, Portal, remote catalog creation, tax, Stripe
+trial, Store mutation or entitlement grant from redirect is introduced. Paid
+entitlement still comes only from the verified webhook projection. See
+`docs/features/stripe-checkout/SPEC.md` for the acquisition/recovery contract.
 
 End-customer payment for food orders is outside the initial scope.
 
@@ -280,7 +311,15 @@ Adding a Clerk Organization member does not itself assign Store access.
 
 Those effects occur only through explicit DeliPlus onboarding/team-management flows.
 
-This allows DeliPlus to validate billing/trial eligibility, Store ownership and Store assignment coherently.
+This allows DeliPlus to validate Store ownership and Store assignment during setup, then validate billing/trial eligibility and active-Store capacity at the separate activation boundary.
+
+The current Store setup write path uses the privileged Supabase client only
+behind `lib/stores/store-setup.repository.ts`, after Clerk admin authorization
+and RLS-backed tenant/Store resolution. Normal `authenticated` Data API access
+remains SELECT-only. Store setup does not activate Stores. Initial-trial activation,
+generic entitlement activation, and deactivation use the normal Clerk-JWT Supabase
+client plus their transactional database RPCs; they do not use the privileged
+application client.
 
 ## Team management
 

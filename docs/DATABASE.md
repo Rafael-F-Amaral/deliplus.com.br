@@ -79,6 +79,7 @@ organization_id
 name
 slug
 status
+activated_at
 created_at
 updated_at
 ```
@@ -89,9 +90,25 @@ Relationship:
 organization 1 -> N stores
 ```
 
-The database must support multiple Stores even when a billing plan limits how many may be active/created.
+The database supports multiple Store records independently from plan capacity.
+`maxStores` counts only Stores whose status is `active`; draft and ready Stores
+do not consume capacity.
 
 `slug` is the public Store identifier and is independent from the Clerk Organization slug.
+
+Current persisted lifecycle:
+
+```text
+draft <-> ready -> active <-> inactive
+```
+
+`activated_at` is null for draft/ready and required for active/inactive. The
+first activation timestamp is immutable, and active/inactive Stores cannot
+return to setup states. The database accepts new Stores only as unactivated
+drafts and rejects blank names. Store setup itself still stops at `ready`; the
+separate initial-trial activation RPC owns the first eligible `ready -> active`
+transition, while the generic entitlement RPC owns later `ready|inactive -> active`
+transitions and active-Store capacity enforcement.
 
 ### store_memberships
 
@@ -210,7 +227,48 @@ Initial grants are exactly 15 days on `essential`, with at most one initial gran
 
 ### billing_customers
 
-Stores the canonical one-to-zero-or-one relationship between a DeliPlus Organization and Stripe Customer. A pending claim may exist before `stripe_customer_id` is known. Customer creation itself is not implemented yet.
+Stores the canonical one-to-zero-or-one relationship between a DeliPlus Organization and Stripe Customer. A pending claim may exist before `stripe_customer_id` is known. The Checkout backend now owns Customer claim/create/finalize: one persistent key per claim, no admin-email binding, compare-and-set finalization, and no automatic replacement of an established identity.
+
+### billing_checkout_attempts
+
+Migration `20260902120000_stripe_checkout.sql` adds the bounded 20-column acquisition
+record defined in the Stripe Checkout SPEC. It persists Organization/plan/Price/Customer,
+an operation-specific idempotency key, nullable once-attached Session ID, lifecycle,
+frozen expiration/return URLs/payment configuration/integration/API recipe, revision,
+and timestamps. It stores neither Checkout URL nor arbitrary Stripe JSON, money,
+capacity, email or card data.
+
+The FK to `billing_customers.organization_id` uses ON UPDATE/DELETE RESTRICT. A partial
+unique index on `organization_id WHERE ended_at IS NULL` enforces one reservation
+across all plans; an Organization/history index covers historical ownership lookups.
+Only `ended` releases the reservation. `creating`, `open`, `completed` and
+`recovery_required` retain it. A guard enforces immutable snapshots, once-attached
+Session identity, allowed transitions and monotonic revision. Idempotent RPC calls
+perform no UPDATE. Attempt decision/update timestamps use `clock_timestamp()` after
+locks, rather than the existing generic `now()` helper's transaction-start timestamp.
+
+Five service-only operations are exposed:
+
+```text
+claim_billing_customer
+finalize_billing_customer
+claim_billing_checkout_attempt
+reconcile_billing_checkout_attempt
+end_billing_checkout_attempt
+```
+
+Each is VOLATILE/SECURITY DEFINER, owned by `postgres`, with `search_path = ''`,
+fully qualified static SQL and explicit EXECUTE revocations from PUBLIC/anon/authenticated.
+Private helpers have no Data API execution grants. Direct Customer and attempt access
+for `service_role` remains SELECT-only. No generic billing CRUD is introduced.
+
+Lock order is the existing Organization advisory lock
+`pg_advisory_xact_lock(hashtextextended(organization_id::text, 0))`, then Organization,
+Customer, attempt and the local subscription guard. Stripe calls occur only between
+committed RPC transactions. Session attachment/closure checks Organization, attempt,
+revision, state and Session identity. Closure requires trusted server evidence of
+terminal external state and no blocking subscription, plus a locked local recheck;
+elapsed time or browser cancellation alone never releases an attempt.
 
 ### billing_subscriptions
 
@@ -249,7 +307,7 @@ The function is executable only by `service_role`. That role has read-only acces
 
 ### Billing access posture
 
-All four billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. The paid webhook uses the restricted trusted boundary described above; a later entitlement resolver must define any narrow read surface.
+All five billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. Narrow entitlement-read, first-Store trial-activation, and generic Store lifecycle functions expose only their reviewed fact/result surfaces; they do not grant table access. Checkout RPCs are instead service-only operations behind the reviewed application-admin boundary.
 
 ## Relationship overview
 
@@ -265,6 +323,7 @@ DeliPlus organizations
   1 -> N billing_trial_grants
   1 -> 0..1 billing_customers
   1 -> 0..1 current billing_subscriptions through billing_customers
+  1 -> N billing_checkout_attempts through billing_customers (one non-ended)
 
 stores
   N <-> N Clerk users via store_memberships
@@ -280,10 +339,10 @@ Creating a Clerk Organization does not automatically create PostgreSQL records.
 
 Adding a member to Clerk does not automatically grant Store access.
 
-DeliPlus onboarding/team-management will explicitly create:
+DeliPlus application flows explicitly create or will create:
 
 - internal organization records;
-- initial/additional Stores;
+- initial/additional Store drafts through the Store setup domain boundary;
 - Store membership assignments.
 
 The exact transaction/order of provisioning and Stripe subscription creation belongs to onboarding/billing specs.
@@ -319,9 +378,99 @@ Normal `authenticated` access should be read-only for:
 
 Generic authenticated INSERT/UPDATE/DELETE for tenant-core records is not part of the first migration.
 
-Provisioning and team membership mutations will be implemented separately so billing and access rules cannot be bypassed directly through the Data API.
+Tenant provisioning and Store draft/setup mutations use separate narrow
+server-only boundaries. Team membership mutation remains separate. Store setup
+uses RLS-backed reads and an explicitly scoped privileged repository for simple
+writes; it does not activate a Store, grant entitlement, or expose generic
+authenticated writes.
 
-The billing foundation is stricter: `anon` and `authenticated` currently have no direct reads or writes on any billing table. RLS is default-deny until a dedicated entitlement read model is approved.
+The billing foundation is stricter: `anon` and `authenticated` have no direct reads or writes on any billing table. RLS remains default-deny. The dedicated entitlement read model exposes only a zero-argument function to `authenticated`, not table access.
+
+### Organization entitlement read boundary
+
+`public.resolve_active_organization_entitlement_facts()` is the narrow Data API read boundary for normalized Organization entitlement. It:
+
+- is `STABLE` and `SECURITY DEFINER` with `search_path = ''`;
+- is owned by the reviewed `postgres` migration role;
+- accepts no arguments and derives the active Clerk Organization through `private.clerk_organization_id()`;
+- maps the Clerk Organization to the internal `organizations.id` inside PostgreSQL;
+- uses one statement snapshot and one PostgreSQL clock reference for trial validity;
+- aggregates concurrently valid same-plan grants with `MAX(ends_at)`;
+- raises an error for concurrently valid grants with different plans;
+- returns only trial plan/end and paid plan/status/collection-pause facts;
+- performs no mutation and exposes no provider or tenant identifiers;
+- is executable by `authenticated`, while `PUBLIC`, `anon`, and `service_role` have no execution grant.
+
+The server-only `resolveOrganizationEntitlement()` calls this function through the normal Clerk-JWT Supabase client. It derives `maxStores` from the application plan registry, validates unknown/partial data fail-closed, and never reads Stripe or a privileged Supabase client.
+
+### First-Store trial activation boundary
+
+`public.activate_first_store_with_initial_trial(p_store_id uuid)` is the narrow atomic
+write boundary for an eligible first Store and initial local trial. It:
+
+- is `VOLATILE` and `SECURITY DEFINER` with `search_path = ''`;
+- is owned by the reviewed `postgres` migration role;
+- accepts only a Store UUID and derives Clerk User, active Organization and role from
+  private JWT helpers;
+- requires the verified Organization database role `admin`;
+- resolves the internal Organization before scoping and locking the target Store;
+- serializes Organization operations with the same advisory-lock convention used by
+  paid projection writes;
+- serializes historical Clerk User trial eligibility with a separate stable advisory
+  transaction lock;
+- rejects any prior initial grant for the Organization or Clerk User, including expired
+  or revoked grants;
+- rejects current paid entitlement or valid manual override because those cases belong
+  to generic Store activation; once an initial trial exists, its still-valid
+  entitlement may also be consumed by that separate generic activation boundary;
+- requires no Store in the Organization to have a prior non-null `activated_at`;
+- inserts the 15-day Essential initial grant and updates the target Store from `ready`
+  to `active` in one transaction using one PostgreSQL timestamp;
+- returns only `outcome` and `trial_ends_at`;
+- is executable by `authenticated`, while `PUBLIC`, `anon`, and `service_role` receive
+  no execution grant.
+
+Direct authenticated writes to `stores`, `billing_trial_grants`, and
+`billing_subscriptions` remain denied. Coherent retries of the same Store during the
+active initial trial return `already_activated` without changing any persisted date or
+historical Clerk User.
+
+### Generic Store entitlement activation boundary
+
+`public.activate_store_within_entitlement(p_store_id uuid)` and
+`public.deactivate_store(p_store_id uuid)` are the narrow atomic boundaries for later
+Store lifecycle changes. They:
+
+- are `VOLATILE`, `SECURITY DEFINER`, owned by `postgres`, and use `search_path = ''`;
+- accept only a Store UUID and derive Clerk User, active Organization, and admin role
+  from private verified-JWT helpers;
+- revalidate and lock the internal Organization and tenant-scoped Store;
+- serialize on `pg_advisory_xact_lock(hashtextextended(organization_id::text, 0))`,
+  matching initial-trial and paid-projection writers;
+- keep missing and cross-tenant Store selectors indistinguishable;
+- grant EXECUTE only to `authenticated` among Data API roles;
+- preserve existing RLS and direct table grants.
+
+Activation captures database time after lock acquisition, resolves the current paid
+projection plus valid local grants through shared private helpers, gives eligible paid
+state precedence, and derives capacity through the closed private SQL mapping:
+
+```text
+essential -> 1
+multi_2   -> 2
+multi_3   -> 3
+```
+
+Only active Stores count. `ready -> active` sets the first database-derived
+`activated_at`; `inactive -> active` preserves it. An already-active Store returns
+idempotently before entitlement/capacity rejection. At or above capacity, another
+activation is denied without automatically deactivating any Store.
+
+Deactivation requires no entitlement and changes only `active -> inactive`, preserving
+`activated_at`. Neither RPC mutates trial grants, subscription projections, Stripe
+state, Store setup fields, or generic grants. The public
+`resolve_active_organization_entitlement_facts()` return contract remains unchanged and
+delegates to the same private fact-resolution logic used by transactional enforcement.
 
 ## Money
 

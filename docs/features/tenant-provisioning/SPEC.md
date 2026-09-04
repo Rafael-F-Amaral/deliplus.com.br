@@ -121,8 +121,10 @@ Future flow:
 ```text
 Clerk Organization
   → internal DeliPlus Organization
-  → plan / billing / trial entitlement
-  → initial Store
+  → draft Store
+  → Store setup
+  → ready Store
+  → future trial/paid activation boundary
 ```
 
 The current database remains `Organization 1 → N Stores`.
@@ -429,9 +431,10 @@ This Phase A prepares the following future state machine:
 | Authenticated, no active Clerk Organization | Create/select Organization |
 | Active Organization, no internal Organization, admin | Provision Phase A |
 | Active Organization, no internal Organization, member | Wait for admin / select another Organization |
-| Internal Organization, no billing entitlement | Plan selection / billing |
-| Entitlement active/trialing, no Store | Initial Store setup |
-| Store exists | Dashboard |
+| Internal Organization, no Store | Initial draft Store setup |
+| Draft Store | Continue Store setup |
+| Ready Store, no entitlement | Trial/paid activation flow |
+| Active Store with valid entitlement | Operational dashboard |
 | Member without Store assignment | Await Store assignment |
 
 This feature implements only the internal-Organization provisioning operation.
@@ -615,8 +618,8 @@ After Phase A:
 1. onboarding state resolver;
 2. billing/Stripe specification;
 3. billing projection/webhooks;
-4. initial Store provisioning;
-5. Store-capacity enforcement;
+4. initial Store draft/setup;
+5. Store activation and atomic capacity enforcement;
 6. onboarding UI;
 7. Store selector;
 8. team management and Store assignment mutations.

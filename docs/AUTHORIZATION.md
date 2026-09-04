@@ -186,7 +186,19 @@ Do not grant generic authenticated writes to:
 - stores;
 - store_memberships.
 
-Provisioning and Store-membership mutation will be implemented later through an explicitly trusted server-side boundary so billing/Store-capacity and membership lifecycle rules cannot be bypassed.
+Tenant provisioning uses its reviewed server-only boundary. Store setup uses a
+separate narrow server-only service that can create only draft Stores, update
+name/slug, and mark valid drafts ready; it does not activate Stores or grant entitlement.
+The separate first-Store activation boundary now enforces historical initial-trial
+eligibility and commits the initial grant plus Store activation atomically. The
+separate generic activation/deactivation boundary now consumes paid, manual-override,
+or valid initial-trial entitlement and enforces active-Store capacity atomically.
+Store-membership mutation also requires its own reviewed trusted boundary.
+
+Every Store setup operation authenticates with Clerk, requires the active
+Organization's `org:admin` role, resolves the internal Organization through the
+normal Clerk-JWT/RLS client, and scopes Store selectors to that Organization.
+Missing and cross-tenant Stores share the same safe public outcome.
 
 ## Team management
 
@@ -246,9 +258,92 @@ Current product direction:
 - four or more Stores use a sales-assisted path;
 - the initial self-service trial is 15 days on Essential, with no card and no Stripe trial.
 
-The current billing database foundation contains Organization-owned local trial history, canonical Stripe Customer identity, paid Subscription projection, and webhook Event ledger tables. RLS is enabled on all four.
+`maxStores` is operational capacity: it counts only Stores with
+`status = 'active'`. Draft and ready Stores do not consume capacity. Creating or
+configuring a draft Store therefore grants no operational entitlement. The generic
+activation boundary counts and activates inside one database transaction.
 
-In this first schema slice, neither `anon` nor `authenticated` has direct access to any billing table. There are no billing RLS policies and no generic billing writes. A future `resolveOrganizationEntitlement()` feature must define a narrow trusted read interface before application billing reads are enabled.
+Initial-trial activation must also verify that the Organization has no Store
+that was previously activated (`activated_at IS NOT NULL`), in addition to the
+approved User- and Organization-level trial history rules.
+
+The implemented `activateFirstStoreWithInitialTrial(storeId)` operation:
+
+- runs server-side and accepts only the Store UUID as a resource selector;
+- requires authenticated Clerk state, an active Organization and `org:admin`;
+- repeats the admin-role check inside PostgreSQL from the verified JWT;
+- derives both internal Organization and Clerk User identity without browser authority;
+- treats missing and cross-tenant Stores as the same `store_unavailable` outcome;
+- permits only the first historical `ready -> active` transition;
+- denies a new initial trial after any Organization/User initial grant, including expired or revoked grants;
+- directs valid paid/manual-entitlement cases to the separate generic activation flow;
+- leaves generic reactivation or Store switching under an already valid initial trial
+  to that same generic flow, subject to Essential capacity of one active Store;
+- uses one PostgreSQL timestamp for trial start and Store activation;
+- makes no Stripe request and uses no Supabase admin client.
+
+The corresponding `SECURITY DEFINER` RPC is executable only by `authenticated` among
+Data API roles. It grants no generic authenticated write capability on Store or billing
+tables.
+
+The implemented `activateStoreWithinEntitlement(storeId)` operation:
+
+- accepts only a Store UUID and requires the active Organization's `org:admin` role;
+- repeats verified Clerk User, Organization, and role resolution inside PostgreSQL;
+- treats missing and cross-tenant Stores as the same `store_unavailable` outcome;
+- accepts eligible paid projections, valid manual overrides, and valid initial trials;
+- gives eligible paid entitlement descriptive precedence without adding capacities;
+- maps `essential`, `multi_2`, and `multi_3` to 1, 2, and 3 active Stores inside SQL;
+- counts only `status = 'active'` and commits capacity plus lifecycle mutation atomically;
+- returns `already_active` before entitlement/capacity rejection for an idempotent retry;
+- reactivates inactive Stores without changing immutable `activated_at`;
+- never creates or changes a trial, billing row, Stripe object, or Store setup field.
+
+The companion `deactivateStore(storeId)` requires the same Organization-admin and tenant
+checks, serializes on the same Organization lock, and changes only `active -> inactive`.
+It preserves `activated_at` and remains available without current entitlement so an
+over-capacity Organization can reduce its active count. A downgrade never deactivates a
+Store automatically.
+
+Both RPCs are executable only by `authenticated` among Data API roles. Their private
+entitlement/capacity helpers are not Data API capabilities. Direct authenticated writes
+to Store and billing tables remain denied.
+
+The current billing database foundation contains Organization-owned local trial history, canonical Stripe Customer identity, paid Subscription projection, webhook Event ledger and durable Checkout attempts. RLS is enabled on all five.
+
+### Explicit Checkout acquisition boundary
+
+`createSubscriptionCheckoutSession(planCode)` authenticates on every invocation with
+`await auth()`, requires active Organization `org:admin`, accepts only a runtime-validated
+PlanCode, and resolves the internal Organization with the normal Clerk-JWT/RLS client.
+There is no implicit Organization provisioning. Only the internal billing repository
+then creates the privileged Supabase client for scoped billing reads and five exact
+Customer/attempt RPCs. The RPCs are `VOLATILE`, `SECURITY DEFINER`, owned by `postgres`,
+with empty `search_path`, static SQL and EXECUTE only for `service_role`.
+
+Unlike JWT-authenticated Store RPCs, these server-internal RPCs receive an already
+authorized internal Organization from the service; the admin client forwards no Clerk
+JWT. Their execution grants do not authenticate a merchant. Application authorization
+and scoped database invariants are both mandatory and tested separately.
+
+Neither browser nor UI can choose Customer, Price, Organization, amount, currency,
+interval, quantity or return origin. Customer/attempt direct table writes remain denied
+even for `service_role`. One non-ended attempt reserves acquisition across plans;
+existing nonterminal subscriptions block a new payable path. Read-only entitlement
+resolution stays unchanged and no trial or Store access is granted by Checkout.
+
+Neither `anon` nor `authenticated` has direct access to any billing table. There are no billing RLS policies and no generic billing writes. Normal server-side billing authorization uses `resolveOrganizationEntitlement()`, which calls the zero-argument `public.resolve_active_organization_entitlement_facts()` function through the Clerk-JWT Supabase client.
+
+The entitlement facts function:
+
+- derives the tenant exclusively from `private.clerk_organization_id()`;
+- accepts no Organization, Clerk, Store, Customer, or Subscription identifier;
+- is `STABLE` and `SECURITY DEFINER` with an empty `search_path`;
+- is executable only by `authenticated` among Data API client roles;
+- returns only the resolved active-trial plan/end and current paid plan/status/collection-pause facts;
+- does not grant direct billing-table access or perform mutations.
+
+The server resolver treats missing authentication, missing active Organization, and missing internal Organization as explicit precondition failures. It validates all returned facts before applying paid-over-trial descriptive precedence. Only `active` and `past_due` with collection active grant paid entitlement; a valid local trial may still grant entitlement while paid collection is paused. Unknown or inconsistent facts fail closed.
 
 Paid projection mutation is now restricted to this verified boundary:
 
@@ -263,13 +358,13 @@ raw Stripe request
 
 The webhook does not use Clerk because the Stripe signature authenticates that machine-to-machine request. It cannot choose an Organization from browser input or Stripe metadata: the internal Organization is derived only from the local canonical `billing_customers.stripe_customer_id` relation. The transactional RPC is `SECURITY INVOKER`, is executable only by `service_role`, and does not grant `anon` or `authenticated` any billing capability.
 
-Webhook processing never creates or changes `billing_trial_grants`. Invoice and Checkout Events trigger reconciliation only; they do not grant entitlement directly. The future entitlement resolver remains responsible for interpreting the trusted local trial and paid projections.
+Webhook processing never creates or changes `billing_trial_grants`. Invoice and Checkout Events trigger reconciliation only; they do not grant entitlement directly. The Organization entitlement resolver interprets the trusted local trial and paid projections without calling Stripe on the normal request path.
 
 Creating a Clerk Organization does not itself grant a trial, create a Store or establish paid access.
 
 Adding Store memberships does not change billing Store capacity.
 
-Trial eligibility and Store-capacity checks must be enforced server-side against trusted billing/application state.
+Trial eligibility and Store-capacity checks are enforced server-side against trusted billing/application state. Future storefront, order-intake, and protected-operation boundaries must still require current entitlement independently; persisted Store `active` status alone is not authorization.
 
 ## Error behavior
 

@@ -40,7 +40,7 @@ values
     '10000000-0000-0000-0000-000000000001',
     'Store A1',
     'store-a1',
-    'active',
+    'draft',
     '2020-01-01 00:00:00+00',
     '2020-01-01 00:00:00+00'
   ),
@@ -58,10 +58,30 @@ values
     '10000000-0000-0000-0000-000000000002',
     'Store B1',
     'store-b1',
-    'inactive',
+    'draft',
     '2020-01-01 00:00:00+00',
     '2020-01-01 00:00:00+00'
   );
+
+update public.stores
+set status = 'ready'
+where id in (
+  '20000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000003'
+);
+
+update public.stores
+set
+  status = 'active',
+  activated_at = '2020-01-02 00:00:00+00'
+where id in (
+  '20000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000003'
+);
+
+update public.stores
+set status = 'inactive'
+where id = '20000000-0000-0000-0000-000000000003';
 
 insert into public.store_memberships (
   id,
