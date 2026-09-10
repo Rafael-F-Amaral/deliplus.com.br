@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "test:dashboard-overview": "node --conditions=react-server --experimental-strip-types --test tests/dashboard-overview/*.test.mjs",
     "test:onboarding-coordinator": "node --test tests/onboarding-coordinator/onboarding-coordinator.test.mjs",
     "test:billing-checkout-ui": "node --test tests/billing-checkout-ui/billing-checkout-ui.test.mjs",
     "test:stripe-checkout": "node --conditions=react-server --experimental-strip-types --test tests/stripe-checkout/stripe-checkout.test.mjs tests/stripe-checkout/stripe-checkout.stripe.test.mjs",

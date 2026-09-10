@@ -92,6 +92,119 @@ the Store may accept an order.
 Any new top-level static application route must be reviewed against the central
 reserved storefront slug set before release.
 
+## Dashboard Overview read contract
+
+Dashboard Server Components should call only
+`getDashboardOverview()` from `@/lib/dashboard/dashboard-overview` for their
+high-level Organization, entitlement and Store summary. It accepts no arguments.
+
+```ts
+const result = await getDashboardOverview()
+if (result.status === "success") {
+  const { organization, entitlement, stores } = result.overview
+  // Presentation only; mutations reauthorize independently.
+}
+```
+
+The public types are:
+
+```ts
+type PlanEntitlement =
+  | { planCode: "essential"; maxStores: 1 }
+  | { planCode: "multi_2"; maxStores: 2 }
+  | { planCode: "multi_3"; maxStores: 3 }
+
+type OrganizationEntitlement =
+  | { entitled: false; reason: "no_entitlement" }
+  | ({ entitled: true; source: "trial"; validUntil: Date } & PlanEntitlement)
+  | ({ entitled: true; source: "paid_subscription" } & PlanEntitlement)
+
+type DashboardOverview = {
+  organization: { id: string }
+  entitlement: OrganizationEntitlement
+  stores: { scope: "accessible"; total: number; active: number }
+}
+
+type DashboardOverviewResult =
+  | { status: "unauthenticated" }
+  | { status: "no_active_organization" }
+  | { status: "organization_not_provisioned"; canProvision: boolean }
+  | { status: "success"; overview: DashboardOverview }
+```
+
+Auth/provisioning outcomes are navigation/presentation states. Unexpected read
+failures throw `DashboardOverviewError` with a safe message; do not expose its
+internal cause. A provisioned Organization with no entitlement and zero Stores
+returns success, as does a paid Organization with zero Stores. Reading never
+provisions, starts a trial, activates a Store, or creates a Stripe resource.
+No entitlement alone does not prove initial-trial eligibility: it may also mean
+an expired or revoked grant. Activation remains the authority for eligibility.
+
+### Read-boundary audit and composition
+
+- `resolveOnboardingState()` already resolves the active Organization's internal
+  UUID using verified Clerk auth and normal JWT/RLS reads. The overview reuses
+  this through the Store summary instead of calling the provisioning mutation
+  `ensureActiveOrganization()`.
+- `resolveOrganizationEntitlement()` is reused without changing its result or
+  precedence rules. It reads the existing zero-argument entitlement-facts RPC,
+  which returns only valid local-grant and paid-projection facts. No dashboard
+  import of trial/billing repositories, Stripe statuses or private SQL helpers
+  is needed.
+- `listStoresForSetup()` and `getStoreForSetup()` are **admin-only**, including
+  their reads. They are still the approved setup UI APIs; they cannot provide
+  a member dashboard summary. Their shared repository also imports the admin
+  write client, so this read path does not import that repository.
+- The new `getAccessibleStoreSummary()` Store domain API composes onboarding
+  resolution and two exact, head-only Store counts using the normal Clerk-JWT
+  client, scoped to the resolved Organization UUID and existing Store RLS.
+  It supports both admins and members without changing setup authorization.
+  Dashboard code consumes it through `getDashboardOverview()`.
+
+### Count and capacity semantics
+
+`scope: "accessible"` always means Stores visible to this request. For an admin,
+that is all Stores in the active Organization; for a member, only assigned Stores
+in that Organization. Zero for a member means no accessible Stores, not necessarily
+an empty Organization. `total` includes draft, ready, active and inactive Stores;
+`active` counts only `status = 'active'`. Counts are exact rather than the length of
+a potentially truncated listing.
+
+Organization capacity is available only as `entitlement.maxStores` after narrowing
+`entitled: true`; the presentation fallback may be `null`. It is not duplicated in
+`stores`, and is not a member's personal quota. Do not subtract a member's accessible
+active count from Organization capacity to infer available Organization slots.
+
+These independent reads are a display snapshot, not a database-atomic capacity
+check. Concurrent changes can temporarily produce differing count/entitlement
+snapshots. Do not clamp counts to capacity or use them to authorize mutations;
+existing activation operations enforce current capacity transactionally. No shared
+cross-request cache is introduced.
+
+### Trial, override and paid presentation
+
+Use the resolver's `source` and stable `planCode`. For local grants, `validUntil`
+is the authoritative end fact; calculate remaining time in the presentation layer.
+Do not persist days remaining or invent a paid end date. The current resolver
+classifies valid `manual_override` grants as `source: "trial"` and does not expose
+grant kind. A distinct override badge cannot be supported by this contract without
+a separately reviewed extension; do not infer override origin from plan code.
+
+`essential`, `multi_2`, `multi_3` correspond to Essencial, Duo, Trio. The existing
+`lib/billing/plans.ts` registry provides codes and capacities, but no labels or
+prices. Commercial labels/prices currently live in the billing page's application
+presentation configuration. Keep those concerns out of this read model and do not
+read Stripe Price IDs for display. Early paid subscription grants entitlement
+independently of Store creation/activation; it does not start another trial.
+
+Frontend code must not import Supabase repositories/clients, billing repositories,
+private entitlement helpers, or Stripe clients for the overview. Future Store UI
+may use the existing public setup and activation/deactivation operations documented
+below through Server Components or thin Server Actions. Setup and lifecycle mutations
+remain Organization-admin operations. Final dashboard layout, empty states, plan
+labels, trial countdown presentation, Store wizard, and subscription management UI
+remain separate work; no temporary dashboard rendering is required by this foundation.
+
 ## Store setup domain contract
 
 The initial server-only Store setup API is:
@@ -372,7 +485,7 @@ model, UI, or audit schema.
 
 The following remain feature-specific and require their own approved specs:
 
-- Store-capacity read-model/dashboard presentation;
+- dashboard visual presentation beyond the Overview read contract above;
 - automatic downgrade remediation policy;
 - post-activation slug policy;
 - storefront visibility and cache behavior;
