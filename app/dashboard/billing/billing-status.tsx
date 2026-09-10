@@ -3,15 +3,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { buttonVariants } from "@/components/ui/button"
 import type { BillingPageState } from "./billing-state"
 import { checkoutMessages } from "./checkout-feedback"
-import { OrganizationProvisioningForm } from "./organization-provisioning-form"
 
-export function BillingStatus({
-  state,
-  allowProvisioning = false,
-}: {
-  state: BillingPageState
-  allowProvisioning?: boolean
-}) {
+export function BillingStatus({ state }: { state: BillingPageState }) {
   if (state.kind !== "resolved") {
     const unavailable = state.kind === "unavailable"
     return (
@@ -36,10 +29,13 @@ export function BillingStatus({
             <Link href="/" className={buttonVariants({ variant: "outline" })}>
               Selecionar organização
             </Link>
-          ) : state.kind === "organization_not_provisioned" &&
-            state.canProvision &&
-            allowProvisioning ? (
-            <OrganizationProvisioningForm />
+          ) : state.kind === "organization_not_provisioned" ? (
+            <Link
+              href="/onboarding"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Continuar configuração
+            </Link>
           ) : null}
         </AlertDescription>
       </Alert>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import { buttonVariants } from "@/components/ui/button"
 import {
   Card,
@@ -46,6 +47,8 @@ const plans = [
 
 export default async function BillingPage() {
   const state = await readBillingPageState()
+  if (state.kind === "organization_not_provisioned") redirect("/onboarding")
+
   const paid =
     state.kind === "resolved" &&
     state.entitlement.entitled &&
@@ -84,7 +87,7 @@ export default async function BillingPage() {
             </p>
           ) : null}
         </header>
-        <BillingStatus state={state} allowProvisioning />
+        <BillingStatus state={state} />
         <section
           aria-label="Planos disponíveis"
           className="flex flex-col gap-5"
