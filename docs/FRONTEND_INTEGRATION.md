@@ -176,20 +176,32 @@ role, and disabled controls are presentation hints only: the Checkout domain ope
 reauthenticates and reauthorizes every submission.
 
 Before acquisition, the billing page composes the read-only
-`resolveOnboardingState()` result. When the active Organization is missing internally,
-only `organization_not_provisioned` with `canProvision: true` presents the explicit
-`Configurar organização` action. That thin Action accepts no tenant authority, calls
-only `ensureActiveOrganization()`, and redirects back to `/dashboard/billing` after a
-successful idempotent ensure. Members receive information only. Provisioning during
-render remains forbidden and this action does not create a Store, trial, billing
-Customer, Checkout attempt, or Stripe resource.
+`resolveOnboardingState()` result. `organization_not_provisioned` redirects to
+`/onboarding` for both admins and members. Billing exposes no provisioning Action or
+form; its redirect performs no mutation. The payment-return status can link to the
+same coordinator without performing provisioning itself.
 
-The approved `feature/onboarding-coordinator` follow-up replaces that temporary control
-with `/onboarding`: after Clerk
-signup and Organization creation, the route explicitly invokes a trusted server-side
-provisioning mutation and redirects to `/dashboard/stores/new`. Provisioning must not
-run during render/GET. Billing remains optional before Store activation, and neither
-Clerk Organization creation nor Organization provisioning starts the trial.
+The automatic coordinator is available at `/onboarding`. Clerk sign-up forces that
+destination, sign-in uses it as a fallback, and Organization create/select returns to
+the same stable route. Its Server Component composes `resolveOnboardingState()` and
+`listStoresForSetup()` without mutation. For an unprovisioned admin, a small client
+coordinator submits a Server Action once; that Action accepts no tenant authority and
+calls only `ensureActiveOrganization()`. Members see a safe administrator-required
+state. Provisioning must not run during render/GET.
+
+After provisioning, an admin with zero Stores is redirected to
+`/dashboard/stores/new`; one or more Stores redirect to `/dashboard`. A provisioned
+member who is not authorized for Store setup also returns to `/dashboard` and does not
+gain setup-read authority merely for routing. The first-Store route is currently a
+minimal stable handoff, not a new Store wizard. Billing remains optional before Store
+activation, and neither Clerk Organization creation, Organization provisioning, route
+navigation, nor rendering starts the trial. The main manual coordinator E2E passed and
+the temporary billing-page provisioning control has been removed.
+
+Merchants may subscribe before creating or activating their first Store. Future Store
+activation UI must choose the existing activation boundary according to current
+entitlement, including paid entitlement, instead of unconditionally starting an initial
+trial. No Store activation coordinator is implemented in this feature.
 
 The return routes are `/dashboard/billing/success` and `/dashboard/billing`, without
 `session_id`. The success page reads only `resolveOrganizationEntitlement()` through

@@ -373,12 +373,50 @@ a different Sandbox/account than the application's Stripe API key, not an applic
 defect. Before repeating E2E, verify that the CLI and application use the same
 Sandbox/account and that the local signing secret belongs to the running listener.
 
-`Configurar organização` remains a temporary development/E2E bridge until
-`feature/onboarding-coordinator`. Existing paid subscriptions continue blocking another
-acquisition; upgrade/downgrade and Customer Portal are separate features. The accepted
-success page keeps manual refresh; bounded entitlement polling, automatic dashboard
-redirect, a dashboard paid-plan card, and landing-page work remain deferred. Return
-URLs never establish entitlement.
+The automatic onboarding coordinator now lives at `/onboarding`. Clerk sign-up forces
+that destination and sign-in uses it as a fallback; Organization create/select returns
+there as well. The Server Component resolves state without mutation. Only the small
+client coordinator auto-submits the provisioning Server Action, once per mount, and the
+Action revalidates through `ensureActiveOrganization()` before redirecting back. Store
+presence is read through `listStoresForSetup()`; no direct table access was added.
+
+Run its focused suite with:
+
+```bash
+yarn test:onboarding-coordinator
+```
+
+For manual E2E, verify new sign-up, Organization creation/selection, automatic tenant
+provisioning, refresh/retry idempotency, the member waiting state, zero-Store navigation
+to `/dashboard/stores/new`, and existing-Store navigation to `/dashboard`. Reaching the
+first-Store route must not start a trial or mutate Store state.
+
+#### Automatic onboarding manual E2E — passed
+
+The project owner confirmed a new signup reached `/onboarding` with an active Clerk
+Organization, briefly displayed automatic preparation, provisioned the internal
+Organization without an explicit provisioning click, and reached
+`/dashboard/stores/new` as an admin with zero Stores. Preparation may be transient when
+provisioning completes quickly. The subsequent dashboard -> Billing -> Stripe Checkout
+-> confirmed paid subscription flow also passed. This record confirms that happy path;
+it does not claim manual coverage of member, retry, or existing-Store scenarios.
+
+The temporary `Configurar organização` control and its Billing Action/form/feedback
+have been removed. Unprovisioned Billing requests now redirect read-only to `/onboarding`
+for admins and members alike; only the onboarding Action can request tenant provisioning.
+
+Early paid subscription remains supported before the first Store exists or activates.
+A future Store activation coordinator must use current entitlement to choose the
+appropriate existing activation boundary (`activateStoreWithinEntitlement()` for paid
+entitlement versus `activateFirstStoreWithInitialTrial()` for eligible initial trial),
+rather than blindly starting a trial for an already-paid Organization. That coordinator
+is outside this feature; activation behavior is unchanged.
+
+Existing paid subscriptions continue blocking another acquisition; upgrade/downgrade
+and Customer Portal are separate features. The accepted success page keeps manual
+refresh; bounded entitlement polling, automatic dashboard redirect, a dashboard
+paid-plan card, and landing-page work remain deferred. Return URLs never establish
+entitlement.
 
 On 2026-09-10, `yarn supabase migration list` confirmed
 `20260904120000_tenant_provisioning_trusted_rpc.sql` in the linked Staging database.

@@ -5,19 +5,12 @@ import { readFile } from "node:fs/promises"
 import { renderToStaticMarkup } from "react-dom/server"
 
 const { startCheckout } = await import("../../app/dashboard/billing/actions.ts")
-const { provisionActiveOrganization } =
-  await import("../../app/dashboard/billing/organization-provisioning-action.ts")
 const { default: BillingPage } =
   await import("../../app/dashboard/billing/page.tsx")
 const { default: SuccessPage } =
   await import("../../app/dashboard/billing/success/page.tsx")
 const { checkoutMessages } =
   await import("../../app/dashboard/billing/checkout-feedback.ts")
-const {
-  organizationProvisioningMessages,
-  organizationProvisioningUnavailableMessage,
-} =
-  await import("../../app/dashboard/billing/organization-provisioning-feedback.ts")
 const { readBillingPageState } =
   await import("../../app/dashboard/billing/billing-state.ts")
 const render = async (page) => renderToStaticMarkup(await page())
@@ -138,59 +131,9 @@ test("action: infrastructure errors are sanitized and not a business outcome", a
   })
 })
 
-test("provision action: successful ensure redirects without forwarding browser authority", async () => {
-  const data = new FormData()
-  data.append("organizationId", "org_attacker_controlled")
-  data.append("startTrial", "true")
-
-  await assert.rejects(
-    provisionActiveOrganization(
-      { kind: "business", status: "forbidden" },
-      data
-    ),
-    (error) => error.redirectUrl === "/dashboard/billing"
-  )
-
-  assert.deepEqual(state.provisions, [[]])
-  assert.equal(state.calls.length, 0)
-  assert.equal(state.reads.length, 0)
-})
-
-for (const status of [
-  "unauthenticated",
-  "no_active_organization",
-  "forbidden",
-  "provisioning_failed",
-]) {
-  test(`provision action: safe domain outcome ${status}`, async () => {
-    state.provisioning = { status, internalDetail: "must-not-leak" }
-
-    assert.deepEqual(
-      await provisionActiveOrganization({ kind: "idle" }, new FormData()),
-      { kind: "business", status }
-    )
-    assert.deepEqual(state.provisions, [[]])
-    assert.equal(state.calls.length, 0)
-    assert.doesNotMatch(organizationProvisioningMessages[status], /internal/u)
-  })
-}
-
-test("provision action: unexpected failures return a stable safe state", async () => {
-  state.provisioningError = new Error("raw privileged database detail")
-
-  assert.deepEqual(
-    await provisionActiveOrganization({ kind: "idle" }, new FormData()),
-    { kind: "error" }
-  )
-  assert.doesNotMatch(
-    organizationProvisioningUnavailableMessage,
-    /privileged|database detail/u
-  )
-  assert.equal(state.calls.length, 0)
-})
-
 test("render: three cards have approved names, monthly prices, capacity and submit selectors", async () => {
   const html = await render(BillingPage)
+  assert.doesNotMatch(html, /Configurar organização/u)
   assert.equal((html.match(/data-slot="card"/gu) ?? []).length, 3)
   for (const text of [
     "Essencial",
@@ -252,37 +195,20 @@ test("render: member can view billing but cannot submit", async () => {
   assert.match(html, /<fieldset[^>]*disabled/u)
 })
 
-test("render: missing Organization projection gives admins an explicit provisioning action", async () => {
-  state.onboarding = {
-    status: "organization_not_provisioned",
-    canProvision: true,
-  }
-
-  const html = await render(BillingPage)
-
-  assert.match(html, />Configurar organização</u)
-  assert.match(html, /<fieldset[^>]*disabled/u)
-  assert.equal(state.provisions.length, 0)
-  assert.equal(state.calls.length, 0)
-  assert.equal(state.reads.length, 0)
-  assert.deepEqual(state.onboardingReads, [[]])
-})
-
-test("render: missing Organization projection remains informational for members", async () => {
-  state.onboarding = {
-    status: "organization_not_provisioned",
-    canProvision: false,
-  }
-
-  const html = await render(BillingPage)
-
-  assert.doesNotMatch(html, />Configurar organização</u)
-  assert.match(html, /ainda precisa ser configurada/u)
-  assert.match(html, /<fieldset[^>]*disabled/u)
-  assert.equal(state.provisions.length, 0)
-  assert.equal(state.calls.length, 0)
-  assert.equal(state.reads.length, 0)
-})
+for (const canProvision of [true, false]) {
+  test(`render: unprovisioned ${canProvision ? "admin" : "member"} redirects to onboarding without mutation`, async () => {
+    state.onboarding = { status: "organization_not_provisioned", canProvision }
+    state.auth.has = () => canProvision
+    await assert.rejects(
+      BillingPage,
+      (error) => error.redirectUrl === "/onboarding"
+    )
+    assert.deepEqual(state.provisions, [])
+    assert.deepEqual(state.calls, [])
+    assert.deepEqual(state.reads, [])
+    assert.deepEqual(state.onboardingReads, [[]])
+  })
+}
 
 for (const kind of [
   "unauthenticated",
@@ -380,15 +306,17 @@ test("source boundaries: only Action invokes Checkout; no DB, provider or timer 
     "billing-status.tsx",
     "checkout-feedback.ts",
     "checkout-form.tsx",
-    "organization-provisioning-action.ts",
-    "organization-provisioning-feedback.ts",
-    "organization-provisioning-form.tsx",
   ]
   for (const name of names) {
     const source = await readFile(new URL(name, root), "utf8")
     assert.doesNotMatch(
       source,
       /lib\/stripe|supabase|\.rpc\(|\.from\(|setInterval|setTimeout|session_id|window\.location|process\.env/u,
+      name
+    )
+    assert.doesNotMatch(
+      source,
+      /ensureActiveOrganization|OrganizationProvisioningForm|Configurar organização/u,
       name
     )
     if (name !== "actions.ts")
@@ -401,26 +329,4 @@ test("source boundaries: only Action invokes Checkout; no DB, provider or timer 
   assert.match(formSource, /useFormStatus/u)
   assert.match(formSource, /disabled=\{disabled \|\| pending/u)
   assert.match(formSource, /aria-live="polite"/u)
-
-  const provisioningAction = await readFile(
-    new URL("organization-provisioning-action.ts", root),
-    "utf8"
-  )
-  assert.match(provisioningAction, /^"use server"/u)
-  assert.match(provisioningAction, /await ensureActiveOrganization\(\)/u)
-  assert.doesNotMatch(
-    provisioningAction,
-    /supabase|createAdmin|auth\(|stripe|trial|store|billing_customer|checkout_attempt/iu
-  )
-
-  const provisioningForm = await readFile(
-    new URL("organization-provisioning-form.tsx", root),
-    "utf8"
-  )
-  assert.match(provisioningForm, /useActionState/u)
-  assert.match(provisioningForm, /disabled=\{pending\}/u)
-  assert.doesNotMatch(
-    provisioningForm,
-    /name=["'](?:organizationId|clerkOrganizationId|startTrial)["']/u
-  )
 })

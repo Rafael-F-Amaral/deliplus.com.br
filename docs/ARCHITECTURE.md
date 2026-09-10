@@ -71,11 +71,19 @@ sign up / sign in
   -> operational dashboard
 ```
 
-The approved target navigation is `Clerk signup + Organization -> /onboarding ->
-trusted automatic Organization provisioning -> /dashboard/stores/new`. The mutation
-must run through an explicit server-side action, never during Server Component render
-or GET. The current billing-page `Configurar organização` control is only a temporary
-development/E2E bridge and is not part of the final merchant journey.
+The implemented navigation is `Clerk signup/sign-in -> /onboarding -> Clerk Organization
+create/select -> trusted automatic Organization provisioning -> Store presence check`.
+The stable coordinator route derives request authority from Clerk, reuses the read-only
+onboarding resolver, and performs provisioning only through an explicit Server Action
+that calls `ensureActiveOrganization()`. It never mutates during Server Component render
+or GET. After provisioning, an Organization admin with no Stores is sent to
+`/dashboard/stores/new`; an Organization with Stores is sent to `/dashboard`. The first
+Store route is currently only a stable destination for the separately scoped Store setup
+UI and does not create or activate a Store.
+
+The automatic coordinator passed the main manual E2E. The temporary billing-page
+provisioning control has been removed. Billing redirects an unprovisioned Organization
+to `/onboarding` for both admins and members; this redirect performs no mutation.
 
 Current product direction:
 

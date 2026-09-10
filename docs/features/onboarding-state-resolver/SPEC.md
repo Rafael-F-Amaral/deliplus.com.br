@@ -3,7 +3,7 @@
 **Path:** `docs/features/onboarding-state-resolver/SPEC.md`<br>
 **Status:** Approved<br>
 **Scope:** Read-only resolution of the initial onboarding state<br>
-**Last updated:** 2026-08-24
+**Last updated:** 2026-09-10
 
 ## 1. Purpose
 
@@ -291,6 +291,12 @@ This feature must not add:
 The existing Proxy remains limited to its authentication request-boundary responsibilities. It must not query Supabase or attempt to resolve onboarding state.
 
 The initial implementation must not add cross-request or global caching. If a later caller needs duplicate-call suppression within one render/request, it may be evaluated separately with request-scoped semantics and without sharing tenant state across requests.
+
+### 10.1 Downstream coordinator integration
+
+The separately scoped automatic onboarding coordinator consumes this resolver at the stable `/onboarding` route. That integration does not change this resolver's contract or make it responsible for provisioning, navigation, Store reads, or mutations.
+
+The coordinator may use `canProvision` to decide whether to present its automatic provisioning flow, but the resulting Server Action must independently call `ensureActiveOrganization()`, which reauthenticates and reauthorizes the current request. Store presence, when needed after `organization_provisioned`, is resolved through the existing Store setup domain facade rather than by extending this resolver or querying Store tables directly here.
 
 ## 11. Planned implementation shape
 
