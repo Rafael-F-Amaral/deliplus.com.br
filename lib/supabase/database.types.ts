@@ -439,6 +439,13 @@ export type Database = {
           outcome: string
         }[]
       }
+      ensure_organization_projection: {
+        Args: { p_clerk_organization_id: string }
+        Returns: {
+          clerk_organization_id: string
+          id: string
+        }[]
+      }
       finalize_billing_customer: {
         Args: {
           p_creation_idempotency_key: string

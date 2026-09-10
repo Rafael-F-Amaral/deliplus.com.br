@@ -21,12 +21,13 @@ type ProvisioningAuth = {
 type EnsureActiveOrganizationDependencies = {
   getAuth: () => Promise<ProvisioningAuth>
   ensureOrganization: (
-    clerkOrganizationId: string,
+    clerkOrganizationId: string
   ) => Promise<InternalOrganization>
+  reportProvisioningFailure?: (error: unknown) => void
 }
 
 export function createEnsureActiveOrganization(
-  dependencies: EnsureActiveOrganizationDependencies,
+  dependencies: EnsureActiveOrganizationDependencies
 ) {
   return async function ensureActiveOrganization(): Promise<EnsureActiveOrganizationResult> {
     const { userId, orgId, has } = await dependencies.getAuth()
@@ -47,7 +48,8 @@ export function createEnsureActiveOrganization(
       const organization = await dependencies.ensureOrganization(orgId)
 
       return { status: "ready", organization }
-    } catch {
+    } catch (error) {
+      dependencies.reportProvisioningFailure?.(error)
       return { status: "provisioning_failed" }
     }
   }

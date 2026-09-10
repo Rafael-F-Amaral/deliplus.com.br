@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "test:billing-checkout-ui": "node --test tests/billing-checkout-ui/billing-checkout-ui.test.mjs",
     "test:stripe-checkout": "node --conditions=react-server --experimental-strip-types --test tests/stripe-checkout/stripe-checkout.test.mjs tests/stripe-checkout/stripe-checkout.stripe.test.mjs",
     "test:stripe-checkout:concurrency": "node --conditions=react-server --experimental-strip-types --test tests/stripe-checkout/stripe-checkout.concurrency.test.mjs",
     "dev": "next dev",
@@ -13,6 +14,7 @@
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
     "test:tenant-provisioning": "node --conditions=react-server --experimental-strip-types --test tests/tenant-provisioning/*.test.mjs",
+    "test:tenant-provisioning:integration": "node --conditions=react-server --experimental-strip-types --test tests/tenant-provisioning/*.integration.mjs",
     "test:onboarding-state-resolver": "node --test tests/onboarding/resolve-onboarding-state.test.mjs",
     "test:organization-entitlement": "node --experimental-strip-types --test tests/organization-entitlement/*.test.mjs",
     "test:store-provisioning-setup": "node --conditions=react-server --experimental-strip-types --test tests/store-provisioning-setup/*.test.mjs",

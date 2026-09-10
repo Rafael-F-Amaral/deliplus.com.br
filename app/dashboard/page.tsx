@@ -18,12 +18,20 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <Link
-          href="/"
-          className={buttonVariants({ variant: "outline", size: "lg" })}
-        >
-          Voltar para Home
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/dashboard/billing"
+            className={buttonVariants({ size: "lg" })}
+          >
+            Planos e assinatura
+          </Link>
+          <Link
+            href="/"
+            className={buttonVariants({ variant: "outline", size: "lg" })}
+          >
+            Voltar para Home
+          </Link>
+        </div>
       </section>
     </main>
   )
