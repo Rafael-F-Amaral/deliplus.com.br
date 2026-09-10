@@ -52,21 +52,23 @@ This feature must not weaken that boundary.
 
 ## 3. Locked architectural decisions
 
-### 3.1 Trusted server writes use a separate privileged Supabase client
+### 3.1 Tenant provisioning uses a privileged client plus a narrow RPC
 
-Phase A uses a dedicated Supabase client initialized with a backend-only Supabase Secret API Key.
+Phase A uses a dedicated Supabase client initialized with a backend-only Supabase Secret API Key to invoke the service-only `public.ensure_organization_projection(text)` RPC.
 
 This client:
 
 - exists only in server-only code;
 - is separate from the normal Clerk/RLS Supabase client;
 - does not forward a Clerk access token;
-- bypasses RLS through the Supabase `service_role` database role;
-- is used only behind narrow trusted application operations.
+- authenticates as the Supabase `service_role` database role;
+- receives only EXECUTE on the provisioning RPC;
+- has no direct privileges on `public.organizations`;
+- is used only behind the narrow trusted application operation.
 
 Do not reuse the normal RLS client for privileged writes.
 
-Do not expose or export a general-purpose admin client to client components.
+Do not expose or export a general-purpose admin client to client components. RLS bypass does not replace PostgreSQL table privileges; the `SECURITY DEFINER` RPC owns the exact insert/read capability required for this operation.
 
 ### 3.2 Prefer the current Supabase Secret API Key
 
@@ -185,9 +187,7 @@ Do not implement:
 - categories;
 - orders;
 - delivery;
-- browser Supabase client;
-- database RPC for provisioning;
-- `SECURITY DEFINER` function.
+- browser Supabase client.
 
 ---
 
@@ -306,30 +306,31 @@ The database already has:
 UNIQUE(clerk_organization_id)
 ```
 
-Use that constraint as the concurrency boundary.
+Use that constraint as the database backstop together with a transaction-scoped advisory lock keyed by the Clerk Organization ID.
 
 Preferred algorithm:
 
 ```text
 verified orgId
 
-INSERT organizations(clerk_organization_id = orgId)
-ON CONFLICT (clerk_organization_id) DO NOTHING
-
-SELECT id, clerk_organization_id
-WHERE clerk_organization_id = verified orgId
+service-role-only ensure_organization_projection(orgId)
+  → transaction advisory lock for orgId
+  → return existing projection when present
+  → otherwise INSERT ... ON CONFLICT DO NOTHING
+  → return id, clerk_organization_id
 ```
 
 Requirements:
 
-- do not use `SELECT → INSERT` as the primary race-control strategy;
+- do not use an unlocked `SELECT → INSERT` sequence;
 - do not use `ON CONFLICT DO UPDATE` only to force `RETURNING`, because an idempotent retry should not mutate `updated_at`;
 - return the existing row after conflict;
-- return only the minimal fields required by the caller.
+- return only the minimal fields required by the caller;
+- grant EXECUTE only to `service_role` and keep direct `public.organizations` privileges denied to that role.
 
 The operation must converge to one internal UUID under concurrent requests.
 
-No new database migration is expected for Phase A unless implementation discovers a concrete missing constraint.
+The forward-only trusted-RPC migration is required because runtime verification proved that RLS bypass did not supply the missing direct table DML privileges. The correction deliberately avoids granting that direct DML.
 
 ---
 
@@ -425,17 +426,17 @@ Do not let the presence of a Secret key become a reason to bypass RLS for ordina
 
 This Phase A prepares the following future state machine:
 
-| State | Future destination |
-| --- | --- |
-| Not authenticated | Sign-in |
-| Authenticated, no active Clerk Organization | Create/select Organization |
-| Active Organization, no internal Organization, admin | Provision Phase A |
+| State                                                 | Future destination                           |
+| ----------------------------------------------------- | -------------------------------------------- |
+| Not authenticated                                     | Sign-in                                      |
+| Authenticated, no active Clerk Organization           | Create/select Organization                   |
+| Active Organization, no internal Organization, admin  | Provision Phase A                            |
 | Active Organization, no internal Organization, member | Wait for admin / select another Organization |
-| Internal Organization, no Store | Initial draft Store setup |
-| Draft Store | Continue Store setup |
-| Ready Store, no entitlement | Trial/paid activation flow |
-| Active Store with valid entitlement | Operational dashboard |
-| Member without Store assignment | Await Store assignment |
+| Internal Organization, no Store                       | Initial draft Store setup                    |
+| Draft Store                                           | Continue Store setup                         |
+| Ready Store, no entitlement                           | Trial/paid activation flow                   |
+| Active Store with valid entitlement                   | Operational dashboard                        |
+| Member without Store assignment                       | Await Store assignment                       |
 
 This feature implements only the internal-Organization provisioning operation.
 
@@ -539,9 +540,9 @@ Implementation must test at least:
 
 ### Concurrency strategy
 
-Verify at least structurally/integration-wise that the implementation relies on `UNIQUE(clerk_organization_id)` + conflict handling rather than `SELECT → INSERT`.
+Verify structurally and through local integration that the implementation relies on a transaction advisory lock, `UNIQUE(clerk_organization_id)`, and conflict handling rather than an unlocked `SELECT → INSERT`.
 
-If a practical automated concurrent integration test is reasonable in the existing test stack, include it. Do not introduce a large new testing framework solely for this feature.
+The local Data API integration test must issue concurrent ensures for the same Clerk Organization and prove that both return the same internal UUID with exactly one stored row.
 
 ---
 
@@ -550,6 +551,10 @@ If a practical automated concurrent integration test is reasonable in the existi
 Before review, run:
 
 ```bash
+yarn test:tenant-provisioning
+yarn test:tenant-provisioning:integration
+yarn supabase test db supabase/tests/database/tenant_provisioning_test.sql
+yarn supabase db lint --local
 yarn lint
 yarn typecheck
 yarn build
@@ -567,7 +572,7 @@ git diff --check
 
 No secret may appear in the diff.
 
-No remote database mutation is required by this Phase A if no migration is introduced.
+No remote database push is part of this implementation task. Review the pending migration with `yarn supabase db push --dry-run` before a separately authorized deployment.
 
 ---
 
@@ -602,7 +607,8 @@ Do not silently broaden the trusted boundary beyond what ADR-003 permits.
 - [ ] Repeated calls do not update the row merely to return it.
 - [ ] No Store is created.
 - [ ] No billing/trial logic is introduced.
-- [ ] No `SECURITY DEFINER` RPC is introduced.
+- [ ] The service-role-only `SECURITY DEFINER` provisioning RPC is the only database mutation surface introduced.
+- [ ] `service_role` has no direct privileges on `public.organizations`.
 - [ ] No tenant-core RLS/grants are weakened.
 - [ ] Lint passes.
 - [ ] Typecheck passes.

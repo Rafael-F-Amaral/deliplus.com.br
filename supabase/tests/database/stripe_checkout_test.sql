@@ -77,7 +77,9 @@ select is((select attempt->>'stripe_idempotency_key' from checkout_claim),
  'deli-plus:checkout:v1:' || (select attempt->>'id' from checkout_claim),'attempt-specific key');
 select isnt((select attempt->>'stripe_idempotency_key' from checkout_claim),
  (select creation_idempotency_key from checkout_customer),'Customer and Checkout key scopes differ');
-select ok((select expires_at-created_at between interval '59 minutes' and interval '1 hour' from public.billing_checkout_attempts),'one-hour frozen expiration');
+-- Scope fixture assertions/mutations even when the local database has E2E data.
+select ok((select expires_at-created_at between interval '59 minutes' and interval '1 hour' from public.billing_checkout_attempts
+ where id=(select (attempt->>'id')::uuid from checkout_claim)),'one-hour frozen expiration');
 select is((select attempt from public.claim_billing_checkout_attempt(
  '91000000-0000-4000-8000-000000000001','essential','price_changed','cus_checkoutA',
  'https://preview.example/dashboard/billing/success','https://preview.example/dashboard/billing','pmc_changed',false)),
@@ -90,18 +92,25 @@ select throws_ok($$insert into public.billing_checkout_attempts select
  gen_random_uuid(),organization_id,'multi_2',stripe_price_id,stripe_customer_id,
  'deli-plus:checkout:v1:' || id::text,null,state,expires_at,success_url,cancel_url,payment_method_configuration_id,
  integration_identifier,payload_version,stripe_api_version,livemode,revision,created_at,updated_at,ended_at
- from public.billing_checkout_attempts$$,'23514',null,'key is tied to immutable attempt UUID');
-select throws_ok($$update public.billing_checkout_attempts set plan_code='multi_2'$$,'22023','Invalid Checkout attempt transition','plan snapshot immutable');
+  from public.billing_checkout_attempts where id=(select (attempt->>'id')::uuid from checkout_claim)$$,'23514',null,'key is tied to immutable attempt UUID');
+select throws_ok($$update public.billing_checkout_attempts set plan_code='multi_2'
+ where id=(select (attempt->>'id')::uuid from checkout_claim)$$,'22023','Invalid Checkout attempt transition','plan snapshot immutable');
 select throws_ok($$with candidate as (select gen_random_uuid() id)
  insert into public.billing_checkout_attempts select (jsonb_populate_record(null::public.billing_checkout_attempts,
  to_jsonb(a)||jsonb_build_object('id',c.id,'stripe_idempotency_key','deli-plus:checkout:v1:'||c.id::text,'plan_code','multi_2'))).*
- from public.billing_checkout_attempts a cross join candidate c$$,
+  from public.billing_checkout_attempts a cross join candidate c
+  where a.id=(select (attempt->>'id')::uuid from checkout_claim)$$,
  '23505',null,'partial unique index blocks second non-ended intent across plans');
-select throws_ok($$update public.billing_checkout_attempts set stripe_idempotency_key='replacement'$$,'22023','Invalid Checkout attempt transition','key immutable');
-select throws_ok($$update public.billing_checkout_attempts set expires_at=expires_at+interval '1 hour'$$,'22023','Invalid Checkout attempt transition','expiration immutable');
-select throws_ok($$update public.billing_checkout_attempts set stripe_price_id='price_other'$$,'22023','Invalid Checkout attempt transition','Price immutable');
-select throws_ok($$update public.billing_checkout_attempts set stripe_customer_id='cus_other'$$,'22023','Invalid Checkout attempt transition','Customer immutable');
-select throws_ok($$update public.billing_checkout_attempts set payment_method_configuration_id='pmc_other'$$,'22023','Invalid Checkout attempt transition','configuration immutable');
+select throws_ok($$update public.billing_checkout_attempts set stripe_idempotency_key='replacement'
+ where id=(select (attempt->>'id')::uuid from checkout_claim)$$,'22023','Invalid Checkout attempt transition','key immutable');
+select throws_ok($$update public.billing_checkout_attempts set expires_at=expires_at+interval '1 hour'
+ where id=(select (attempt->>'id')::uuid from checkout_claim)$$,'22023','Invalid Checkout attempt transition','expiration immutable');
+select throws_ok($$update public.billing_checkout_attempts set stripe_price_id='price_other'
+ where id=(select (attempt->>'id')::uuid from checkout_claim)$$,'22023','Invalid Checkout attempt transition','Price immutable');
+select throws_ok($$update public.billing_checkout_attempts set stripe_customer_id='cus_other'
+ where id=(select (attempt->>'id')::uuid from checkout_claim)$$,'22023','Invalid Checkout attempt transition','Customer immutable');
+select throws_ok($$update public.billing_checkout_attempts set payment_method_configuration_id='pmc_other'
+ where id=(select (attempt->>'id')::uuid from checkout_claim)$$,'22023','Invalid Checkout attempt transition','configuration immutable');
 select throws_ok($$delete from public.billing_customers where organization_id='91000000-0000-4000-8000-000000000001'$$,'23503',null,'Customer delete RESTRICT');
 select throws_ok($$update public.billing_customers set organization_id='91000000-0000-4000-8000-000000000003'
  where organization_id='91000000-0000-4000-8000-000000000001'$$,'23503',null,'ownership update RESTRICT');
@@ -109,7 +118,8 @@ select throws_ok($$update public.billing_customers set organization_id='91000000
 select is((select outcome from public.reconcile_billing_checkout_attempt(
  '91000000-0000-4000-8000-000000000001',(select (attempt->>'id')::uuid from checkout_claim),0,'creating',null,'cs_test_known','open')),
  'attempt','Session attached');
-create temporary table checkout_open as select to_jsonb(a) as attempt from public.billing_checkout_attempts a;
+create temporary table checkout_open as select to_jsonb(a) as attempt from public.billing_checkout_attempts a
+ where a.id=(select (attempt->>'id')::uuid from checkout_claim);
 select is((select attempt from public.reconcile_billing_checkout_attempt(
  '91000000-0000-4000-8000-000000000001',(select (attempt->>'id')::uuid from checkout_claim),0,'creating',null,'cs_test_known','open')),
  (select attempt from checkout_open),'same Session attachment is exact idempotent success');
@@ -147,8 +157,10 @@ select is((select outcome from public.claim_billing_checkout_attempt(
  '91000000-0000-4000-8000-000000000001','multi_2','price_duo','cus_checkoutA',
  'https://deli.example/dashboard/billing/success','https://deli.example/dashboard/billing','pmc_test',false)),
  'attempt','new acquisition after safe closure');
-select is((select count(*) from public.billing_checkout_attempts where ended_at is null),1::bigint,'one remaining non-ended intent');
-select is((select count(*) from public.billing_checkout_attempts),2::bigint,'history retained');
+select is((select count(*) from public.billing_checkout_attempts
+ where organization_id='91000000-0000-4000-8000-000000000001' and ended_at is null),1::bigint,'one remaining non-ended intent');
+select is((select count(*) from public.billing_checkout_attempts
+ where organization_id='91000000-0000-4000-8000-000000000001'),2::bigint,'history retained');
 
 set local role authenticated;
 select throws_ok($$select public.claim_billing_customer('91000000-0000-4000-8000-000000000001')$$,'42501',null,'authenticated direct RPC denied');

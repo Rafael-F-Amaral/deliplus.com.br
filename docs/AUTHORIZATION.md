@@ -186,7 +186,12 @@ Do not grant generic authenticated writes to:
 - stores;
 - store_memberships.
 
-Tenant provisioning uses its reviewed server-only boundary. Store setup uses a
+Tenant provisioning derives the user, active Clerk Organization, and `org:admin` role
+inside `ensureActiveOrganization()`, then invokes the service-role-only
+`ensure_organization_projection(text)` RPC. The browser supplies no tenant identifier.
+The RPC owns the narrow insert/read operation as `SECURITY DEFINER`; `service_role`
+has no direct access to `public.organizations`, and `anon`/`authenticated` cannot invoke
+the function. Store setup uses a
 separate narrow server-only service that can create only draft Stores, update
 name/slug, and mark valid drafts ready; it does not activate Stores or grant entitlement.
 The separate first-Store activation boundary now enforces historical initial-trial

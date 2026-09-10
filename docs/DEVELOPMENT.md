@@ -203,6 +203,24 @@ This avoids allowing a browser/Data API caller to bypass:
 - subscription/Store-capacity rules;
 - team-management rules.
 
+### Tenant provisioning development
+
+`ensureActiveOrganization()` authenticates with Clerk, requires the active
+Organization's `org:admin`, and delegates persistence to the service-role-only
+`ensure_organization_projection(text)` RPC. The admin client has no direct privileges
+on `public.organizations`. Unit tests inject the persistence dependency to verify auth,
+domain outcomes, normalization, and safe diagnostics. The integration test uses the
+real local Secret API Key, Data API, RPC, grants, and PostgreSQL state without calling
+Clerk or Stripe or printing credentials.
+
+Validate this boundary with:
+
+```bash
+yarn test:tenant-provisioning
+yarn test:tenant-provisioning:integration
+yarn supabase test db supabase/tests/database/tenant_provisioning_test.sql
+```
+
 ### Store setup development
 
 The current Store setup modules are:
@@ -281,7 +299,7 @@ invoice.payment_failed
 
 Checkout and Invoice Events only trigger current-Subscription reconciliation. The Subscription snapshot remains authoritative for paid projection status. Async Checkout Events are not implemented because the approved MVP configuration is card-based; if delayed payment methods are enabled later, add and test `checkout.session.async_payment_succeeded` and `checkout.session.async_payment_failed` before relying on them.
 
-The current slices implement first-Store initial-trial activation, generic entitlement-based Store activation/deactivation, atomic active-Store capacity enforcement, and the server-only Customer/Checkout acquisition backend. Checkout UI/transport, Portal and real Product/Price configuration remain separate work.
+The current slices implement first-Store initial-trial activation, generic entitlement-based Store activation/deactivation, atomic active-Store capacity enforcement, the server-only Customer/Checkout acquisition backend, and the billing acquisition UI/Server Action. Portal and real Product/Price configuration remain separate work.
 
 ### Stripe Checkout development
 
@@ -306,6 +324,7 @@ create/read permissions; validate exact permissions before real rollout.
 Validation:
 
 ```bash
+yarn test:billing-checkout-ui
 yarn test:stripe-checkout
 yarn test:stripe-checkout:concurrency
 yarn supabase test db
@@ -327,10 +346,60 @@ for recovery, not automatic new keys. Known Sessions are retrieved and checked a
 all paginated Customer subscriptions and local projection before safe closure/reuse.
 No current operator recovery UI exists. Do not manually rotate keys to bypass uncertainty.
 
-Return paths are future `/dashboard/billing/success` and `/dashboard/billing`, without
-`session_id`. No pages or Actions are implemented. Real Stripe Test E2E and return-page
-integration remain pending separate authorization; webhook projection is mandatory
-before recognizing paid access. Stripe Tax remains disabled pending separate fiscal review.
+The acquisition page is `/dashboard/billing`; it submits only `planCode` to a thin
+Server Action and redirects server-side for `checkout_ready`. The success and cancel
+return paths are `/dashboard/billing/success` and `/dashboard/billing`, without
+`session_id`. The success page reads the normal local entitlement projection and only
+recognizes `source: "paid_subscription"` as confirmed; it neither calls Stripe nor
+uses the return navigation as payment proof. A trial remains visibly distinct from a
+paid subscription, and a pending projection can be refreshed manually without polling.
+The first real Stripe Sandbox E2E has passed; see the sanitized record below. Stripe
+Tax remains disabled pending separate fiscal review.
+
+#### First real Sandbox E2E — passed
+
+Recorded on 2026-09-10 from the project owner's completed manual verification:
+a new Clerk user created an Organization, explicitly used `Configurar organização`
+to create the internal projection, selected a plan on Billing, and successfully paid
+by card in Stripe-hosted Sandbox Checkout. Webhooks forwarded to localhost reconciled
+the subscription projection; the local Organization Entitlement Resolver recognized
+`paid_subscription`, and `/dashboard/billing/success` displayed `Assinatura confirmada`.
+The listener reported HTTP 200 for `invoice.paid`, `checkout.session.completed`, and
+`customer.subscription.created`. No provider identifiers or credentials are retained
+in this record.
+
+The earlier missing webhook delivery was caused by Stripe CLI authentication against
+a different Sandbox/account than the application's Stripe API key, not an application
+defect. Before repeating E2E, verify that the CLI and application use the same
+Sandbox/account and that the local signing secret belongs to the running listener.
+
+`Configurar organização` remains a temporary development/E2E bridge until
+`feature/onboarding-coordinator`. Existing paid subscriptions continue blocking another
+acquisition; upgrade/downgrade and Customer Portal are separate features. The accepted
+success page keeps manual refresh; bounded entitlement polling, automatic dashboard
+redirect, a dashboard paid-plan card, and landing-page work remain deferred. Return
+URLs never establish entitlement.
+
+On 2026-09-10, `yarn supabase migration list` confirmed
+`20260904120000_tenant_provisioning_trusted_rpc.sql` in the linked Staging database.
+`yarn supabase db push --dry-run` reported no pending migrations. No remote push was
+performed during final verification.
+
+An additional `yarn supabase db diff --linked --schema public,private` found no
+differences in feature/domain objects. It did report differences outside this feature's
+migration: the hosted `public.rls_auto_enable()` event-trigger helper and default
+sequence privileges for `anon`, `authenticated`, and `service_role`. Migration history
+being up to date is not a claim of a completely empty schema diff. These differences
+were not applied or normalized during finalization.
+
+Final local regression passed: 401 Node tests across 14 scripts and 640 pgTAP tests
+across nine files. Local database lint, application lint, typecheck, production build,
+and the normalized comparison of freshly generated public database types all passed.
+
+Database tests must scope fixture queries and mutations to their own Organization or
+attempt, including when local E2E data already exists. Checkout pgTAP formerly assumed
+an otherwise empty attempts table; fixture predicates now remove that assumption
+without deleting existing data or requiring a local reset.
 
 ### Store trial activation development
 
@@ -424,12 +493,11 @@ Install the Stripe CLI outside the project by following the official Stripe CLI 
 stripe login
 ```
 
-Start the application and the local Supabase stack, then forward only the implemented Event set:
+Start the application and the local Supabase stack, then forward only the implemented
+Event set. In PowerShell, quote the complete events argument:
 
-```bash
-stripe listen \
-  --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_failed \
-  --forward-to localhost:3000/api/stripe/webhook
+```powershell
+stripe listen --events "checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_failed" --forward-to "http://localhost:3000/api/stripe/webhook"
 ```
 
 Copy the CLI-provided local signing secret into the ignored local environment file:

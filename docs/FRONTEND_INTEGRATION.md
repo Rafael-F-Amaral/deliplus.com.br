@@ -162,11 +162,40 @@ Other outcomes are `invalid_plan`, `already_subscribed`, `billing_recovery_requi
 Infrastructure/configuration/invariant failures throw a sanitized `StripeCheckoutError`.
 No provider IDs, Organization UUID, raw errors or Stripe objects belong in UI results.
 
-A separately approved thin Server Action may eventually call it after explicit form
-submission and redirect to the returned URL. Never call it during render or GET.
-No Action, button, billing page or success page is included in this backend slice.
-The fixed return-route contracts are `/dashboard/billing/success` and
-`/dashboard/billing`; they contain no initial `session_id` query parameter.
+The billing acquisition UI is available at `/dashboard/billing`. Its thin Server
+Action accepts only `planCode`, validates the plan allowlist, calls the public
+`createSubscriptionCheckoutSession(planCode)` facade after explicit form submission,
+and performs a server-side redirect only for `checkout_ready`. Never call Checkout
+during render or GET, and never pass tenant, provider, price, amount, interval,
+currency, quantity, or return-URL authority from the browser.
+
+The Action presents business outcomes as safe flow feedback and keeps unexpected
+infrastructure failures distinct without exposing raw details. Pending submissions
+disable the plan controls and announce redirect progress. Entitlement, Organization
+role, and disabled controls are presentation hints only: the Checkout domain operation
+reauthenticates and reauthorizes every submission.
+
+Before acquisition, the billing page composes the read-only
+`resolveOnboardingState()` result. When the active Organization is missing internally,
+only `organization_not_provisioned` with `canProvision: true` presents the explicit
+`Configurar organização` action. That thin Action accepts no tenant authority, calls
+only `ensureActiveOrganization()`, and redirects back to `/dashboard/billing` after a
+successful idempotent ensure. Members receive information only. Provisioning during
+render remains forbidden and this action does not create a Store, trial, billing
+Customer, Checkout attempt, or Stripe resource.
+
+The approved `feature/onboarding-coordinator` follow-up replaces that temporary control
+with `/onboarding`: after Clerk
+signup and Organization creation, the route explicitly invokes a trusted server-side
+provisioning mutation and redirects to `/dashboard/stores/new`. Provisioning must not
+run during render/GET. Billing remains optional before Store activation, and neither
+Clerk Organization creation nor Organization provisioning starts the trial.
+
+The return routes are `/dashboard/billing/success` and `/dashboard/billing`, without
+`session_id`. The success page reads only `resolveOrganizationEntitlement()` through
+the shared server-side billing state composition. It does not call Stripe and does not
+infer payment from navigation. Only `source: "paid_subscription"` renders confirmed;
+trial or absent entitlement remains a processing state with an explicit manual refresh.
 
 Cancel navigation does not end an attempt. An ongoing different-plan attempt returns
 `checkout_in_progress`; same-plan retry reuses the owned Session. Recovery must not

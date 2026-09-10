@@ -378,8 +378,15 @@ Normal `authenticated` access should be read-only for:
 
 Generic authenticated INSERT/UPDATE/DELETE for tenant-core records is not part of the first migration.
 
-Tenant provisioning and Store draft/setup mutations use separate narrow
-server-only boundaries. Team membership mutation remains separate. Store setup
+Tenant provisioning uses the service-role-only
+`public.ensure_organization_projection(text)` RPC behind `ensureActiveOrganization()`.
+It is `VOLATILE SECURITY DEFINER`, owned by `postgres`, uses an empty `search_path`,
+serializes the Clerk Organization with a transaction advisory lock, and returns only
+the internal UUID and Clerk Organization ID. `service_role` has EXECUTE only and no
+direct privileges on `public.organizations`; `PUBLIC`, `anon`, and `authenticated`
+cannot execute the RPC. Normal authenticated Organization reads remain RLS-bound.
+
+Store draft/setup mutations use a separate narrow server-only boundary. Team membership mutation remains separate. Store setup
 uses RLS-backed reads and an explicitly scoped privileged repository for simple
 writes; it does not activate a Store, grant entitlement, or expose generic
 authenticated writes.

@@ -71,6 +71,12 @@ sign up / sign in
   -> operational dashboard
 ```
 
+The approved target navigation is `Clerk signup + Organization -> /onboarding ->
+trusted automatic Organization provisioning -> /dashboard/stores/new`. The mutation
+must run through an explicit server-side action, never during Server Component render
+or GET. The current billing-page `Configurar organização` control is only a temporary
+development/E2E bridge and is not part of the final merchant journey.
+
 Current product direction:
 
 - subscriptions are owned by the Organization;
@@ -80,7 +86,7 @@ Current product direction:
 - `maxStores` counts only Stores with `status = 'active'`; draft and ready Stores do not consume capacity;
 - trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
 
-The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, Store setup foundation, first-Store trial activation, and generic Store entitlement activation boundaries exist. Store setup supports Organization-admin reads, draft creation, name/slug editing, and readiness. `activateFirstStoreWithInitialTrial(storeId)` atomically activates the first eligible ready Store and creates its 15-day Essential trial. `activateStoreWithinEntitlement(storeId)` and `deactivateStore(storeId)` enforce the current paid/local plan capacity for later lifecycle changes. The Stripe Checkout backend now exists; its UI/transport and Customer Portal remain separate implementation slices.
+The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, Store setup foundation, first-Store trial activation, and generic Store entitlement activation boundaries exist. Store setup supports Organization-admin reads, draft creation, name/slug editing, and readiness. `activateFirstStoreWithInitialTrial(storeId)` atomically activates the first eligible ready Store and creates its 15-day Essential trial. `activateStoreWithinEntitlement(storeId)` and `deactivateStore(storeId)` enforce the current paid/local plan capacity for later lifecycle changes. The Stripe Checkout backend and billing acquisition UI/Server Action now exist; Customer Portal remains a separate implementation slice.
 
 ### 4. Merchant dashboard
 
@@ -291,10 +297,11 @@ Payment Method Configuration, with Adaptive Pricing disabled. MVP commercial
 configuration is Essencial R$ 99,90, Duo R$ 189,90 and Trio R$ 279,90 per month;
 these amounts are not domain identity or authorization constants.
 
-Imports, builds, tests and unrelated Events perform no real Stripe API call. No
-Checkout UI, Action, billing page, Portal, remote catalog creation, tax, Stripe
-trial, Store mutation or entitlement grant from redirect is introduced. Paid
-entitlement still comes only from the verified webhook projection. See
+Imports, builds, automated tests and unrelated Events perform no real Stripe API call.
+The billing acquisition UI uses a thin Server Action and a read-only success page;
+its first real Sandbox E2E is recorded in `docs/DEVELOPMENT.md`. Portal, remote catalog
+creation, tax, Stripe trial and Store mutations are not part of this UI feature. Paid
+entitlement still comes only from the verified webhook projection, never a redirect. See
 `docs/features/stripe-checkout/SPEC.md` for the acquisition/recovery contract.
 
 End-customer payment for food orders is outside the initial scope.
