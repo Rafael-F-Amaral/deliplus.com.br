@@ -78,8 +78,10 @@ onboarding resolver, and performs provisioning only through an explicit Server A
 that calls `ensureActiveOrganization()`. It never mutates during Server Component render
 or GET. After provisioning, an Organization admin with no Stores is sent to
 `/dashboard/stores/new`; an Organization with Stores is sent to `/dashboard`. The first
-Store route is currently only a stable destination for the separately scoped Store setup
-UI and does not create or activate a Store.
+Store route now composes the existing draft, readiness, and activation operations in one
+merchant-facing submission and redirects successful publication to `/dashboard`. Each
+lifecycle transition remains explicit internally. `/dashboard/stores/[storeId]/setup`
+remains the editing and partial-failure recovery route.
 
 The automatic coordinator passed the main manual E2E. The temporary billing-page
 provisioning control has been removed. Billing redirects an unprovisioned Organization
@@ -95,6 +97,13 @@ Current product direction:
 - trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
 
 The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, Store setup foundation, first-Store trial activation, and generic Store entitlement activation boundaries exist. Store setup supports Organization-admin reads, draft creation, name/slug editing, and readiness. `activateFirstStoreWithInitialTrial(storeId)` atomically activates the first eligible ready Store and creates its 15-day Essential trial. `activateStoreWithinEntitlement(storeId)` and `deactivateStore(storeId)` enforce the current paid/local plan capacity for later lifecycle changes. The Stripe Checkout backend and billing acquisition UI/Server Action now exist; Customer Portal remains a separate implementation slice.
+
+Normal Store UI publishes through `activateStoreForCurrentOrganization(storeId)`. This
+server-only coordinator first asks the generic transactional boundary to consume any
+current paid or local entitlement. Only `not_entitled` attempts the specialized initial
+trial boundary. A one-time generic retry after `trial_not_eligible` closes the race where
+an entitlement appeared while the trial operation waited. The coordinator does not read
+billing tables, calculate eligibility/capacity, or move transaction logic out of the RPCs.
 
 ### 4. Merchant dashboard
 

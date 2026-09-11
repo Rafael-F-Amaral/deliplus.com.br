@@ -30,7 +30,13 @@ The public contract and read-boundary audit are documented in
   atomic authorization snapshot and cannot authorize activation.
 - No entitlement/zero Stores and paid entitlement/zero Stores are valid.
 - No trial eligibility is inferred from lack of entitlement.
-- No migration, policy, environment variable, dependency or dashboard layout change.
+- No migration, policy, environment variable or dependency change.
+- `/dashboard` now has a deliberately minimal temporary presentation for
+  functional validation. It renders no analytics or final dashboard layout.
+- A `storePublished=1` query marker controls only transient success feedback;
+  entitlement and accessible Store state continue to come from the Overview.
+- Trial days remaining are presentation-only, rounded up from `validUntil`, and
+  clamped to zero at and after expiration.
 
 ## Verification
 
@@ -57,3 +63,23 @@ checks passed after execution with the full local environment. No database reset
 migration, remote Stripe call, commit, push, merge or rebase was performed.
 There is no live dashboard UI verification because the existing placeholder page
 was intentionally not changed; composition is exercised by focused domain tests.
+
+### Verified on 2026-09-11 (temporary presentation)
+
+Working branch: `feature/store-activation-coordinator`.
+
+- Dashboard Overview domain and UI: 39/39 Node tests.
+- Full requested functional regression set: 455/455 Node tests.
+- Local Data API integrations: 2/2; concurrency: 23/23; combined Node total:
+  480/480.
+- Database regressions: 675/675 pgTAP assertions across nine files, including
+  paid first-Store activation with no initial trial grant.
+- Supabase local database lint, ESLint, TypeScript, production build, and
+  `git diff --check`: passed.
+- No new migration was added for the presentation. The existing local-only
+  `20260911120000_store_setup_trusted_writes.sql` remains pending remote apply.
+
+The dashboard UI tests render the Server Component with all three paid plans,
+trial boundaries, no entitlement, post-publish feedback, safe accessible Store
+copy, navigation preconditions, and an unavailable read. No Stripe action,
+database reset, commit, push, merge, rebase, or remote migration push was run.

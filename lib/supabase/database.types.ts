@@ -353,6 +353,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_store_draft: {
+        Args: {
+          p_name: string
+          p_organization_id: string
+          p_slug: string
+        }
+        Returns: {
+          activated_at: string
+          id: string
+          name: string
+          slug: string
+          status: string
+          updated_at: string
+        }[]
+      }
       activate_first_store_with_initial_trial: {
         Args: { p_store_id: string }
         Returns: {
@@ -446,6 +461,21 @@ export type Database = {
           id: string
         }[]
       }
+      mark_store_ready: {
+        Args: {
+          p_expected_updated_at: string
+          p_organization_id: string
+          p_store_id: string
+        }
+        Returns: {
+          activated_at: string
+          id: string
+          name: string
+          slug: string
+          status: string
+          updated_at: string
+        }[]
+      }
       finalize_billing_customer: {
         Args: {
           p_creation_idempotency_key: string
@@ -490,6 +520,25 @@ export type Database = {
           subscription_status: string
           trial_plan_code: string
           trial_valid_until: string
+        }[]
+      }
+      update_store_setup: {
+        Args: {
+          p_expected_updated_at: string
+          p_name: string
+          p_organization_id: string
+          p_set_name: boolean
+          p_set_slug: boolean
+          p_slug: string
+          p_store_id: string
+        }
+        Returns: {
+          activated_at: string
+          id: string
+          name: string
+          slug: string
+          status: string
+          updated_at: string
         }[]
       }
     }

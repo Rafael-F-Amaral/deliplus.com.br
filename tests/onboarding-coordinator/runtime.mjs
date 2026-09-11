@@ -12,6 +12,24 @@ const moduleUrl = (source) =>
 const mocks = new Map([
   ["server-only", moduleUrl("export {}")],
   [
+    "@clerk/nextjs/server",
+    moduleUrl(`
+      export async function auth(...args) { const s = globalThis.__onboardingCoordinatorTest; s.clerkAuthReads.push(args); return { orgId: s.clerkOrganizationId } }
+      export async function clerkClient(...args) {
+        const s = globalThis.__onboardingCoordinatorTest
+        s.clerkClientReads.push(args)
+        return {
+          organizations: {
+            async getOrganization(...organizationArgs) {
+              s.clerkOrganizationReads.push(organizationArgs)
+              return s.clerkOrganization
+            },
+          },
+        }
+      }
+    `),
+  ],
+  [
     "next/navigation",
     moduleUrl(
       `export function redirect(url) { throw Object.assign(new Error("Redirect control flow"), { redirectUrl: url }) }`
@@ -38,7 +56,17 @@ const mocks = new Map([
   [
     "@/lib/stores/store-setup",
     moduleUrl(
-      `export async function listStoresForSetup(...args) { const s = globalThis.__onboardingCoordinatorTest; s.storeReads.push(args); if (s.storeError) throw s.storeError; return s.stores }`
+      `
+        export async function listStoresForSetup(...args) { const s = globalThis.__onboardingCoordinatorTest; s.storeReads.push(args); if (s.storeError) throw s.storeError; return s.stores }
+        export async function createDraftStore(...args) { const s = globalThis.__onboardingCoordinatorTest; s.createCalls.push(args); return s.createResult }
+        export async function markStoreReady(...args) { const s = globalThis.__onboardingCoordinatorTest; s.readyCalls?.push(args); return s.readyResult }
+      `
+    ),
+  ],
+  [
+    "@/lib/stores/activate-store-for-current-organization",
+    moduleUrl(
+      `export async function activateStoreForCurrentOrganization(...args) { const s = globalThis.__onboardingCoordinatorTest; s.publishCalls?.push(args); return s.publishResult }`
     ),
   ],
   [

@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test:dashboard-overview": "node --conditions=react-server --experimental-strip-types --test tests/dashboard-overview/*.test.mjs",
+    "test:dashboard-overview": "node --conditions=react-server --experimental-strip-types --test tests/dashboard-overview/dashboard-overview.test.mjs && node --test tests/dashboard-overview/dashboard-ui.test.mjs",
     "test:onboarding-coordinator": "node --test tests/onboarding-coordinator/onboarding-coordinator.test.mjs",
     "test:billing-checkout-ui": "node --test tests/billing-checkout-ui/billing-checkout-ui.test.mjs",
     "test:stripe-checkout": "node --conditions=react-server --experimental-strip-types --test tests/stripe-checkout/stripe-checkout.test.mjs tests/stripe-checkout/stripe-checkout.stripe.test.mjs",
@@ -20,10 +20,12 @@
     "test:onboarding-state-resolver": "node --test tests/onboarding/resolve-onboarding-state.test.mjs",
     "test:organization-entitlement": "node --experimental-strip-types --test tests/organization-entitlement/*.test.mjs",
     "test:store-provisioning-setup": "node --conditions=react-server --experimental-strip-types --test tests/store-provisioning-setup/*.test.mjs",
+    "test:store-provisioning-setup:integration": "node --conditions=react-server --experimental-strip-types --test tests/store-provisioning-setup/*.integration.mjs",
     "test:store-trial-activation": "node --conditions=react-server --experimental-strip-types --test tests/store-trial-activation/store-trial-activation.test.mjs",
     "test:store-trial-activation:concurrency": "node --test tests/store-trial-activation/store-trial-activation.concurrency.test.mjs",
     "test:store-entitlement-activation": "node --conditions=react-server --experimental-strip-types --test tests/store-entitlement-activation/store-entitlement-activation.test.mjs",
     "test:store-entitlement-activation:concurrency": "node --test tests/store-entitlement-activation/store-entitlement-activation.concurrency.test.mjs",
+    "test:store-activation-coordinator": "node --test tests/store-activation-coordinator/*.test.mjs",
     "test:stripe-server-foundation": "node --conditions=react-server --experimental-strip-types --test tests/stripe-server-foundation/*.test.mjs",
     "test:stripe-webhook-foundation": "node --conditions=react-server --experimental-strip-types --test tests/stripe-webhook-foundation/*.test.mjs"
   },

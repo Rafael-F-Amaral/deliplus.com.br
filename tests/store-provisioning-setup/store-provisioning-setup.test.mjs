@@ -410,7 +410,7 @@ test("updateStoreSetup writes only changed allow-listed fields", async () => {
       organizationId,
       storeId: ownStoreId,
       expectedUpdatedAt: defaultStore.updatedAt,
-      fields: { name: "Nova Loja", status: "draft" },
+      fields: { name: "Nova Loja" },
     },
   ])
 })
@@ -703,19 +703,17 @@ test("Store domain boundaries are server-only and contain no billing or activati
   assert.doesNotMatch(combined, /status:\s*["']active["']/)
 })
 
-test("repository writes are explicit, tenant-scoped, and concurrency-scoped", async () => {
+test("repository writes use only narrow trusted Store setup RPCs", async () => {
   const source = await readFile(
     new URL("../../lib/stores/store-setup.repository.ts", import.meta.url),
     "utf8"
   )
 
-  assert.match(source, /status:\s*"draft"/)
-  assert.match(source, /activated_at:\s*null/)
-  assert.match(source, /\.eq\("organization_id", organizationId\)/)
-  assert.match(source, /\.eq\("updated_at", expectedUpdatedAt\)/)
-  assert.match(source, /\.in\("status", \["draft", "ready"\]\)/)
-  assert.doesNotMatch(source, /\.insert\(input\)/)
-  assert.doesNotMatch(source, /\.update\(fields\)/)
+  assert.match(source, /\.rpc\("create_store_draft"/)
+  assert.match(source, /\.rpc\("update_store_setup"/)
+  assert.match(source, /\.rpc\("mark_store_ready"/)
+  assert.doesNotMatch(source, /\.from\("stores"\)\s*\.insert/s)
+  assert.doesNotMatch(source, /\.from\("stores"\)\s*\.update/s)
   assert.doesNotMatch(source, /export.*createAdminSupabaseClient/)
 })
 

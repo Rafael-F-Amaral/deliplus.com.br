@@ -26,6 +26,18 @@ beforeEach(() => {
       organizationId: "10000000-0000-0000-0000-000000000001",
     },
     stores: { status: "success", stores: [] },
+    clerkOrganizationId: "org_test",
+    clerkOrganization: { name: "Loja teste" },
+    createResult: {
+      status: "success",
+      store: {
+        id: "20000000-0000-0000-0000-000000000001",
+        name: "Loja teste",
+        slug: "loja-teste",
+        status: "draft",
+        updatedAt: "2026-09-10T12:00:00Z",
+      },
+    },
     provisioning: {
       status: "ready",
       organization: {
@@ -35,6 +47,10 @@ beforeEach(() => {
     },
     onboardingReads: [],
     storeReads: [],
+    clerkAuthReads: [],
+    clerkClientReads: [],
+    clerkOrganizationReads: [],
+    createCalls: [],
     provisions: [],
   }
 })
@@ -270,7 +286,7 @@ test("coordinator boundaries prohibit GET mutations, direct data access, and tri
   assert.match(client, /attempted\.current = true/u)
 })
 
-test("the first-Store destination is presentational and does not start a trial", async () => {
+test("the first-Store destination renders the publish flow without a GET mutation", async () => {
   const html = await render(NewStorePage)
   const source = await readFile(
     new URL("../../app/dashboard/stores/new/page.tsx", import.meta.url),
@@ -278,7 +294,8 @@ test("the first-Store destination is presentational and does not start a trial",
   )
 
   assert.match(html, /Crie sua primeira loja/u)
-  assert.match(html, /Nenhum período de teste começa/u)
+  assert.match(html, /Criar e publicar minha loja/u)
+  assert.deepEqual(state.createCalls, [])
   assert.doesNotMatch(
     source,
     /use server|activateFirstStoreWithInitialTrial|\.from\(/u

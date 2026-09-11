@@ -1,7 +1,6 @@
 import "server-only"
 
 import { createAdminSupabaseClient } from "@/lib/supabase/admin"
-import type { Database } from "@/lib/supabase/database.types"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 import { isStoreSetupStatus, type StoreSetupStatus } from "./store-setup.rules"
@@ -29,7 +28,6 @@ export type StoreSetupRepositoryResult<T> =
 export type StoreSetupUpdateFields = {
   name?: string
   slug?: string
-  status?: "draft"
 }
 
 export type StoreSetupRepository = {
@@ -171,18 +169,13 @@ export function createStoreSetupRepository(): StoreSetupRepository {
 
     async createDraftStore(organizationId, name, slug) {
       const supabase = createAdminSupabaseClient()
-      const payload: Database["public"]["Tables"]["stores"]["Insert"] = {
-        organization_id: organizationId,
-        name,
-        slug,
-        status: "draft",
-        activated_at: null,
-      }
       const { data, error } = await supabase
-        .from("stores")
-        .insert(payload)
-        .select(STORE_SETUP_SELECT)
-        .single()
+        .rpc("create_store_draft", {
+          p_organization_id: organizationId,
+          p_name: name,
+          p_slug: slug,
+        })
+        .maybeSingle()
 
       if (error) {
         return isUniqueViolation(error)
@@ -190,33 +183,25 @@ export function createStoreSetupRepository(): StoreSetupRepository {
           : { status: "failure", cause: error }
       }
 
+      if (!data) {
+        return { status: "failure", cause: new Error("Missing Store result") }
+      }
+
       return mapStoreData(data)
     },
 
     async updateStoreSetup(organizationId, storeId, expectedUpdatedAt, fields) {
       const supabase = createAdminSupabaseClient()
-      const payload: Database["public"]["Tables"]["stores"]["Update"] = {}
-
-      if (fields.name !== undefined) {
-        payload.name = fields.name
-      }
-
-      if (fields.slug !== undefined) {
-        payload.slug = fields.slug
-      }
-
-      if (fields.status !== undefined) {
-        payload.status = fields.status
-      }
-
       const { data, error } = await supabase
-        .from("stores")
-        .update(payload)
-        .eq("id", storeId)
-        .eq("organization_id", organizationId)
-        .eq("updated_at", expectedUpdatedAt)
-        .in("status", ["draft", "ready"])
-        .select(STORE_SETUP_SELECT)
+        .rpc("update_store_setup", {
+          p_organization_id: organizationId,
+          p_store_id: storeId,
+          p_expected_updated_at: expectedUpdatedAt,
+          p_set_name: fields.name !== undefined,
+          p_name: fields.name ?? "",
+          p_set_slug: fields.slug !== undefined,
+          p_slug: fields.slug ?? "",
+        })
         .maybeSingle()
 
       if (error) {
@@ -234,18 +219,12 @@ export function createStoreSetupRepository(): StoreSetupRepository {
 
     async markStoreReady(organizationId, storeId, expectedUpdatedAt) {
       const supabase = createAdminSupabaseClient()
-      const payload: Database["public"]["Tables"]["stores"]["Update"] = {
-        status: "ready",
-      }
       const { data, error } = await supabase
-        .from("stores")
-        .update(payload)
-        .eq("id", storeId)
-        .eq("organization_id", organizationId)
-        .eq("status", "draft")
-        .is("activated_at", null)
-        .eq("updated_at", expectedUpdatedAt)
-        .select(STORE_SETUP_SELECT)
+        .rpc("mark_store_ready", {
+          p_organization_id: organizationId,
+          p_store_id: storeId,
+          p_expected_updated_at: expectedUpdatedAt,
+        })
         .maybeSingle()
 
       if (error) {
