@@ -27,7 +27,8 @@
     "test:store-entitlement-activation:concurrency": "node --test tests/store-entitlement-activation/store-entitlement-activation.concurrency.test.mjs",
     "test:store-activation-coordinator": "node --test tests/store-activation-coordinator/*.test.mjs",
     "test:stripe-server-foundation": "node --conditions=react-server --experimental-strip-types --test tests/stripe-server-foundation/*.test.mjs",
-    "test:stripe-webhook-foundation": "node --conditions=react-server --experimental-strip-types --test tests/stripe-webhook-foundation/*.test.mjs"
+    "test:stripe-webhook-foundation": "node --conditions=react-server --experimental-strip-types --test tests/stripe-webhook-foundation/*.test.mjs",
+    "test:billing-success-ui": "node --test tests/billing-success-ui/*.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

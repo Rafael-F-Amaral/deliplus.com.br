@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { redirect } from "next/navigation"
+import { PendingConfirmation } from "./pending-confirmation"
 import { buttonVariants } from "@/components/ui/button"
 import {
   Card,
@@ -21,6 +23,8 @@ export default async function BillingSuccessPage() {
     state.kind === "resolved" &&
     state.entitlement.entitled &&
     state.entitlement.source === "paid_subscription"
+  if (paid) redirect("/dashboard?billingSuccess=1")
+
   return (
     <main className="flex min-h-svh items-center px-6 py-16 sm:px-10">
       <section className="mx-auto flex w-full max-w-2xl flex-col gap-6">
@@ -31,17 +35,15 @@ export default async function BillingSuccessPage() {
           <CardHeader>
             <CardTitle>
               <h1>
-                {paid
-                  ? "Assinatura confirmada"
-                  : state.kind === "resolved"
-                    ? "Estamos confirmando sua assinatura"
-                    : "Consulte o status da sua assinatura"}
+                {state.kind === "resolved"
+                  ? "Confirmando sua assinatura..."
+                  : "Consulte o status da sua assinatura"}
               </h1>
             </CardTitle>
             <CardDescription>
-              {paid
-                ? "Sua assinatura já está reconhecida no Deli Plus."
-                : "O status é atualizado após a confirmação da cobrança. O retorno do checkout, sozinho, não confirma o pagamento."}
+              {state.kind === "resolved"
+                ? "Estamos aguardando a confirmação para atualizar seu plano. Isso normalmente leva apenas alguns instantes."
+                : "Consulte o status da sua assinatura para continuar."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -55,13 +57,8 @@ export default async function BillingSuccessPage() {
                     {state.organizationName}
                   </span>
                 </p>
-                <p>
-                  {paid
-                    ? "Você pode voltar ao dashboard. A configuração e a ativação das suas lojas continuam sendo etapas separadas."
-                    : "Ainda não identificamos uma assinatura confirmada. Se você concluiu o checkout, aguarde alguns instantes e atualize o status."}
-                </p>
-                {!paid &&
-                state.entitlement.entitled &&
+                <PendingConfirmation />
+                {state.entitlement.entitled &&
                 state.entitlement.source === "trial" ? (
                   <p>
                     Seu período de teste continua válido. Ele não é uma
@@ -72,7 +69,7 @@ export default async function BillingSuccessPage() {
             )}
           </CardContent>
           <CardFooter className="flex-wrap gap-3">
-            {!paid ? (
+            {state.kind !== "resolved" ? (
               <a
                 href="/dashboard/billing/success"
                 className={buttonVariants({ size: "lg" })}
@@ -81,10 +78,10 @@ export default async function BillingSuccessPage() {
               </a>
             ) : null}
             <Link
-              href={paid ? "/dashboard" : "/dashboard/billing"}
+              href="/dashboard"
               className={buttonVariants({ variant: "outline", size: "lg" })}
             >
-              {paid ? "Voltar ao dashboard" : "Voltar aos planos"}
+              Voltar ao dashboard
             </Link>
           </CardFooter>
         </Card>
