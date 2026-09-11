@@ -1389,3 +1389,23 @@ It does not authorize:
 - creating an automatic plan or Stripe Price for four or more Stores.
 
 Any deviation from the locked product decisions or source-of-truth boundaries requires review before implementation continues.
+
+## 35. Billing success confirmation coordinator
+
+The Stripe return URL is presentation/navigation only. Webhook-projected local
+entitlement remains authoritative. Preserve the acquisition and webhook boundaries.
+
+- `/dashboard/billing/success` reads the existing local Billing state. Paid entitlement
+  redirects server-side immediately to `/dashboard?billingSuccess=1`.
+- Resolved trial/no-paid state renders confirmation pending, without asserting payment
+  receipt. A client effect refreshes the local server read every 2 seconds, at most
+  12 seconds, and clears both timers on unmount/navigation.
+- Timeout replaces the route with `/dashboard?billingPending=1`, never payment failure.
+- Dashboard keeps `getDashboardOverview()` as its only read model. Either exact marker
+  plus paid entitlement shows a temporary success Alert; otherwise an informational
+  confirmation Alert persists. Normal visits show no Billing feedback.
+- Confirmed feedback consumes billing markers without changing other query values or
+  business state. Existing authentication, provisioning, Store access, trial precedence,
+  plan cards and publication feedback remain intact.
+- No Stripe polling, Session ID dependency, billing write, migration, environment
+  variable, new dependency or automatic purchase is required.

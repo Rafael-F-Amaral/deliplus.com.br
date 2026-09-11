@@ -343,8 +343,20 @@ call only `activateStoreForCurrentOrganization()`: it must not import or choose 
 The return routes are `/dashboard/billing/success` and `/dashboard/billing`, without
 `session_id`. The success page reads only `resolveOrganizationEntitlement()` through
 the shared server-side billing state composition. It does not call Stripe and does not
-infer payment from navigation. Only `source: "paid_subscription"` renders confirmed;
-trial or absent entitlement remains a processing state with an explicit manual refresh.
+infer payment from navigation. Only `source: "paid_subscription"` redirects immediately
+to `/dashboard?billingSuccess=1`; trial or absent entitlement mounts a small client
+coordinator calling `router.refresh()` every 2 seconds for at most 12 seconds.
+The same server read runs on refresh, with no Stripe calls or writes. Timers are
+cleared on unmount; timeout replaces the route with `/dashboard?billingPending=1`.
+Unresolved identity/provisioning and unavailable states retain their existing UI.
+
+Dashboard feedback uses only `getDashboardOverview()`: either marker plus confirmed
+paid entitlement shows a six-second success Alert; otherwise it shows a persistent
+confirmation notice. Neither marker grants access or asserts receipt of payment.
+The confirmed Alert removes both billing markers with history replacement, preserving
+other query values and the hash. No toast infrastructure or dependency was added.
+The dashboard does not poll: after a delayed projection, its next normal read/refresh
+shows the authoritative plan and converts a retained pending marker to success.
 
 Cancel navigation does not end an attempt. An ongoing different-plan attempt returns
 `checkout_in_progress`; same-plan retry reuses the owned Session. Recovery must not

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { BillingFeedback } from "./billing-feedback"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { buttonVariants } from "@/components/ui/button"
@@ -163,6 +164,8 @@ export default async function DashboardPage({
   // This query value is presentation-only. Entitlement and Store facts below
   // always come from getDashboardOverview().
   const showPublishedFeedback = query.storePublished === "1"
+  const showBillingFeedback =
+    overview && (query.billingSuccess === "1" || query.billingPending === "1")
 
   return (
     <main className="min-h-svh px-6 py-10 sm:px-10 lg:px-16">
@@ -179,6 +182,15 @@ export default async function DashboardPage({
             está sendo preparado.
           </p>
         </header>
+
+        {showBillingFeedback ? (
+          <BillingFeedback
+            confirmed={
+              overview.entitlement.entitled &&
+              overview.entitlement.source === "paid_subscription"
+            }
+          />
+        ) : null}
 
         {showPublishedFeedback ? (
           <Alert role="status">

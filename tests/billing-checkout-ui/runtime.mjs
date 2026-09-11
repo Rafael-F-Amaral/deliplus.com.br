@@ -13,7 +13,7 @@ const mocks = new Map([
   [
     "next/navigation",
     moduleUrl(
-      `export function redirect(url) { throw Object.assign(new Error("Redirect control flow"), { redirectUrl: url }) }`
+      `export function useRouter() { return globalThis.__billingUiTest.router } export function redirect(url) { throw Object.assign(new Error("Redirect control flow"), { redirectUrl: url }) }`
     ),
   ],
   [

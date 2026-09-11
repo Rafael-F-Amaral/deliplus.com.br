@@ -259,17 +259,20 @@ for (const source of ["none", "trial", "paid_subscription"]) {
         maxStores: 1,
         validUntil: new Date("2026-09-20T15:00:00Z"),
       }
-    const html = await render(SuccessPage)
-    if (source === "paid_subscription")
-      assert.match(html, /Assinatura confirmada/u)
-    else {
+    if (source === "paid_subscription") {
+      await assert.rejects(
+        SuccessPage,
+        (error) => error.redirectUrl === "/dashboard?billingSuccess=1"
+      )
+    } else {
+      const html = await render(SuccessPage)
       assert.doesNotMatch(html, /Assinatura confirmada|Pagamento recebido/u)
-      assert.match(html, /Estamos confirmando sua assinatura/u)
-      assert.match(html, /href="\/dashboard\/billing\/success"/u)
-      assert.match(html, /Atualizar status/u)
+      assert.match(html, /Confirmando sua assinatura/u)
+      assert.match(html, /direcionado automaticamente/u)
+      assert.doesNotMatch(html, /Atualizar status/u)
+      if (source === "trial")
+        assert.match(html, /não é uma confirmação da assinatura paga/u)
     }
-    if (source === "trial")
-      assert.match(html, /não é uma confirmação da assinatura paga/u)
     assert.equal(state.calls.length, 0)
     assert.deepEqual(state.reads, [[]])
     assert.deepEqual(state.onboardingReads, [[]])

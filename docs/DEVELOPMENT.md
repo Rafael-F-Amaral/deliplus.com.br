@@ -417,10 +417,9 @@ fall through to `activateFirstStoreWithInitialTrial()`. The frontend never selec
 activation path.
 
 Existing paid subscriptions continue blocking another acquisition; upgrade/downgrade
-and Customer Portal are separate features. The accepted success page keeps manual
-refresh; bounded entitlement polling, automatic dashboard redirect, a dashboard
-paid-plan card, and landing-page work remain deferred. Return URLs never establish
-entitlement.
+and Customer Portal are separate features. The success page now coordinates bounded
+local confirmation and automatic dashboard navigation. Return URLs never establish
+entitlement. Landing-page work remains separate.
 
 On 2026-09-10, `yarn supabase migration list` confirmed
 `20260904120000_tenant_provisioning_trusted_rpc.sql` in the linked Staging database.
@@ -622,3 +621,31 @@ For a substantial feature:
 3. implement;
 4. update current-state documentation;
 5. add an ADR if the decision is durable and non-obvious.
+
+### Billing success automatic confirmation
+
+Stripe return → transient local confirmation → paid entitlement → dashboard.
+The Stripe return URL is presentation/navigation only. Webhook-projected local
+entitlement remains authoritative. The initial server read redirects immediately
+when paid; otherwise the resolved pending page refreshes every 2 seconds, bounded
+to 12 seconds, then navigates to the dashboard with a pending presentation marker.
+Trial remains valid during the wait. No new migration, environment variable, Stripe
+request, database write, or acquisition change is involved.
+
+Run `yarn test:billing-success-ui` plus Billing Checkout UI, Stripe Checkout,
+Stripe Webhook, Organization Entitlement, Dashboard Overview, Store Trial and
+Onboarding regressions. Fake timers cover the actual polling effect and cleanup.
+SQL is unchanged and no database reset is needed. The existing local pgTAP suite
+was also run under the Billing baseline policy: 675 assertions across nine files passed.
+
+Manual Sandbox E2E: start the app and existing Stripe webhook listener, sign in to a
+trial Organization, choose **Assinar agora**, select a plan, and complete Sandbox
+Checkout manually. Expect either immediate dashboard navigation or a brief
+**Confirmando sua assinatura...** screen, followed by the paid plan and
+**Assinatura ativada com sucesso.** The success Alert disappears after six seconds
+and its billing markers are removed. Confirm Store-publication feedback still works.
+For delayed projection, pause the local listener before payment and wait 12 seconds:
+the dashboard should show a pending notice and the real trial/no-paid state. Restore
+webhook delivery and replay the missed Sandbox event if necessary; refresh the
+dashboard to see the paid plan and success feedback. No payment failure is inferred
+from timeout. No automated purchases are part of these checks.
