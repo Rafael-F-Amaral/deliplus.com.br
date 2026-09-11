@@ -16,10 +16,12 @@ yarn lint
 yarn format
 yarn typecheck
 yarn test:store-provisioning-setup
+yarn test:store-provisioning-setup:integration
 yarn test:store-trial-activation
 yarn test:store-trial-activation:concurrency
 yarn test:store-entitlement-activation
 yarn test:store-entitlement-activation:concurrency
+yarn test:store-activation-coordinator
 ```
 
 ## Package manager
@@ -238,10 +240,13 @@ import `lib/supabase/admin.ts` or `store-setup.repository.ts` from `app/` or
 
 The shared rules normalize Store names/slugs, enforce the central reserved-slug
 set, and validate readiness. Draft/ready Store setup requires neither billing
-entitlement nor trial state. Validate this slice with:
+entitlement nor trial state. Trusted writes use the service-role-only
+`create_store_draft`, `update_store_setup`, and `mark_store_ready` RPCs. The Secret API
+Key has no direct table privileges on `public.stores`. Validate this slice with:
 
 ```bash
 yarn test:store-provisioning-setup
+yarn test:store-provisioning-setup:integration
 yarn supabase test db
 ```
 
@@ -406,11 +411,10 @@ have been removed. Unprovisioned Billing requests now redirect read-only to `/on
 for admins and members alike; only the onboarding Action can request tenant provisioning.
 
 Early paid subscription remains supported before the first Store exists or activates.
-A future Store activation coordinator must use current entitlement to choose the
-appropriate existing activation boundary (`activateStoreWithinEntitlement()` for paid
-entitlement versus `activateFirstStoreWithInitialTrial()` for eligible initial trial),
-rather than blindly starting a trial for an already-paid Organization. That coordinator
-is outside this feature; activation behavior is unchanged.
+The Store activation coordinator now tries `activateStoreWithinEntitlement()` first, so
+a paid Organization publishes without creating a local trial. Only `not_entitled` may
+fall through to `activateFirstStoreWithInitialTrial()`. The frontend never selects the
+activation path.
 
 Existing paid subscriptions continue blocking another acquisition; upgrade/downgrade
 and Customer Portal are separate features. The accepted success page keeps manual
@@ -501,6 +505,39 @@ yarn supabase test db supabase/tests/database/store_entitlement_activation_test.
 Start/apply the local Supabase migrations before either focused script because the Node
 suite performs real SQL/TypeScript plan parity and the concurrency suite calls the RPCs.
 Neither script reads `.env.local` or prints credentials.
+
+### First Store activation coordinator development
+
+The public UI activation boundary is:
+
+```text
+lib/stores/activate-store-for-current-organization.ts
+```
+
+`activateStoreForCurrentOrganization(storeId)` composes only the two existing Store
+activation operations. It performs no direct Supabase, Stripe, billing-table, trial, or
+capacity access. The ordering is generic entitlement activation first, initial trial
+only after `not_entitled`, then one generic retry after `trial_not_eligible` to cover a
+concurrent entitlement change.
+
+The functional routes are:
+
+```text
+/dashboard/stores/new
+/dashboard/stores/[storeId]/setup
+```
+
+Their Server Actions accept only Store business fields and a Store selector. The default
+first-Store submission composes `createDraftStore()`, `markStoreReady()`, and
+`activateStoreForCurrentOrganization()` while preserving each explicit domain mutation.
+After a durable creation, retry state resumes from the stored Store selector instead of
+creating a duplicate. The setup route retains separate save, readiness, and publish
+actions for editing/recovery; page rendering performs no mutation. Validate the
+coordinator and UI adapters with:
+
+```bash
+yarn test:store-activation-coordinator
+```
 
 ### Organization entitlement resolution
 

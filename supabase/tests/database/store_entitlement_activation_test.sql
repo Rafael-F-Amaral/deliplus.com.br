@@ -427,7 +427,8 @@ values
 
 update public.stores
 set status = 'ready'
-where id <> 'a2000000-0000-0000-0000-000000000003';
+where id::text like 'a2000000-%'
+  and id <> 'a2000000-0000-0000-0000-000000000003';
 
 update public.stores
 set
@@ -884,6 +885,17 @@ select results_eq(
   $$,
   $$values ('active'::text, 'multi_3'::text, false)$$,
   'paid activation leaves the billing projection unchanged'
+);
+
+select is(
+  (
+    select pg_catalog.count(*)
+    from public.billing_trial_grants
+    where organization_id = 'a1000000-0000-0000-0000-000000000009'
+      and grant_kind = 'initial'
+  ),
+  0::bigint,
+  'paid first-Store activation creates no initial trial grant'
 );
 
 -- Capacity by plan, active-only counting, over-capacity behavior, and trial switching.

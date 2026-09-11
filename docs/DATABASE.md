@@ -110,6 +110,13 @@ separate initial-trial activation RPC owns the first eligible `ready -> active`
 transition, while the generic entitlement RPC owns later `ready|inactive -> active`
 transitions and active-Store capacity enforcement.
 
+Trusted draft/setup writes are exposed only through
+`create_store_draft(uuid, text, text)`,
+`update_store_setup(uuid, uuid, timestamptz, boolean, text, boolean, text)`, and
+`mark_store_ready(uuid, uuid, timestamptz)`. These functions are `VOLATILE SECURITY
+DEFINER`, owned by `postgres`, use an empty `search_path`, and grant EXECUTE only to
+`service_role`. That role has no direct table privileges on `public.stores`.
+
 ### store_memberships
 
 Represents Store-specific access for a Clerk Organization member.
@@ -386,10 +393,11 @@ the internal UUID and Clerk Organization ID. `service_role` has EXECUTE only and
 direct privileges on `public.organizations`; `PUBLIC`, `anon`, and `authenticated`
 cannot execute the RPC. Normal authenticated Organization reads remain RLS-bound.
 
-Store draft/setup mutations use a separate narrow server-only boundary. Team membership mutation remains separate. Store setup
-uses RLS-backed reads and an explicitly scoped privileged repository for simple
-writes; it does not activate a Store, grant entitlement, or expose generic
-authenticated writes.
+Store draft/setup mutations use a separate narrow server-only boundary. Team membership
+mutation remains separate. Store setup uses RLS-backed reads; its explicitly scoped
+repository invokes only the three trusted Store setup RPCs with the Organization UUID
+resolved by the authorized application service. It exposes no direct `service_role` or
+authenticated table writes and does not activate a Store or grant entitlement.
 
 The billing foundation is stricter: `anon` and `authenticated` have no direct reads or writes on any billing table. RLS remains default-deny. The dedicated entitlement read model exposes only a zero-argument function to `authenticated`, not table access.
 

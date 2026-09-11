@@ -198,12 +198,16 @@ read Stripe Price IDs for display. Early paid subscription grants entitlement
 independently of Store creation/activation; it does not start another trial.
 
 Frontend code must not import Supabase repositories/clients, billing repositories,
-private entitlement helpers, or Stripe clients for the overview. Future Store UI
+private entitlement helpers, or Stripe clients for the overview. The temporary
+dashboard status presentation consumes only `getDashboardOverview()`. Its
+`storePublished=1` query marker controls success feedback only and never proves
+Store or entitlement state. Future Store UI
 may use the existing public setup and activation/deactivation operations documented
 below through Server Components or thin Server Actions. Setup and lifecycle mutations
 remain Organization-admin operations. Final dashboard layout, empty states, plan
 labels, trial countdown presentation, Store wizard, and subscription management UI
-remain separate work; no temporary dashboard rendering is required by this foundation.
+remain separate work. The current temporary dashboard rendering is intentionally
+limited to functional state visibility before the final frontend design.
 
 ## Store setup domain contract
 
@@ -232,34 +236,51 @@ from verified server auth. A `storeId` is only a resource selector; the domain
 operation must scope the lookup to the resolved internal Organization.
 
 The Store setup API does not activate a Store, start a trial, consult Stripe,
-or enforce paid Store capacity. Initial-trial activation is now provided by the
-separate server-only operation:
+or enforce paid Store capacity. The normal frontend publish API is:
+
+```text
+activateStoreForCurrentOrganization(storeId)
+```
+
+Its public result is:
+
+```ts
+type StoreActivationCoordinatorResult =
+  | { status: "activated"; storeId: string }
+  | { status: "already_active"; storeId: string }
+  | { status: "not_ready" }
+  | { status: "subscription_required" }
+  | { status: "capacity_reached" }
+  | { status: "store_unavailable" }
+  | { status: "unauthenticated" }
+  | { status: "no_active_organization" }
+  | { status: "organization_not_provisioned" }
+  | { status: "not_admin" }
+```
+
+The UI requests “publish this Store.” The backend decides whether activation consumes
+current entitlement or attempts the initial trial. `subscription_required` may direct
+the merchant to `/dashboard/billing`; it never creates Checkout automatically.
+
+The lower-level activation operations are internal implementation details for normal UI
+work:
 
 ```text
 activateFirstStoreWithInitialTrial(storeId)
-```
-
-It accepts only `storeId`, requires the verified active Organization admin, and returns
-`activated`, `already_activated`, `not_ready`, `trial_not_eligible`,
-`store_unavailable`, or explicit auth/Organization precondition outcomes. Successful
-results include the database-derived `trialEndsAt`. A future UI must invoke it through
-a thin reviewed server boundary and must not predict eligibility or mutate Store/billing
-tables directly.
-
-Later activation and deactivation are now available through separate server-only domain
-operations:
-
-```text
 activateStoreWithinEntitlement(storeId)
-deactivateStore(storeId)
 ```
 
-Both require the verified active Organization admin and accept only `storeId` as a
-resource selector. Activation may return `activated`, `already_active`, `not_ready`,
-`not_entitled`, `capacity_reached`, or `store_unavailable`; deactivation may return
-`deactivated`, `already_inactive`, `not_active`, or `store_unavailable`. Both also use
-the existing auth/Organization precondition outcomes. A future UI may treat these
-results as flow hints but must not calculate or override entitlement/capacity locally.
+Both accept only `storeId` and require the verified active Organization admin. The first
+may return `activated`, `already_activated`, `not_ready`, `trial_not_eligible`, or
+`store_unavailable`. The generic operation may return `activated`, `already_active`,
+`not_ready`, `not_entitled`, `capacity_reached`, or `store_unavailable`. Normal frontend
+code must not invoke either operation or predict eligibility directly.
+
+`deactivateStore(storeId)` remains a public lifecycle operation. It may return
+`deactivated`, `already_inactive`, `not_active`, or `store_unavailable`. All lifecycle
+operations use the existing auth/Organization precondition outcomes. Frontend code may
+treat coordinator/deactivation results as flow hints but must not calculate or override
+entitlement/capacity locally.
 
 ## Stripe Checkout backend contract
 
@@ -305,16 +326,19 @@ state. Provisioning must not run during render/GET.
 After provisioning, an admin with zero Stores is redirected to
 `/dashboard/stores/new`; one or more Stores redirect to `/dashboard`. A provisioned
 member who is not authorized for Store setup also returns to `/dashboard` and does not
-gain setup-read authority merely for routing. The first-Store route is currently a
-minimal stable handoff, not a new Store wizard. Billing remains optional before Store
+gain setup-read authority merely for routing. The first-Store route collects the current
+required name and slug, then its Server Action explicitly composes draft creation,
+readiness, and activation before redirecting directly to the dashboard. Partial failures
+retain the created Store selector for retry/setup recovery rather than creating a second
+Store. The setup route remains available for editing and recovery. Billing remains
+optional before Store
 activation, and neither Clerk Organization creation, Organization provisioning, route
 navigation, nor rendering starts the trial. The main manual coordinator E2E passed and
 the temporary billing-page provisioning control has been removed.
 
-Merchants may subscribe before creating or activating their first Store. Future Store
-activation UI must choose the existing activation boundary according to current
-entitlement, including paid entitlement, instead of unconditionally starting an initial
-trial. No Store activation coordinator is implemented in this feature.
+Merchants may subscribe before creating or activating their first Store. Publish UI must
+call only `activateStoreForCurrentOrganization()`: it must not import or choose between
+`activateStoreWithinEntitlement()` and `activateFirstStoreWithInitialTrial()`.
 
 The return routes are `/dashboard/billing/success` and `/dashboard/billing`, without
 `session_id`. The success page reads only `resolveOrganizationEntitlement()` through

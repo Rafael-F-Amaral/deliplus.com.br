@@ -191,9 +191,11 @@ inside `ensureActiveOrganization()`, then invokes the service-role-only
 `ensure_organization_projection(text)` RPC. The browser supplies no tenant identifier.
 The RPC owns the narrow insert/read operation as `SECURITY DEFINER`; `service_role`
 has no direct access to `public.organizations`, and `anon`/`authenticated` cannot invoke
-the function. Store setup uses a
-separate narrow server-only service that can create only draft Stores, update
-name/slug, and mark valid drafts ready; it does not activate Stores or grant entitlement.
+the function. Store setup uses a separate narrow server-only service that can create
+only draft Stores, update name/slug, and mark valid drafts ready. Its repository calls
+three action-specific `SECURITY DEFINER` RPCs executable only by `service_role`;
+`service_role` has no direct table privileges on `public.stores`. These operations do
+not activate Stores or grant entitlement.
 The separate first-Store activation boundary now enforces historical initial-trial
 eligibility and commits the initial grant plus Store activation atomically. The
 separate generic activation/deactivation boundary now consumes paid, manual-override,

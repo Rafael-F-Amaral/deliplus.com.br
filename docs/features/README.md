@@ -27,6 +27,9 @@ docs/features/products/
 
 docs/features/orders/
   SPEC.md
+
+docs/features/store-activation-coordinator/
+  SPEC.md
 ```
 
 Add additional documents only when they provide real value.
