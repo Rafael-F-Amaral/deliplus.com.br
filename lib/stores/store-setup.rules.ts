@@ -10,6 +10,7 @@ export type StoreSetupStatus = (typeof STORE_SETUP_STATUSES)[number]
 export const RESERVED_STORE_SLUGS = [
   "api",
   "dashboard",
+  "onboarding",
   "sign-in",
   "sign-up",
   "pricing",

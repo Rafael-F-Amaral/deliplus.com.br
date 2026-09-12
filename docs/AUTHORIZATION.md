@@ -235,7 +235,12 @@ May expose deliberately published Store data such as:
 - active products;
 - public delivery information.
 
-Public database access is not part of the initial tenant-core migration and must be designed separately.
+The public Store read boundary now exposes only active Store name and slug through
+`get_public_store_by_slug(text)`: SQL STABLE SECURITY DEFINER, owner postgres,
+empty search_path and EXECUTE only for anon among Data API roles. There is no anon
+table/column SELECT on stores. The anonymous client forwards no Clerk JWT or secret.
+Unavailable lifecycle states and unknown slugs share the same not-found response.
+See `docs/features/public-store-read-boundary/SPEC.md`.
 
 ### Merchant dashboard
 
@@ -371,7 +376,7 @@ Creating a Clerk Organization does not itself grant a trial, create a Store or e
 
 Adding Store memberships does not change billing Store capacity.
 
-Trial eligibility and Store-capacity checks are enforced server-side against trusted billing/application state. Future storefront, order-intake, and protected-operation boundaries must still require current entitlement independently; persisted Store `active` status alone is not authorization.
+Trial eligibility and Store-capacity checks are enforced server-side against trusted billing/application state. Public Store identification GET relies only on persisted `active` state and does not recalculate entitlement. Future order-intake and protected-operation boundaries require their own entitlement authorization; this public read grants none of those capabilities.
 
 ## Error behavior
 

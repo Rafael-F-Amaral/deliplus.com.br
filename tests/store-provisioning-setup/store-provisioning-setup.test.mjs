@@ -142,6 +142,24 @@ function validationResult(field, code) {
   }
 }
 
+test("create and update reject every reserved slug before persistence", async (t) => {
+  for (const slug of RESERVED_STORE_SLUGS) {
+    await t.test(slug, async () => {
+      const { service, calls } = createService()
+      assert.deepEqual(
+        await service.createDraftStore({ name: "Store", slug }),
+        validationResult("slug", "reserved")
+      )
+      assert.deepEqual(
+        await service.updateStoreSetup(ownStoreId, { slug }),
+        validationResult("slug", "reserved")
+      )
+      assert.deepEqual(calls.creates, [])
+      assert.deepEqual(calls.updates, [])
+    })
+  }
+})
+
 test("unauthenticated requests stop before tenant resolution", async () => {
   const { service, calls } = createService({
     authState: { ...adminAuth, userId: null },

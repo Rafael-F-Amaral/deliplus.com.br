@@ -413,6 +413,14 @@ request /<storeSlug>
 
 Public storefront access is separate from merchant dashboard authorization.
 
+The implemented foundation is `/{storeSlug} -> getPublicStoreBySlug() -> public
+Store repository -> anonymous Supabase client -> get_public_store_by_slug(text)`.
+Only active Store `name` and `slug` are returned, without tenant IDs or billing
+reads. The temporary page is dynamic, uses uncached reads and is noindex.
+Global slug uniqueness is already enforced by PostgreSQL; shared Store setup
+validation rejects reserved application routes including `onboarding`.
+See `docs/features/public-store-read-boundary/SPEC.md` for the audited contract.
+
 ## Cross-cutting concerns
 
 The following need explicit treatment throughout implementation:

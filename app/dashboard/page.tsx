@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { BillingFeedback } from "./billing-feedback"
+import { listAccessibleStoreLinks } from "@/lib/stores/accessible-store-links"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { buttonVariants } from "@/components/ui/button"
@@ -144,9 +145,10 @@ export default async function DashboardPage({
 }: {
   searchParams?: Promise<DashboardSearchParams>
 }) {
-  const [query, result] = await Promise.all([
+  const [query, result, linksResult] = await Promise.all([
     searchParams,
     getDashboardOverview().catch(() => null),
+    listAccessibleStoreLinks().catch(() => null),
   ])
 
   if (result?.status === "unauthenticated") {
@@ -214,6 +216,28 @@ export default async function DashboardPage({
         )}
 
         <div className="flex flex-wrap gap-3">
+          {linksResult?.status === "success" ? (
+            linksResult.stores.map((store) => (
+              <div
+                key={store.slug}
+                className="flex w-full items-center justify-between gap-4"
+              >
+                <span>{store.name}</span>
+                <Link
+                  href={`/${store.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  Abrir loja
+                </Link>
+              </div>
+            ))
+          ) : (
+            <p role="status" className="w-full text-sm text-muted-foreground">
+              Não foi possível carregar os links das lojas agora.
+            </p>
+          )}
           <Link
             href="/dashboard/billing"
             className={buttonVariants({ size: "lg" })}

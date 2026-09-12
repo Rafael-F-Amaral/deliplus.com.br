@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { PendingConfirmation } from "./pending-confirmation"
+import { RefreshStatus } from "./refresh-status"
 import { buttonVariants } from "@/components/ui/button"
 import {
   Card,
@@ -69,14 +70,7 @@ export default async function BillingSuccessPage() {
             )}
           </CardContent>
           <CardFooter className="flex-wrap gap-3">
-            {state.kind !== "resolved" ? (
-              <a
-                href="/dashboard/billing/success"
-                className={buttonVariants({ size: "lg" })}
-              >
-                Atualizar status
-              </a>
-            ) : null}
+            {state.kind !== "resolved" ? <RefreshStatus /> : null}
             <Link
               href="/dashboard"
               className={buttonVariants({ variant: "outline", size: "lg" })}

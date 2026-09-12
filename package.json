@@ -4,6 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "test:public-store": "node --test tests/public-store/public-store.test.mjs",
+    "test:accessible-store-links": "node --test tests/public-store/accessible-store-links.test.mjs",
+    "test:public-store:integration": "node --test tests/public-store/public-store.integration.mjs",
     "test:dashboard-overview": "node --conditions=react-server --experimental-strip-types --test tests/dashboard-overview/dashboard-overview.test.mjs && node --test tests/dashboard-overview/dashboard-ui.test.mjs",
     "test:onboarding-coordinator": "node --test tests/onboarding-coordinator/onboarding-coordinator.test.mjs",
     "test:billing-checkout-ui": "node --test tests/billing-checkout-ui/billing-checkout-ui.test.mjs",

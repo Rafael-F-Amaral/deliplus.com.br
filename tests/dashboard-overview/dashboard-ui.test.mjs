@@ -43,6 +43,39 @@ async function renderDashboard(searchParams = {}) {
   )
 }
 
+test("accessible active Stores each receive their own public link in a new tab", async () => {
+  for (const stores of [
+    [{ name: "Store A", slug: "store-a" }],
+    [
+      { name: "Store A", slug: "store-a" },
+      { name: "Store B", slug: "store-b" },
+    ],
+  ]) {
+    globalThis.__dashboardUiTest.linksResult = { status: "success", stores }
+    const html = await renderDashboard()
+    assert.equal((html.match(/Abrir loja/g) ?? []).length, stores.length)
+    for (const store of stores) {
+      assert.ok(html.includes(store.name))
+      assert.ok(
+        html.includes(
+          `href="/${store.slug}" target="_blank" rel="noopener noreferrer"`
+        )
+      )
+    }
+  }
+})
+
+test("no accessible active Stores means no public link", async () => {
+  assert.doesNotMatch(await renderDashboard(), /Abrir loja/)
+})
+
+test("link read failure leaves dashboard available without fabricated links", async () => {
+  globalThis.__dashboardUiTest.linksError = new Error("private detail")
+  const html = await renderDashboard()
+  assert.match(html, /Não foi possível carregar os links/)
+  assert.doesNotMatch(html, /Abrir loja|private detail/)
+})
+
 test("the exact post-publish marker shows transient success feedback", async () => {
   const successMarkup = await renderDashboard({ storePublished: "1" })
   const ordinaryMarkup = await renderDashboard()
