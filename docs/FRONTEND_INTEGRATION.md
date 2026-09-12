@@ -209,6 +209,33 @@ labels, trial countdown presentation, Store wizard, and subscription management 
 remain separate work. The current temporary dashboard rendering is intentionally
 limited to functional state visibility before the final frontend design.
 
+## Public Store read contract
+
+The dashboard lists public navigation through the separate authenticated
+`listAccessibleStoreLinks()` operation. It accepts no parameters and returns
+`{ status: "success", stores: { name: string; slug: string }[] }` or the existing
+onboarding preconditions; infrastructure failures throw `AccessibleStoreLinksError`.
+It reuses onboarding tenant resolution, the normal Clerk-JWT client and Store RLS,
+selecting only active Stores in the resolved Organization. Admins receive their
+Organization's active Stores; members receive only assigned active Stores.
+`getDashboardOverview()` remains a count/entitlement contract. The setup listing
+was not reused because it requires admin authorization. Each navigation link opens
+`/{slug}` in a new tab with `noopener noreferrer`; the public RPC still independently
+checks publication on every storefront request.
+
+`/{storeSlug}` consumes only server-only `getPublicStoreBySlug(slug)` from
+`lib/stores/public-store.ts`. Its result is `{ status: "found", store: { name,
+slug } } | { status: "not_found" }`. `PublicStoreReadError` remains distinct from
+absence and contains no provider details in its message. The UI must not import
+the repository or either Supabase client. The dependency path is domain -> public
+repository -> anonymous client -> narrow active-Store RPC. No Clerk session,
+Organization, UUID, billing or lifecycle fact reaches the public DTO.
+
+Use `notFound()` for every unavailable Store. The temporary page is dynamic and
+noindex, with no-store database fetches. Public input must already be canonical.
+Setup create/update still normalize and reject the shared reserved list, now
+including `onboarding`. See `docs/features/public-store-read-boundary/SPEC.md`.
+
 ## Store setup domain contract
 
 The initial server-only Store setup API is:
@@ -524,7 +551,7 @@ The following remain feature-specific and require their own approved specs:
 - dashboard visual presentation beyond the Overview read contract above;
 - automatic downgrade remediation policy;
 - post-activation slug policy;
-- storefront visibility and cache behavior;
+- storefront visibility/cache behavior beyond the public Store read contract above;
 - order-intake authorization;
 - catalog, delivery, and order schema/RLS;
 - internal operator implementation.

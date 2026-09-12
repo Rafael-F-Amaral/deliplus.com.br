@@ -353,6 +353,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_public_store_by_slug: {
+        Args: { p_slug: string }
+        Returns: { name: string; slug: string }[]
+      }
       create_store_draft: {
         Args: {
           p_name: string

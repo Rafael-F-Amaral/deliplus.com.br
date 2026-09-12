@@ -8,6 +8,22 @@ const { default: SuccessPage } =
   await import("../../app/dashboard/billing/success/page.tsx")
 const { PendingConfirmation } =
   await import("../../app/dashboard/billing/success/pending-confirmation.tsx")
+const { RefreshStatus } =
+  await import("../../app/dashboard/billing/success/refresh-status.tsx")
+
+test("manual status refresh re-reads the current route without navigation or writes", () => {
+  let refreshes = 0
+  state.router = {
+    refresh() {
+      refreshes++
+    },
+  }
+  const button = RefreshStatus()
+  button.props.onClick()
+  assert.equal(refreshes, 1)
+  assert.deepEqual(state.calls, [])
+  assert.deepEqual(state.provisions, [])
+})
 
 let state
 beforeEach(() => {

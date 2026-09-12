@@ -96,6 +96,15 @@ do not consume capacity.
 
 `slug` is the public Store identifier and is independent from the Clerk Organization slug.
 
+`stores_slug_key` enforces GLOBAL uniqueness on slug, with the 3–63 lowercase
+ASCII/hyphen format constraint. Migration `20260912120000_public_store_read_boundary.sql`
+adds `get_public_store_by_slug(p_slug text) RETURNS TABLE(name text, slug text)`.
+It is SQL STABLE SECURITY DEFINER, owned by postgres, with an empty search_path and
+EXECUTE only for anon among Data API roles. It filters exact canonical slug and
+`status = 'active'`; the existing slug index suffices. No table grants/RLS change.
+Reserved slugs remain the shared trusted Store-write domain rule, now including
+onboarding. See `docs/features/public-store-read-boundary/SPEC.md`.
+
 Current persisted lifecycle:
 
 ```text

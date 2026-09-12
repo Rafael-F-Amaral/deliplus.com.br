@@ -11,6 +11,14 @@ const moduleUrl = (source) =>
   `data:text/javascript,${encodeURIComponent(source)}`
 
 const mocks = new Map([
+  [
+    "@/lib/stores/accessible-store-links",
+    moduleUrl(`export async function listAccessibleStoreLinks() {
+      const state = globalThis.__dashboardUiTest
+      if (state.linksError) throw state.linksError
+      return state.linksResult ?? { status: "success", stores: [] }
+    }`),
+  ],
   ["server-only", moduleUrl("export {}")],
   [
     "next/navigation",

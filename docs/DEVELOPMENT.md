@@ -594,6 +594,45 @@ yarn test:stripe-webhook-foundation
 
 The pgTAP suite contains tenant-core and Billing Foundation regressions plus webhook and Store-trial RPC privilege, isolation, atomicity, retry, recovery-state, and concurrency-related invariant coverage. Real concurrency is proven separately by the multi-session Node harness rather than sequential pgTAP.
 
+## Public Store read boundary
+
+Jesse reported a successful manual public storefront E2E after the initial
+implementation. The dashboard now offers “Abrir loja” for every accessible active
+Store in a new tab. Run `yarn test:accessible-store-links` with Supabase local
+running to verify domain preconditions, DTO safety and real admin/member RLS.
+
+See `docs/features/public-store-read-boundary/SPEC.md`. Apply only locally with
+`yarn supabase migration up --local`. Run `yarn test:public-store`,
+`yarn test:public-store:integration`,
+`yarn test:store-provisioning-setup`, the activation/onboarding/dashboard regressions
+and `yarn supabase test db`. The client in `lib/supabase/public.ts` uses existing
+public environment variables, with no secret or Clerk token and no-store fetches.
+No new environment variable is introduced.
+
+Local manual E2E:
+
+1. Start Supabase local and apply local migrations. In the ignored local environment,
+   set `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321` and the local publishable
+   key shown by `yarn supabase status`. Keep any merchant setup secret pointed at
+   that same local stack. Never paste credentials into logs/docs. Restart `yarn dev`.
+2. Sign in as an Organization admin and publish a test Store through the existing
+   onboarding/first-Store form, using a normal unique slug such as `pizzaria-e2e`.
+3. Open `http://localhost:3000/pizzaria-e2e` in an incognito window without signing
+   in. Expect the Store name and “Loja publicada no Deli Plus.”, with no login redirect.
+4. Open `http://localhost:3000/unknown-public-e2e-slug`; expect the same 404 used
+   for all unavailable Stores. Check `/sign-in`, `/sign-up`, `/onboarding` and
+   `/dashboard` retain their normal authentication/navigation behavior.
+5. Inspect page source for robots noindex/nofollow. Refresh after any publication
+   change; no push refresh of already-open pages is implemented.
+6. No deactivation UI exists yet. Run `yarn test:public-store:integration` to
+   verify all states through the real anonymous Data API and confirm that the
+   authenticated `deactivate_store` RPC makes the next public read unavailable.
+   It uses disposable local fixtures and automatically cleans them up. Do not edit
+   lifecycle fields on a merchant Store manually or add a temporary production action.
+
+Remote readiness uses only `yarn supabase migration list` and
+`yarn supabase db push --dry-run`. A real remote push remains outside this task.
+
 ## Validation
 
 Treat form input, URL parameters, webhook payloads and external API data as untrusted.
