@@ -2,7 +2,9 @@
 
 ## Status
 
-This document describes the current domain model and ownership boundaries, not a finalized SQL schema. Exact columns, constraints and RLS policies are defined through reviewed feature specifications and Supabase migrations.
+This document describes the current domain model and ownership boundaries. Exact
+columns, constraints, grants, and RLS policies are defined by the forward-only
+Supabase migrations and generated database types.
 
 The first tenant-owned schema is specified in:
 
@@ -11,6 +13,10 @@ The first tenant-owned schema is specified in:
 The current billing schema is specified in:
 
 `docs/features/billing-foundation/SPEC.md`
+
+The final hybrid plan-management contract and migration history are specified in:
+
+`docs/features/subscription-management/SPEC.md`
 
 ## Principles
 
@@ -299,8 +305,10 @@ with the original upgrade/downgrade command journal. Migration
 to the final hybrid model without rewriting history: it leaves the four projection
 columns and paid subscription rows intact, removes obsolete upgrade journal records,
 tightens the journal to the two custom downgrade operations, and removes the obsolete
-command-ending RPC. Database checks allow only a lower pending plan and require its
-effective timestamp to equal the current period end.
+command-ending RPC. It is also applied and verified on Staging. Database checks allow
+only a lower pending plan and require its effective timestamp to equal the current
+period end. Neither historical migration may be rewritten; later corrections require
+a new forward migration.
 
 Approved plan codes are:
 
@@ -336,7 +344,7 @@ atomic boundary for paid webhook writes. The earlier
 `public.apply_stripe_subscription_projection(...)` remains compatible for the
 already-deployed acquisition worker. The management projection:
 
-- runs as `SECURITY INVOKER` with an empty `search_path`;
+- runs as service-only `SECURITY DEFINER` with an empty `search_path`;
 - accepts only normalized Event and current-Subscription fields, never the full Stripe payload;
 - resolves Organization ownership from a ready canonical `billing_customers.stripe_customer_id`;
 - serializes projection changes with a transaction-scoped advisory lock keyed by Organization;
@@ -350,7 +358,12 @@ already-deployed acquisition worker. The management projection:
 - clears pending facts from canonical provider state and closes matching attempts only
   after verified Subscription/Schedule webhook reconciliation.
 
-The function is executable only by `service_role`. That role has read-only access to `billing_customers` and only `SELECT`/`INSERT`/`UPDATE` on the paid projection and Event ledger for this slice; it receives no `DELETE` or `TRUNCATE` capability there. External Stripe API retrieval happens before the transaction begins.
+The function is executable only by `service_role`; ownership and explicit grants are
+set by the migration, and `PUBLIC`, `anon`, and `authenticated` cannot invoke it. The
+earlier acquisition-only `apply_stripe_subscription_projection(...)` remains
+`SECURITY INVOKER` and retains its narrow `service_role` table-grant contract for the
+already-deployed worker. External Stripe API retrieval happens before either short
+database transaction begins.
 
 ### Billing access posture
 

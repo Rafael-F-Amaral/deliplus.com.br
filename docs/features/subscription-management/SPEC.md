@@ -1,6 +1,6 @@
 # Deli Plus — Subscription Management
 
-**Status:** Approved hybrid architecture; implementation and additive migration correction ready for staging review
+**Status:** Implemented; corrective migration applied and verified on Staging; Sandbox hybrid E2E passed
 **Scope:** paid-plan upgrades, scheduled downgrades, and cancellation of a scheduled downgrade
 
 ## 1. Architecture
@@ -30,11 +30,11 @@ The catalog must not be migrated to one Product merely to make Portal downgrades
 possible.
 
 Deployment note: the 2026-09-16 audit confirmed version `20260912180000` applied on
-the linked environment. Its exact original SQL was recovered from the remote migration
-history and restored locally. The new forward-only
+the linked Staging environment. Its exact original SQL was recovered from remote
+migration history and restored locally. The forward-only
 `20260916180000_hybrid_subscription_management.sql` converts that actual custom
-schema to the approved hybrid shape; the historical migration must not be rewritten
-or repaired.
+schema to the approved hybrid shape and is also applied and verified on Staging.
+Neither historical migration may be rewritten or repaired.
 
 ## 2. Authority and tenancy
 
@@ -106,9 +106,8 @@ The adapter retrieves and validates this configuration before creating a Session
 No generic Portal entry point is exposed. A configuration mismatch fails closed.
 
 All current and target Prices must use the same explicit `tax_behavior`. The current
-Sandbox Prices remain `unspecified`, so real Portal E2E is blocked until the owner
-manually approves and applies an explicit value. Automatic Tax and Stripe Tax remain
-out of scope.
+Sandbox Essential, Duo, and Trio Prices use `inclusive`; displayed BRL amounts are
+final plan prices. Automatic Tax and Stripe Tax remain disabled and out of scope.
 
 ## 5. Portal return
 

@@ -6,7 +6,7 @@ The repository was initialized with Next.js, TypeScript, Tailwind CSS and shadcn
 
 Use `package.json` as the source of truth for versions and scripts.
 
-Current scripts:
+Baseline scripts:
 
 ```bash
 yarn dev
@@ -15,14 +15,10 @@ yarn start
 yarn lint
 yarn format
 yarn typecheck
-yarn test:store-provisioning-setup
-yarn test:store-provisioning-setup:integration
-yarn test:store-trial-activation
-yarn test:store-trial-activation:concurrency
-yarn test:store-entitlement-activation
-yarn test:store-entitlement-activation:concurrency
-yarn test:store-activation-coordinator
 ```
+
+`package.json` is the authoritative inventory of domain, integration, concurrency,
+Stripe adapter/webhook, UI, and public-store test scripts.
 
 ## Package manager
 
@@ -68,6 +64,24 @@ Supabase
 Stripe server foundation
 ```
 
+Variable purposes:
+
+- `NEXT_PUBLIC_CLERK_*` and `CLERK_SECRET_KEY`: Clerk routes and SDK credentials;
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: normal
+  Supabase Data API access, including Clerk JWT-backed and anonymous clients;
+- `SUPABASE_SECRET_KEY`: server-only privileged access behind narrow repositories;
+- `STRIPE_SECRET_KEY`: server-only Stripe API access;
+- `STRIPE_WEBHOOK_SECRET`: signature verification for one webhook endpoint;
+- `STRIPE_PRICE_*`: environment-specific Price for each stable PlanCode;
+- `STRIPE_CHECKOUT_PAYMENT_METHOD_CONFIGURATION`: dedicated card-only Checkout
+  payment-method configuration;
+- `STRIPE_BILLING_PORTAL_CONFIGURATION_ID`: dedicated restricted upgrade Portal
+  configuration;
+- `BILLING_RETURN_ORIGIN`: trusted public origin for Checkout/Portal returns.
+
+`VERCEL_ENV` and `VERCEL_URL` are optional platform-provided Preview inputs and are
+not application secrets or user-managed `.env.example` entries.
+
 The Stripe server foundation recognizes these server-only variables:
 
 ```text
@@ -97,7 +111,10 @@ Each approved `PlanCode` maps to a different environment-specific Stripe Price I
 
 Stable Local, Staging, and Production deployments use an explicit `BILLING_RETURN_ORIGIN`. Ephemeral Vercel Preview deployments may fall back to the system-provided `VERCEL_URL`. Request headers are never an authority for billing return URLs.
 
-No publishable Stripe key is required for the approved future server-created, Stripe-hosted Checkout redirect. `STRIPE_WEBHOOK_SECRET` is the endpoint-specific `whsec_...` signing secret; it is not an API key and must remain server-only.
+No publishable Stripe key is required for the implemented server-created,
+Stripe-hosted Checkout/Portal redirects. `STRIPE_WEBHOOK_SECRET` is the
+endpoint-specific `whsec_...` signing secret; it is not an API key and must remain
+server-only.
 
 Do not document real keys in repository markdown.
 
@@ -171,6 +188,17 @@ SPEC
 ```
 
 Do not create application tables manually in the hosted Dashboard as the canonical schema.
+
+Current Supabase environment posture:
+
+- Local is the development, migration, reset, pgTAP, and integration-test environment.
+- Staging is the linked project used for forward-migration validation. The two
+  Subscription Management migrations through `20260916180000` are applied and
+  verified there.
+- A Vercel Preview-to-Staging binding is not established by repository configuration;
+  treat it as remaining infrastructure work until the hosted settings are verified.
+- Production Supabase provisioning and production provider bindings are not proven by
+  repository files and require an explicit go-live checklist.
 
 The first tenant-owned schema is specified in:
 
@@ -280,7 +308,9 @@ Current database foundation:
 - `billing_subscriptions` stores the current paid projection only;
 - `stripe_webhook_events` stores minimum Event idempotency metadata;
 - `billing_checkout_attempts` stores durable acquisition reservations and frozen replay parameters;
-- all five tables have RLS enabled and no direct `anon`/`authenticated` grants or policies.
+- `billing_subscription_change_attempts` stores only durable scheduled-downgrade
+  and cancellation recovery state;
+- all six tables have RLS enabled and no direct `anon`/`authenticated` grants or policies.
 
 Current product rules:
 
@@ -301,11 +331,21 @@ customer.subscription.updated
 customer.subscription.deleted
 invoice.paid
 invoice.payment_failed
+subscription_schedule.updated
+subscription_schedule.released
+subscription_schedule.completed
+subscription_schedule.canceled
+subscription_schedule.aborted
 ```
 
 Checkout and Invoice Events only trigger current-Subscription reconciliation. The Subscription snapshot remains authoritative for paid projection status. Async Checkout Events are not implemented because the approved MVP configuration is card-based; if delayed payment methods are enabled later, add and test `checkout.session.async_payment_succeeded` and `checkout.session.async_payment_failed` before relying on them.
 
-The current slices implement first-Store initial-trial activation, generic entitlement-based Store activation/deactivation, atomic active-Store capacity enforcement, the server-only Customer/Checkout acquisition backend, and the billing acquisition UI/Server Action. Portal and real Product/Price configuration remain separate work.
+The current slices implement first-Store initial-trial activation, generic
+entitlement-based Store activation/deactivation, atomic active-Store capacity
+enforcement, Checkout acquisition, the Billing UI, exact Customer Portal upgrades,
+custom scheduled downgrades/cancellation, webhook projection, and recovery. Remote
+Product/Price/Portal resources are environment configuration rather than repository
+schema; the current Sandbox resources have been configured for E2E.
 
 ### Stripe Checkout development
 
@@ -645,13 +685,23 @@ When a feature genuinely requires schema validation, select/introduce the soluti
 
 ## Tests
 
-A project-wide application test stack is not defined yet.
+The repository uses Node's built-in test runner for domain, UI, adapter, webhook,
+integration, and concurrency suites, plus Supabase pgTAP for database behavior and
+security. `package.json` is the script inventory.
 
-Database security features should use the Supabase/PostgreSQL testing approach approved by the relevant feature plan.
+Choose validation in proportion to the change:
+
+- unit/domain tests for rules and safe outcomes;
+- integration/concurrency tests for real local PostgreSQL boundaries;
+- Stripe adapter and webhook tests with injected provider fakes;
+- pgTAP and database lint for migrations, RLS, grants, and RPCs;
+- manual E2E only where real Clerk/Stripe/provider behavior matters.
 
 For tenant/Store security, include negative cross-tenant and same-tenant/unassigned-Store cases.
 
-Regardless of test framework, `lint`, `typecheck` and production `build` remain baseline checks.
+Regardless of feature suite, `lint`, `typecheck`, and production `build` remain
+baseline checks. Unrelated features do not need to repeat every historical Billing
+manual E2E scenario.
 
 ## Documentation workflow
 
@@ -711,26 +761,29 @@ Clock mutation is sent to Stripe automatically. The exact historical
 history and remains the custom upgrade/downgrade foundation actually applied to
 Staging. The additive
 `20260916180000_hybrid_subscription_management.sql` performs the reviewed conversion
-to the final hybrid schema. Apply that corrective migration only through the normal
-forward migration workflow; never rewrite or repair the applied historical version.
+to the final hybrid schema and is also applied and verified on Staging. Never rewrite
+or repair either applied migration; use a new forward migration for future changes.
 
 The restricted Stripe key needs Customer Portal Session create, Portal Configuration
 read, Subscription read, Price read, and Subscription Schedule read/write. It no longer
 needs Subscription write for a Deli Plus upgrade mutation. Automatic Tax remains
 disabled; re-evaluate Stripe Tax separately before tax collection or new jurisdictions.
 
-For Sandbox E2E, manually set the same explicit `tax_behavior` on Essential, Duo, and
-Trio. `inclusive` is the current product-owner candidate because displayed BRL values
-are intended as final prices, but do not apply it without approval. Create one dedicated
-Portal configuration and place its `bpc_...` ID in
-`STRIPE_BILLING_PORTAL_CONFIGURATION_ID`. It must have login disabled; subscription
-updates enabled with unchanged billing anchor, `always_invoice` proration, and only
-Price updates; exactly Duo and Trio as selectable Product/Price targets with quantity
-adjustment disabled; payment-method update enabled as a Stripe dependency; and
-cancellation, customer details, invoices, login, and scheduled-at-period-end conditions
-disabled. Deli Plus still creates only the exact `subscription_update_confirm` flow,
-never a generic payment-management flow. Restart the app after changing env.
+The current Sandbox Essential, Duo, and Trio Prices all use explicit
+`tax_behavior = inclusive`; the displayed BRL values are final customer prices. Stripe
+Tax and Automatic Tax remain disabled. The dedicated Portal configuration ID belongs
+in `STRIPE_BILLING_PORTAL_CONFIGURATION_ID`. That configuration has login disabled;
+subscription updates enabled with unchanged billing anchor, `always_invoice`
+proration, and only Price updates; exactly Duo and Trio as selectable Product/Price
+targets with quantity adjustment disabled; payment-method update enabled as a Stripe
+dependency; and cancellation, customer details, invoices, login, and
+scheduled-at-period-end conditions disabled. Deli Plus creates only the exact
+`subscription_update_confirm` flow, never a generic payment-management flow. Restart
+the app after changing env.
 
 The runtime retrieves and validates that configuration before every upgrade Session.
 Any additional target, including Essential, fails closed. The deep link is an exact
 `subscription_update_confirm`; there is no generic `Gerenciar cobrança` entry point.
+`customer.subscription.pending_update_applied` and
+`customer.subscription.pending_update_expired` are not registered webhook Events in
+the hybrid architecture.

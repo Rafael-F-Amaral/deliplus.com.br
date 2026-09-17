@@ -1,6 +1,6 @@
 # Deli Plus — Subscription Management Implementation Plan
 
-**Status:** Implemented locally; additive migration correction ready for staging review
+**Status:** Implemented; corrective migration applied and verified on Staging; Sandbox hybrid E2E passed
 
 ## 1. Keep, simplify, remove
 
@@ -56,13 +56,14 @@ The final audit invalidated the earlier unpublished-migration premise: remote hi
 already contains `20260912180000`. Its exact original SQL was recovered through
 `supabase migration fetch` and restored byte-for-byte. Do not rewrite or repair it.
 
-Apply the conversion only through the new forward migration
+The conversion was applied through the forward migration
 `20260916180000_hybrid_subscription_management.sql`. It retains the four pending
 Schedule columns and paid subscription projection, deterministically deletes only
 obsolete `upgrade` attempt-journal rows, constrains operations/directions to the two
 custom downgrade paths, replaces claim/projection RPC definitions, removes
 `end_billing_subscription_change`, and preserves revoked direct journal privileges.
-Regenerate `lib/supabase/database.types.ts` after a local reset.
+The generated `lib/supabase/database.types.ts` reflects the converted schema. Future
+database changes follow the same reset/test/regenerate workflow.
 
 ## 4. Race correction
 
@@ -93,9 +94,10 @@ link. Do not create or mutate the remote configuration in implementation.
 - Regression: Billing UI, Checkout, Billing success, webhook, entitlement, dashboard,
   Store capacity, and full pgTAP.
 
-## 7. Verification and handoff
+## 7. Verification and historical handoff
 
-Run local reset, regenerate types, pgTAP, focused/regression suites, database lint,
-ESLint, TypeScript, production build, `git diff --check`, migration list, and remote
-push dry-run. Do not execute a remote push. Hand off the explicit Price tax behavior
-and dedicated Portal configuration as manual Sandbox prerequisites for E2E.
+The implementation was verified with local reset, regenerated types, pgTAP,
+focused/regression suites, database lint, ESLint, TypeScript, production build,
+migration history checks, and Sandbox E2E. The dedicated Portal configuration and
+explicit inclusive Sandbox Price tax behavior are now established environment
+prerequisites, not pending implementation tasks.

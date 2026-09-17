@@ -198,16 +198,15 @@ read Stripe Price IDs for display. Early paid subscription grants entitlement
 independently of Store creation/activation; it does not start another trial.
 
 Frontend code must not import Supabase repositories/clients, billing repositories,
-private entitlement helpers, or Stripe clients for the overview. The temporary
+private entitlement helpers, or Stripe clients for the overview. The current
 dashboard status presentation consumes only `getDashboardOverview()`. Its
 `storePublished=1` query marker controls success feedback only and never proves
 Store or entitlement state. Future Store UI
 may use the existing public setup and activation/deactivation operations documented
 below through Server Components or thin Server Actions. Setup and lifecycle mutations
-remain Organization-admin operations. Final dashboard layout, empty states, plan
-labels, trial countdown presentation, Store wizard, and subscription management UI
-remain separate work. The current temporary dashboard rendering is intentionally
-limited to functional state visibility before the final frontend design.
+remain Organization-admin operations. The first-Store flow and hybrid subscription
+management UI are implemented. Broader dashboard layout, empty states, catalog and
+operational workflows, and final visual design remain product work.
 
 ## Public Store read contract
 
@@ -231,7 +230,7 @@ the repository or either Supabase client. The dependency path is domain -> publi
 repository -> anonymous client -> narrow active-Store RPC. No Clerk session,
 Organization, UUID, billing or lifecycle fact reaches the public DTO.
 
-Use `notFound()` for every unavailable Store. The temporary page is dynamic and
+Use `notFound()` for every unavailable Store. The current minimal page is dynamic and
 noindex, with no-store database fetches. Public input must already be canonical.
 Setup create/update still normalize and reject the shared reserved list, now
 including `onboarding`. See `docs/features/public-store-read-boundary/SPEC.md`.
@@ -393,7 +392,7 @@ Store. The setup route remains available for editing and recovery. Billing remai
 optional before Store
 activation, and neither Clerk Organization creation, Organization provisioning, route
 navigation, nor rendering starts the trial. The main manual coordinator E2E passed and
-the temporary billing-page provisioning control has been removed.
+the former billing-page provisioning control has been removed.
 
 Merchants may subscribe before creating or activating their first Store. Publish UI must
 call only `activateStoreForCurrentOrganization()`: it must not import or choose between
@@ -578,7 +577,14 @@ model, UI, or audit schema.
 
 ## Ownership of future decisions
 
-The following remain feature-specific and require their own approved specs:
+Rafael has full technical ownership of Deli Plus and may change any frontend,
+backend, database, RLS/RPC, Clerk, Stripe, Billing, Store, Dashboard, Storefront,
+test, or documentation boundary. No change is reserved for Jesse's approval.
+Architecture-sensitive work still requires an explicit design, safe forward
+migration where applicable, tenant/security verification, tests, and updated docs.
+Existing contracts are the current starting point, not immutable constraints.
+
+The following remain feature-specific and require their own written design/spec:
 
 - dashboard visual presentation beyond the Overview read contract above;
 - automatic downgrade remediation policy;
