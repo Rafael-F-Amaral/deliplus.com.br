@@ -224,6 +224,22 @@ The exact lifecycle for pending invitations versus accepted members requires its
 
 Do not force merchants to manually coordinate the Clerk Organization profile and a separate low-level database screen.
 
+Current Billing authority is intentionally Organization-role based:
+
+```text
+org:admin
+  -> read Billing state
+  -> create an exact Stripe upgrade Portal Session
+  -> schedule a downgrade
+  -> cancel a scheduled downgrade
+
+member
+  -> read Billing state only
+```
+
+Hidden or disabled controls are only presentation. Every Billing mutation repeats
+authentication, active-Organization resolution, and the `org:admin` check server-side.
+
 ## Public vs private data
 
 ### Public storefront
@@ -321,7 +337,10 @@ Both RPCs are executable only by `authenticated` among Data API roles. Their pri
 entitlement/capacity helpers are not Data API capabilities. Direct authenticated writes
 to Store and billing tables remain denied.
 
-The current billing database foundation contains Organization-owned local trial history, canonical Stripe Customer identity, paid Subscription projection, webhook Event ledger and durable Checkout attempts. RLS is enabled on all five.
+The current billing database foundation contains Organization-owned local trial
+history, canonical Stripe Customer identity, paid Subscription projection, webhook
+Event ledger, durable Checkout attempts, and durable custom downgrade/cancellation
+attempts. RLS is enabled on all six tables.
 
 ### Explicit Checkout acquisition boundary
 
@@ -368,7 +387,16 @@ raw Stripe request
   -> atomic Event ledger + paid projection RPC
 ```
 
-The webhook does not use Clerk because the Stripe signature authenticates that machine-to-machine request. It cannot choose an Organization from browser input or Stripe metadata: the internal Organization is derived only from the local canonical `billing_customers.stripe_customer_id` relation. The transactional RPC is `SECURITY INVOKER`, is executable only by `service_role`, and does not grant `anon` or `authenticated` any billing capability.
+The webhook does not use Clerk because the Stripe signature authenticates that
+machine-to-machine request. It cannot choose an Organization from browser input or
+Stripe metadata: the internal Organization is derived only from the local canonical
+`billing_customers.stripe_customer_id` relation. The original acquisition projection,
+`apply_stripe_subscription_projection`, remains `SECURITY INVOKER` and relies on the
+narrow direct grants given to `service_role`. The current hybrid management projection,
+`apply_stripe_subscription_management_projection`, is a service-only `SECURITY
+DEFINER` function with an empty `search_path`; it owns the atomic Event,
+Subscription, pending-Schedule, and attempt-convergence write. Neither boundary
+grants `anon` or `authenticated` any billing capability.
 
 Webhook processing never creates or changes `billing_trial_grants`. Invoice and Checkout Events trigger reconciliation only; they do not grant entitlement directly. The Organization entitlement resolver interprets the trusted local trial and paid projections without calling Stripe on the normal request path.
 
