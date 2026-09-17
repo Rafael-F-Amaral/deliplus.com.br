@@ -77,10 +77,11 @@ STRIPE_PRICE_ESSENTIAL
 STRIPE_PRICE_MULTI_2
 STRIPE_PRICE_MULTI_3
 STRIPE_CHECKOUT_PAYMENT_METHOD_CONFIGURATION
+STRIPE_BILLING_PORTAL_CONFIGURATION_ID
 BILLING_RETURN_ORIGIN
 ```
 
-The configuration is lazy. Missing Stripe secrets, Price IDs, or return origin do not break unrelated pages or `next build`; an error is raised only when the route or billing operation that needs a value executes.
+The configuration is lazy. Missing Stripe secrets, Price IDs, Portal/Checkout configuration IDs, or return origin do not break unrelated pages or `next build`; an error is raised only when the route or billing operation that needs a value executes.
 
 Use separate Stripe resources for each environment:
 
@@ -568,10 +569,11 @@ stripe login
 ```
 
 Start the application and the local Supabase stack, then forward only the implemented
-Event set. In PowerShell, quote the complete events argument:
+Event set. In PowerShell, quote the complete events argument. Keep underscores
+unescaped and pass the destination as a plain URL, without Markdown link syntax:
 
 ```powershell
-stripe listen --events "checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_failed" --forward-to "http://localhost:3000/api/stripe/webhook"
+stripe listen --events 'checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_failed,subscription_schedule.updated,subscription_schedule.released,subscription_schedule.completed,subscription_schedule.canceled,subscription_schedule.aborted' --forward-to 'http://localhost:3000/api/stripe/webhook'
 ```
 
 Copy the CLI-provided local signing secret into the ignored local environment file:
@@ -688,3 +690,47 @@ the dashboard should show a pending notice and the real trial/no-paid state. Res
 webhook delivery and replay the missed Sandbox event if necessary; refresh the
 dashboard to see the paid plan and success feedback. No payment failure is inferred
 from timeout. No automated purchases are part of these checks.
+
+### Subscription Management
+
+Paid plan management follows the approved hybrid dependency direction:
+
+```text
+upgrade: Billing UI -> exact Customer Portal confirmation -> webhook
+downgrade: Billing UI -> canonical Subscription Schedule -> webhook
+read: webhook -> local Billing projection -> Organization Entitlement
+```
+
+Run `yarn test:subscription-management` and
+`yarn test:subscription-management:concurrency` with local Supabase running, plus
+Billing UI, Stripe Checkout/Webhook, Billing Success, entitlement, dashboard,
+Store-capacity/activation, onboarding, and full pgTAP regressions. Stripe is faked in
+automated tests; no Portal Session, plan change, Schedule, release, payment, or Test
+Clock mutation is sent to Stripe automatically. The exact historical
+`20260912180000_subscription_management.sql` was recovered from the linked migration
+history and remains the custom upgrade/downgrade foundation actually applied to
+Staging. The additive
+`20260916180000_hybrid_subscription_management.sql` performs the reviewed conversion
+to the final hybrid schema. Apply that corrective migration only through the normal
+forward migration workflow; never rewrite or repair the applied historical version.
+
+The restricted Stripe key needs Customer Portal Session create, Portal Configuration
+read, Subscription read, Price read, and Subscription Schedule read/write. It no longer
+needs Subscription write for a Deli Plus upgrade mutation. Automatic Tax remains
+disabled; re-evaluate Stripe Tax separately before tax collection or new jurisdictions.
+
+For Sandbox E2E, manually set the same explicit `tax_behavior` on Essential, Duo, and
+Trio. `inclusive` is the current product-owner candidate because displayed BRL values
+are intended as final prices, but do not apply it without approval. Create one dedicated
+Portal configuration and place its `bpc_...` ID in
+`STRIPE_BILLING_PORTAL_CONFIGURATION_ID`. It must have login disabled; subscription
+updates enabled with unchanged billing anchor, `always_invoice` proration, and only
+Price updates; exactly Duo and Trio as selectable Product/Price targets with quantity
+adjustment disabled; payment-method update enabled as a Stripe dependency; and
+cancellation, customer details, invoices, login, and scheduled-at-period-end conditions
+disabled. Deli Plus still creates only the exact `subscription_update_confirm` flow,
+never a generic payment-management flow. Restart the app after changing env.
+
+The runtime retrieves and validates that configuration before every upgrade Session.
+Any additional target, including Essential, fails closed. The deep link is an exact
+`subscription_update_confirm`; there is no generic `Gerenciar cobrança` entry point.

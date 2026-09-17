@@ -35,6 +35,24 @@ const mocks = new Map([
     ),
   ],
   [
+    "@/lib/billing/subscription-management",
+    moduleUrl(
+      `export async function scheduleOrganizationPlanDowngrade(...args) { const s = globalThis.__billingUiTest; s.managementCalls.push(["downgrade", ...args]); if(s.managementError) throw s.managementError; return s.management } export async function cancelScheduledOrganizationPlanChange(...args) { const s = globalThis.__billingUiTest; s.managementCalls.push(["cancel", ...args]); if(s.managementError) throw s.managementError; return s.management }`
+    ),
+  ],
+  [
+    "@/lib/billing/subscription-upgrade-portal",
+    moduleUrl(
+      `export async function createSubscriptionUpgradePortalSession(...args) { const s = globalThis.__billingUiTest; s.managementCalls.push(["upgrade", ...args]); if(s.managementError) throw s.managementError; return s.upgradePortal }`
+    ),
+  ],
+  [
+    "@/lib/billing/organization-billing-state",
+    moduleUrl(
+      `export async function resolveOrganizationBillingState(...args) { const s = globalThis.__billingUiTest; s.billingReads.push(args); if(s.billingError) throw s.billingError; return s.billing }`
+    ),
+  ],
+  [
     "@/lib/billing/organization-entitlement",
     moduleUrl(`
     export class OrganizationEntitlementPreconditionError extends Error { constructor(code) { super("precondition"); this.code = code } }

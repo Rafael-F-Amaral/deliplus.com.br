@@ -55,7 +55,7 @@ export function BillingStatus({ state }: { state: BillingPageState }) {
         <p>
           {entitlement.entitled
             ? entitlement.source === "paid_subscription"
-              ? "Sua organização já possui uma assinatura. O gerenciamento estará disponível em uma próxima etapa."
+              ? `Sua organização está no plano ${entitlement.planCode === "essential" ? "Essencial" : entitlement.planCode === "multi_2" ? "Duo" : "Trio"}. Alterações só entram em vigor depois da confirmação do Stripe.`
               : `Você está no período de teste do plano ${entitlement.planCode === "essential" ? "Essencial" : entitlement.planCode === "multi_2" ? "Duo" : "Trio"}. Válido até ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeZone: "America/Sao_Paulo" }).format(entitlement.validUntil)}. Assinar não reinicia nem altera seu período de teste.`
             : "A cobrança é mensal. Você confere os detalhes antes de confirmar no Stripe."}
         </p>

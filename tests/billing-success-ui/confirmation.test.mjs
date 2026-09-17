@@ -32,6 +32,8 @@ beforeEach(() => {
     auth: { orgSlug: "tenant", has: () => true },
     entitlement: { entitled: false, reason: "no_entitlement" },
     reads: [],
+    billing: null,
+    billingReads: [],
     onboardingReads: [],
     calls: [],
     provisions: [],

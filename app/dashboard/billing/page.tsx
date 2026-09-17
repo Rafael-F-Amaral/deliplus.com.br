@@ -10,10 +10,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { getPlanDefinition, type PlanCode } from "@/lib/billing/plans"
+import {
+  getPlanDefinition,
+  isPlanCode,
+  type PlanCode,
+} from "@/lib/billing/plans"
 import { readBillingPageState } from "./billing-state"
 import { BillingStatus } from "./billing-status"
 import { CheckoutForm, CheckoutSubmit } from "./checkout-form"
+import {
+  SubscriptionManagementForm,
+  SubscriptionManagementSubmit,
+} from "./subscription-management-form"
 
 export const metadata: Metadata = { title: "Planos e assinatura | Deli Plus" }
 export const dynamic = "force-dynamic"
@@ -45,8 +53,16 @@ const plans = [
   description: string
 }[]
 
-export default async function BillingPage() {
-  const state = await readBillingPageState()
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+} = {}) {
+  const [state, query] = await Promise.all([
+    readBillingPageState(),
+    searchParams ??
+      Promise.resolve({} as Record<string, string | string[] | undefined>),
+  ])
   if (state.kind === "organization_not_provisioned") redirect("/onboarding")
 
   const paid =
@@ -54,6 +70,63 @@ export default async function BillingPage() {
     state.entitlement.entitled &&
     state.entitlement.source === "paid_subscription"
   const disabled = state.kind !== "resolved" || !state.isAdmin || paid
+  const billing = state.kind === "resolved" ? state.billing : null
+  const portalTargetValue =
+    query.portalReturn === "1" && typeof query.targetPlan === "string"
+      ? query.targetPlan
+      : null
+  const portalTargetPlanCode = isPlanCode(portalTargetValue)
+    ? portalTargetValue
+    : null
+  const managementDisabled =
+    state.kind !== "resolved" ||
+    !state.isAdmin ||
+    !billing ||
+    billing.status !== "active" ||
+    billing.collectionPaused ||
+    billing.cancelAtPeriodEnd
+  const cards = plans.map((plan) => {
+    const capacity = getPlanDefinition(plan.code).maxStores
+    return (
+      <Card key={plan.code}>
+        <CardHeader>
+          <CardTitle>
+            <h2>{plan.name}</h2>
+          </CardTitle>
+          <CardDescription>{plan.description}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-1 flex-col gap-6">
+          <p className="flex flex-wrap items-baseline gap-1">
+            <span className="text-base">R$</span>
+            <span className="text-4xl font-semibold tracking-tighter tabular-nums">
+              {plan.price}
+            </span>
+            <span className="text-muted-foreground">/mês</span>
+          </p>
+          <p className="text-base font-medium">
+            {capacity === 1 ? "1 Store" : `Até ${capacity} Stores`}
+          </p>
+        </CardContent>
+        <CardFooter>
+          {paid && billing ? (
+            <SubscriptionManagementSubmit
+              planCode={plan.code}
+              name={plan.name}
+              currentPlanCode={billing.planCode}
+              disabled={managementDisabled}
+            />
+          ) : (
+            <CheckoutSubmit
+              planCode={plan.code}
+              name={plan.name}
+              disabled={disabled}
+              paid={paid}
+            />
+          )}
+        </CardFooter>
+      </Card>
+    )
+  })
   return (
     <main className="min-h-svh px-6 py-10 sm:px-10 lg:px-16">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
@@ -92,41 +165,19 @@ export default async function BillingPage() {
           aria-label="Planos disponíveis"
           className="flex flex-col gap-5"
         >
-          <CheckoutForm disabled={disabled}>
-            {plans.map((plan) => {
-              const capacity = getPlanDefinition(plan.code).maxStores
-              return (
-                <Card key={plan.code}>
-                  <CardHeader>
-                    <CardTitle>
-                      <h2>{plan.name}</h2>
-                    </CardTitle>
-                    <CardDescription>{plan.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex flex-1 flex-col gap-6">
-                    <p className="flex flex-wrap items-baseline gap-1">
-                      <span className="text-base">R$</span>
-                      <span className="text-4xl font-semibold tracking-tighter tabular-nums">
-                        {plan.price}
-                      </span>
-                      <span className="text-muted-foreground">/mês</span>
-                    </p>
-                    <p className="text-base font-medium">
-                      {capacity === 1 ? "1 Store" : `Até ${capacity} Stores`}
-                    </p>
-                  </CardContent>
-                  <CardFooter>
-                    <CheckoutSubmit
-                      planCode={plan.code}
-                      name={plan.name}
-                      disabled={disabled}
-                      paid={paid}
-                    />
-                  </CardFooter>
-                </Card>
-              )
-            })}
-          </CheckoutForm>
+          {paid && billing ? (
+            <SubscriptionManagementForm
+              disabled={managementDisabled}
+              pendingPlanCode={billing.pendingPlanCode}
+              pendingEffectiveAt={billing.pendingEffectiveAt}
+              currentPlanCode={billing.planCode}
+              portalTargetPlanCode={portalTargetPlanCode}
+            >
+              {cards}
+            </SubscriptionManagementForm>
+          ) : (
+            <CheckoutForm disabled={disabled}>{cards}</CheckoutForm>
+          )}
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
             Todos os planos incluem o mesmo conjunto principal de
             funcionalidades do Deli Plus. O que muda é a capacidade de lojas.

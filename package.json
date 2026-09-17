@@ -31,7 +31,9 @@
     "test:store-activation-coordinator": "node --test tests/store-activation-coordinator/*.test.mjs",
     "test:stripe-server-foundation": "node --conditions=react-server --experimental-strip-types --test tests/stripe-server-foundation/*.test.mjs",
     "test:stripe-webhook-foundation": "node --conditions=react-server --experimental-strip-types --test tests/stripe-webhook-foundation/*.test.mjs",
-    "test:billing-success-ui": "node --test tests/billing-success-ui/*.test.mjs"
+    "test:billing-success-ui": "node --test tests/billing-success-ui/*.test.mjs",
+    "test:subscription-management": "node --conditions=react-server --experimental-strip-types --test tests/subscription-management/portal-upgrade.test.mjs tests/subscription-management/portal-upgrade.stripe.test.mjs tests/subscription-management/stripe-adapter.test.mjs tests/subscription-management/subscription-management.test.mjs",
+    "test:subscription-management:concurrency": "node --test tests/subscription-management/subscription-management.concurrency.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

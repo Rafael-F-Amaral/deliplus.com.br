@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       billing_checkout_attempts: {
@@ -121,6 +146,74 @@ export type Database = {
           },
         ]
       }
+      billing_subscription_change_attempts: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          expected_period_end: string
+          id: string
+          livemode: boolean
+          operation_kind: string
+          organization_id: string
+          revision: number
+          source_plan_code: string
+          source_stripe_price_id: string
+          state: string
+          stripe_api_version: string
+          stripe_subscription_id: string
+          stripe_subscription_schedule_id: string | null
+          target_plan_code: string | null
+          target_stripe_price_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at: string
+          ended_at?: string | null
+          expected_period_end: string
+          id: string
+          livemode: boolean
+          operation_kind: string
+          organization_id: string
+          revision?: number
+          source_plan_code: string
+          source_stripe_price_id: string
+          state: string
+          stripe_api_version: string
+          stripe_subscription_id: string
+          stripe_subscription_schedule_id?: string | null
+          target_plan_code?: string | null
+          target_stripe_price_id?: string | null
+          updated_at: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          expected_period_end?: string
+          id?: string
+          livemode?: boolean
+          operation_kind?: string
+          organization_id?: string
+          revision?: number
+          source_plan_code?: string
+          source_stripe_price_id?: string
+          state?: string
+          stripe_api_version?: string
+          stripe_subscription_id?: string
+          stripe_subscription_schedule_id?: string | null
+          target_plan_code?: string | null
+          target_stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_subscription_change_attempts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "billing_subscriptions"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
       billing_subscriptions: {
         Row: {
           cancel_at_period_end: boolean
@@ -130,10 +223,14 @@ export type Database = {
           last_synced_at: string
           organization_id: string
           past_due_since: string | null
+          pending_effective_at: string | null
+          pending_plan_code: string | null
+          pending_stripe_price_id: string | null
           plan_code: string
           status: string
           stripe_price_id: string
           stripe_subscription_id: string
+          stripe_subscription_schedule_id: string | null
           updated_at: string
         }
         Insert: {
@@ -144,10 +241,14 @@ export type Database = {
           last_synced_at: string
           organization_id: string
           past_due_since?: string | null
+          pending_effective_at?: string | null
+          pending_plan_code?: string | null
+          pending_stripe_price_id?: string | null
           plan_code: string
           status: string
           stripe_price_id: string
           stripe_subscription_id: string
+          stripe_subscription_schedule_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -158,10 +259,14 @@ export type Database = {
           last_synced_at?: string
           organization_id?: string
           past_due_since?: string | null
+          pending_effective_at?: string | null
+          pending_plan_code?: string | null
+          pending_stripe_price_id?: string | null
           plan_code?: string
           status?: string
           stripe_price_id?: string
           stripe_subscription_id?: string
+          stripe_subscription_schedule_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -353,25 +458,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_public_store_by_slug: {
-        Args: { p_slug: string }
-        Returns: { name: string; slug: string }[]
-      }
-      create_store_draft: {
-        Args: {
-          p_name: string
-          p_organization_id: string
-          p_slug: string
-        }
-        Returns: {
-          activated_at: string
-          id: string
-          name: string
-          slug: string
-          status: string
-          updated_at: string
-        }[]
-      }
       activate_first_store_with_initial_trial: {
         Args: { p_store_id: string }
         Returns: {
@@ -384,6 +470,42 @@ export type Database = {
         Returns: {
           outcome: string
         }[]
+      }
+      advance_billing_subscription_change: {
+        Args: {
+          p_attempt_id: string
+          p_expected_revision: number
+          p_expected_state: string
+          p_organization_id: string
+          p_state: string
+          p_stripe_subscription_schedule_id: string
+        }
+        Returns: {
+          attempt: Json
+          outcome: string
+        }[]
+      }
+      apply_stripe_subscription_management_projection: {
+        Args: {
+          p_cancel_at_period_end: boolean
+          p_collection_paused: boolean
+          p_current_period_end: string
+          p_event_type: string
+          p_livemode: boolean
+          p_pending_effective_at: string
+          p_pending_plan_code: string
+          p_pending_stripe_price_id: string
+          p_plan_code: string
+          p_status: string
+          p_stripe_created_at: string
+          p_stripe_customer_id: string
+          p_stripe_event_id: string
+          p_stripe_object_id: string
+          p_stripe_price_id: string
+          p_stripe_subscription_id: string
+          p_stripe_subscription_schedule_id: string
+        }
+        Returns: string
       }
       apply_stripe_subscription_projection: {
         Args: {
@@ -436,6 +558,35 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      claim_billing_subscription_change: {
+        Args: {
+          p_expected_period_end: string
+          p_livemode: boolean
+          p_operation_kind: string
+          p_organization_id: string
+          p_source_plan_code: string
+          p_source_stripe_price_id: string
+          p_stripe_subscription_id: string
+          p_stripe_subscription_schedule_id: string
+          p_target_plan_code: string
+          p_target_stripe_price_id: string
+        }
+        Returns: {
+          attempt: Json
+          outcome: string
+        }[]
+      }
+      create_store_draft: {
+        Args: { p_name: string; p_organization_id: string; p_slug: string }
+        Returns: {
+          activated_at: string
+          id: string
+          name: string
+          slug: string
+          status: string
+          updated_at: string
+        }[]
+      }
       deactivate_store: {
         Args: { p_store_id: string }
         Returns: {
@@ -465,21 +616,6 @@ export type Database = {
           id: string
         }[]
       }
-      mark_store_ready: {
-        Args: {
-          p_expected_updated_at: string
-          p_organization_id: string
-          p_store_id: string
-        }
-        Returns: {
-          activated_at: string
-          id: string
-          name: string
-          slug: string
-          status: string
-          updated_at: string
-        }[]
-      }
       finalize_billing_customer: {
         Args: {
           p_creation_idempotency_key: string
@@ -501,6 +637,28 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_public_store_by_slug: {
+        Args: { p_slug: string }
+        Returns: {
+          name: string
+          slug: string
+        }[]
+      }
+      mark_store_ready: {
+        Args: {
+          p_expected_updated_at: string
+          p_organization_id: string
+          p_store_id: string
+        }
+        Returns: {
+          activated_at: string
+          id: string
+          name: string
+          slug: string
+          status: string
+          updated_at: string
+        }[]
+      }
       reconcile_billing_checkout_attempt: {
         Args: {
           p_attempt_id: string
@@ -514,6 +672,19 @@ export type Database = {
         Returns: {
           attempt: Json
           outcome: string
+        }[]
+      }
+      resolve_active_organization_billing_state: {
+        Args: never
+        Returns: {
+          cancel_at_period_end: boolean
+          collection_paused: boolean
+          current_period_end: string
+          pending_effective_at: string
+          pending_plan_code: string
+          plan_change_in_progress: boolean
+          plan_code: string
+          status: string
         }[]
       }
       resolve_active_organization_entitlement_facts: {
@@ -563,12 +734,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -590,12 +761,13 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -614,12 +786,13 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -638,12 +811,13 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -656,11 +830,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -670,6 +844,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

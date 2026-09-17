@@ -290,6 +290,18 @@ elapsed time or browser cancellation alone never releases an attempt.
 
 Stores at most one current paid Stripe Subscription projection for an Organization with a canonical billing Customer. Verified webhook reconciliation now maintains its provider identifiers, internal `plan_code`, status and period/recovery metadata. Local trial fields and `maxStores` are deliberately absent.
 
+Migration `20260912180000_subscription_management.sql` is the historical custom
+Subscription Management foundation already applied to Staging. It added the
+all-null-or-complete scheduled-change projection: `stripe_subscription_schedule_id`,
+`pending_stripe_price_id`, `pending_plan_code`, and `pending_effective_at`, together
+with the original upgrade/downgrade command journal. Migration
+`20260916180000_hybrid_subscription_management.sql` converts that published schema
+to the final hybrid model without rewriting history: it leaves the four projection
+columns and paid subscription rows intact, removes obsolete upgrade journal records,
+tightens the journal to the two custom downgrade operations, and removes the obsolete
+command-ending RPC. Database checks allow only a lower pending plan and require its
+effective timestamp to equal the current period end.
+
 Approved plan codes are:
 
 ```text
@@ -300,13 +312,29 @@ multi_3   -> maxStores 3
 
 Capacity remains application configuration and not a schema cardinality or subscription column.
 
+### billing_subscription_change_attempts
+
+Stores one durable, open custom downgrade intent per Organization across tabs and
+processes. Its only operations are `schedule_downgrade` and
+`cancel_scheduled_downgrade`. The immutable snapshot includes current/target plan and
+Price, Subscription/Schedule correlation, expected period end, API recipe, mode,
+revision, and lifecycle timestamps. A partial unique index enforces the open-attempt
+invariant. The guarded lifecycle supports provider-object attachment,
+requested/recovery states, webhook-confirmed closure, and exact-convergence recovery
+when a webhook wins the final CAS race. RLS is enabled with no policies or direct
+mutation grants; `service_role` can act only through claim/advance/projection RPCs.
+Portal upgrades do not use this table and no Portal Session is persisted.
+
 ### stripe_webhook_events
 
 Stores minimum Stripe Event metadata for webhook idempotency/auditing. `processed_at` is written only in the same database transaction that applies or safely ignores the paid projection. A failed transaction leaves the Event retryable. The full webhook payload and `organization_id` are not persisted.
 
 ### Paid webhook projection transaction
 
-`public.apply_stripe_subscription_projection(...)` is the narrow atomic boundary for paid webhook writes. It:
+`public.apply_stripe_subscription_management_projection(...)` is the current narrow
+atomic boundary for paid webhook writes. The earlier
+`public.apply_stripe_subscription_projection(...)` remains compatible for the
+already-deployed acquisition worker. The management projection:
 
 - runs as `SECURITY INVOKER` with an empty `search_path`;
 - accepts only normalized Event and current-Subscription fields, never the full Stripe payload;
@@ -318,12 +346,15 @@ Stores minimum Stripe Event metadata for webhook idempotency/auditing. `processe
 - permits a different Subscription to replace the canonical row only after the prior row is terminal (`canceled` or `incomplete_expired`);
 - leaves competing non-terminal Subscription Events retryable instead of prematurely acknowledging an ambiguous canonical transition;
 - acknowledges stale non-canonical Subscription Events without allowing them to overwrite the current row.
+- projects the current Subscription plus any active two-phase downgrade schedule;
+- clears pending facts from canonical provider state and closes matching attempts only
+  after verified Subscription/Schedule webhook reconciliation.
 
 The function is executable only by `service_role`. That role has read-only access to `billing_customers` and only `SELECT`/`INSERT`/`UPDATE` on the paid projection and Event ledger for this slice; it receives no `DELETE` or `TRUNCATE` capability there. External Stripe API retrieval happens before the transaction begins.
 
 ### Billing access posture
 
-All five billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. Narrow entitlement-read, first-Store trial-activation, and generic Store lifecycle functions expose only their reviewed fact/result surfaces; they do not grant table access. Checkout RPCs are instead service-only operations behind the reviewed application-admin boundary.
+All six billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. Narrow entitlement-read, billing-state-read, first-Store trial-activation, and generic Store lifecycle functions expose only their reviewed fact/result surfaces; they do not grant table access. Checkout and subscription-management mutation RPCs are instead service-only operations behind the reviewed application-admin boundary.
 
 ## Relationship overview
 

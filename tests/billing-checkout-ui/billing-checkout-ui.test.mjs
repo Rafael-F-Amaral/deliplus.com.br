@@ -4,7 +4,12 @@ import { beforeEach, test } from "node:test"
 import { readFile } from "node:fs/promises"
 import { renderToStaticMarkup } from "react-dom/server"
 
-const { startCheckout } = await import("../../app/dashboard/billing/actions.ts")
+const {
+  startCheckout,
+  startSubscriptionUpgrade,
+  scheduleSubscriptionDowngrade,
+  cancelScheduledPlanChange,
+} = await import("../../app/dashboard/billing/actions.ts")
 const { default: BillingPage } =
   await import("../../app/dashboard/billing/page.tsx")
 const { default: SuccessPage } =
@@ -13,6 +18,8 @@ const { checkoutMessages } =
   await import("../../app/dashboard/billing/checkout-feedback.ts")
 const { readBillingPageState } =
   await import("../../app/dashboard/billing/billing-state.ts")
+const { resolveProjectionConfirmation } =
+  await import("../../app/dashboard/billing/subscription-management-confirmation.ts")
 const render = async (page) => renderToStaticMarkup(await page())
 const form = (plan) => {
   const data = new FormData()
@@ -33,6 +40,15 @@ beforeEach(() => {
       organizationId: "10000000-0000-0000-0000-000000000001",
     },
     entitlement: { entitled: false, reason: "no_entitlement" },
+    billing: null,
+    billingReads: [],
+    management: { status: "downgrade_processing" },
+    upgradePortal: {
+      status: "portal_ready",
+      portalUrl: "https://billing.stripe.com/p/session/synthetic",
+    },
+    managementCalls: [],
+    router: { refresh() {} },
     checkout: {
       status: "checkout_ready",
       checkoutUrl: "https://checkout.stripe.com/c/pay/synthetic",
@@ -174,25 +190,233 @@ test("render: valid trial presents its server-derived end date and allows Checko
   assert.doesNotMatch(html, /<fieldset[^>]*disabled/u)
   assert.equal(state.calls.length, 0)
 })
-test("render: paid subscription blocks acquisition without a nonexistent Portal link", async () => {
+test("render: paid subscription offers exact upgrade and scheduled downgrade actions", async () => {
   state.entitlement = {
     entitled: true,
     source: "paid_subscription",
     planCode: "multi_2",
     maxStores: 2,
   }
+  state.billing = {
+    planCode: "multi_2",
+    status: "active",
+    currentPeriodEnd: new Date("2026-10-12T00:00:00Z"),
+    cancelAtPeriodEnd: false,
+    collectionPaused: false,
+    pendingPlanCode: null,
+    pendingEffectiveAt: null,
+    planChangeInProgress: false,
+  }
   const html = await render(BillingPage)
-  assert.match(html, /já possui uma assinatura/u)
-  assert.match(html, /<fieldset[^>]*disabled/u)
-  assert.equal((html.match(/>Assinatura existente</gu) ?? []).length, 3)
-  assert.doesNotMatch(html, /href="[^"]*portal/iu)
+  assert.match(html, /plano Duo/u)
+  assert.doesNotMatch(html, /<fieldset[^>]*disabled/u)
+  assert.match(html, />Plano atual</u)
+  assert.match(html, />Agendar downgrade para Essencial</u)
+  assert.match(html, />Fazer upgrade para Trio</u)
+  assert.doesNotMatch(html, /Gerenciar assinatura|href="[^"]*portal/iu)
   assert.equal(state.calls.length, 0)
+})
+test("render: Portal return is presentation only until local projection changes", async () => {
+  state.entitlement = {
+    entitled: true,
+    source: "paid_subscription",
+    planCode: "essential",
+    maxStores: 1,
+  }
+  state.billing = {
+    planCode: "essential",
+    status: "active",
+    currentPeriodEnd: new Date("2026-10-12T00:00:00Z"),
+    cancelAtPeriodEnd: false,
+    collectionPaused: false,
+    pendingPlanCode: null,
+    pendingEffectiveAt: null,
+    planChangeInProgress: false,
+  }
+  const page = () =>
+    BillingPage({
+      searchParams: Promise.resolve({
+        portalReturn: "1",
+        targetPlan: "multi_3",
+      }),
+    })
+  const pending = await render(page)
+  assert.match(pending, /Atualizando seu plano/u)
+  assert.doesNotMatch(pending, /Plano atualizado/u)
+  assert.equal(state.entitlement.planCode, "essential")
+  assert.deepEqual(state.managementCalls, [])
+
+  state.entitlement = {
+    ...state.entitlement,
+    planCode: "multi_3",
+    maxStores: 3,
+  }
+  state.billing = { ...state.billing, planCode: "multi_3" }
+  const projected = await render(page)
+  assert.match(projected, /Plano atualizado/u)
+  assert.match(projected, /projeção local já foi atualizada/u)
+})
+test("render: an open recovery attempt keeps its idempotent retry available", async () => {
+  state.entitlement = {
+    entitled: true,
+    source: "paid_subscription",
+    planCode: "multi_3",
+    maxStores: 3,
+  }
+  state.billing = {
+    planCode: "multi_3",
+    status: "active",
+    currentPeriodEnd: new Date("2026-10-12T00:00:00Z"),
+    cancelAtPeriodEnd: false,
+    collectionPaused: false,
+    pendingPlanCode: null,
+    pendingEffectiveAt: null,
+    planChangeInProgress: true,
+  }
+  const html = await render(BillingPage)
+  assert.doesNotMatch(html, /<fieldset[^>]*disabled/u)
+  assert.match(html, />Agendar downgrade para Essencial</u)
+  assert.doesNotMatch(html, /Cancelar redução agendada/u)
+})
+test("management actions accept only the plan selector and never trust browser billing facts", async () => {
+  const data = form("multi_3")
+  for (const [key, value] of [
+    ["organizationId", "other"],
+    ["stripePriceId", "price_fake"],
+    ["quantity", "9"],
+  ])
+    data.append(key, value)
+  await assert.rejects(
+    startSubscriptionUpgrade({ kind: "idle" }, data),
+    (error) => error.redirectUrl === state.upgradePortal.portalUrl
+  )
+  assert.deepEqual(
+    await scheduleSubscriptionDowngrade({ kind: "idle" }, form("essential")),
+    {
+      kind: "business",
+      status: "downgrade_processing",
+      targetPlanCode: "essential",
+    }
+  )
+  assert.deepEqual(await cancelScheduledPlanChange({ kind: "idle" }), {
+    kind: "business",
+    status: "downgrade_processing",
+    targetPlanCode: null,
+  })
+  assert.deepEqual(state.managementCalls, [
+    ["upgrade", "multi_3"],
+    ["downgrade", "essential"],
+    ["cancel"],
+  ])
+})
+test("render: projected downgrade is visible and can be canceled", async () => {
+  state.entitlement = {
+    entitled: true,
+    source: "paid_subscription",
+    planCode: "multi_3",
+    maxStores: 3,
+  }
+  state.billing = {
+    planCode: "multi_3",
+    status: "active",
+    currentPeriodEnd: new Date("2026-10-12T00:00:00Z"),
+    cancelAtPeriodEnd: false,
+    collectionPaused: false,
+    pendingPlanCode: "essential",
+    pendingEffectiveAt: new Date("2026-10-12T00:00:00Z"),
+    planChangeInProgress: false,
+  }
+  const html = await render(BillingPage)
+  assert.match(html, /Mudança programada/u)
+  assert.match(html, /Trio → Essencial/u)
+  assert.match(html, /Cancelar redução agendada/u)
+  assert.match(html, /11 de outubro de 2026/u)
 })
 test("render: member can view billing but cannot submit", async () => {
   state.auth.has = () => false
   const html = await render(BillingPage)
   assert.match(html, /Somente um administrador/u)
   assert.match(html, /<fieldset[^>]*disabled/u)
+})
+
+test("management confirmation refresh is local, bounded, and stops on projected truth", async () => {
+  const [source, confirmationSource] = await Promise.all([
+    readFile(
+      new URL(
+        "../../app/dashboard/billing/subscription-management-form.tsx",
+        import.meta.url
+      ),
+      "utf8"
+    ),
+    readFile(
+      new URL(
+        "../../app/dashboard/billing/subscription-management-confirmation.ts",
+        import.meta.url
+      ),
+      "utf8"
+    ),
+  ])
+  assert.match(source, /router\.refresh\(\)/u)
+  assert.match(source, /window\.setInterval/u)
+  assert.match(source, /2_000/u)
+  assert.match(source, /count >= 6/u)
+  assert.match(source, /setLatestSubmission\("cancel"\)/u)
+  assert.match(source, /actions\.markSubmitted/u)
+  assert.match(confirmationSource, /portalTargetPlanCode !== currentPlanCode/u)
+  assert.match(
+    confirmationSource,
+    /pendingPlanCode === downgradeState\.targetPlanCode/u
+  )
+  assert.match(source, /Ainda estamos confirmando a alteração do seu plano/u)
+  assert.doesNotMatch(
+    `${source}\n${confirmationSource}`,
+    /fetch\(|lib\/stripe|session_id/u
+  )
+})
+
+test("management confirmation follows the latest submission after schedule cancellation", () => {
+  const downgradeState = {
+    kind: "business",
+    status: "downgrade_processing",
+    targetPlanCode: "essential",
+  }
+  const staleCancellationState = {
+    kind: "business",
+    status: "cancellation_processing",
+    targetPlanCode: null,
+  }
+
+  assert.deepEqual(
+    resolveProjectionConfirmation({
+      latestSubmission: "downgrade",
+      downgradeState,
+      cancelState: staleCancellationState,
+      pendingPlanCode: null,
+      currentPlanCode: "multi_3",
+      portalTargetPlanCode: null,
+    }),
+    {
+      key: "downgrade:essential",
+      label: "Confirmando mudança programada...",
+      complete: false,
+    }
+  )
+
+  assert.deepEqual(
+    resolveProjectionConfirmation({
+      latestSubmission: "cancel",
+      downgradeState,
+      cancelState: staleCancellationState,
+      pendingPlanCode: "essential",
+      currentPlanCode: "multi_3",
+      portalTargetPlanCode: null,
+    }),
+    {
+      key: "cancel",
+      label: "Cancelando mudança programada...",
+      complete: false,
+    }
+  )
 })
 
 for (const canProvision of [true, false]) {

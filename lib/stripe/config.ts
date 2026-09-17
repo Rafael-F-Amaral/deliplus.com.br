@@ -8,6 +8,7 @@ import {
 } from "../billing/plans"
 import {
   parseStripeApiLivemode,
+  parseBillingPortalConfiguration,
   parseCheckoutPaymentMethodConfiguration,
   parseStripeSecretKey,
   parseStripeWebhookSecret,
@@ -22,6 +23,8 @@ function getStripeServerEnvironment(): StripeServerEnvironment &
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
     STRIPE_CHECKOUT_PAYMENT_METHOD_CONFIGURATION:
       process.env.STRIPE_CHECKOUT_PAYMENT_METHOD_CONFIGURATION,
+    STRIPE_BILLING_PORTAL_CONFIGURATION_ID:
+      process.env.STRIPE_BILLING_PORTAL_CONFIGURATION_ID,
     STRIPE_PRICE_ESSENTIAL: process.env.STRIPE_PRICE_ESSENTIAL,
     STRIPE_PRICE_MULTI_2: process.env.STRIPE_PRICE_MULTI_2,
     STRIPE_PRICE_MULTI_3: process.env.STRIPE_PRICE_MULTI_3,
@@ -79,6 +82,33 @@ export function getStripeCheckoutConfiguration(planCode: PlanCode) {
     stripeApiVersion: "2026-07-29.dahlia" as const,
     successUrl: `${origin}/dashboard/billing/success`,
     cancelUrl: `${origin}/dashboard/billing`,
+  }
+}
+
+export function getStripeUpgradePortalConfiguration(planCode: PlanCode) {
+  const stripePriceId = resolveStripePriceId(planCode)
+  if (resolvePlanCodeFromStripePriceId(stripePriceId) !== planCode) {
+    throw new Error("Invalid upgrade Portal Price mapping")
+  }
+  const origin = getBillingReturnOrigin()
+  const returnUrl = new URL("/dashboard/billing", origin)
+  returnUrl.searchParams.set("portalReturn", "1")
+  returnUrl.searchParams.set("targetPlan", planCode)
+  return {
+    stripePriceId,
+    portalAllowedUpgradePriceIds: [
+      resolveStripePriceId("multi_2"),
+      resolveStripePriceId("multi_3"),
+    ] as const,
+    portalConfigurationId: parseBillingPortalConfiguration(
+      getStripeServerEnvironment()
+    ),
+    returnUrl: returnUrl.toString(),
+    currency: "brl" as const,
+    recurringInterval: "month" as const,
+    recurringIntervalCount: 1 as const,
+    livemode: getStripeApiLivemode(),
+    stripeApiVersion: "2026-07-29.dahlia" as const,
   }
 }
 
