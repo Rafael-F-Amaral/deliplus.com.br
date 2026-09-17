@@ -7,6 +7,11 @@ export const SUPPORTED_STRIPE_WEBHOOK_EVENT_TYPES = [
   "customer.subscription.deleted",
   "invoice.paid",
   "invoice.payment_failed",
+  "subscription_schedule.updated",
+  "subscription_schedule.released",
+  "subscription_schedule.completed",
+  "subscription_schedule.canceled",
+  "subscription_schedule.aborted",
 ] as const
 
 export type SupportedStripeWebhookEventType =
@@ -85,6 +90,18 @@ export function resolveStripeSubscriptionReconciliationContext(
       stripeObjectId,
       stripeSubscriptionId: getStripeId(subscription.id, "sub", "Subscription"),
       stripeCustomerId: getStripeId(subscription.customer, "cus", "Customer"),
+    }
+  }
+
+  if (event.type.startsWith("subscription_schedule.")) {
+    const schedule = eventObject as Stripe.SubscriptionSchedule
+    const subscription = schedule.subscription ?? schedule.released_subscription
+
+    return {
+      eventType: event.type,
+      stripeObjectId,
+      stripeSubscriptionId: getStripeId(subscription, "sub", "Subscription"),
+      stripeCustomerId: getStripeId(schedule.customer, "cus", "Customer"),
     }
   }
 

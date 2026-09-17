@@ -96,7 +96,7 @@ Current product direction:
 - `maxStores` counts only Stores with `status = 'active'`; draft and ready Stores do not consume capacity;
 - trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
 
-The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, Store setup foundation, first-Store trial activation, and generic Store entitlement activation boundaries exist. Store setup supports Organization-admin reads, draft creation, name/slug editing, and readiness. `activateFirstStoreWithInitialTrial(storeId)` atomically activates the first eligible ready Store and creates its 15-day Essential trial. `activateStoreWithinEntitlement(storeId)` and `deactivateStore(storeId)` enforce the current paid/local plan capacity for later lifecycle changes. The Stripe Checkout backend and billing acquisition UI/Server Action now exist; Customer Portal remains a separate implementation slice.
+The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, Store setup foundation, first-Store trial activation, and generic Store entitlement activation boundaries exist. Store setup supports Organization-admin reads, draft creation, name/slug editing, and readiness. `activateFirstStoreWithInitialTrial(storeId)` atomically activates the first eligible ready Store and creates its 15-day Essential trial. `activateStoreWithinEntitlement(storeId)` and `deactivateStore(storeId)` enforce the current paid/local plan capacity for later lifecycle changes. Stripe Checkout owns acquisition. Paid-plan management is deliberately hybrid: exact upgrades use Customer Portal `subscription_update_confirm`, while Deli Plus owns end-of-period downgrade Schedules and their release.
 
 Normal Store UI publishes through `activateStoreForCurrentOrganization(storeId)`. This
 server-only coordinator first asks the generic transactional boundary to consume any
@@ -269,8 +269,10 @@ The current billing database foundation separates:
 - `stripe_webhook_events` for minimum webhook idempotency metadata.
 - `billing_checkout_attempts` for immutable acquisition intents, Session correlation,
   retry/recovery and one non-ended reservation per Organization across plans.
+- `billing_subscription_change_attempts` for one immutable scheduled-downgrade or
+  scheduled-change cancellation intent per Organization; Portal upgrades use no journal.
 
-All five tables have RLS enabled and no direct `anon` or `authenticated` Data API access. Paid projection writes use one atomic `SECURITY INVOKER` PostgreSQL function callable only by `service_role`; that role receives only the table privileges required by the webhook slice. Checkout Customer/attempt writes use five narrow service-only `SECURITY DEFINER` RPCs; direct Customer/attempt access remains SELECT-only for `service_role`.
+All six tables have RLS enabled and no direct `anon` or `authenticated` Data API access. Paid projection writes use narrow atomic PostgreSQL functions callable only by `service_role`; that role receives only the table privileges required by the webhook slice. Checkout and subscription-change writes use narrow service-only `SECURITY DEFINER` RPCs; the management-attempt table has no direct service mutation grants.
 
 Normal Organization entitlement reads use the zero-argument `public.resolve_active_organization_entitlement_facts()` function. It is a reviewed, `STABLE`, `SECURITY DEFINER` read boundary with an empty `search_path`, derives the active tenant only from the verified Clerk JWT, and returns only local-trial and paid-projection facts needed by the server resolver. Only `authenticated` may execute it; the billing tables remain unavailable for direct authenticated reads.
 
@@ -284,11 +286,11 @@ Initial responsibility:
 
 - Organization-level merchant subscription checkout;
 - paid Customer/Subscription lifecycle;
-- billing portal when implemented;
+- exact hosted upgrade confirmation through a restricted Customer Portal configuration;
 - billing webhooks;
 - plan/Store-capacity entitlement source in conjunction with DeliPlus billing projection.
 
-The current Stripe server and webhook foundations provide:
+The current Stripe server, Portal-upgrade, and webhook foundations provide:
 
 - the exact official Stripe Node SDK;
 - a lazy server-only client using only `STRIPE_SECRET_KEY`;
@@ -299,6 +301,9 @@ The current Stripe server and webhook foundations provide:
 - raw-body verification before Event processing;
 - current-Subscription reconciliation for the approved Checkout, Subscription, and Invoice Event set;
 - a single paid-subscription reducer and atomic Event-ledger/projection transaction.
+- exact `subscription_update_confirm` Sessions for higher plans only, with a dedicated
+  configuration that exposes only Duo and Trio as Portal switch targets;
+- custom two-phase Subscription Schedules for lower plans and canonical Schedule release.
 
 Supported, verified webhook processing retrieves current Stripe Subscription state.
 The explicit `createSubscriptionCheckoutSession(planCode)` billing action also reads
@@ -315,11 +320,13 @@ configuration is Essencial R$ 99,90, Duo R$ 189,90 and Trio R$ 279,90 per month;
 these amounts are not domain identity or authorization constants.
 
 Imports, builds, automated tests and unrelated Events perform no real Stripe API call.
-The billing acquisition UI uses a thin Server Action and a read-only success page;
-its first real Sandbox E2E is recorded in `docs/DEVELOPMENT.md`. Portal, remote catalog
-creation, tax, Stripe trial and Store mutations are not part of this UI feature. Paid
-entitlement still comes only from the verified webhook projection, never a redirect. See
-`docs/features/stripe-checkout/SPEC.md` for the acquisition/recovery contract.
+The Billing UI uses thin Server Actions and local projection reads. Checkout returns and
+Portal returns are presentation hints only; paid entitlement still comes exclusively
+from verified webhook projection. The three existing monthly Products remain separate.
+Remote catalog/configuration mutation, tax automation, Stripe trial, generic Portal
+self-service, and Store mutation are not part of Subscription Management. See
+`docs/features/stripe-checkout/SPEC.md` and
+`docs/features/subscription-management/SPEC.md` for the two contracts.
 
 End-customer payment for food orders is outside the initial scope.
 

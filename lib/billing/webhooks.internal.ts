@@ -1,7 +1,10 @@
 import type Stripe from "stripe"
 
 import type { PlanCode } from "./plans"
-import type { NormalizedStripeSubscription } from "./subscription-reducer"
+import type {
+  NormalizedStripeSubscription,
+  NormalizedStripeSubscriptionManagement,
+} from "./subscription-reducer"
 import type { StripeSubscriptionReconciliationContext } from "./webhook-events"
 
 export type StripeWebhookProjectionInput = {
@@ -10,7 +13,7 @@ export type StripeWebhookProjectionInput = {
   stripeObjectId: string
   livemode: boolean
   stripeCreatedAt: string
-  subscription: NormalizedStripeSubscription
+  subscription: NormalizedStripeSubscriptionManagement
 }
 
 export type StripeWebhookProjectionResult =
@@ -28,11 +31,19 @@ export type StripeWebhookProcessingDependencies = {
   retrieveSubscription: (
     stripeSubscriptionId: string
   ) => Promise<Stripe.Subscription>
+  retrieveSchedule?: (
+    stripeSubscriptionScheduleId: string
+  ) => Promise<Stripe.SubscriptionSchedule>
   resolvePlanCode: (stripePriceId: string) => PlanCode
   reduceSubscription: (
     subscription: Stripe.Subscription,
     resolvePlanCode: (stripePriceId: string) => PlanCode
   ) => NormalizedStripeSubscription
+  reduceManagementSubscription?: (
+    subscription: Stripe.Subscription,
+    schedule: Stripe.SubscriptionSchedule | null,
+    resolvePlanCode: (stripePriceId: string) => PlanCode
+  ) => NormalizedStripeSubscriptionManagement
   applyProjection: (
     input: StripeWebhookProjectionInput
   ) => Promise<StripeWebhookProjectionResult>
@@ -78,10 +89,31 @@ export async function processStripeWebhookEventWithDependencies(
   const subscription = await dependencies.retrieveSubscription(
     context.stripeSubscriptionId
   )
-  const normalizedSubscription = dependencies.reduceSubscription(
-    subscription,
-    dependencies.resolvePlanCode
-  )
+  const scheduleId =
+    subscription.schedule == null
+      ? null
+      : typeof subscription.schedule === "string"
+        ? subscription.schedule
+        : subscription.schedule.id
+  const schedule = scheduleId
+    ? await dependencies.retrieveSchedule?.(scheduleId)
+    : null
+  const normalizedSubscription = dependencies.reduceManagementSubscription
+    ? dependencies.reduceManagementSubscription(
+        subscription,
+        schedule ?? null,
+        dependencies.resolvePlanCode
+      )
+    : {
+        ...dependencies.reduceSubscription(
+          subscription,
+          dependencies.resolvePlanCode
+        ),
+        stripeSubscriptionScheduleId: null,
+        pendingStripePriceId: null,
+        pendingPlanCode: null,
+        pendingEffectiveAt: null,
+      }
 
   if (
     normalizedSubscription.stripeSubscriptionId !== context.stripeSubscriptionId

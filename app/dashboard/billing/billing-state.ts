@@ -6,6 +6,10 @@ import {
   type OrganizationEntitlement,
 } from "@/lib/billing/organization-entitlement"
 import { resolveOnboardingState } from "@/lib/onboarding/resolve-onboarding-state"
+import {
+  resolveOrganizationBillingState,
+  type OrganizationBillingState,
+} from "@/lib/billing/organization-billing-state"
 
 export type BillingPageState =
   | {
@@ -13,6 +17,7 @@ export type BillingPageState =
       entitlement: OrganizationEntitlement
       isAdmin: boolean
       organizationName: string
+      billing: OrganizationBillingState | null
     }
   | { kind: "unauthenticated" | "no_active_organization" | "unavailable" }
   | { kind: "organization_not_provisioned"; canProvision: boolean }
@@ -35,13 +40,17 @@ export async function readBillingPageState(): Promise<BillingPageState> {
     }
 
     const { orgSlug, has } = await auth()
-    const entitlement = await resolveOrganizationEntitlement()
+    const [entitlement, billing] = await Promise.all([
+      resolveOrganizationEntitlement(),
+      resolveOrganizationBillingState(),
+    ])
 
     return {
       kind: "resolved",
       entitlement,
       isAdmin: has({ role: "org:admin" }),
       organizationName: orgSlug || "Organização ativa",
+      billing,
     }
   } catch {
     return { kind: "unavailable" }

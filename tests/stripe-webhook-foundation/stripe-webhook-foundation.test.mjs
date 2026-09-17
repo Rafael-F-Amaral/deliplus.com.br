@@ -12,6 +12,7 @@ import {
 import {
   BILLING_SUBSCRIPTION_STATUSES,
   reduceStripeSubscription,
+  reduceStripeSubscriptionManagement,
   StripeSubscriptionNormalizationError,
 } from "../../lib/billing/subscription-reducer.ts"
 import { resolveStripeSubscriptionReconciliationContext } from "../../lib/billing/webhook-events.ts"
@@ -82,6 +83,15 @@ function createEvent(type, overrides = {}) {
 
   if (type.startsWith("customer.subscription.")) {
     object = subscriptionObject
+  } else if (type.startsWith("subscription_schedule.")) {
+    object = {
+      id: "sub_sched_current123",
+      customer: "cus_current123",
+      subscription:
+        type === "subscription_schedule.released" ? null : "sub_current123",
+      released_subscription:
+        type === "subscription_schedule.released" ? "sub_current123" : null,
+    }
   } else if (type === "checkout.session.completed") {
     object = {
       id: "cs_test_current123",
@@ -295,6 +305,138 @@ test("non-recurring Prices and invalid item periods fail closed", () => {
   )
 })
 
+test("management reducer keeps current plan and projects only the canonical target phase", () => {
+  const boundary = 1_800_000_000
+  const subscription = createSubscription({
+    schedule: "sub_sched_current123",
+    metadata: { plan_code: "multi_2" },
+    item: { price: { id: "price_multi3123" } },
+  })
+  const schedule = {
+    id: "sub_sched_current123",
+    customer: "cus_current123",
+    subscription: "sub_current123",
+    status: "active",
+    end_behavior: "release",
+    phases: [
+      {
+        start_date: boundary - 2_592_000,
+        end_date: boundary,
+        items: [{ price: "price_multi3123", quantity: 1 }],
+      },
+      {
+        start_date: boundary,
+        end_date: boundary + 2_592_000,
+        items: [{ price: "price_essential123", quantity: 1 }],
+      },
+    ],
+  }
+  const projection = reduceStripeSubscriptionManagement(
+    subscription,
+    schedule,
+    resolvePlanCode
+  )
+  assert.equal(projection.planCode, "multi_3")
+  assert.equal(projection.pendingPlanCode, "essential")
+  assert.equal(
+    projection.pendingEffectiveAt,
+    new Date(boundary * 1000).toISOString()
+  )
+})
+
+test("real Stripe Schedule-attachment snapshot keeps stale acquisition metadata out of current-plan authority", () => {
+  const boundary = 1_800_000_000
+  const subscription = createSubscription({
+    collection_method: "charge_automatically",
+    metadata: {
+      plan_code: "multi_2",
+      organization_id: "10000000-0000-4000-8000-000000000001",
+      checkout_attempt_id: "20000000-0000-4000-8000-000000000002",
+    },
+    schedule: "sub_sched_current123",
+    item: {
+      quantity: 1,
+      price: {
+        id: "price_multi3123",
+        active: true,
+        currency: "brl",
+        livemode: false,
+        type: "recurring",
+        recurring: {
+          interval: "month",
+          interval_count: 1,
+          usage_type: "licensed",
+        },
+      },
+    },
+  })
+  const schedule = {
+    id: "sub_sched_current123",
+    customer: "cus_current123",
+    subscription: "sub_current123",
+    status: "active",
+    end_behavior: "release",
+    phases: [
+      {
+        start_date: boundary - 2_592_000,
+        end_date: boundary,
+        items: [{ price: "price_multi3123", quantity: 1 }],
+      },
+    ],
+  }
+
+  assert.deepEqual(
+    reduceStripeSubscriptionManagement(subscription, schedule, resolvePlanCode),
+    {
+      stripeSubscriptionId: "sub_current123",
+      stripeCustomerId: "cus_current123",
+      stripePriceId: "price_multi3123",
+      planCode: "multi_3",
+      status: "active",
+      currentPeriodEnd: new Date(boundary * 1000).toISOString(),
+      cancelAtPeriodEnd: false,
+      collectionPaused: false,
+      stripeSubscriptionScheduleId: null,
+      pendingStripePriceId: null,
+      pendingPlanCode: null,
+      pendingEffectiveAt: null,
+    }
+  )
+})
+
+test("management reducer rejects a Schedule target that is not a lower plan", () => {
+  const boundary = 1_800_000_000
+  const subscription = createSubscription({ schedule: "sub_sched_current123" })
+  const schedule = {
+    id: "sub_sched_current123",
+    customer: "cus_current123",
+    subscription: "sub_current123",
+    status: "active",
+    end_behavior: "release",
+    phases: [
+      {
+        start_date: boundary - 2_592_000,
+        end_date: boundary,
+        items: [{ price: "price_essential123", quantity: 1 }],
+      },
+      {
+        start_date: boundary,
+        end_date: boundary + 2_592_000,
+        items: [{ price: "price_multi2123", quantity: 1 }],
+      },
+    ],
+  }
+  assert.throws(
+    () =>
+      reduceStripeSubscriptionManagement(
+        subscription,
+        schedule,
+        resolvePlanCode
+      ),
+    StripeSubscriptionNormalizationError
+  )
+})
+
 test("supported events resolve the canonical Subscription and Customer", () => {
   for (const type of [
     "checkout.session.completed",
@@ -303,6 +445,11 @@ test("supported events resolve the canonical Subscription and Customer", () => {
     "customer.subscription.deleted",
     "invoice.paid",
     "invoice.payment_failed",
+    "subscription_schedule.updated",
+    "subscription_schedule.released",
+    "subscription_schedule.completed",
+    "subscription_schedule.canceled",
+    "subscription_schedule.aborted",
   ]) {
     assert.deepEqual(
       resolveStripeSubscriptionReconciliationContext(createEvent(type)),
@@ -313,7 +460,9 @@ test("supported events resolve the canonical Subscription and Customer", () => {
             ? "cs_test_current123"
             : type.startsWith("invoice.")
               ? "in_current123"
-              : "sub_current123",
+              : type.startsWith("subscription_schedule.")
+                ? "sub_sched_current123"
+                : "sub_current123",
         stripeSubscriptionId: "sub_current123",
         stripeCustomerId: "cus_current123",
       }
@@ -384,6 +533,11 @@ test("supported events reconcile through one current-snapshot projection path", 
     "customer.subscription.deleted",
     "invoice.paid",
     "invoice.payment_failed",
+    "subscription_schedule.updated",
+    "subscription_schedule.released",
+    "subscription_schedule.completed",
+    "subscription_schedule.canceled",
+    "subscription_schedule.aborted",
   ]) {
     const { calls, dependencies } = createProcessingHarness()
     const result = await processStripeWebhookEventWithDependencies(
@@ -616,5 +770,8 @@ test("the trusted webhook layer does not mutate trials or expose generic admin C
     `${webhookSource}\n${projectionSource}`,
     /billing_trial_grants|\.insert\(|\.update\(|\.delete\(/u
   )
-  assert.match(projectionSource, /apply_stripe_subscription_projection/u)
+  assert.match(
+    projectionSource,
+    /apply_stripe_subscription_management_projection/u
+  )
 })

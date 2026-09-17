@@ -91,7 +91,8 @@ This feature does not implement:
 - Organization provisioning or Clerk configuration changes;
 - Store reads, creation, setup, activation, deactivation or capacity enforcement;
 - trial creation, extension, restart, revocation or eligibility changes;
-- Subscription upgrades/downgrades, cancellation, refunds or duplicate cleanup;
+- Subscription cancellation, refunds or duplicate cleanup; paid plan changes are
+  owned by [`../subscription-management/SPEC.md`](../subscription-management/SPEC.md);
 - Customer Portal or an operator/support application;
 - Products, Prices, Payment Method Configurations or other remote resource setup
   without a separately authorized configuration/E2E step;
@@ -1245,17 +1246,18 @@ Changing a monetary price creates a new Stripe Price, not a new PlanCode. Existi
 subscriptions keep historical Price associations. Before rotating mappings for
 real subscribers or outstanding attempts, preserve an explicitly reviewed
 historical Price-to-plan mapping so the current webhook does not reject legitimate
-old Prices. This feature does not implement repricing, subscription migration or
-upgrade/downgrade flows.
+old Prices. Checkout does not implement repricing or subscription migration. The
+separate Subscription Management feature changes only among the currently configured,
+closed-registry Prices.
 
 ## 39. Customer Portal relationship
 
-Checkout is acquisition. Existing paid/nonterminal subscriptions use future Portal
-or explicit recovery/change boundaries, not a second acquisition Session.
-
-Portal will separately address payment-method management, invoices and approved
-cancellation behavior. Plan changes remain disabled until their own product and
-capacity implications are approved. This SPEC creates no Portal Session or UI.
+Checkout is acquisition. Existing paid/nonterminal subscriptions never use a second
+acquisition Session. The approved Subscription Management feature uses an exact
+Customer Portal `subscription_update_confirm` Session for upgrades and Deli Plus
+Subscription Schedules for end-of-period downgrades. Generic Portal self-service,
+payment-method management, invoices, and subscription cancellation remain deferred.
+This Checkout SPEC itself creates no Portal Session or management UI.
 
 ## 40. Verification plan for implementation
 

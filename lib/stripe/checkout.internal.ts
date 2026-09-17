@@ -44,7 +44,14 @@ function missing(error: unknown) {
 
 export function validateCheckoutPrice(
   price: Stripe.Price,
-  config: CheckoutConfiguration
+  config: Pick<
+    CheckoutConfiguration,
+    | "stripePriceId"
+    | "currency"
+    | "recurringInterval"
+    | "recurringIntervalCount"
+    | "livemode"
+  >
 ) {
   invariant(
     price.object === "price" &&

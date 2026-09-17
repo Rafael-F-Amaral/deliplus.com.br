@@ -336,6 +336,38 @@ disable the plan controls and announce redirect progress. Entitlement, Organizat
 role, and disabled controls are presentation hints only: the Checkout domain operation
 reauthenticates and reauthorizes every submission.
 
+For an existing paid Subscription, `/dashboard/billing` switches from acquisition to
+hybrid plan management. `createSubscriptionUpgradePortalSession(planCode)` routes only
+higher plans to an exact Stripe-hosted `subscription_update_confirm` flow.
+`scheduleOrganizationPlanDowngrade(planCode)` keeps lower plans effective until the
+period boundary, and `cancelScheduledOrganizationPlanChange()` releases only the
+projected downgrade Schedule. Every operation reauthenticates and requires the active
+Organization admin. The browser submits only an allowlisted plan code (or no data for
+cancellation); it never supplies tenant, provider, price, period, amount, or entitlement
+authority.
+
+The UI reads current and pending facts through
+`resolve_active_organization_billing_state()`, which derives the tenant from the Clerk
+JWT and returns no Stripe identifiers. Success results are flow hints: a bounded local
+refresh waits for webhook projection, while current/pending display and Store capacity
+remain driven only by the local projection. Portal query markers are presentation only.
+Members receive a read-only view. Stripe hosts upgrade proration/payment/SCA; generic
+Portal self-service and Store mutation remain outside this surface. While a downgrade
+is pending, all other plan changes are disabled until its canonical release is projected.
+
+Future Dashboard/Organization member-management work must preserve this Billing
+authorization contract without duplicating it in invitation or member screens:
+
+- Clerk `org:admin` may create an upgrade Portal Session, schedule a downgrade, and
+  cancel a scheduled downgrade;
+- a Clerk Organization member may read Billing state, but must not create an upgrade
+  Portal Session, schedule a downgrade, or cancel a scheduled downgrade;
+- disabled or hidden controls are presentation only. Each Billing mutation continues
+  to reauthenticate the active Organization and require `org:admin` server-side.
+
+Member invitation, role-management, and assignment UI remain intentionally deferred
+to the later Dashboard/Organization feature.
+
 Before acquisition, the billing page composes the read-only
 `resolveOnboardingState()` result. `organization_not_provisioned` redirects to
 `/onboarding` for both admins and members. Billing exposes no provisioning Action or
