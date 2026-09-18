@@ -2,6 +2,7 @@ export type StripeServerEnvironment = {
   STRIPE_SECRET_KEY?: string
   STRIPE_WEBHOOK_SECRET?: string
   STRIPE_CHECKOUT_PAYMENT_METHOD_CONFIGURATION?: string
+  STRIPE_BILLING_PORTAL_CONFIGURATION_ID?: string
   BILLING_RETURN_ORIGIN?: string
   VERCEL_ENV?: string
   VERCEL_URL?: string
@@ -18,6 +19,19 @@ export function parseCheckoutPaymentMethodConfiguration(
     throw new StripeConfigurationError(
       "Invalid Checkout payment method configuration"
     )
+  }
+  return value
+}
+
+export function parseBillingPortalConfiguration(
+  environment: StripeServerEnvironment
+) {
+  const value = getRequiredValue(
+    environment,
+    "STRIPE_BILLING_PORTAL_CONFIGURATION_ID"
+  )
+  if (!/^bpc_[A-Za-z0-9]+$/u.test(value)) {
+    throw new StripeConfigurationError("Invalid Customer Portal configuration")
   }
   return value
 }

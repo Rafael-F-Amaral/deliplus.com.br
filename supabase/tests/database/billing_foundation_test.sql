@@ -82,7 +82,11 @@ select columns_are(
     'past_due_since',
     'last_synced_at',
     'created_at',
-    'updated_at'
+    'updated_at',
+    'stripe_subscription_schedule_id',
+    'pending_stripe_price_id',
+    'pending_plan_code',
+    'pending_effective_at'
   ],
   'billing_subscriptions has exactly the approved columns'
 );
@@ -139,8 +143,8 @@ select is(
     from pg_catalog.pg_constraint
     where conrelid = 'public.billing_subscriptions'::regclass
   ),
-  6::bigint,
-  'billing_subscriptions has its primary, foreign-key, unique, and check constraints'
+  13::bigint,
+  'billing_subscriptions has its identity and current/pending projection constraints'
 );
 
 select is(
@@ -199,7 +203,7 @@ select is(
     where schemaname = 'public'
       and tablename = 'billing_subscriptions'
   ),
-  '["billing_subscriptions_pkey", "billing_subscriptions_stripe_subscription_id_key"]'::jsonb,
+  '["billing_subscriptions_pkey", "billing_subscriptions_stripe_schedule_id_key", "billing_subscriptions_stripe_subscription_id_key"]'::jsonb,
   'billing_subscriptions has only Organization and Stripe identity indexes'
 );
 

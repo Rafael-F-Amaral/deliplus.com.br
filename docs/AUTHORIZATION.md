@@ -186,9 +186,16 @@ Do not grant generic authenticated writes to:
 - stores;
 - store_memberships.
 
-Tenant provisioning uses its reviewed server-only boundary. Store setup uses a
-separate narrow server-only service that can create only draft Stores, update
-name/slug, and mark valid drafts ready; it does not activate Stores or grant entitlement.
+Tenant provisioning derives the user, active Clerk Organization, and `org:admin` role
+inside `ensureActiveOrganization()`, then invokes the service-role-only
+`ensure_organization_projection(text)` RPC. The browser supplies no tenant identifier.
+The RPC owns the narrow insert/read operation as `SECURITY DEFINER`; `service_role`
+has no direct access to `public.organizations`, and `anon`/`authenticated` cannot invoke
+the function. Store setup uses a separate narrow server-only service that can create
+only draft Stores, update name/slug, and mark valid drafts ready. Its repository calls
+three action-specific `SECURITY DEFINER` RPCs executable only by `service_role`;
+`service_role` has no direct table privileges on `public.stores`. These operations do
+not activate Stores or grant entitlement.
 The separate first-Store activation boundary now enforces historical initial-trial
 eligibility and commits the initial grant plus Store activation atomically. The
 separate generic activation/deactivation boundary now consumes paid, manual-override,
@@ -217,6 +224,22 @@ The exact lifecycle for pending invitations versus accepted members requires its
 
 Do not force merchants to manually coordinate the Clerk Organization profile and a separate low-level database screen.
 
+Current Billing authority is intentionally Organization-role based:
+
+```text
+org:admin
+  -> read Billing state
+  -> create an exact Stripe upgrade Portal Session
+  -> schedule a downgrade
+  -> cancel a scheduled downgrade
+
+member
+  -> read Billing state only
+```
+
+Hidden or disabled controls are only presentation. Every Billing mutation repeats
+authentication, active-Organization resolution, and the `org:admin` check server-side.
+
 ## Public vs private data
 
 ### Public storefront
@@ -228,7 +251,12 @@ May expose deliberately published Store data such as:
 - active products;
 - public delivery information.
 
-Public database access is not part of the initial tenant-core migration and must be designed separately.
+The public Store read boundary now exposes only active Store name and slug through
+`get_public_store_by_slug(text)`: SQL STABLE SECURITY DEFINER, owner postgres,
+empty search_path and EXECUTE only for anon among Data API roles. There is no anon
+table/column SELECT on stores. The anonymous client forwards no Clerk JWT or secret.
+Unavailable lifecycle states and unknown slugs share the same not-found response.
+See `docs/features/public-store-read-boundary/SPEC.md`.
 
 ### Merchant dashboard
 
@@ -309,7 +337,10 @@ Both RPCs are executable only by `authenticated` among Data API roles. Their pri
 entitlement/capacity helpers are not Data API capabilities. Direct authenticated writes
 to Store and billing tables remain denied.
 
-The current billing database foundation contains Organization-owned local trial history, canonical Stripe Customer identity, paid Subscription projection, webhook Event ledger and durable Checkout attempts. RLS is enabled on all five.
+The current billing database foundation contains Organization-owned local trial
+history, canonical Stripe Customer identity, paid Subscription projection, webhook
+Event ledger, durable Checkout attempts, and durable custom downgrade/cancellation
+attempts. RLS is enabled on all six tables.
 
 ### Explicit Checkout acquisition boundary
 
@@ -356,7 +387,16 @@ raw Stripe request
   -> atomic Event ledger + paid projection RPC
 ```
 
-The webhook does not use Clerk because the Stripe signature authenticates that machine-to-machine request. It cannot choose an Organization from browser input or Stripe metadata: the internal Organization is derived only from the local canonical `billing_customers.stripe_customer_id` relation. The transactional RPC is `SECURITY INVOKER`, is executable only by `service_role`, and does not grant `anon` or `authenticated` any billing capability.
+The webhook does not use Clerk because the Stripe signature authenticates that
+machine-to-machine request. It cannot choose an Organization from browser input or
+Stripe metadata: the internal Organization is derived only from the local canonical
+`billing_customers.stripe_customer_id` relation. The original acquisition projection,
+`apply_stripe_subscription_projection`, remains `SECURITY INVOKER` and relies on the
+narrow direct grants given to `service_role`. The current hybrid management projection,
+`apply_stripe_subscription_management_projection`, is a service-only `SECURITY
+DEFINER` function with an empty `search_path`; it owns the atomic Event,
+Subscription, pending-Schedule, and attempt-convergence write. Neither boundary
+grants `anon` or `authenticated` any billing capability.
 
 Webhook processing never creates or changes `billing_trial_grants`. Invoice and Checkout Events trigger reconciliation only; they do not grant entitlement directly. The Organization entitlement resolver interprets the trusted local trial and paid projections without calling Stripe on the normal request path.
 
@@ -364,7 +404,7 @@ Creating a Clerk Organization does not itself grant a trial, create a Store or e
 
 Adding Store memberships does not change billing Store capacity.
 
-Trial eligibility and Store-capacity checks are enforced server-side against trusted billing/application state. Future storefront, order-intake, and protected-operation boundaries must still require current entitlement independently; persisted Store `active` status alone is not authorization.
+Trial eligibility and Store-capacity checks are enforced server-side against trusted billing/application state. Public Store identification GET relies only on persisted `active` state and does not recalculate entitlement. Future order-intake and protected-operation boundaries require their own entitlement authorization; this public read grants none of those capabilities.
 
 ## Error behavior
 

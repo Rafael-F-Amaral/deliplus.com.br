@@ -13,6 +13,7 @@ import {
   UnsupportedPlanCodeError,
 } from "../../lib/billing/plans.ts"
 import {
+  parseBillingPortalConfiguration,
   parseBillingReturnOrigin,
   parseStripeSecretKey,
   resolveBillingReturnOrigin,
@@ -124,6 +125,23 @@ test("Stripe secret validation accepts only server secret or restricted keys", (
       }),
     StripeConfigurationError
   )
+})
+
+test("Customer Portal configuration accepts only a dedicated configuration ID", () => {
+  assert.equal(
+    parseBillingPortalConfiguration({
+      STRIPE_BILLING_PORTAL_CONFIGURATION_ID: "bpc_upgrade123",
+    }),
+    "bpc_upgrade123"
+  )
+  for (const value of [undefined, "", " bpc_upgrade123", "pc_upgrade123"])
+    assert.throws(
+      () =>
+        parseBillingPortalConfiguration({
+          STRIPE_BILLING_PORTAL_CONFIGURATION_ID: value,
+        }),
+      StripeConfigurationError
+    )
 })
 
 test("valid explicit origins are normalized", () => {

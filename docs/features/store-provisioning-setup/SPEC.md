@@ -1,9 +1,9 @@
 # Deli Plus — Store Provisioning / Setup Foundation
 
 **Path:** `docs/features/store-provisioning-setup/SPEC.md`  
-**Status:** Approved  
+**Status:** Implemented
 **Scope:** Store draft creation, setup editing, and readiness  
-**Last updated:** 2026-08-27
+**Last updated:** 2026-09-11
 
 ## 1. Purpose
 
@@ -481,28 +481,23 @@ No mutable request/tenant state may be stored at module scope.
 
 ## 19. Trusted write strategy
 
-The approved hybrid is:
+The implemented trusted-write posture is:
 
 ```text
 draft/setup CRUD
   → narrow server-only Store domain service
   → narrow Store repository
-  → existing Supabase admin client
+  → action-specific service-role-only RPCs
 
 trial activation / paid activation / capacity
-  → future restricted transactional PostgreSQL RPC
+  → separate authenticated transactional PostgreSQL RPCs
 ```
 
-The privileged client is appropriate for setup because each mutation affects
-one Store row, while constraints and optimistic predicates provide the required
-integrity.
-
-No Store setup RPC or new `SECURITY DEFINER` function is required by this
-feature.
-
-Future activation requires a transaction because Store activation, trial
-claiming, entitlement/capacity evaluation, and locking cannot be made atomic
-through independent Data API calls.
+The repository uses the privileged client only to invoke `create_store_draft`,
+`update_store_setup`, and `mark_store_ready`. Each function expresses one domain action,
+uses tenant/lifecycle/concurrency predicates, and returns only the existing Store setup
+facts. `service_role` receives EXECUTE on these functions and no direct table privilege
+on `public.stores`.
 
 The Store API must never export:
 
@@ -623,6 +618,11 @@ This feature must not:
 - weaken tenant isolation;
 - expose public storefront reads;
 - make the admin client a normal application read path.
+
+The trusted Store setup RPCs are `VOLATILE SECURITY DEFINER`, owned by `postgres`, use
+an empty `search_path`, and are executable only by `service_role`. `PUBLIC`, `anon`, and
+`authenticated` cannot execute them. Direct `service_role` privileges on
+`public.stores`, including SELECT, INSERT, UPDATE, DELETE, and TRUNCATE, remain denied.
 
 UI freedom comes from the approved domain operations, not weaker database
 security.

@@ -6,7 +6,7 @@ The repository was initialized with Next.js, TypeScript, Tailwind CSS and shadcn
 
 Use `package.json` as the source of truth for versions and scripts.
 
-Current scripts:
+Baseline scripts:
 
 ```bash
 yarn dev
@@ -15,12 +15,10 @@ yarn start
 yarn lint
 yarn format
 yarn typecheck
-yarn test:store-provisioning-setup
-yarn test:store-trial-activation
-yarn test:store-trial-activation:concurrency
-yarn test:store-entitlement-activation
-yarn test:store-entitlement-activation:concurrency
 ```
+
+`package.json` is the authoritative inventory of domain, integration, concurrency,
+Stripe adapter/webhook, UI, and public-store test scripts.
 
 ## Package manager
 
@@ -66,6 +64,24 @@ Supabase
 Stripe server foundation
 ```
 
+Variable purposes:
+
+- `NEXT_PUBLIC_CLERK_*` and `CLERK_SECRET_KEY`: Clerk routes and SDK credentials;
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: normal
+  Supabase Data API access, including Clerk JWT-backed and anonymous clients;
+- `SUPABASE_SECRET_KEY`: server-only privileged access behind narrow repositories;
+- `STRIPE_SECRET_KEY`: server-only Stripe API access;
+- `STRIPE_WEBHOOK_SECRET`: signature verification for one webhook endpoint;
+- `STRIPE_PRICE_*`: environment-specific Price for each stable PlanCode;
+- `STRIPE_CHECKOUT_PAYMENT_METHOD_CONFIGURATION`: dedicated card-only Checkout
+  payment-method configuration;
+- `STRIPE_BILLING_PORTAL_CONFIGURATION_ID`: dedicated restricted upgrade Portal
+  configuration;
+- `BILLING_RETURN_ORIGIN`: trusted public origin for Checkout/Portal returns.
+
+`VERCEL_ENV` and `VERCEL_URL` are optional platform-provided Preview inputs and are
+not application secrets or user-managed `.env.example` entries.
+
 The Stripe server foundation recognizes these server-only variables:
 
 ```text
@@ -75,10 +91,11 @@ STRIPE_PRICE_ESSENTIAL
 STRIPE_PRICE_MULTI_2
 STRIPE_PRICE_MULTI_3
 STRIPE_CHECKOUT_PAYMENT_METHOD_CONFIGURATION
+STRIPE_BILLING_PORTAL_CONFIGURATION_ID
 BILLING_RETURN_ORIGIN
 ```
 
-The configuration is lazy. Missing Stripe secrets, Price IDs, or return origin do not break unrelated pages or `next build`; an error is raised only when the route or billing operation that needs a value executes.
+The configuration is lazy. Missing Stripe secrets, Price IDs, Portal/Checkout configuration IDs, or return origin do not break unrelated pages or `next build`; an error is raised only when the route or billing operation that needs a value executes.
 
 Use separate Stripe resources for each environment:
 
@@ -94,7 +111,10 @@ Each approved `PlanCode` maps to a different environment-specific Stripe Price I
 
 Stable Local, Staging, and Production deployments use an explicit `BILLING_RETURN_ORIGIN`. Ephemeral Vercel Preview deployments may fall back to the system-provided `VERCEL_URL`. Request headers are never an authority for billing return URLs.
 
-No publishable Stripe key is required for the approved future server-created, Stripe-hosted Checkout redirect. `STRIPE_WEBHOOK_SECRET` is the endpoint-specific `whsec_...` signing secret; it is not an API key and must remain server-only.
+No publishable Stripe key is required for the implemented server-created,
+Stripe-hosted Checkout/Portal redirects. `STRIPE_WEBHOOK_SECRET` is the
+endpoint-specific `whsec_...` signing secret; it is not an API key and must remain
+server-only.
 
 Do not document real keys in repository markdown.
 
@@ -169,6 +189,17 @@ SPEC
 
 Do not create application tables manually in the hosted Dashboard as the canonical schema.
 
+Current Supabase environment posture:
+
+- Local is the development, migration, reset, pgTAP, and integration-test environment.
+- Staging is the linked project used for forward-migration validation. The two
+  Subscription Management migrations through `20260916180000` are applied and
+  verified there.
+- A Vercel Preview-to-Staging binding is not established by repository configuration;
+  treat it as remaining infrastructure work until the hosted settings are verified.
+- Production Supabase provisioning and production provider bindings are not proven by
+  repository files and require an explicit go-live checklist.
+
 The first tenant-owned schema is specified in:
 
 ```text
@@ -203,6 +234,24 @@ This avoids allowing a browser/Data API caller to bypass:
 - subscription/Store-capacity rules;
 - team-management rules.
 
+### Tenant provisioning development
+
+`ensureActiveOrganization()` authenticates with Clerk, requires the active
+Organization's `org:admin`, and delegates persistence to the service-role-only
+`ensure_organization_projection(text)` RPC. The admin client has no direct privileges
+on `public.organizations`. Unit tests inject the persistence dependency to verify auth,
+domain outcomes, normalization, and safe diagnostics. The integration test uses the
+real local Secret API Key, Data API, RPC, grants, and PostgreSQL state without calling
+Clerk or Stripe or printing credentials.
+
+Validate this boundary with:
+
+```bash
+yarn test:tenant-provisioning
+yarn test:tenant-provisioning:integration
+yarn supabase test db supabase/tests/database/tenant_provisioning_test.sql
+```
+
 ### Store setup development
 
 The current Store setup modules are:
@@ -220,10 +269,13 @@ import `lib/supabase/admin.ts` or `store-setup.repository.ts` from `app/` or
 
 The shared rules normalize Store names/slugs, enforce the central reserved-slug
 set, and validate readiness. Draft/ready Store setup requires neither billing
-entitlement nor trial state. Validate this slice with:
+entitlement nor trial state. Trusted writes use the service-role-only
+`create_store_draft`, `update_store_setup`, and `mark_store_ready` RPCs. The Secret API
+Key has no direct table privileges on `public.stores`. Validate this slice with:
 
 ```bash
 yarn test:store-provisioning-setup
+yarn test:store-provisioning-setup:integration
 yarn supabase test db
 ```
 
@@ -256,7 +308,9 @@ Current database foundation:
 - `billing_subscriptions` stores the current paid projection only;
 - `stripe_webhook_events` stores minimum Event idempotency metadata;
 - `billing_checkout_attempts` stores durable acquisition reservations and frozen replay parameters;
-- all five tables have RLS enabled and no direct `anon`/`authenticated` grants or policies.
+- `billing_subscription_change_attempts` stores only durable scheduled-downgrade
+  and cancellation recovery state;
+- all six tables have RLS enabled and no direct `anon`/`authenticated` grants or policies.
 
 Current product rules:
 
@@ -277,11 +331,21 @@ customer.subscription.updated
 customer.subscription.deleted
 invoice.paid
 invoice.payment_failed
+subscription_schedule.updated
+subscription_schedule.released
+subscription_schedule.completed
+subscription_schedule.canceled
+subscription_schedule.aborted
 ```
 
 Checkout and Invoice Events only trigger current-Subscription reconciliation. The Subscription snapshot remains authoritative for paid projection status. Async Checkout Events are not implemented because the approved MVP configuration is card-based; if delayed payment methods are enabled later, add and test `checkout.session.async_payment_succeeded` and `checkout.session.async_payment_failed` before relying on them.
 
-The current slices implement first-Store initial-trial activation, generic entitlement-based Store activation/deactivation, atomic active-Store capacity enforcement, and the server-only Customer/Checkout acquisition backend. Checkout UI/transport, Portal and real Product/Price configuration remain separate work.
+The current slices implement first-Store initial-trial activation, generic
+entitlement-based Store activation/deactivation, atomic active-Store capacity
+enforcement, Checkout acquisition, the Billing UI, exact Customer Portal upgrades,
+custom scheduled downgrades/cancellation, webhook projection, and recovery. Remote
+Product/Price/Portal resources are environment configuration rather than repository
+schema; the current Sandbox resources have been configured for E2E.
 
 ### Stripe Checkout development
 
@@ -306,6 +370,7 @@ create/read permissions; validate exact permissions before real rollout.
 Validation:
 
 ```bash
+yarn test:billing-checkout-ui
 yarn test:stripe-checkout
 yarn test:stripe-checkout:concurrency
 yarn supabase test db
@@ -327,10 +392,96 @@ for recovery, not automatic new keys. Known Sessions are retrieved and checked a
 all paginated Customer subscriptions and local projection before safe closure/reuse.
 No current operator recovery UI exists. Do not manually rotate keys to bypass uncertainty.
 
-Return paths are future `/dashboard/billing/success` and `/dashboard/billing`, without
-`session_id`. No pages or Actions are implemented. Real Stripe Test E2E and return-page
-integration remain pending separate authorization; webhook projection is mandatory
-before recognizing paid access. Stripe Tax remains disabled pending separate fiscal review.
+The acquisition page is `/dashboard/billing`; it submits only `planCode` to a thin
+Server Action and redirects server-side for `checkout_ready`. The success and cancel
+return paths are `/dashboard/billing/success` and `/dashboard/billing`, without
+`session_id`. The success page reads the normal local entitlement projection and only
+recognizes `source: "paid_subscription"` as confirmed; it neither calls Stripe nor
+uses the return navigation as payment proof. A trial remains visibly distinct from a
+paid subscription, and a pending projection can be refreshed manually without polling.
+The first real Stripe Sandbox E2E has passed; see the sanitized record below. Stripe
+Tax remains disabled pending separate fiscal review.
+
+#### First real Sandbox E2E — passed
+
+Recorded on 2026-09-10 from the project owner's completed manual verification:
+a new Clerk user created an Organization, explicitly used `Configurar organização`
+to create the internal projection, selected a plan on Billing, and successfully paid
+by card in Stripe-hosted Sandbox Checkout. Webhooks forwarded to localhost reconciled
+the subscription projection; the local Organization Entitlement Resolver recognized
+`paid_subscription`, and `/dashboard/billing/success` displayed `Assinatura confirmada`.
+The listener reported HTTP 200 for `invoice.paid`, `checkout.session.completed`, and
+`customer.subscription.created`. No provider identifiers or credentials are retained
+in this record.
+
+The earlier missing webhook delivery was caused by Stripe CLI authentication against
+a different Sandbox/account than the application's Stripe API key, not an application
+defect. Before repeating E2E, verify that the CLI and application use the same
+Sandbox/account and that the local signing secret belongs to the running listener.
+
+The automatic onboarding coordinator now lives at `/onboarding`. Clerk sign-up forces
+that destination and sign-in uses it as a fallback; Organization create/select returns
+there as well. The Server Component resolves state without mutation. Only the small
+client coordinator auto-submits the provisioning Server Action, once per mount, and the
+Action revalidates through `ensureActiveOrganization()` before redirecting back. Store
+presence is read through `listStoresForSetup()`; no direct table access was added.
+
+Run its focused suite with:
+
+```bash
+yarn test:onboarding-coordinator
+```
+
+For manual E2E, verify new sign-up, Organization creation/selection, automatic tenant
+provisioning, refresh/retry idempotency, the member waiting state, zero-Store navigation
+to `/dashboard/stores/new`, and existing-Store navigation to `/dashboard`. Reaching the
+first-Store route must not start a trial or mutate Store state.
+
+#### Automatic onboarding manual E2E — passed
+
+The project owner confirmed a new signup reached `/onboarding` with an active Clerk
+Organization, briefly displayed automatic preparation, provisioned the internal
+Organization without an explicit provisioning click, and reached
+`/dashboard/stores/new` as an admin with zero Stores. Preparation may be transient when
+provisioning completes quickly. The subsequent dashboard -> Billing -> Stripe Checkout
+-> confirmed paid subscription flow also passed. This record confirms that happy path;
+it does not claim manual coverage of member, retry, or existing-Store scenarios.
+
+The temporary `Configurar organização` control and its Billing Action/form/feedback
+have been removed. Unprovisioned Billing requests now redirect read-only to `/onboarding`
+for admins and members alike; only the onboarding Action can request tenant provisioning.
+
+Early paid subscription remains supported before the first Store exists or activates.
+The Store activation coordinator now tries `activateStoreWithinEntitlement()` first, so
+a paid Organization publishes without creating a local trial. Only `not_entitled` may
+fall through to `activateFirstStoreWithInitialTrial()`. The frontend never selects the
+activation path.
+
+Existing paid subscriptions continue blocking another acquisition; upgrade/downgrade
+and Customer Portal are separate features. The success page now coordinates bounded
+local confirmation and automatic dashboard navigation. Return URLs never establish
+entitlement. Landing-page work remains separate.
+
+On 2026-09-10, `yarn supabase migration list` confirmed
+`20260904120000_tenant_provisioning_trusted_rpc.sql` in the linked Staging database.
+`yarn supabase db push --dry-run` reported no pending migrations. No remote push was
+performed during final verification.
+
+An additional `yarn supabase db diff --linked --schema public,private` found no
+differences in feature/domain objects. It did report differences outside this feature's
+migration: the hosted `public.rls_auto_enable()` event-trigger helper and default
+sequence privileges for `anon`, `authenticated`, and `service_role`. Migration history
+being up to date is not a claim of a completely empty schema diff. These differences
+were not applied or normalized during finalization.
+
+Final local regression passed: 401 Node tests across 14 scripts and 640 pgTAP tests
+across nine files. Local database lint, application lint, typecheck, production build,
+and the normalized comparison of freshly generated public database types all passed.
+
+Database tests must scope fixture queries and mutations to their own Organization or
+attempt, including when local E2E data already exists. Checkout pgTAP formerly assumed
+an otherwise empty attempts table; fixture predicates now remove that assumption
+without deleting existing data or requiring a local reset.
 
 ### Store trial activation development
 
@@ -395,6 +546,39 @@ Start/apply the local Supabase migrations before either focused script because t
 suite performs real SQL/TypeScript plan parity and the concurrency suite calls the RPCs.
 Neither script reads `.env.local` or prints credentials.
 
+### First Store activation coordinator development
+
+The public UI activation boundary is:
+
+```text
+lib/stores/activate-store-for-current-organization.ts
+```
+
+`activateStoreForCurrentOrganization(storeId)` composes only the two existing Store
+activation operations. It performs no direct Supabase, Stripe, billing-table, trial, or
+capacity access. The ordering is generic entitlement activation first, initial trial
+only after `not_entitled`, then one generic retry after `trial_not_eligible` to cover a
+concurrent entitlement change.
+
+The functional routes are:
+
+```text
+/dashboard/stores/new
+/dashboard/stores/[storeId]/setup
+```
+
+Their Server Actions accept only Store business fields and a Store selector. The default
+first-Store submission composes `createDraftStore()`, `markStoreReady()`, and
+`activateStoreForCurrentOrganization()` while preserving each explicit domain mutation.
+After a durable creation, retry state resumes from the stored Store selector instead of
+creating a duplicate. The setup route retains separate save, readiness, and publish
+actions for editing/recovery; page rendering performs no mutation. Validate the
+coordinator and UI adapters with:
+
+```bash
+yarn test:store-activation-coordinator
+```
+
 ### Organization entitlement resolution
 
 Normal server requests resolve Organization entitlement through:
@@ -424,12 +608,12 @@ Install the Stripe CLI outside the project by following the official Stripe CLI 
 stripe login
 ```
 
-Start the application and the local Supabase stack, then forward only the implemented Event set:
+Start the application and the local Supabase stack, then forward only the implemented
+Event set. In PowerShell, quote the complete events argument. Keep underscores
+unescaped and pass the destination as a plain URL, without Markdown link syntax:
 
-```bash
-stripe listen \
-  --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_failed \
-  --forward-to localhost:3000/api/stripe/webhook
+```powershell
+stripe listen --events 'checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_failed,subscription_schedule.updated,subscription_schedule.released,subscription_schedule.completed,subscription_schedule.canceled,subscription_schedule.aborted' --forward-to 'http://localhost:3000/api/stripe/webhook'
 ```
 
 Copy the CLI-provided local signing secret into the ignored local environment file:
@@ -452,6 +636,45 @@ yarn test:stripe-webhook-foundation
 
 The pgTAP suite contains tenant-core and Billing Foundation regressions plus webhook and Store-trial RPC privilege, isolation, atomicity, retry, recovery-state, and concurrency-related invariant coverage. Real concurrency is proven separately by the multi-session Node harness rather than sequential pgTAP.
 
+## Public Store read boundary
+
+Jesse reported a successful manual public storefront E2E after the initial
+implementation. The dashboard now offers “Abrir loja” for every accessible active
+Store in a new tab. Run `yarn test:accessible-store-links` with Supabase local
+running to verify domain preconditions, DTO safety and real admin/member RLS.
+
+See `docs/features/public-store-read-boundary/SPEC.md`. Apply only locally with
+`yarn supabase migration up --local`. Run `yarn test:public-store`,
+`yarn test:public-store:integration`,
+`yarn test:store-provisioning-setup`, the activation/onboarding/dashboard regressions
+and `yarn supabase test db`. The client in `lib/supabase/public.ts` uses existing
+public environment variables, with no secret or Clerk token and no-store fetches.
+No new environment variable is introduced.
+
+Local manual E2E:
+
+1. Start Supabase local and apply local migrations. In the ignored local environment,
+   set `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321` and the local publishable
+   key shown by `yarn supabase status`. Keep any merchant setup secret pointed at
+   that same local stack. Never paste credentials into logs/docs. Restart `yarn dev`.
+2. Sign in as an Organization admin and publish a test Store through the existing
+   onboarding/first-Store form, using a normal unique slug such as `pizzaria-e2e`.
+3. Open `http://localhost:3000/pizzaria-e2e` in an incognito window without signing
+   in. Expect the Store name and “Loja publicada no Deli Plus.”, with no login redirect.
+4. Open `http://localhost:3000/unknown-public-e2e-slug`; expect the same 404 used
+   for all unavailable Stores. Check `/sign-in`, `/sign-up`, `/onboarding` and
+   `/dashboard` retain their normal authentication/navigation behavior.
+5. Inspect page source for robots noindex/nofollow. Refresh after any publication
+   change; no push refresh of already-open pages is implemented.
+6. No deactivation UI exists yet. Run `yarn test:public-store:integration` to
+   verify all states through the real anonymous Data API and confirm that the
+   authenticated `deactivate_store` RPC makes the next public read unavailable.
+   It uses disposable local fixtures and automatically cleans them up. Do not edit
+   lifecycle fields on a merchant Store manually or add a temporary production action.
+
+Remote readiness uses only `yarn supabase migration list` and
+`yarn supabase db push --dry-run`. A real remote push remains outside this task.
+
 ## Validation
 
 Treat form input, URL parameters, webhook payloads and external API data as untrusted.
@@ -462,13 +685,23 @@ When a feature genuinely requires schema validation, select/introduce the soluti
 
 ## Tests
 
-A project-wide application test stack is not defined yet.
+The repository uses Node's built-in test runner for domain, UI, adapter, webhook,
+integration, and concurrency suites, plus Supabase pgTAP for database behavior and
+security. `package.json` is the script inventory.
 
-Database security features should use the Supabase/PostgreSQL testing approach approved by the relevant feature plan.
+Choose validation in proportion to the change:
+
+- unit/domain tests for rules and safe outcomes;
+- integration/concurrency tests for real local PostgreSQL boundaries;
+- Stripe adapter and webhook tests with injected provider fakes;
+- pgTAP and database lint for migrations, RLS, grants, and RPCs;
+- manual E2E only where real Clerk/Stripe/provider behavior matters.
 
 For tenant/Store security, include negative cross-tenant and same-tenant/unassigned-Store cases.
 
-Regardless of test framework, `lint`, `typecheck` and production `build` remain baseline checks.
+Regardless of feature suite, `lint`, `typecheck`, and production `build` remain
+baseline checks. Unrelated features do not need to repeat every historical Billing
+manual E2E scenario.
 
 ## Documentation workflow
 
@@ -479,3 +712,78 @@ For a substantial feature:
 3. implement;
 4. update current-state documentation;
 5. add an ADR if the decision is durable and non-obvious.
+
+### Billing success automatic confirmation
+
+Stripe return → transient local confirmation → paid entitlement → dashboard.
+The Stripe return URL is presentation/navigation only. Webhook-projected local
+entitlement remains authoritative. The initial server read redirects immediately
+when paid; otherwise the resolved pending page refreshes every 2 seconds, bounded
+to 12 seconds, then navigates to the dashboard with a pending presentation marker.
+Trial remains valid during the wait. No new migration, environment variable, Stripe
+request, database write, or acquisition change is involved.
+
+Run `yarn test:billing-success-ui` plus Billing Checkout UI, Stripe Checkout,
+Stripe Webhook, Organization Entitlement, Dashboard Overview, Store Trial and
+Onboarding regressions. Fake timers cover the actual polling effect and cleanup.
+SQL is unchanged and no database reset is needed. The existing local pgTAP suite
+was also run under the Billing baseline policy: 675 assertions across nine files passed.
+
+Manual Sandbox E2E: start the app and existing Stripe webhook listener, sign in to a
+trial Organization, choose **Assinar agora**, select a plan, and complete Sandbox
+Checkout manually. Expect either immediate dashboard navigation or a brief
+**Confirmando sua assinatura...** screen, followed by the paid plan and
+**Assinatura ativada com sucesso.** The success Alert disappears after six seconds
+and its billing markers are removed. Confirm Store-publication feedback still works.
+For delayed projection, pause the local listener before payment and wait 12 seconds:
+the dashboard should show a pending notice and the real trial/no-paid state. Restore
+webhook delivery and replay the missed Sandbox event if necessary; refresh the
+dashboard to see the paid plan and success feedback. No payment failure is inferred
+from timeout. No automated purchases are part of these checks.
+
+### Subscription Management
+
+Paid plan management follows the approved hybrid dependency direction:
+
+```text
+upgrade: Billing UI -> exact Customer Portal confirmation -> webhook
+downgrade: Billing UI -> canonical Subscription Schedule -> webhook
+read: webhook -> local Billing projection -> Organization Entitlement
+```
+
+Run `yarn test:subscription-management` and
+`yarn test:subscription-management:concurrency` with local Supabase running, plus
+Billing UI, Stripe Checkout/Webhook, Billing Success, entitlement, dashboard,
+Store-capacity/activation, onboarding, and full pgTAP regressions. Stripe is faked in
+automated tests; no Portal Session, plan change, Schedule, release, payment, or Test
+Clock mutation is sent to Stripe automatically. The exact historical
+`20260912180000_subscription_management.sql` was recovered from the linked migration
+history and remains the custom upgrade/downgrade foundation actually applied to
+Staging. The additive
+`20260916180000_hybrid_subscription_management.sql` performs the reviewed conversion
+to the final hybrid schema and is also applied and verified on Staging. Never rewrite
+or repair either applied migration; use a new forward migration for future changes.
+
+The restricted Stripe key needs Customer Portal Session create, Portal Configuration
+read, Subscription read, Price read, and Subscription Schedule read/write. It no longer
+needs Subscription write for a Deli Plus upgrade mutation. Automatic Tax remains
+disabled; re-evaluate Stripe Tax separately before tax collection or new jurisdictions.
+
+The current Sandbox Essential, Duo, and Trio Prices all use explicit
+`tax_behavior = inclusive`; the displayed BRL values are final customer prices. Stripe
+Tax and Automatic Tax remain disabled. The dedicated Portal configuration ID belongs
+in `STRIPE_BILLING_PORTAL_CONFIGURATION_ID`. That configuration has login disabled;
+subscription updates enabled with unchanged billing anchor, `always_invoice`
+proration, and only Price updates; exactly Duo and Trio as selectable Product/Price
+targets with quantity adjustment disabled; payment-method update enabled as a Stripe
+dependency; and cancellation, customer details, invoices, login, and
+scheduled-at-period-end conditions disabled. Deli Plus creates only the exact
+`subscription_update_confirm` flow, never a generic payment-management flow. Restart
+the app after changing env.
+
+The runtime retrieves and validates that configuration before every upgrade Session.
+Any additional target, including Essential, fails closed. The deep link is an exact
+`subscription_update_confirm`; there is no generic `Gerenciar cobrança` entry point.
+`customer.subscription.pending_update_applied` and
+`customer.subscription.pending_update_expired` are not registered webhook Events in
+the hybrid architecture.

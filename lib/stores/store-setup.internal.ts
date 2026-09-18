@@ -360,10 +360,6 @@ export function createStoreSetupService(dependencies: StoreSetupDependencies) {
         return { status: "success", store: toStoreSetupView(store) }
       }
 
-      if (store.status === "ready") {
-        fields.status = "draft"
-      }
-
       let updateResult: StoreSetupRepositoryResult<StoreSetupRecord>
 
       try {

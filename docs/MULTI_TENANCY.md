@@ -184,7 +184,8 @@ Current product direction:
 - `maxStores` counts only Stores whose persisted status is `active`;
 - draft and ready Stores do not consume billing capacity;
 - Store activation limits are enforced atomically by trusted application/billing rules;
-- intended trial is 15 days on Essential.
+- the current initial trial is 15 days on Essential and starts only with the first
+  eligible Store activation.
 
 Store memberships do not affect Store capacity.
 
@@ -199,7 +200,9 @@ Active/inactive Stores cannot return to setup states. Billing expiration does
 not rewrite Store lifecycle status; protected operations separately revalidate
 current Organization entitlement.
 
-The current Organization-owned billing tables have RLS enabled but no direct `anon` or `authenticated` grants or policies. This default-deny posture prevents both cross-tenant billing reads and unnecessary same-tenant exposure until a narrow entitlement read model is approved.
+The current Organization-owned billing tables have RLS enabled but no direct `anon`
+or `authenticated` grants or policies. Narrow JWT-derived entitlement and Billing
+state RPCs expose only reviewed facts, without granting table access.
 
 ## Provisioning flow
 
@@ -207,7 +210,7 @@ Creating an Organization in Clerk does not automatically create a DeliPlus organ
 
 Adding a Clerk Organization member does not automatically assign a Store.
 
-Future product flow is conceptually:
+The implemented onboarding/lifecycle flow is conceptually:
 
 ```text
 sign up / sign in
@@ -219,7 +222,7 @@ sign up / sign in
   -> operational dashboard
 ```
 
-Future team flow is conceptually:
+The future team flow is conceptually:
 
 ```text
 dashboard/team
@@ -229,6 +232,12 @@ dashboard/team
 ```
 
 The exact invitation/assignment lifecycle requires its own feature specification.
+
+Members are not Billing authorities. Organization admins may create upgrade Portal
+Sessions, schedule downgrades, and cancel a scheduled downgrade; members receive a
+read-only Billing view. These checks are enforced by server operations, not by UI
+visibility. Future Store-specific roles may extend `store_memberships` without
+duplicating Clerk Organization membership.
 
 ## Tenant context
 

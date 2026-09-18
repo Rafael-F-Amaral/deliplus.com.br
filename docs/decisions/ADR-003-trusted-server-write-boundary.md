@@ -34,7 +34,7 @@ Two primary approaches were considered:
 
 ## Decision
 
-Deli Plus will use a dedicated **server-only Supabase privileged client** as the default trusted write boundary for application orchestration.
+Deli Plus uses a dedicated **server-only Supabase privileged client** for trusted application orchestration. Each operation must additionally use the narrowest database capability appropriate to its invariants; possession of a Secret API Key does not imply that direct table CRUD is required or granted.
 
 Hosted environments should use a current Supabase Secret API Key (`sb_secret_...`) where available.
 
@@ -60,7 +60,7 @@ and must:
 - remain separate from the normal Clerk/RLS Supabase client;
 - never be logged or returned to callers.
 
-The Secret key bypasses RLS through Supabase's privileged database role. Therefore it is not itself an application authorization mechanism.
+The Secret key uses Supabase's privileged database role and bypasses RLS where that role has object privileges. RLS bypass neither creates PostgreSQL table privileges nor acts as application authorization.
 
 Every privileged domain operation must first perform explicit trusted server-side authorization using the relevant source of identity and business rules.
 
@@ -70,7 +70,7 @@ For tenant provisioning, this means:
 verified Clerk user
   → verified active Clerk Organization
   → verified Organization admin
-  → privileged database write
+  → service-role-only ensure_organization_projection RPC
 ```
 
 Feature code should expose narrow domain operations rather than encouraging arbitrary admin-client use throughout the application.
@@ -87,13 +87,15 @@ It may create or resolve the internal DeliPlus Organization for the verified act
 
 It must not accept a browser-selected Organization ID as authority.
 
-It uses the existing:
+The server-only repository invokes `public.ensure_organization_projection(text)`. The function is `VOLATILE SECURITY DEFINER`, owned by `postgres`, uses an empty `search_path`, and grants EXECUTE only to `service_role`. `PUBLIC`, `anon`, and `authenticated` cannot invoke it, while `service_role` receives no direct privileges on `public.organizations`.
+
+It uses a transaction advisory lock plus the existing:
 
 ```text
 UNIQUE(clerk_organization_id)
 ```
 
-constraint for idempotency/concurrency.
+constraint for idempotency/concurrency. The function returns the existing row without updating it, so retries preserve `updated_at`.
 
 The internal Organization is allowed to exist before billing so future billing records can reference a stable internal UUID.
 
@@ -175,11 +177,11 @@ Every feature using the trusted write boundary must:
 9. avoid secrets in logs/errors;
 10. preserve RLS for normal application paths.
 
-## When an RPC may still be appropriate
+## When an RPC is appropriate
 
 This decision does not prohibit all future PostgreSQL functions.
 
-A restricted transactional RPC may be preferable when an operation requires database-atomic behavior that is difficult to guarantee through multiple Data API calls, for example future Store-capacity enforcement.
+A restricted transactional RPC is preferable when an operation requires atomicity, explicit concurrency control, or a narrower grant surface than direct table CRUD. Tenant provisioning and Store-capacity enforcement are current examples.
 
 Any future `SECURITY DEFINER` function requires a separate security review covering:
 
@@ -191,21 +193,13 @@ Any future `SECURITY DEFINER` function requires a separate security review cover
 - inputs derived from trusted identity;
 - tests.
 
-The default for ordinary application orchestration remains the server-only privileged client.
+The server-only privileged client remains the application transport for service-role RPCs and explicitly reviewed table access. Direct table grants are not assumed.
 
 ## Alternatives considered
 
-### Restricted `SECURITY DEFINER` provisioning RPC
+### Direct `service_role` CRUD for tenant provisioning
 
-Not selected for Phase A because:
-
-- the operation is simple;
-- existing unique constraints already solve concurrency;
-- it adds a privileged database object/migration;
-- it duplicates some Clerk authorization concerns in SQL;
-- it does not improve future Stripe orchestration.
-
-It remains a possible option for narrow, truly transactional future database operations.
+Rejected after runtime verification. The original Data API `upsert` failed because RLS bypass did not provide table DML privileges. Granting `SELECT`/`INSERT` directly would make a broader primitive available to every holder of the service credential. The narrow RPC instead exposes only idempotent projection ensure semantics and retains Clerk authorization in the server domain boundary.
 
 ### Supabase Edge Function
 

@@ -32,7 +32,7 @@ Current foundation:
 - Supabase Third-Party Auth with Clerk
 - Supabase CLI for local development and migrations
 
-Planned application service:
+Current application service:
 
 - Stripe for merchant subscription billing
 
@@ -124,7 +124,7 @@ types/
 
 Create folders only when they are needed. Do not prebuild empty architecture.
 
-## 5. Protected architecture
+## 5. Architecture-sensitive areas
 
 The following areas are considered architecture-sensitive:
 
@@ -145,7 +145,12 @@ The following areas are considered architecture-sensitive:
 - environment-variable conventions
 - CI/CD and deployment configuration
 
-If a task appears to require changing one of these areas and the change was not explicitly requested:
+These areas are not frozen or reserved for a particular maintainer. Rafael has
+full technical ownership and may change any of them when justified. Jesse is a
+collaborator, not an approval bottleneck.
+
+For an agent working on a scoped task, if the task appears to require changing one
+of these areas and the change was not explicitly requested:
 
 1. do not silently change it;
 2. explain why the change appears necessary;
@@ -280,9 +285,11 @@ Organization
 
 Current product direction:
 
-- the Essential plan supports one Store;
-- higher plans may support additional Stores;
-- exact higher-plan names, prices and limits must not be invented before product approval;
+- Essential (`essential`) is R$ 99,90/month and supports one active Store;
+- Duo (`multi_2`) is R$ 189,90/month and supports two active Stores;
+- Trio (`multi_3`) is R$ 279,90/month and supports three active Stores;
+- the current Sandbox Prices use `tax_behavior = inclusive`; Stripe Tax and
+  Automatic Tax are not enabled;
 - the intended trial is 15 days on the Essential plan;
 - trial eligibility must be enforced server-side and must not assume that creating unlimited Clerk Organizations automatically grants unlimited trials.
 
@@ -337,6 +344,13 @@ When a requirement is unclear but implementation can safely proceed within the a
 ## 13. Collaboration
 
 AI-generated work follows the same Git and review rules as manual work.
+
+Rafael has full technical ownership of Deli Plus. He may change frontend,
+backend, database, migrations, RLS/RPCs, Clerk, Stripe, Billing, Store access,
+Dashboard, Storefront, tests, and documentation. No project rule requires Jesse
+to approve a core or architecture-sensitive change first. Full ownership still
+requires preserving or deliberately redesigning tenant/security properties,
+migrating safely, testing, and documenting the result.
 
 Do not commit, push, merge, rebase or rewrite history unless the task explicitly authorizes it.
 

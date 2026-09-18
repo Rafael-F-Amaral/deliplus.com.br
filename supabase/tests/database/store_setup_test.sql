@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(63);
+select no_plan();
 
 create temporary table store_setup_billing_snapshot as
 select
@@ -190,6 +190,109 @@ select ok(
   'anon remains denied on stores'
 );
 
+select has_function(
+  'public',
+  'create_store_draft',
+  array['uuid', 'text', 'text'],
+  'trusted draft creation RPC has the expected signature'
+);
+
+select has_function(
+  'public',
+  'update_store_setup',
+  array[
+    'uuid',
+    'uuid',
+    'timestamptz',
+    'boolean',
+    'text',
+    'boolean',
+    'text'
+  ],
+  'trusted Store setup update RPC has the expected signature'
+);
+
+select has_function(
+  'public',
+  'mark_store_ready',
+  array['uuid', 'uuid', 'timestamptz'],
+  'trusted Store readiness RPC has the expected signature'
+);
+
+create temporary table store_setup_trusted_functions as
+select
+  function.oid,
+  function.proname,
+  function.prosecdef,
+  function.provolatile,
+  function.proowner,
+  function.proconfig,
+  function.proacl,
+  pg_catalog.pg_get_functiondef(function.oid) as definition
+from pg_catalog.pg_proc as function
+join pg_catalog.pg_namespace as namespace
+  on namespace.oid = function.pronamespace
+where namespace.nspname = 'public'
+  and function.proname in (
+    'create_store_draft',
+    'update_store_setup',
+    'mark_store_ready'
+  );
+
+select is(
+  (select count(*) from store_setup_trusted_functions),
+  3::bigint,
+  'exactly three trusted Store setup RPCs exist'
+);
+
+select ok(
+  prosecdef
+    and provolatile = 'v'
+    and proowner = 'postgres'::pg_catalog.regrole
+    and proconfig @> array['search_path=""'],
+  proname || ' is VOLATILE SECURITY DEFINER owned by postgres with empty search_path'
+)
+from store_setup_trusted_functions
+order by proname;
+
+select ok(
+  definition ~* 'public\.stores'
+    and definition !~* 'billing_|stripe|activate_store|execute[[:space:]]',
+  proname || ' uses static Store-only SQL'
+)
+from store_setup_trusted_functions
+order by proname;
+
+select ok(
+  not exists (
+    select 1
+    from pg_catalog.aclexplode(proacl) as acl
+    where acl.grantee = 0
+      and acl.privilege_type = 'EXECUTE'
+  )
+    and not has_function_privilege('anon', oid, 'EXECUTE')
+    and not has_function_privilege('authenticated', oid, 'EXECUTE')
+    and has_function_privilege('service_role', oid, 'EXECUTE'),
+  proname || ' is executable only by service_role among Data API roles'
+)
+from store_setup_trusted_functions
+order by proname;
+
+select ok(
+  not has_table_privilege('service_role', 'public.stores', privilege),
+  'service_role has no direct stores ' || privilege
+)
+from (
+  values
+    ('SELECT'),
+    ('INSERT'),
+    ('UPDATE'),
+    ('DELETE'),
+    ('TRUNCATE'),
+    ('REFERENCES'),
+    ('TRIGGER')
+) as denied(privilege);
+
 select is(
   (
     select count(*)
@@ -206,6 +309,215 @@ insert into public.organizations (id, clerk_organization_id)
 values
   ('51000000-0000-0000-0000-000000000001', 'store_setup_org_a'),
   ('51000000-0000-0000-0000-000000000002', 'store_setup_org_b');
+
+set local role anon;
+
+select throws_ok(
+  $$select * from public.create_store_draft('51000000-0000-0000-0000-000000000001', 'Anon Store', 'anon-store')$$,
+  '42501', null, 'anon cannot invoke trusted draft creation'
+);
+
+reset role;
+set local role authenticated;
+
+select throws_ok(
+  $$select * from public.mark_store_ready('51000000-0000-0000-0000-000000000001', '52000000-0000-0000-0000-000000000001', now())$$,
+  '42501', null, 'authenticated cannot invoke trusted Store readiness'
+);
+
+reset role;
+set local role service_role;
+
+select is(
+  (
+    select jsonb_build_object(
+      'name', name,
+      'slug', slug,
+      'status', status,
+      'activated_at', activated_at
+    )
+    from public.create_store_draft(
+      '51000000-0000-0000-0000-000000000001',
+      'RPC Draft',
+      'rpc-draft'
+    )
+  ),
+  jsonb_build_object(
+    'name', 'RPC Draft',
+    'slug', 'rpc-draft',
+    'status', 'draft',
+    'activated_at', null
+  ),
+  'trusted creation returns only an unactivated draft'
+);
+
+reset role;
+
+select pg_catalog.set_config(
+  'test.store_setup_rpc_id',
+  (select id::text from public.stores where slug = 'rpc-draft'),
+  false
+);
+
+select pg_catalog.set_config(
+  'test.store_setup_rpc_updated_at',
+  (select updated_at::text from public.stores where slug = 'rpc-draft'),
+  false
+);
+
+select is(
+  (
+    select organization_id
+    from public.stores
+    where id = pg_catalog.current_setting('test.store_setup_rpc_id')::uuid
+  ),
+  '51000000-0000-0000-0000-000000000001'::uuid,
+  'trusted creation preserves the authorized Organization owner'
+);
+
+set local role service_role;
+
+select is(
+  (
+    select jsonb_build_object('name', name, 'slug', slug, 'status', status)
+    from public.update_store_setup(
+      '51000000-0000-0000-0000-000000000001',
+      pg_catalog.current_setting('test.store_setup_rpc_id')::uuid,
+      pg_catalog.current_setting('test.store_setup_rpc_updated_at')::timestamptz,
+      true,
+      'RPC Updated',
+      true,
+      'rpc-updated'
+    )
+  ),
+  jsonb_build_object(
+    'name', 'RPC Updated',
+    'slug', 'rpc-updated',
+    'status', 'draft'
+  ),
+  'trusted setup update changes only supported setup fields'
+);
+
+reset role;
+
+select pg_catalog.set_config(
+  'test.store_setup_rpc_updated_at',
+  (
+    select updated_at::text
+    from public.stores
+    where id = pg_catalog.current_setting('test.store_setup_rpc_id')::uuid
+  ),
+  false
+);
+
+set local role service_role;
+
+select is(
+  (
+    select status
+    from public.mark_store_ready(
+      '51000000-0000-0000-0000-000000000001',
+      pg_catalog.current_setting('test.store_setup_rpc_id')::uuid,
+      pg_catalog.current_setting('test.store_setup_rpc_updated_at')::timestamptz
+    )
+  ),
+  'ready',
+  'trusted readiness performs only draft to ready'
+);
+
+reset role;
+
+select pg_catalog.set_config(
+  'test.store_setup_rpc_updated_at',
+  (
+    select updated_at::text
+    from public.stores
+    where id = pg_catalog.current_setting('test.store_setup_rpc_id')::uuid
+  ),
+  false
+);
+
+set local role service_role;
+
+select is(
+  (
+    select status
+    from public.update_store_setup(
+      '51000000-0000-0000-0000-000000000001',
+      pg_catalog.current_setting('test.store_setup_rpc_id')::uuid,
+      pg_catalog.current_setting('test.store_setup_rpc_updated_at')::timestamptz,
+      true,
+      'RPC Ready Edited',
+      false,
+      ''
+    )
+  ),
+  'draft',
+  'material setup edits return a ready Store to draft'
+);
+
+reset role;
+
+select pg_catalog.set_config(
+  'test.store_setup_rpc_updated_at',
+  (
+    select updated_at::text
+    from public.stores
+    where id = pg_catalog.current_setting('test.store_setup_rpc_id')::uuid
+  ),
+  false
+);
+
+set local role service_role;
+
+select is(
+  (
+    select count(*)
+    from public.update_store_setup(
+      '51000000-0000-0000-0000-000000000002',
+      pg_catalog.current_setting('test.store_setup_rpc_id')::uuid,
+      pg_catalog.current_setting('test.store_setup_rpc_updated_at')::timestamptz,
+      true,
+      'Cross Tenant',
+      false,
+      ''
+    )
+  ),
+  0::bigint,
+  'trusted setup update cannot cross Organization ownership'
+);
+
+select throws_ok(
+  $$select * from public.create_store_draft('51000000-0000-0000-0000-000000000002', 'Duplicate RPC Slug', 'rpc-updated')$$,
+  '23505', null, 'trusted creation preserves global slug uniqueness'
+);
+
+select throws_ok(
+  $$select * from public.stores$$,
+  '42501', null, 'service_role cannot read Stores directly'
+);
+
+select throws_ok(
+  $$insert into public.stores (organization_id, name, slug) values ('51000000-0000-0000-0000-000000000001', 'Direct Store', 'direct-store')$$,
+  '42501', null, 'service_role cannot insert Stores directly'
+);
+
+select throws_ok(
+  $$update public.stores set name = 'Direct Update'$$,
+  '42501', null, 'service_role cannot update Stores directly'
+);
+
+select throws_ok(
+  $$delete from public.stores$$,
+  '42501', null, 'service_role cannot delete Stores directly'
+);
+
+select throws_ok(
+  $$truncate table public.stores$$,
+  '42501', null, 'service_role cannot truncate Stores directly'
+);
+
+reset role;
 
 insert into public.stores (id, organization_id, name, slug)
 values

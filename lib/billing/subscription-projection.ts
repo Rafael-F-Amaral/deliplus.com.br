@@ -46,7 +46,7 @@ export function createStripeWebhookProjectionStore() {
     ): Promise<StripeWebhookProjectionResult> {
       const { subscription } = input
       const { data, error } = await getAdminClient().rpc(
-        "apply_stripe_subscription_projection",
+        "apply_stripe_subscription_management_projection",
         {
           p_cancel_at_period_end: subscription.cancelAtPeriodEnd,
           p_collection_paused: subscription.collectionPaused,
@@ -61,6 +61,11 @@ export function createStripeWebhookProjectionStore() {
           p_stripe_object_id: input.stripeObjectId,
           p_stripe_price_id: subscription.stripePriceId,
           p_stripe_subscription_id: subscription.stripeSubscriptionId,
+          p_stripe_subscription_schedule_id:
+            subscription.stripeSubscriptionScheduleId!,
+          p_pending_stripe_price_id: subscription.pendingStripePriceId!,
+          p_pending_plan_code: subscription.pendingPlanCode!,
+          p_pending_effective_at: subscription.pendingEffectiveAt!,
         }
       )
 

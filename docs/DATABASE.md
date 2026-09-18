@@ -2,7 +2,9 @@
 
 ## Status
 
-This document describes the current domain model and ownership boundaries, not a finalized SQL schema. Exact columns, constraints and RLS policies are defined through reviewed feature specifications and Supabase migrations.
+This document describes the current domain model and ownership boundaries. Exact
+columns, constraints, grants, and RLS policies are defined by the forward-only
+Supabase migrations and generated database types.
 
 The first tenant-owned schema is specified in:
 
@@ -11,6 +13,10 @@ The first tenant-owned schema is specified in:
 The current billing schema is specified in:
 
 `docs/features/billing-foundation/SPEC.md`
+
+The final hybrid plan-management contract and migration history are specified in:
+
+`docs/features/subscription-management/SPEC.md`
 
 ## Principles
 
@@ -96,6 +102,15 @@ do not consume capacity.
 
 `slug` is the public Store identifier and is independent from the Clerk Organization slug.
 
+`stores_slug_key` enforces GLOBAL uniqueness on slug, with the 3–63 lowercase
+ASCII/hyphen format constraint. Migration `20260912120000_public_store_read_boundary.sql`
+adds `get_public_store_by_slug(p_slug text) RETURNS TABLE(name text, slug text)`.
+It is SQL STABLE SECURITY DEFINER, owned by postgres, with an empty search_path and
+EXECUTE only for anon among Data API roles. It filters exact canonical slug and
+`status = 'active'`; the existing slug index suffices. No table grants/RLS change.
+Reserved slugs remain the shared trusted Store-write domain rule, now including
+onboarding. See `docs/features/public-store-read-boundary/SPEC.md`.
+
 Current persisted lifecycle:
 
 ```text
@@ -109,6 +124,13 @@ drafts and rejects blank names. Store setup itself still stops at `ready`; the
 separate initial-trial activation RPC owns the first eligible `ready -> active`
 transition, while the generic entitlement RPC owns later `ready|inactive -> active`
 transitions and active-Store capacity enforcement.
+
+Trusted draft/setup writes are exposed only through
+`create_store_draft(uuid, text, text)`,
+`update_store_setup(uuid, uuid, timestamptz, boolean, text, boolean, text)`, and
+`mark_store_ready(uuid, uuid, timestamptz)`. These functions are `VOLATILE SECURITY
+DEFINER`, owned by `postgres`, use an empty `search_path`, and grant EXECUTE only to
+`service_role`. That role has no direct table privileges on `public.stores`.
 
 ### store_memberships
 
@@ -274,6 +296,20 @@ elapsed time or browser cancellation alone never releases an attempt.
 
 Stores at most one current paid Stripe Subscription projection for an Organization with a canonical billing Customer. Verified webhook reconciliation now maintains its provider identifiers, internal `plan_code`, status and period/recovery metadata. Local trial fields and `maxStores` are deliberately absent.
 
+Migration `20260912180000_subscription_management.sql` is the historical custom
+Subscription Management foundation already applied to Staging. It added the
+all-null-or-complete scheduled-change projection: `stripe_subscription_schedule_id`,
+`pending_stripe_price_id`, `pending_plan_code`, and `pending_effective_at`, together
+with the original upgrade/downgrade command journal. Migration
+`20260916180000_hybrid_subscription_management.sql` converts that published schema
+to the final hybrid model without rewriting history: it leaves the four projection
+columns and paid subscription rows intact, removes obsolete upgrade journal records,
+tightens the journal to the two custom downgrade operations, and removes the obsolete
+command-ending RPC. It is also applied and verified on Staging. Database checks allow
+only a lower pending plan and require its effective timestamp to equal the current
+period end. Neither historical migration may be rewritten; later corrections require
+a new forward migration.
+
 Approved plan codes are:
 
 ```text
@@ -284,15 +320,31 @@ multi_3   -> maxStores 3
 
 Capacity remains application configuration and not a schema cardinality or subscription column.
 
+### billing_subscription_change_attempts
+
+Stores one durable, open custom downgrade intent per Organization across tabs and
+processes. Its only operations are `schedule_downgrade` and
+`cancel_scheduled_downgrade`. The immutable snapshot includes current/target plan and
+Price, Subscription/Schedule correlation, expected period end, API recipe, mode,
+revision, and lifecycle timestamps. A partial unique index enforces the open-attempt
+invariant. The guarded lifecycle supports provider-object attachment,
+requested/recovery states, webhook-confirmed closure, and exact-convergence recovery
+when a webhook wins the final CAS race. RLS is enabled with no policies or direct
+mutation grants; `service_role` can act only through claim/advance/projection RPCs.
+Portal upgrades do not use this table and no Portal Session is persisted.
+
 ### stripe_webhook_events
 
 Stores minimum Stripe Event metadata for webhook idempotency/auditing. `processed_at` is written only in the same database transaction that applies or safely ignores the paid projection. A failed transaction leaves the Event retryable. The full webhook payload and `organization_id` are not persisted.
 
 ### Paid webhook projection transaction
 
-`public.apply_stripe_subscription_projection(...)` is the narrow atomic boundary for paid webhook writes. It:
+`public.apply_stripe_subscription_management_projection(...)` is the current narrow
+atomic boundary for paid webhook writes. The earlier
+`public.apply_stripe_subscription_projection(...)` remains compatible for the
+already-deployed acquisition worker. The management projection:
 
-- runs as `SECURITY INVOKER` with an empty `search_path`;
+- runs as service-only `SECURITY DEFINER` with an empty `search_path`;
 - accepts only normalized Event and current-Subscription fields, never the full Stripe payload;
 - resolves Organization ownership from a ready canonical `billing_customers.stripe_customer_id`;
 - serializes projection changes with a transaction-scoped advisory lock keyed by Organization;
@@ -302,12 +354,20 @@ Stores minimum Stripe Event metadata for webhook idempotency/auditing. `processe
 - permits a different Subscription to replace the canonical row only after the prior row is terminal (`canceled` or `incomplete_expired`);
 - leaves competing non-terminal Subscription Events retryable instead of prematurely acknowledging an ambiguous canonical transition;
 - acknowledges stale non-canonical Subscription Events without allowing them to overwrite the current row.
+- projects the current Subscription plus any active two-phase downgrade schedule;
+- clears pending facts from canonical provider state and closes matching attempts only
+  after verified Subscription/Schedule webhook reconciliation.
 
-The function is executable only by `service_role`. That role has read-only access to `billing_customers` and only `SELECT`/`INSERT`/`UPDATE` on the paid projection and Event ledger for this slice; it receives no `DELETE` or `TRUNCATE` capability there. External Stripe API retrieval happens before the transaction begins.
+The function is executable only by `service_role`; ownership and explicit grants are
+set by the migration, and `PUBLIC`, `anon`, and `authenticated` cannot invoke it. The
+earlier acquisition-only `apply_stripe_subscription_projection(...)` remains
+`SECURITY INVOKER` and retains its narrow `service_role` table-grant contract for the
+already-deployed worker. External Stripe API retrieval happens before either short
+database transaction begins.
 
 ### Billing access posture
 
-All five billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. Narrow entitlement-read, first-Store trial-activation, and generic Store lifecycle functions expose only their reviewed fact/result surfaces; they do not grant table access. Checkout RPCs are instead service-only operations behind the reviewed application-admin boundary.
+All six billing tables have RLS enabled without `FORCE ROW LEVEL SECURITY`. They expose no policies or direct table privileges to `anon` or `authenticated`. Narrow entitlement-read, billing-state-read, first-Store trial-activation, and generic Store lifecycle functions expose only their reviewed fact/result surfaces; they do not grant table access. Checkout and subscription-management mutation RPCs are instead service-only operations behind the reviewed application-admin boundary.
 
 ## Relationship overview
 
@@ -378,11 +438,19 @@ Normal `authenticated` access should be read-only for:
 
 Generic authenticated INSERT/UPDATE/DELETE for tenant-core records is not part of the first migration.
 
-Tenant provisioning and Store draft/setup mutations use separate narrow
-server-only boundaries. Team membership mutation remains separate. Store setup
-uses RLS-backed reads and an explicitly scoped privileged repository for simple
-writes; it does not activate a Store, grant entitlement, or expose generic
-authenticated writes.
+Tenant provisioning uses the service-role-only
+`public.ensure_organization_projection(text)` RPC behind `ensureActiveOrganization()`.
+It is `VOLATILE SECURITY DEFINER`, owned by `postgres`, uses an empty `search_path`,
+serializes the Clerk Organization with a transaction advisory lock, and returns only
+the internal UUID and Clerk Organization ID. `service_role` has EXECUTE only and no
+direct privileges on `public.organizations`; `PUBLIC`, `anon`, and `authenticated`
+cannot execute the RPC. Normal authenticated Organization reads remain RLS-bound.
+
+Store draft/setup mutations use a separate narrow server-only boundary. Team membership
+mutation remains separate. Store setup uses RLS-backed reads; its explicitly scoped
+repository invokes only the three trusted Store setup RPCs with the Organization UUID
+resolved by the authorized application service. It exposes no direct `service_role` or
+authenticated table writes and does not activate a Store or grant entitlement.
 
 The billing foundation is stricter: `anon` and `authenticated` have no direct reads or writes on any billing table. RLS remains default-deny. The dedicated entitlement read model exposes only a zero-argument function to `authenticated`, not table access.
 

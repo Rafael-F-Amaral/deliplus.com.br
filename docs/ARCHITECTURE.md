@@ -2,7 +2,11 @@
 
 ## Purpose
 
-DeliPlus is a multi-tenant SaaS for food-delivery businesses. This document defines the current architectural boundaries. It should evolve through explicit decisions rather than accidental implementation.
+DeliPlus is a multi-tenant SaaS for food-delivery businesses. This is the
+authoritative high-level description of the current architecture. Feature
+SPEC/PLAN documents retain useful decision history, while applied migrations and
+the implementation remain the detailed source of truth. The architecture may
+evolve through deliberate, tested, and documented changes.
 
 ## Product surfaces
 
@@ -71,6 +75,22 @@ sign up / sign in
   -> operational dashboard
 ```
 
+The implemented navigation is `Clerk signup/sign-in -> /onboarding -> Clerk Organization
+create/select -> trusted automatic Organization provisioning -> Store presence check`.
+The stable coordinator route derives request authority from Clerk, reuses the read-only
+onboarding resolver, and performs provisioning only through an explicit Server Action
+that calls `ensureActiveOrganization()`. It never mutates during Server Component render
+or GET. After provisioning, an Organization admin with no Stores is sent to
+`/dashboard/stores/new`; an Organization with Stores is sent to `/dashboard`. The first
+Store route now composes the existing draft, readiness, and activation operations in one
+merchant-facing submission and redirects successful publication to `/dashboard`. Each
+lifecycle transition remains explicit internally. `/dashboard/stores/[storeId]/setup`
+remains the editing and partial-failure recovery route.
+
+The automatic coordinator passed the main manual E2E. The former billing-page
+provisioning control has been removed. Billing redirects an unprovisioned Organization
+to `/onboarding` for both admins and members; this redirect performs no mutation.
+
 Current product direction:
 
 - subscriptions are owned by the Organization;
@@ -80,7 +100,14 @@ Current product direction:
 - `maxStores` counts only Stores with `status = 'active'`; draft and ready Stores do not consume capacity;
 - trial eligibility is a billing policy and must not be bypassed by repeatedly creating Organizations.
 
-The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, Store setup foundation, first-Store trial activation, and generic Store entitlement activation boundaries exist. Store setup supports Organization-admin reads, draft creation, name/slug editing, and readiness. `activateFirstStoreWithInitialTrial(storeId)` atomically activates the first eligible ready Store and creates its 15-day Essential trial. `activateStoreWithinEntitlement(storeId)` and `deactivateStore(storeId)` enforce the current paid/local plan capacity for later lifecycle changes. The Stripe Checkout backend now exists; its UI/transport and Customer Portal remain separate implementation slices.
+The PostgreSQL billing schema, server-only Stripe configuration, verified webhook projection foundation, server-only Organization entitlement resolver, Store setup foundation, first-Store trial activation, and generic Store entitlement activation boundaries exist. Store setup supports Organization-admin reads, draft creation, name/slug editing, and readiness. `activateFirstStoreWithInitialTrial(storeId)` atomically activates the first eligible ready Store and creates its 15-day Essential trial. `activateStoreWithinEntitlement(storeId)` and `deactivateStore(storeId)` enforce the current paid/local plan capacity for later lifecycle changes. Stripe Checkout owns acquisition. Paid-plan management is deliberately hybrid: exact upgrades use Customer Portal `subscription_update_confirm`, while Deli Plus owns end-of-period downgrade Schedules and their release.
+
+Normal Store UI publishes through `activateStoreForCurrentOrganization(storeId)`. This
+server-only coordinator first asks the generic transactional boundary to consume any
+current paid or local entitlement. Only `not_entitled` attempts the specialized initial
+trial boundary. A one-time generic retry after `trial_not_eligible` closes the race where
+an entitlement appeared while the trial operation waited. The coordinator does not read
+billing tables, calculate eligibility/capacity, or move transaction logic out of the RPCs.
 
 ### 4. Merchant dashboard
 
@@ -243,11 +270,13 @@ The current billing database foundation separates:
 - `billing_trial_grants` for local trial history;
 - `billing_customers` for canonical Organization-to-Stripe-Customer identity;
 - `billing_subscriptions` for the current paid Subscription projection;
-- `stripe_webhook_events` for minimum webhook idempotency metadata.
+- `stripe_webhook_events` for minimum webhook idempotency metadata;
 - `billing_checkout_attempts` for immutable acquisition intents, Session correlation,
-  retry/recovery and one non-ended reservation per Organization across plans.
+  retry/recovery and one non-ended reservation per Organization across plans;
+- `billing_subscription_change_attempts` for one immutable scheduled-downgrade or
+  scheduled-change cancellation intent per Organization; Portal upgrades use no journal.
 
-All five tables have RLS enabled and no direct `anon` or `authenticated` Data API access. Paid projection writes use one atomic `SECURITY INVOKER` PostgreSQL function callable only by `service_role`; that role receives only the table privileges required by the webhook slice. Checkout Customer/attempt writes use five narrow service-only `SECURITY DEFINER` RPCs; direct Customer/attempt access remains SELECT-only for `service_role`.
+All six tables have RLS enabled and no direct `anon` or `authenticated` Data API access. Paid projection writes use narrow atomic PostgreSQL functions callable only by `service_role`; that role receives only the table privileges required by the webhook slice. Checkout and subscription-change writes use narrow service-only `SECURITY DEFINER` RPCs; the management-attempt table has no direct service mutation grants.
 
 Normal Organization entitlement reads use the zero-argument `public.resolve_active_organization_entitlement_facts()` function. It is a reviewed, `STABLE`, `SECURITY DEFINER` read boundary with an empty `search_path`, derives the active tenant only from the verified Clerk JWT, and returns only local-trial and paid-projection facts needed by the server resolver. Only `authenticated` may execute it; the billing tables remain unavailable for direct authenticated reads.
 
@@ -257,15 +286,15 @@ Generic Store lifecycle changes use `public.activate_store_within_entitlement(uu
 
 ### Stripe
 
-Initial responsibility:
+Current responsibility:
 
 - Organization-level merchant subscription checkout;
 - paid Customer/Subscription lifecycle;
-- billing portal when implemented;
+- exact hosted upgrade confirmation through a restricted Customer Portal configuration;
 - billing webhooks;
 - plan/Store-capacity entitlement source in conjunction with DeliPlus billing projection.
 
-The current Stripe server and webhook foundations provide:
+The current Stripe server, Portal-upgrade, and webhook foundations provide:
 
 - the exact official Stripe Node SDK;
 - a lazy server-only client using only `STRIPE_SECRET_KEY`;
@@ -276,6 +305,28 @@ The current Stripe server and webhook foundations provide:
 - raw-body verification before Event processing;
 - current-Subscription reconciliation for the approved Checkout, Subscription, and Invoice Event set;
 - a single paid-subscription reducer and atomic Event-ledger/projection transaction.
+- exact `subscription_update_confirm` Sessions for higher plans only, with a dedicated
+  configuration that exposes only Duo and Trio as Portal switch targets;
+- custom two-phase Subscription Schedules for lower plans and canonical Schedule release.
+
+The webhook allowlist is exactly:
+
+```text
+checkout.session.completed
+customer.subscription.created
+customer.subscription.updated
+customer.subscription.deleted
+invoice.paid
+invoice.payment_failed
+subscription_schedule.updated
+subscription_schedule.released
+subscription_schedule.completed
+subscription_schedule.canceled
+subscription_schedule.aborted
+```
+
+Pending-update Events are not part of the hybrid architecture. Upgrade is hosted by
+Stripe and becomes authoritative only after canonical Subscription reconciliation.
 
 Supported, verified webhook processing retrieves current Stripe Subscription state.
 The explicit `createSubscriptionCheckoutSession(planCode)` billing action also reads
@@ -289,13 +340,25 @@ retries; unknown outcomes retain the reservation instead of rotating keys.
 Hosted Checkout uses one quantity-1 monthly BRL Price and a dedicated card-only
 Payment Method Configuration, with Adaptive Pricing disabled. MVP commercial
 configuration is Essencial R$ 99,90, Duo R$ 189,90 and Trio R$ 279,90 per month;
-these amounts are not domain identity or authorization constants.
+these amounts are not domain identity or authorization constants. The three current
+Sandbox Prices use `tax_behavior = inclusive`, so the displayed BRL amounts are final
+prices. Stripe Tax and Automatic Tax are not enabled.
 
-Imports, builds, tests and unrelated Events perform no real Stripe API call. No
-Checkout UI, Action, billing page, Portal, remote catalog creation, tax, Stripe
-trial, Store mutation or entitlement grant from redirect is introduced. Paid
-entitlement still comes only from the verified webhook projection. See
-`docs/features/stripe-checkout/SPEC.md` for the acquisition/recovery contract.
+The dedicated upgrade Portal configuration allows only `price`, uses an unchanged
+billing-cycle anchor with `always_invoice` proration, fixes quantity at one, exposes
+only Duo and Trio as targets, and disables cancellation, customer update, invoice
+history, login, and scheduled-at-period-end switching. Payment-method update is
+enabled only because Stripe requires it when subscription updates are enabled; Deli
+Plus exposes no generic Portal or payment-method-management entry point.
+
+Imports, builds, automated tests and unrelated Events perform no real Stripe API call.
+The Billing UI uses thin Server Actions and local projection reads. Checkout returns and
+Portal returns are presentation hints only; paid entitlement still comes exclusively
+from verified webhook projection. The three existing monthly Products remain separate.
+Remote catalog/configuration mutation, tax automation, Stripe trial, generic Portal
+self-service, and Store mutation are not part of Subscription Management. See
+`docs/features/stripe-checkout/SPEC.md` and
+`docs/features/subscription-management/SPEC.md` for the two contracts.
 
 End-customer payment for food orders is outside the initial scope.
 
@@ -338,6 +401,15 @@ dashboard/team
 For Organization admins, Store assignment is not required for their own access because admins may access all Stores in the Organization.
 
 For normal Organization members, one or more Store assignments are required before Store-scoped access is granted.
+
+Members are not a Billing authority. `org:admin` may create an upgrade Portal
+Session, schedule a downgrade, cancel a scheduled downgrade, and otherwise manage
+Organization Billing. Members may read Billing state but cannot perform those
+mutations. Each operation enforces this server-side regardless of UI visibility.
+
+No full team-management UI exists yet. A future Deli Plus flow should use Clerk for
+invitations, Organization roles, removal, and membership lifecycle, then use
+PostgreSQL for Store assignments and any later application-specific Store roles.
 
 ## Server/client boundary
 
@@ -388,6 +460,14 @@ request /<storeSlug>
 ```
 
 Public storefront access is separate from merchant dashboard authorization.
+
+The implemented foundation is `/{storeSlug} -> getPublicStoreBySlug() -> public
+Store repository -> anonymous Supabase client -> get_public_store_by_slug(text)`.
+Only active Store `name` and `slug` are returned, without tenant IDs or billing
+reads. The current minimal page is dynamic, uses uncached reads and is noindex.
+Global slug uniqueness is already enforced by PostgreSQL; shared Store setup
+validation rejects reserved application routes including `onboarding`.
+See `docs/features/public-store-read-boundary/SPEC.md` for the audited contract.
 
 ## Cross-cutting concerns
 

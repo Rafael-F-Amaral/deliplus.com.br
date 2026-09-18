@@ -240,7 +240,8 @@ values
 
 update public.stores
 set status = 'ready'
-where id <> '72000000-0000-0000-0000-000000000003';
+where id::text like '72000000-%'
+  and id <> '72000000-0000-0000-0000-000000000003';
 
 update public.stores
 set

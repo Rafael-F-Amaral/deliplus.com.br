@@ -31,7 +31,8 @@ Recommended GitHub protection:
 - prevent branch deletion;
 - require conversation resolution before merge.
 
-For two collaborators, mandatory approval can be enabled when useful, especially for architecture-sensitive changes.
+For two collaborators, mandatory peer approval can be enabled when useful, but it
+must not make Jesse an architectural approval bottleneck for Rafael.
 
 ## Branch naming
 
@@ -108,7 +109,8 @@ Small merge conflicts are normal. Repeated conflicts in the same shared file sig
 
 ## Architecture-sensitive changes
 
-Changes to the following should receive explicit review from the repository architecture owner(s):
+Changes to the following should receive proportionate architectural and security
+review in the pull request:
 
 - database schema/migrations;
 - auth/authorization;
@@ -119,7 +121,17 @@ Changes to the following should receive explicit review from the repository arch
 - `AGENTS.md`;
 - architecture docs.
 
-This should eventually be reinforced with GitHub CODEOWNERS if desired.
+Rafael has full technical ownership and may make these changes. Review means
+making the design, migration, security effects, tests, and documentation explicit;
+it does not mean that Jesse or another designated "core owner" must authorize the
+work first. CODEOWNERS may be introduced for routing/review hygiene, not to create
+an ownership bottleneck.
+
+The preferred integration path is:
+
+```text
+main -> feature/* -> pull request -> review / CI -> squash merge
+```
 
 ## Commits
 
