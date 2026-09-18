@@ -1,6 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs"
 import { ptBR } from "@clerk/localizations"
-import { shadcn } from "@clerk/ui/themes"
+import { shadcn } from "@clerk/themes"
 import { Figtree, Geist_Mono } from "next/font/google"
 
 import "./globals.css"
