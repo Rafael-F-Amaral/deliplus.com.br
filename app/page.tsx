@@ -35,19 +35,12 @@ export default function HomePage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <Show when="signed-out">
-            <SignInButton fallbackRedirectUrl="/onboarding">
-              <button
-                type="button"
-                className={buttonVariants({ variant: "outline", size: "lg" })}
-              >
-                Entrar
-              </button>
-            </SignInButton>
-            <SignUpButton forceRedirectUrl="/onboarding">
-              <button type="button" className={buttonVariants({ size: "lg" })}>
-                Criar conta
-              </button>
-            </SignUpButton>
+            <Link href="/sign-in" className={buttonVariants({ variant: "outline", size: "lg" })}>
+              Entrar
+            </Link>
+            <Link href="/sign-up" className={buttonVariants({ size: "lg" })}>
+              Criar conta
+            </Link>
           </Show>
 
           <Show when="signed-in">

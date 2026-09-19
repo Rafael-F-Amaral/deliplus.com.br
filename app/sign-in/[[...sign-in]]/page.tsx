@@ -45,17 +45,13 @@ export default function SignInPage() {
 
       <div className="relative z-10 w-full max-w-[680px] flex flex-col items-center px-4">
         
-        {/* Logo - DELi with + as the dot on the i */}
+        {/* Logo - Exact Image Provided */}
         <div className="mb-4 relative flex items-center justify-center">
-          <style dangerouslySetInnerHTML={{__html: `
-            @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap');
-            .logo-font { font-family: 'Caveat', cursive; }
-            .serif-font { font-family: 'Playfair Display', serif; }
-          `}} />
-          
-          <div className="logo-font text-[75px] leading-none text-[#25392B] tracking-wide relative">
-            DEL<span className="relative">ı<span className="absolute -top-[12px] -right-[5px] text-[36px] text-[#CB5A3C] font-sans font-bold">+</span></span>
-          </div>
+          <img 
+            src="/logo-deli.png" 
+            alt="DELi+" 
+            className="h-[75px] w-auto object-contain drop-shadow-sm" 
+          />
         </div>
 
         {/* Headings */}
