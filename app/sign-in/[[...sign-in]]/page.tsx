@@ -77,22 +77,6 @@ export default function SignInPage() {
         {/* Login Box Wrapper */}
         <div className="relative w-full mb-8">
           
-          {/* Partner Tag */}
-          <div className="absolute -top-4 -right-6 z-20 transform rotate-[12deg] drop-shadow-[0_4px_6px_rgba(0,0,0,0.15)] pointer-events-none">
-            <div className="bg-[#C56C51] text-[#25392B] text-[11px] font-bold tracking-[0.08em] px-4 py-2.5 rounded-sm relative flex items-center shadow-[inset_0_0_10px_rgba(0,0,0,0.1)] border border-[#b35e45]">
-              <div className="flex flex-col items-end leading-[1.2]">
-                <span>ACESSO DE</span>
-                <span>PARCEIRO</span>
-              </div>
-              <div className="w-3.5 h-3.5 bg-[#F6F5F2] rounded-full ml-3 border-[1.5px] border-[#a04e37] relative shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]">
-                <svg width="30" height="20" viewBox="0 0 30 20" className="absolute top-1/2 left-full transform -translate-y-1/2 overflow-visible">
-                  <path d="M0,10 Q10,0 25,5" fill="none" stroke="#D4B59D" strokeWidth="1.5" strokeLinecap="round" />
-                  <path d="M0,10 Q10,20 28,15" fill="none" stroke="#D4B59D" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
           {/* Fully Custom Form */}
           <div className="bg-[#FCFBF8] rounded-[16px] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-black/[0.04] px-12 py-8 w-full relative z-10">
             <form onSubmit={submit} className="flex flex-col gap-5">
