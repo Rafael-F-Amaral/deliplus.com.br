@@ -60,10 +60,43 @@ export default function SignUpPage() {
     }
   }
 
+  const signUpWithGoogle = (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (!isLoaded) return
+    signUp.authenticateWithRedirect({
+      strategy: "oauth_google",
+      redirectUrl: "/sso-callback",
+      redirectUrlComplete: "/onboarding",
+    })
+  }
+
   return (
     <AuthLayout isSignIn={false}>
       {!pendingVerification ? (
         <form onSubmit={submit} className="flex flex-col gap-5">
+          
+          {/* Google SSO Button */}
+          <button 
+            onClick={signUpWithGoogle}
+            type="button"
+            className="flex items-center justify-center gap-3 w-full h-[48px] bg-white border border-[#E5E2D9] rounded-[8px] text-[#333] text-[15px] font-medium shadow-[0_2px_4px_rgba(0,0,0,0.02)] hover:bg-gray-50 transition-colors"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25C22.56 11.47 22.49 10.72 22.36 10H12V14.26H17.92C17.66 15.63 16.88 16.81 15.69 17.6V20.35H19.26C21.36 18.42 22.56 15.6 22.56 12.25Z" fill="#4285F4"/>
+              <path d="M12 23C14.97 23 17.46 22.02 19.26 20.35L15.69 17.6C14.71 18.25 13.46 18.65 12 18.65C9.18 18.65 6.79 16.74 5.92 14.19H2.23V17.05C4.03 20.63 7.72 23 12 23Z" fill="#34A853"/>
+              <path d="M5.92 14.19C5.7 13.53 5.57 12.78 5.57 12C5.57 11.22 5.7 10.47 5.92 9.81V6.95H2.23C1.49 8.42 1.07 10.15 1.07 12C1.07 13.85 1.49 15.58 2.23 17.05L5.92 14.19Z" fill="#FBBC05"/>
+              <path d="M12 5.35C13.62 5.35 15.07 5.9 16.21 6.99L19.34 3.86C17.45 2.1 14.97 1 12 1C7.72 1 4.03 3.37 2.23 6.95L5.92 9.81C6.79 7.26 9.18 5.35 12 5.35Z" fill="#EA4335"/>
+            </svg>
+            Continuar com Google
+          </button>
+
+          {/* Divider */}
+          <div className="flex items-center gap-4 my-1">
+            <div className="flex-1 h-[1px] bg-[#E5E2D9]"></div>
+            <span className="text-[#888] text-[13px]">ou</span>
+            <div className="flex-1 h-[1px] bg-[#E5E2D9]"></div>
+          </div>
+
           {error && (
             <div className="p-2 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm text-center">
               {error}
