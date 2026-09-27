@@ -177,3 +177,47 @@
     @apply font-sans;
     }
 }
+
+/* Force Clerk Card to stretch full width of our container */
+.cl-rootBox, .cl-cardBox, .cl-card {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Hide the Ultimo uso badge aggressively */
+.cl-badge, 
+.cl-socialButtonsBlockButton .cl-badge,
+[data-localization-key="badge__lastUsed"],
+.cl-socialButtonsBlockButton [data-localization-key="badge__lastUsed"] {
+  display: none !important;
+}
+
+/* Hide any extra children in the social button (like the badge) */
+.cl-socialButtonsBlockButton > *:nth-child(3),
+.cl-socialButtonsBlockButton > *:nth-child(4) {
+  display: none !important;
+}
+
+/* Esconder o icone nativo > do boto do Clerk */
+.cl-formButtonPrimary svg {
+  display: none !important;
+}
+.cl-main { display: flex !important; flex-direction: column !important; }
+.cl-form { order: 1 !important; }
+.cl-dividerRow { order: 2 !important; }
+.cl-socialButtonsRoot { order: 3 !important; }
+
+/* FIX CLERK NATIVE HEADER AND BADGES */
+.cl-header { display: none !important; }
+.cl-headerSubtitle { display: none !important; }
+.cl-headerTitle { display: none !important; }
+
+.cl-footerAction { display: none !important; }
+.cl-internal-b3al4t { display: none !important; }
+
+.cl-footer { background-color: transparent !important; color: #666 !important; }
+.cl-footer * { color: #666 !important; }
+.cl-internal-d4j0pk, .cl-internal-r93pb5, [data-clerk-dev-mode-overlay] {
+  background-color: transparent !important;
+  background: transparent !important;
+}

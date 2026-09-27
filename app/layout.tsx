@@ -1,13 +1,14 @@
 import { ClerkProvider } from "@clerk/nextjs"
 import { ptBR } from "@clerk/localizations"
-import { shadcn } from "@clerk/themes"
-import { Figtree, Geist_Mono } from "next/font/google"
+
+import { Figtree, Geist_Mono, Playfair_Display } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" })
+const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" })
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -36,11 +37,23 @@ export default function RootLayout({
         "antialiased",
         fontMono.variable,
         "font-sans",
-        figtree.variable
+        figtree.variable,
+        playfair.variable
       )}
     >
       <body suppressHydrationWarning>
-        <ClerkProvider localization={ptBR} appearance={{ theme: shadcn }}>
+        <ClerkProvider 
+          localization={{
+            ...ptBR,
+            dividerText: "ou",
+            formFieldLabel__emailAddress_username: "E-mail",
+            formFieldInputPlaceholder__emailAddress_username: "seuemail@exemplo.com",
+            formFieldLabel__password: "Senha",
+            formButtonPrimary: "Entrar no painel",
+            formFieldAction__forgotPassword: "Esqueci minha senha"
+          }}
+          
+        >
           <ThemeProvider>{children}</ThemeProvider>
         </ClerkProvider>
       </body>

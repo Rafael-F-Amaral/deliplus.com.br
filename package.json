@@ -12,7 +12,7 @@
     "test:billing-checkout-ui": "node --test tests/billing-checkout-ui/billing-checkout-ui.test.mjs",
     "test:stripe-checkout": "node --conditions=react-server --experimental-strip-types --test tests/stripe-checkout/stripe-checkout.test.mjs tests/stripe-checkout/stripe-checkout.stripe.test.mjs",
     "test:stripe-checkout:concurrency": "node --conditions=react-server --experimental-strip-types --test tests/stripe-checkout/stripe-checkout.concurrency.test.mjs",
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -67,6 +67,7 @@
     "pg": "^8.23.0",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.0",
+    "puppeteer": "^25.11.0",
     "supabase": "^2.115.0",
     "tailwindcss": "^4",
     "typescript": "^5"

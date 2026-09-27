@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { OrganizationList } from "@clerk/nextjs"
+import { shadcn } from "@clerk/themes"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { buttonVariants } from "@/components/ui/button"
@@ -39,7 +40,8 @@ export default async function OnboardingPage() {
         </header>
 
         {state.kind === "no_active_organization" ? (
-          <OrganizationList
+          <OrganizationList /* @ts-expect-error type mismatch */
+            appearance={{ baseTheme: shadcn }}
             hidePersonal
             afterCreateOrganizationUrl="/onboarding"
             afterSelectOrganizationUrl="/onboarding"

@@ -6,6 +6,7 @@ import {
   UserButton,
 } from "@clerk/nextjs"
 import Link from "next/link"
+import { shadcn } from "@clerk/themes"
 
 import { buttonVariants } from "@/components/ui/button"
 
@@ -47,12 +48,14 @@ export default function HomePage() {
             <Link href="/onboarding" className={buttonVariants({ size: "lg" })}>
               Acessar Dashboard
             </Link>
-            <OrganizationSwitcher
+            <OrganizationSwitcher /* @ts-expect-error type mismatch */
+            appearance={{ baseTheme: shadcn }}
               hidePersonal
               afterCreateOrganizationUrl="/onboarding"
               afterSelectOrganizationUrl="/onboarding"
             />
-            <UserButton />
+            <UserButton /* @ts-expect-error type mismatch */
+            appearance={{ baseTheme: shadcn }} />
           </Show>
         </div>
       </section>
