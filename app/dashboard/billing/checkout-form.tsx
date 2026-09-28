@@ -40,7 +40,7 @@ export function CheckoutForm({
       <div aria-live="polite" aria-atomic="true">
         {pending ? (
           <p className="text-sm text-muted-foreground">
-            Redirecionando para o checkout seguro…
+            Redirecionando para o checkout seguro...
           </p>
         ) : state.kind !== "idle" ? (
           <Alert
@@ -94,14 +94,14 @@ export function CheckoutSubmit({
       name="planCode"
       value={planCode}
       size="lg"
-      className="w-full"
+      className={planCode === "essential" ? "w-full bg-[#CB5A3C] hover:bg-[#b04a2f] text-white hover:text-white font-semibold" : "w-full bg-[#2E4233] hover:bg-[#1f2c22] text-white hover:text-white font-semibold"}
       disabled={disabled || pending}
       aria-label={
         paid ? "Sua organização já possui uma assinatura" : `Assinar ${name}`
       }
     >
       {submitting
-        ? "Redirecionando…"
+        ? "Redirecionando..."
         : paid
           ? "Assinatura existente"
           : `Assinar ${name}`}

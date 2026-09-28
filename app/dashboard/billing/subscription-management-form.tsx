@@ -291,11 +291,10 @@ function SubscriptionManagementButton({
       name="planCode"
       value={planCode}
       size="lg"
-      variant={current ? "outline" : "default"}
-      className="w-full"
+      className={planCode === "essential" ? "w-full bg-[#CB5A3C] hover:bg-[#b04a2f] text-white font-semibold" : "w-full bg-[#2E4233] hover:bg-[#1f2c22] text-white font-semibold"}
       disabled={disabled || pending || current}
     >
-      {active ? "Enviando…" : current ? "Plano atual" : actionLabel}
+      {active ? "Enviando..." : current ? "Continuar no plano atual" : actionLabel}
     </Button>
   )
 }

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
-import { Home, ShoppingBag, ChefHat, BookOpen, User, Megaphone, CircleDollarSign, BarChart3, Users, Settings, LogOut } from 'lucide-react'
+import { Home, ShoppingBag, ChefHat, BookOpen, User, Megaphone, CircleDollarSign, BarChart3, Users, Settings, LogOut, CreditCard } from 'lucide-react'
 
 function SvgIcon({ path, className }: { path: string, className?: string }) {
   return (
@@ -25,6 +25,7 @@ const menuItems = [
   { name: 'Financeiro', short: 'Financeiro', href: '/dashboard/finance', icon: CircleDollarSign },
   { name: 'Relatórios', short: 'Relatórios', href: '/dashboard/reports', icon: BarChart3 },
   { name: 'Equipe', short: 'Equipe', href: '/dashboard/team', icon: Users },
+  { name: 'Assinatura', short: 'Assinatura', href: '/dashboard/billing', icon: CreditCard },
   { name: 'Configurações', short: 'Config.', href: '/dashboard/settings', icon: Settings },
 ]
 

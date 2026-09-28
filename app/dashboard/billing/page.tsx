@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { buttonVariants } from "@/components/ui/button"
+import { Store } from "lucide-react"
+import { LogoDeli } from "@/components/LogoDeli"
 import {
   Card,
   CardContent,
@@ -26,25 +27,24 @@ import {
 export const metadata: Metadata = { title: "Planos e assinatura | Deli Plus" }
 export const dynamic = "force-dynamic"
 
-// Commercial presentation only. Provider pricing and eligibility remain server/domain owned.
 const plans = [
   {
     code: "essential",
     name: "Essencial",
     price: "99,90",
-    description: "Ideal para começar",
+    description: "Ideal para começar e estruturar sua operação.",
   },
   {
     code: "multi_2",
     name: "Duo",
     price: "189,90",
-    description: "Para operações em expansão",
+    description: "Para operações em expansão.",
   },
   {
     code: "multi_3",
     name: "Trio",
     price: "279,90",
-    description: "Para pequenas redes",
+    description: "Para pequenas redes.",
   },
 ] satisfies {
   code: PlanCode
@@ -87,27 +87,57 @@ export default async function BillingPage({
     billing.cancelAtPeriodEnd
   const cards = plans.map((plan) => {
     const capacity = getPlanDefinition(plan.code).maxStores
+    const isCurrentPlan = state.kind === "resolved" && state.entitlement.entitled && state.entitlement.planCode === plan.code;
+    const isEssential = plan.code === 'essential';
+    
     return (
-      <Card key={plan.code}>
-        <CardHeader>
-          <CardTitle>
-            <h2>{plan.name}</h2>
-          </CardTitle>
-          <CardDescription>{plan.description}</CardDescription>
+      <Card key={plan.code} className={isEssential ? "bg-[#FFF0E5] border border-[#CB5A3C] shadow-sm flex flex-col relative" : "bg-transparent border border-gray-200 shadow-sm flex flex-col relative"}>
+        {isCurrentPlan && (
+          <div className="absolute top-3.5 left-5 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C]"></span>
+            <span className="text-[10px] font-bold text-[#CB5A3C] uppercase tracking-wider">Plano atual</span>
+          </div>
+        )}
+        {isEssential && (
+          <div className="absolute top-3 right-4">
+            <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white bg-[#CB5A3C] rounded-full">
+              Mais Popular
+            </span>
+          </div>
+        )}
+        
+        <CardHeader className="flex flex-col items-start gap-1 space-y-0 relative pt-10 pb-0">
+          <div className="flex flex-col">
+            <CardTitle>
+              <h2 className="text-2xl font-bold text-[#111827]">{plan.name}</h2>
+            </CardTitle>
+            <CardDescription className="text-[13px] mt-1 text-muted-foreground font-medium">{plan.description}</CardDescription>
+          </div>
         </CardHeader>
-        <CardContent className="flex flex-1 flex-col gap-6">
+        <CardContent className="flex flex-col gap-5 pt-6 pb-0">
           <p className="flex flex-wrap items-baseline gap-1">
-            <span className="text-base">R$</span>
-            <span className="text-4xl font-semibold tracking-tighter tabular-nums">
+            <span className="text-xl font-bold tracking-tight text-[#111827]">R$</span>
+            <span className="text-4xl font-bold tracking-tighter tabular-nums text-[#111827]">
               {plan.price}
             </span>
-            <span className="text-muted-foreground">/mês</span>
+            <span className="text-sm font-bold text-[#111827] ml-1">/mês</span>
           </p>
-          <p className="text-base font-medium">
-            {capacity === 1 ? "1 Store" : `Até ${capacity} Stores`}
-          </p>
+          <div className="flex flex-col gap-2.5">
+            <p className="flex items-center gap-2 text-[13px] font-medium text-foreground">
+              <span className="text-[#CB5A3C] text-[15px] font-bold leading-none translate-y-[1px]">✓</span>
+              {capacity === 1 ? "1 Estabelecimento" : `Até ${capacity} Estabelecimentos`}
+            </p>
+            <p className="flex items-center gap-2 text-[13px] font-medium text-foreground">
+              <span className="text-[#CB5A3C] text-[15px] font-bold leading-none translate-y-[1px]">✓</span>
+              Todas as funcionalidades
+            </p>
+            <p className="flex items-center gap-2 text-[13px] font-medium text-foreground">
+              <span className="text-[#CB5A3C] text-[15px] font-bold leading-none translate-y-[1px]">✓</span>
+              Suporte prioritário
+            </p>
+          </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="mt-8 pt-0 pb-6 flex-col items-stretch gap-4">
           {paid && billing ? (
             <SubscriptionManagementSubmit
               planCode={plan.code}
@@ -128,42 +158,35 @@ export default async function BillingPage({
     )
   })
   return (
-    <main className="min-h-svh px-6 py-10 sm:px-10 lg:px-16">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
-        <nav
-          aria-label="Navegação da assinatura"
-          className="flex flex-wrap items-center justify-between gap-3"
-        >
-          <Link
-            href="/dashboard"
-            className={buttonVariants({ variant: "outline" })}
-          >
-            Voltar ao dashboard
-          </Link>
-          <p className="text-sm font-medium tracking-[0.18em] text-muted-foreground uppercase">
-            Deli Plus
-          </p>
-        </nav>
-        <header className="flex max-w-3xl flex-col gap-4">
-          <h1 className="text-4xl font-semibold tracking-tighter text-balance sm:text-5xl">
-            Um plano para o tamanho da sua operação.
-          </h1>
-          <p className="text-lg leading-relaxed text-muted-foreground">
-            As mesmas funcionalidades. Mais espaço para suas lojas.
-          </p>
-          {state.kind === "resolved" ? (
-            <p className="text-sm text-muted-foreground">
-              Organização:{" "}
-              <span className="font-medium break-words text-foreground">
-                {state.organizationName}
-              </span>
+    <main className="h-[100svh] bg-transparent px-4 py-4 sm:px-6 lg:px-8 overflow-hidden flex flex-col justify-center">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-2">
+        <header className="flex w-full flex-col gap-2 mb-0">
+          <div className="flex items-center gap-2 mb-2">
+            <LogoDeli className="h-10 w-auto text-[#2E4233]" />
+          </div>
+
+          <div className="flex flex-col gap-2 mt-0">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[13px] font-bold tracking-widest text-muted-foreground uppercase">Planos e preços</span>
+              <div className="w-8 h-1 bg-[#CB5A3C] rounded-full"></div>
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl leading-[1.1] mt-1">
+              <span className="text-[#2E4233]">Escolha o plano ideal <br className="hidden sm:block" /></span>
+              <span className="text-[#CB5A3C]">para o seu negócio.</span>
+            </h1>
+            <p className="text-[15px] text-muted-foreground font-medium mt-0.5">
+              Mais estrutura, mais controle e mais facilidade para o seu dia a dia.
             </p>
-          ) : null}
+          </div>
         </header>
-        <BillingStatus state={state} />
+        
+        <div className="mt-0 mb-0">
+          <BillingStatus state={state} />
+        </div>
+        
         <section
           aria-label="Planos disponíveis"
-          className="flex flex-col gap-5"
+          className="flex flex-col mt-0"
         >
           {paid && billing ? (
             <SubscriptionManagementForm
@@ -176,13 +199,10 @@ export default async function BillingPage({
               {cards}
             </SubscriptionManagementForm>
           ) : (
-            <CheckoutForm disabled={disabled}>{cards}</CheckoutForm>
+            <CheckoutForm disabled={disabled}>
+              {cards}
+            </CheckoutForm>
           )}
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Todos os planos incluem o mesmo conjunto principal de
-            funcionalidades do Deli Plus. O que muda é a capacidade de lojas.
-            Pagamento por cartão no checkout seguro do Stripe.
-          </p>
         </section>
       </div>
     </main>
