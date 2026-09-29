@@ -158,9 +158,9 @@ export default async function BillingPage({
     )
   })
   return (
-    <main className="h-[100svh] bg-transparent px-4 py-4 sm:px-6 lg:px-8 overflow-hidden flex flex-col justify-center">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-2">
-        <header className="flex w-full flex-col gap-2 mb-0">
+    <main className="min-h-[100svh] bg-transparent px-4 py-8 sm:px-6 lg:px-8 flex flex-col justify-center">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 md:gap-4 pb-12">
+        <header className="flex w-full flex-col gap-4 mt-8 md:mt-0">
           <div className="flex items-center gap-2 mb-2">
             <LogoDeli className="h-10 w-auto text-[#2E4233]" />
           </div>
