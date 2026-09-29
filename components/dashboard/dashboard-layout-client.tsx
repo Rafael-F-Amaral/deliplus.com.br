@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { usePathname } from "next/navigation"
 import Image from "next/image"
@@ -33,27 +33,7 @@ export function DashboardLayoutClient({
         {/* Top Actions - Desktop */}
         {/* Top Actions removidas conforme solicitado */}
 
-        {/* Top Header - Mobile */}
-        <header className="flex lg:hidden h-[64px] items-center justify-between px-4 border-b border-gray-100 bg-[#FAF8F0] sticky top-0 z-40">
-          <button className="p-2 text-gray-700">
-            <SvgIcon path="M3 12h18 M3 6h18 M3 18h18" className="w-6 h-6" />
-          </button>
-          
-          <div className="flex items-center">
-            <Image 
-              src="/logo.png" 
-              alt="DELi+" 
-              width={90} 
-              height={30} 
-              className="h-7 w-auto object-contain" 
-              priority
-            />
-          </div>
-
-          <div className="w-8 h-8 rounded-full bg-[#CB5A3C] text-white flex items-center justify-center text-xs font-medium">
-            MN
-          </div>
-        </header>
+        {/* Top Header - Mobile removido conforme solicitado */}
         
         {/* Page Content */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#FAF8F0]">
