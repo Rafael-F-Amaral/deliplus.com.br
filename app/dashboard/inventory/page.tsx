@@ -54,6 +54,7 @@ const MOCK_PRODUCTS: Product[] = [
 
 export default function InventoryPage() {
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
+  const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
   
   // --- STATE ---
   const [filterMode, setFilterMode] = useState<'todos' | 'baixo'>('todos');
@@ -244,7 +245,10 @@ export default function InventoryPage() {
                   className="w-full pl-11 pr-4 py-2.5 bg-white border border-[#E9E4D4] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all shadow-sm"
                 />
               </div>
-              <button className="flex shrink-0 items-center justify-center gap-2 px-4 py-2.5 bg-[#2E4233] hover:bg-[#233327] text-white rounded-xl font-semibold text-[14px] transition-all duration-300 shadow-sm">
+              <button 
+                onClick={() => setIsNewProductModalOpen(true)}
+                className="flex shrink-0 items-center justify-center gap-2 px-4 py-2.5 bg-[#2E4233] hover:bg-[#233327] text-white rounded-xl font-semibold text-[14px] transition-all duration-300 shadow-sm"
+              >
                 <SvgIcon path="M12 4v16m8-8H4" className="w-4 h-4" />
                 <span className="hidden md:inline">Novo produto</span>
               </button>
@@ -567,6 +571,120 @@ export default function InventoryPage() {
                   Imprimir
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Novo Produto */}
+      {isNewProductModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[600px] overflow-hidden flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="p-5 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#2E4233]/10 flex items-center justify-center">
+                  <SvgIcon path="M12 4v16m8-8H4" className="w-5 h-5 text-[#2E4233]" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-[#2E4233] text-xl">Novo Produto</h3>
+                  <p className="text-sm text-gray-500">Adicionar insumo ao estoque</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsNewProductModalOpen(false)} 
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
+              >
+                <SvgIcon path="M6 18L18 6M6 6l12 12" className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-6 bg-white">
+              
+              {/* Row 1: Nome e Icone */}
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-2 w-16 shrink-0">
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Ícone</label>
+                  <input type="text" placeholder="🌾" className="w-full text-center text-2xl border border-[#E9E4D4] rounded-xl py-2 focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all shadow-sm" />
+                </div>
+                <div className="flex flex-col gap-2 flex-1">
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Nome do Produto</label>
+                  <input type="text" placeholder="Ex: Farinha de trigo especial" className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all shadow-sm" />
+                </div>
+              </div>
+
+              {/* Row 2: Categoria e Unidade */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col gap-2 flex-1">
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Categoria</label>
+                  <div className="relative">
+                    <select defaultValue="" className="w-full appearance-none border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all shadow-sm bg-white">
+                      <option value="" disabled>Selecione uma categoria...</option>
+                      {Object.values(CATEGORIES).map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                    <SvgIcon path="M19 9l-7 7-7-7" className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 flex-1">
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Unidade de Medida</label>
+                  <div className="relative">
+                    <select defaultValue="kg" className="w-full appearance-none border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all shadow-sm bg-white">
+                      <option value="kg">Quilograma (kg)</option>
+                      <option value="g">Grama (g)</option>
+                      <option value="litro">Litro (l)</option>
+                      <option value="ml">Mililitro (ml)</option>
+                      <option value="unidades">Unidades</option>
+                      <option value="pacotes">Pacotes</option>
+                      <option value="caixas">Caixas</option>
+                    </select>
+                    <SvgIcon path="M19 9l-7 7-7-7" className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 3: Quantidade, Custo, Minimo */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Qtd. Atual</label>
+                  <input type="number" placeholder="0" className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] font-bold text-[#2E4233] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all shadow-sm" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Custo Unitário</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
+                    <input type="number" placeholder="0,00" step="0.01" className="w-full border border-[#E9E4D4] rounded-xl pl-8 pr-4 py-2.5 text-[14px] font-bold text-[#2E4233] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all shadow-sm" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[11px] font-bold text-[#CB5A3C] uppercase tracking-wider flex items-center gap-1">
+                    <SvgIcon path="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" className="w-3 h-3" />
+                    Estoque Min
+                  </label>
+                  <input type="number" placeholder="0" className="w-full border border-[#F5D8D1] rounded-xl px-4 py-2.5 text-[14px] font-bold text-[#CB5A3C] focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all shadow-sm bg-[#FAF8F0]/30" />
+                </div>
+              </div>
+
+            </div>
+            
+            {/* Modal Footer (Actions) */}
+            <div className="p-5 border-t border-[#E9E4D4] bg-[#FAF8F0] flex gap-3 justify-end">
+              <button 
+                onClick={() => setIsNewProductModalOpen(false)}
+                className="px-6 py-3 bg-white border border-[#E9E4D4] text-[#2E4233] hover:bg-gray-50 rounded-xl font-bold text-[14px] transition-all shadow-sm"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => setIsNewProductModalOpen(false)}
+                className="px-6 py-3 bg-[#2E4233] hover:bg-[#233327] text-white rounded-xl font-bold text-[14px] transition-all shadow-sm flex items-center gap-2"
+              >
+                <SvgIcon path="M5 13l4 4L19 7" className="w-4 h-4" />
+                Salvar Produto
+              </button>
             </div>
           </div>
         </div>
