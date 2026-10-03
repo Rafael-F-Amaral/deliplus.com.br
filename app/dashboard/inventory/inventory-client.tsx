@@ -494,44 +494,6 @@ export default function InventoryClient({
               >
                 Baixo estoque
               </button>
-              
-              <div className="relative" ref={categoryMenuRef}>
-                <button 
-                  type="button"
-                  onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
-                  className={`px-3.5 py-1.5 border rounded-full text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors ${selectedCategoryId !== 'all' ? 'bg-[#2E4233] text-white border-[#2E4233] shadow-sm' : 'bg-white border-[#E9E4D4] text-gray-500 hover:bg-[#F8F6EF]'}`}
-                >
-                  {selectedCategoryId !== 'all' ? (categories.find((c: any) => c.id === selectedCategoryId)?.name || 'Categoria') : 'Por categoria'}
-                  <SvgIcon path="M19 9l-7 7-7-7" className={`w-3.5 h-3.5 transition-transform ${isCategoryMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {isCategoryMenuOpen && (
-                  <div className="absolute top-full left-0 mt-1.5 w-52 bg-white border border-[#E9E4D4] rounded-xl shadow-xl z-50 overflow-hidden py-1 max-h-60 overflow-y-auto">
-                    <button 
-                      type="button"
-                      onClick={() => { setSelectedCategoryId('all'); setIsCategoryMenuOpen(false); setCurrentPage(1); }}
-                      className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-gray-50 flex items-center justify-between ${selectedCategoryId === 'all' ? 'text-[#CB5A3C] font-bold bg-orange-50/40' : 'text-gray-700'}`}
-                    >
-                      <span>Todas as categorias</span>
-                      {selectedCategoryId === 'all' && <SvgIcon path="M5 13l4 4L19 7" className="w-3.5 h-3.5 text-[#CB5A3C]" />}
-                    </button>
-                    {categories.map(cat => (
-                      <button 
-                        key={cat?.id}
-                        type="button"
-                        onClick={() => { setSelectedCategoryId(cat?.id); setIsCategoryMenuOpen(false); setCurrentPage(1); }}
-                        className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-gray-50 flex items-center justify-between ${selectedCategoryId === cat?.id ? 'text-[#CB5A3C] font-bold bg-orange-50/40' : 'text-gray-700'}`}
-                      >
-                        <div className="flex items-center gap-2 truncate pr-2">
-                          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color_bg || cat.color_text || '#CB5A3C' }}></div>
-                          <span className="truncate">{cat?.name}</span>
-                        </div>
-                        {selectedCategoryId === cat?.id && <SvgIcon path="M5 13l4 4L19 7" className="w-3.5 h-3.5 text-[#CB5A3C] shrink-0" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
             
             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -558,40 +520,25 @@ export default function InventoryClient({
               <table className="w-full text-left text-[14px]">
                 <thead className="bg-[#FAF8F0] border-b border-[#E9E4D4]">
                   <tr>
-                    <th className="px-6 py-2.5 font-semibold text-gray-500">Produto</th>
-                    <th className="px-6 py-2.5 font-semibold text-gray-500">Categoria</th>
-                    <th className="px-6 py-2.5 font-semibold text-gray-500">Quantidade</th>
-                    <th className="px-6 py-2.5 font-semibold text-gray-500">Unidade</th>
-                    <th className="px-6 py-2.5 font-semibold text-gray-500">Custo unitário</th>
-                    <th className="px-6 py-2.5 font-semibold text-gray-500">Valor em estoque</th>
-                    <th className="px-6 py-2.5 font-semibold text-gray-500 text-right">Ações</th>
+                    <th className="px-6 py-2.5 font-semibold text-[#2E4233]">Produto</th>
+                    <th className="px-6 py-2.5 font-semibold text-[#2E4233]">Quantidade</th>
+                    <th className="px-6 py-2.5 font-semibold text-[#2E4233]">Unidade</th>
+                    <th className="px-6 py-2.5 font-semibold text-[#2E4233]">Custo unitário</th>
+                    <th className="px-6 py-2.5 font-semibold text-[#2E4233]">Valor em estoque</th>
+                    <th className="px-6 py-2.5 font-semibold text-[#2E4233] text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E9E4D4] border-b border-[#E9E4D4]">
                   {paginatedProducts.map((product: any) => {
-                    const category = categories.find((c: any) => c.id === product.category_id);
                     const isLowStock = product.quantity <= product.min_stock;
                     const stockValue = product.quantity * (product.unit_cost_cents / 100);
                     const formatted = formatQuantity(product.quantity, product.unit);
-                    const hasValidCategory = category && category.name && category.name.toLowerCase() !== 'geral';
                     
                     return (
                       <tr key={product.id} className="border-b border-[#E9E4D4] hover:bg-gray-50/50 transition-colors">
                         {/* Produto: Apenas o nome com fonte destacada, sem subtítulo de categoria */}
                         <td className="px-6 py-2">
                           <span className="font-bold text-[#2E4233] text-[15px]">{product.name}</span>
-                        </td>
-                        
-                        {/* Categoria: Se não tiver categoria ou for Geral, não mostra nada */}
-                        <td className="px-6 py-2">
-                          {hasValidCategory ? (
-                            <span 
-                              className="px-2.5 py-1 rounded text-[11px] font-bold tracking-wide"
-                              style={{ backgroundColor: category.color_bg || '#475569', color: category.color_text || '#FFFFFF' }}
-                            >
-                              {category.name}
-                            </span>
-                          ) : null}
                         </td>
                         
                         <td className={`px-6 py-2 font-bold text-[15px] ${isLowStock ? 'text-[#CB5A3C]' : 'text-[#2E4233]'}`}>
@@ -648,7 +595,7 @@ export default function InventoryClient({
                   
                   {filteredProducts.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-6 py-10 text-center text-gray-500 text-sm">
+                      <td colSpan={6} className="px-6 py-10 text-center text-gray-500 text-sm">
                         Nenhum produto encontrado.
                       </td>
                     </tr>
@@ -680,7 +627,6 @@ export default function InventoryClient({
           {/* Mobile List View */}
           <div className="md:hidden flex flex-col gap-0 mb-4 bg-white border border-[#E9E4D4] rounded-2xl overflow-hidden shadow-sm">
             {paginatedProducts.map((product: any) => {
-              const category = categories.find((c: any) => c.id === product.category_id);
               const isLowStock = product.quantity <= product.min_stock;
               const stockValue = product.quantity * (product.unit_cost_cents / 100);
               const formatted = formatQuantity(product.quantity, product.unit);
@@ -854,76 +800,6 @@ export default function InventoryClient({
                   <input type="text" value={newItemName} onChange={e => setNewItemName(e.target.value)} required className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-semibold text-gray-700">Categoria</label>
-                  <div className="relative" ref={editProductCatRef}>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditProductCatOpen(!isEditProductCatOpen)}
-                      className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] text-left flex items-center justify-between shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233]"
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        {newCategoryId ? (
-                          <>
-                            <div 
-                              className="w-3 h-3 rounded-full shrink-0" 
-                              style={{ backgroundColor: categories.find(c => c.id === newCategoryId)?.color_bg || '#475569' }} 
-                            />
-                            <span className="font-semibold text-gray-800">
-                              {categories.find(c => c.id === newCategoryId)?.name || 'Sem categoria'}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-gray-500">Sem categoria (Opcional)</span>
-                        )}
-                      </div>
-                      <SvgIcon path="M19 9l-7 7-7-7" className={`w-4 h-4 text-gray-400 transition-transform ${isEditProductCatOpen ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {isEditProductCatOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E9E4D4] rounded-xl shadow-xl z-50 overflow-hidden py-1 max-h-56 overflow-y-auto">
-                        <div 
-                          onClick={() => {
-                            setNewCategoryId('');
-                            setIsEditProductCatOpen(false);
-                          }}
-                          className={`px-4 py-2 text-[14px] cursor-pointer hover:bg-gray-50 transition-colors flex items-center justify-between ${!newCategoryId ? 'font-bold text-[#CB5A3C] bg-orange-50/40' : 'text-gray-600'}`}
-                        >
-                          <span>Sem categoria (Opcional)</span>
-                        </div>
-
-                        {categories.map(cat => (
-                          <div 
-                            key={cat.id}
-                            onClick={() => {
-                              setNewCategoryId(cat.id);
-                              setIsEditProductCatOpen(false);
-                            }}
-                            className={`px-4 py-2 text-[14px] cursor-pointer hover:bg-gray-50 transition-colors flex items-center justify-between group ${newCategoryId === cat.id ? 'font-bold text-[#CB5A3C] bg-orange-50/40' : 'text-gray-700'}`}
-                          >
-                            <div className="flex items-center gap-2 truncate flex-1 min-w-0 pr-2">
-                              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color_bg || '#475569' }} />
-                              <span className="truncate">{cat.name}</span>
-                            </div>
-
-                            <button
-                              type="button"
-                              title="Excluir categoria"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCategoryToDelete(cat);
-                              }}
-                              className="p-1 rounded-md text-gray-400 hover:text-[#CB5A3C] hover:bg-red-50 transition-colors shrink-0"
-                            >
-                              <SvgIcon path="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[13px] font-semibold text-gray-700">Quantidade</label>
@@ -1021,127 +897,6 @@ export default function InventoryClient({
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[13px] font-semibold text-gray-700">Nome do Produto *</label>
                   <input type="text" value={newItemName} onChange={e => setNewItemName(e.target.value)} required className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" placeholder="Ex: Açúcar Refinado" />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center">
-                    <label className="text-[13px] font-semibold text-gray-700">Categoria</label>
-                    {!isAddingCategory && (
-                      <button 
-                        type="button" 
-                        onClick={() => setIsAddingCategory(true)} 
-                        className="text-[12px] font-bold text-[#CB5A3C] hover:underline transition-colors"
-                      >
-                        + Nova categoria
-                      </button>
-                    )}
-                  </div>
-
-                  {isAddingCategory ? (
-                    <div className="flex flex-col gap-2 p-3 border border-[#E9E4D4] rounded-xl bg-[#FDFCF9] shadow-sm">
-                      <input 
-                        type="text" 
-                        placeholder="Nome da Categoria" 
-                        value={newCategoryName}
-                        onChange={e => setNewCategoryName(e.target.value)}
-                        className="w-full border border-[#E9E4D4] rounded-lg px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233]"
-                        autoFocus
-                      />
-                      <div className="flex justify-between items-center px-1">
-                        <div className="flex gap-1.5">
-                          {PRESET_COLORS.map(c => (
-                            <button 
-                              key={c.bg} 
-                              type="button"
-                              onClick={() => setNewCategoryColor(c.bg)} 
-                              className={`w-5 h-5 rounded-full transition-transform ${newCategoryColor === c.bg ? 'scale-125 ring-2 ring-offset-1 ring-gray-400' : ''}`}
-                              style={{ backgroundColor: c.bg }} 
-                            />
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => setIsAddingCategory(false)} className="px-2.5 py-1.5 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors">
-                            Cancelar
-                          </button>
-                          <button 
-                            type="button" 
-                            onClick={handleSaveCategory} 
-                            disabled={isSavingCategory || !newCategoryName.trim()} 
-                            className="px-3.5 py-1.5 bg-[#CB5A3C] hover:bg-[#B84A2E] text-white rounded-lg text-xs font-bold transition-all shadow-sm disabled:opacity-50"
-                          >
-                            {isSavingCategory ? 'Salvando...' : 'Salvar'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="relative" ref={newProductCatRef}>
-                      <button
-                        type="button"
-                        onClick={() => setIsNewProductCatOpen(!isNewProductCatOpen)}
-                        className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] text-left flex items-center justify-between shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233]"
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          {newCategoryId ? (
-                            <>
-                              <div 
-                                className="w-3 h-3 rounded-full shrink-0" 
-                                style={{ backgroundColor: categories.find(c => c.id === newCategoryId)?.color_bg || '#475569' }} 
-                              />
-                              <span className="font-semibold text-gray-800">
-                                {categories.find(c => c.id === newCategoryId)?.name || 'Sem categoria'}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-gray-500">Sem categoria (Opcional)</span>
-                          )}
-                        </div>
-                        <SvgIcon path="M19 9l-7 7-7-7" className={`w-4 h-4 text-gray-400 transition-transform ${isNewProductCatOpen ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {isNewProductCatOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E9E4D4] rounded-xl shadow-xl z-50 overflow-hidden py-1 max-h-56 overflow-y-auto">
-                          <div 
-                            onClick={() => {
-                              setNewCategoryId('');
-                              setIsNewProductCatOpen(false);
-                            }}
-                            className={`px-4 py-2 text-[14px] cursor-pointer hover:bg-gray-50 transition-colors flex items-center justify-between ${!newCategoryId ? 'font-bold text-[#CB5A3C] bg-orange-50/40' : 'text-gray-600'}`}
-                          >
-                            <span>Sem categoria (Opcional)</span>
-                          </div>
-
-                          {categories.map(cat => (
-                            <div 
-                              key={cat.id}
-                              onClick={() => {
-                                setNewCategoryId(cat.id);
-                                setIsNewProductCatOpen(false);
-                              }}
-                              className={`px-4 py-2 text-[14px] cursor-pointer hover:bg-gray-50 transition-colors flex items-center justify-between group ${newCategoryId === cat.id ? 'font-bold text-[#CB5A3C] bg-orange-50/40' : 'text-gray-700'}`}
-                            >
-                              <div className="flex items-center gap-2 truncate flex-1 min-w-0 pr-2">
-                                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color_bg || '#475569' }} />
-                                <span className="truncate">{cat.name}</span>
-                              </div>
-
-                              <button
-                                type="button"
-                                title="Excluir categoria"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setCategoryToDelete(cat);
-                                }}
-                                className="p-1 rounded-md text-gray-400 hover:text-[#CB5A3C] hover:bg-red-50 transition-colors shrink-0"
-                              >
-                                <SvgIcon path="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
