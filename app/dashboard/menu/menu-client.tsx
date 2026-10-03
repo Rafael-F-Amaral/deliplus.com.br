@@ -15,6 +15,7 @@ import {
   X,
   Tag
 } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 
 export interface MenuItem {
   id: string
@@ -445,8 +446,8 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
   }, [filteredItems, currentPage, ITEMS_PER_PAGE])
 
   // Toggle availability switch directly from table
-  const handleToggleAvailability = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const handleToggleAvailability = (id: string, e?: React.MouseEvent | React.SyntheticEvent) => {
+    e?.stopPropagation()
     setItems((prev) =>
       prev.map((item) =>
         item.id === id ? { ...item, isAvailable: !item.isAvailable } : item
@@ -749,13 +750,16 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
             </thead>
             <tbody className="divide-y divide-[#E9E4D4] border-b border-[#E9E4D4]">
               {paginatedItems.map((item) => {
+                const isPaused = !item.isAvailable
                 return (
                   <tr
                     key={item.id}
-                    className="border-b border-[#E9E4D4] hover:bg-gray-50/60 transition-colors"
+                    className={`border-b border-[#E9E4D4] hover:bg-gray-50/60 transition-colors ${
+                      isPaused ? "bg-stone-50/30" : ""
+                    }`}
                   >
                     {/* Foto Thumbnail */}
-                    <td className="px-4 py-2 align-middle">
+                    <td className={`px-4 py-2 align-middle transition-opacity duration-200 ${isPaused ? "opacity-35 grayscale-[20%]" : "opacity-100"}`}>
                       <div className="w-[58px] h-[44px] rounded-xl overflow-hidden border border-[#E9E4D4] shadow-2xs shrink-0 bg-gray-50">
                         <img
                           src={item.image}
@@ -766,7 +770,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     </td>
 
                     {/* Produto & Descrição com badges de categoria ao lado do nome */}
-                    <td className="px-4 py-2 align-middle">
+                    <td className={`px-4 py-2 align-middle transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
                       <div className="flex flex-col pr-2">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-bold text-[#2E4233] text-[15px] leading-tight">
@@ -791,14 +795,14 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     </td>
 
                     {/* Preço original */}
-                    <td className="px-4 py-2 align-middle text-left whitespace-nowrap">
+                    <td className={`px-4 py-2 align-middle text-left whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
                       <span className="text-[14px] font-medium text-gray-700">
                         {item.originalPrice}
                       </span>
                     </td>
 
                     {/* Preço promocional (sem tracinho, apenas a palavra quando sem promoção) */}
-                    <td className="px-4 py-2 align-middle text-left whitespace-nowrap">
+                    <td className={`px-4 py-2 align-middle text-left whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
                       {item.promoPrice ? (
                         <div className="flex flex-col">
                           <span className="text-[14.5px] font-bold text-[#CB5A3C]">
@@ -815,25 +819,18 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       )}
                     </td>
 
-                    {/* Disponibilidade Switch */}
-                    <td className="px-3 py-2 align-middle text-center" onClick={(e) => e.stopPropagation()}>
+                    {/* Disponibilidade Switch (NÃO apagado: full opacity-100) */}
+                    <td className="px-3 py-2 align-middle text-center opacity-100" onClick={(e) => e.stopPropagation()}>
                       <div className="flex flex-col items-center justify-center">
-                        <button
-                          type="button"
+                        <Switch
+                          checked={item.isAvailable}
                           onClick={(e) => handleToggleAvailability(item.id, e)}
-                          className={`w-9 h-5 rounded-full transition-colors relative p-0.5 flex items-center cursor-pointer ${
-                            item.isAvailable ? "bg-[#2E4233]" : "bg-gray-300"
-                          }`}
-                        >
-                          <span
-                            className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
-                              item.isAvailable ? "translate-x-4" : "translate-x-0"
-                            }`}
-                          />
-                        </button>
+                          onCheckedChange={() => handleToggleAvailability(item.id)}
+                          aria-label={`Alternar disponibilidade de ${item.name}`}
+                        />
                         <span
-                          className={`text-[11px] font-semibold mt-0.5 ${
-                            item.isAvailable ? "text-[#2E4233]" : "text-gray-400"
+                          className={`text-[11px] font-semibold mt-0.5 transition-colors ${
+                            item.isAvailable ? "text-[#059669]" : "text-[#EA580C]"
                           }`}
                         >
                           {item.isAvailable ? "Disponível" : "Pausado"}
@@ -842,7 +839,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     </td>
 
                     {/* Limite diário (sem tracinho, apenas a palavra quando sem limite) */}
-                    <td className="px-3 py-2 align-middle text-center whitespace-nowrap">
+                    <td className={`px-3 py-2 align-middle text-center whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
                       {item.dailyLimit !== null ? (
                         <span className="text-[13.5px] font-semibold text-gray-700">
                           {item.dailyLimit} un.
@@ -855,7 +852,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     </td>
 
                     {/* Restantes (sem tracinho, apenas a palavra quando ilimitado) */}
-                    <td className="px-3 py-2 align-middle text-center whitespace-nowrap">
+                    <td className={`px-3 py-2 align-middle text-center whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
                       {item.remaining !== null ? (
                         item.remaining === 0 ? (
                           <div className="flex flex-col items-center">
@@ -878,8 +875,8 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       )}
                     </td>
 
-                    {/* Menu de Ações (3 pontinhos: Janela verde #2E4233, Editar branco, Excluir vermelho) */}
-                    <td className="px-4 py-2 text-right">
+                    {/* Menu de Ações (3 pontinhos - NÃO apagado: full opacity-100) */}
+                    <td className="px-4 py-2 text-right opacity-100">
                       <div className="action-menu-container relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
                         <button 
                           type="button"
@@ -1014,80 +1011,88 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
       {/* Mobile Card List View (Matching Estoque mobile responsive behavior) */}
       <div className="md:hidden flex flex-col flex-1 h-full min-h-0 bg-white border border-[#E9E4D4] rounded-2xl overflow-hidden shadow-sm justify-between">
         <div className="overflow-y-auto divide-y divide-[#E9E4D4]">
-          {paginatedItems.map((item) => (
-            <div key={item.id} className="p-3 flex flex-col gap-2">
-              <div className="flex items-start gap-3">
-                <div className="w-14 h-14 rounded-xl overflow-hidden border border-[#E9E4D4] shrink-0">
-                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-[#2E4233] text-sm truncate">{item.name}</span>
-                    <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
-                      {getItemCategories(item).map((cat, idx) => {
-                        const style = getCategoryBadgeStyle(cat)
-                        return (
-                          <span
-                            key={idx}
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${style.bg} ${style.text}`}
-                          >
-                            {cat}
-                          </span>
-                        )
-                      })}
+          {paginatedItems.map((item) => {
+            const isPaused = !item.isAvailable
+            return (
+              <div
+                key={item.id}
+                className={`p-3 flex flex-col gap-2 transition-colors ${
+                  isPaused ? "bg-stone-50/30" : ""
+                }`}
+              >
+                {/* Detalhes do Produto (Apagado quando desativado) */}
+                <div
+                  className={`flex items-start gap-3 transition-opacity duration-200 ${
+                    isPaused ? "opacity-35 grayscale-[20%]" : "opacity-100"
+                  }`}
+                >
+                  <div className="w-14 h-14 rounded-xl overflow-hidden border border-[#E9E4D4] shrink-0">
+                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-[#2E4233] text-sm truncate">{item.name}</span>
+                      <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
+                        {getItemCategories(item).map((cat, idx) => {
+                          const style = getCategoryBadgeStyle(cat)
+                          return (
+                            <span
+                              key={idx}
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${style.bg} ${style.text}`}
+                            >
+                              {cat}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.description}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs font-bold text-[#2E4233]">{item.originalPrice}</span>
+                      {item.promoPrice && (
+                        <span className="text-xs font-bold text-[#CB5A3C]">({item.promoPrice})</span>
+                      )}
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.description}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs font-bold text-[#2E4233]">{item.originalPrice}</span>
-                    {item.promoPrice && (
-                      <span className="text-xs font-bold text-[#CB5A3C]">({item.promoPrice})</span>
-                    )}
+                </div>
+
+                {/* Barra de ações (Switch e botões com opacidade normal 100) */}
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs opacity-100">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={item.isAvailable}
+                      onClick={(e) => handleToggleAvailability(item.id, e)}
+                      onCheckedChange={() => handleToggleAvailability(item.id)}
+                      aria-label={`Alternar disponibilidade de ${item.name}`}
+                    />
+                    <span
+                      className={`text-xs font-semibold transition-colors ${
+                        item.isAvailable ? "text-[#059669]" : "text-[#EA580C]"
+                      }`}
+                    >
+                      {item.isAvailable ? "Disponível" : "Pausado"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(item)}
+                      className="text-[#2E4233] font-semibold hover:underline cursor-pointer"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setItemToDelete(item)}
+                      className="text-[#CB5A3C] font-semibold hover:underline cursor-pointer"
+                    >
+                      Excluir
+                    </button>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={(e) => handleToggleAvailability(item.id, e)}
-                    className={`w-9 h-5 rounded-full transition-colors relative p-0.5 flex items-center cursor-pointer ${
-                      item.isAvailable ? "bg-[#2E4233]" : "bg-gray-300"
-                    }`}
-                  >
-                    <span
-                      className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
-                        item.isAvailable ? "translate-x-4" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
-                  <span
-                    className={`text-xs font-semibold ${
-                      item.isAvailable ? "text-[#2E4233]" : "text-gray-400"
-                    }`}
-                  >
-                    {item.isAvailable ? "Disponível" : "Pausado"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditModal(item)}
-                    className="text-[#2E4233] font-semibold hover:underline"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setItemToDelete(item)}
-                    className="text-[#CB5A3C] font-semibold hover:underline"
-                  >
-                    Excluir
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+            )
+          })}
 
           {filteredItems.length === 0 && (
             <div className="p-6 text-center text-gray-500 text-sm">
