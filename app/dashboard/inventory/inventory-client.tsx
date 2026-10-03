@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { Trash2, ChevronDown, ChevronUp, ArrowUpDown, Check } from "lucide-react"
 import { createInventoryItem, createInventoryCategory, updateInventoryItem, deleteInventoryItem, deleteInventoryCategory } from "./actions"
 import { generateShoppingListPDF } from "@/lib/generate-pdf"
 
@@ -40,8 +41,6 @@ export default function InventoryClient({
   // Modals state
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
-  const [isEditProductModalOpen, setIsEditProductModalOpen] = useState(false);
-  const [productToEdit, setProductToEdit] = useState<any>(null);
   const [productToDelete, setProductToDelete] = useState<any>(null);
   const [isDeletingProduct, setIsDeletingProduct] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
@@ -49,12 +48,7 @@ export default function InventoryClient({
 
   // Category dropdown custom select states
   const [isNewProductCatOpen, setIsNewProductCatOpen] = useState(false);
-  const [isEditProductCatOpen, setIsEditProductCatOpen] = useState(false);
   const newProductCatRef = useRef<HTMLDivElement>(null);
-  const editProductCatRef = useRef<HTMLDivElement>(null);
-
-  // 3-dots actions menu
-  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
 
   // Extra items & adjustments for shopping list (purely local to shopping list session)
   interface ExtraShoppingItem {
@@ -106,6 +100,134 @@ export default function InventoryClient({
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const categoryMenuRef = useRef<HTMLDivElement>(null);
 
+  // Sorting state
+  type SortField = 'name' | 'quantity' | 'unit' | 'unit_cost' | 'stock_value' | null;
+  type SortDirection = 'asc' | 'desc';
+  const [sortField, setSortField] = useState<SortField>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  const handleSort = (field: NonNullable<SortField>) => {
+    if (sortField === field) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      // Numeric fields default to highest-to-lowest (desc) on first click
+      if (field === 'quantity' || field === 'unit_cost' || field === 'stock_value') {
+        setSortDirection('desc');
+      } else {
+        setSortDirection('asc');
+      }
+    }
+    setCurrentPage(1);
+  };
+
+  // Inline editing state (Auto-save without save button)
+  interface EditingCell {
+    id: string;
+    field: 'name' | 'quantity' | 'unit_cost';
+  }
+  const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
+  const [inlineValue, setInlineValue] = useState<string>('');
+  const [saveSuccessCellId, setSaveSuccessCellId] = useState<string | null>(null);
+
+  const startInlineEdit = (product: any, field: 'name' | 'quantity' | 'unit_cost') => {
+    setEditingCell({ id: product.id, field });
+    if (field === 'name') {
+      setInlineValue(product.name);
+    } else if (field === 'quantity') {
+      setInlineValue(product.quantity.toString().replace('.', ','));
+    } else if (field === 'unit_cost') {
+      const formattedCost = (product.unit_cost_cents / 100).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
+      setInlineValue(formattedCost);
+    }
+  };
+
+  const saveInlineEdit = async (product: any, field: 'name' | 'quantity' | 'unit_cost', overrideValue?: string) => {
+    const val = overrideValue !== undefined ? overrideValue : inlineValue;
+    setEditingCell(null);
+
+    let updatedName = product.name;
+    let updatedQuantity = product.quantity;
+    let updatedUnitCostCents = product.unit_cost_cents;
+
+    if (field === 'name') {
+      const trimmed = val.trim();
+      if (!trimmed || trimmed === product.name) return;
+      updatedName = trimmed;
+    } else if (field === 'quantity') {
+      const parsed = parseFloat(val.replace(',', '.'));
+      if (isNaN(parsed) || parsed < 0 || parsed === product.quantity) return;
+      updatedQuantity = parsed;
+    } else if (field === 'unit_cost') {
+      const digits = val.replace(/\D/g, '');
+      const cents = digits ? parseInt(digits, 10) : 0;
+      if (cents === product.unit_cost_cents) return;
+      updatedUnitCostCents = cents;
+    }
+
+    // Optimistic update
+    setProducts(prev =>
+      prev.map(p =>
+        p.id === product.id
+          ? {
+              ...p,
+              name: updatedName,
+              quantity: updatedQuantity,
+              unit_cost_cents: updatedUnitCostCents
+            }
+          : p
+      )
+    );
+
+    try {
+      await updateInventoryItem(product.id, {
+        name: updatedName,
+        categoryId: product.category_id || null,
+        unit: product.unit,
+        quantity: updatedQuantity,
+        unitCostCents: updatedUnitCostCents,
+        minStock: product.min_stock
+      });
+      setSaveSuccessCellId(`${product.id}-${field}`);
+      setTimeout(() => setSaveSuccessCellId(null), 1500);
+    } catch (error) {
+      console.error("Erro ao salvar alteração inline:", error);
+      setProducts(prev => prev.map(p => (p.id === product.id ? product : p)));
+    }
+  };
+
+  const handleUnitChange = async (product: any, newUnit: string) => {
+    if (newUnit === product.unit) return;
+
+    // Optimistic update
+    setProducts(prev =>
+      prev.map(p =>
+        p.id === product.id
+          ? { ...p, unit: newUnit }
+          : p
+      )
+    );
+
+    try {
+      await updateInventoryItem(product.id, {
+        name: product.name,
+        categoryId: product.category_id || null,
+        unit: newUnit,
+        quantity: product.quantity,
+        unitCostCents: product.unit_cost_cents,
+        minStock: product.min_stock
+      });
+      setSaveSuccessCellId(`${product.id}-unit`);
+      setTimeout(() => setSaveSuccessCellId(null), 1500);
+    } catch (error) {
+      console.error("Erro ao alterar unidade:", error);
+      setProducts(prev => prev.map(p => (p.id === product.id ? product : p)));
+    }
+  };
+
   // Helper for real currency formatting (R$ 0,00)
   const formatCurrencyInput = (rawValue: string) => {
     const digits = rawValue.replace(/\D/g, "");
@@ -126,12 +248,6 @@ export default function InventoryClient({
       }
       if (newProductCatRef.current && !newProductCatRef.current.contains(target as Node)) {
         setIsNewProductCatOpen(false);
-      }
-      if (editProductCatRef.current && !editProductCatRef.current.contains(target as Node)) {
-        setIsEditProductCatOpen(false);
-      }
-      if (!target.closest('.action-menu-container')) {
-        setOpenActionMenuId(null);
       }
     }
     document.addEventListener("click", handleClickOutside);
@@ -164,14 +280,51 @@ export default function InventoryClient({
     return true;
   });
 
+  // Sorted Products based on selected column and direction
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (!sortField) return 0;
+    if (sortField === 'name') {
+      const cmp = (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' });
+      return sortDirection === 'asc' ? cmp : -cmp;
+    }
+    if (sortField === 'quantity') {
+      const valA = Number(a.quantity) || 0;
+      const valB = Number(b.quantity) || 0;
+      return sortDirection === 'asc' ? valA - valB : valB - valA;
+    }
+    if (sortField === 'unit') {
+      const unitOrder: Record<string, number> = {
+        kg: 1, g: 2, L: 3, ml: 4, un: 5, unidades: 5, pacotes: 6, caixas: 7
+      };
+      const orderA = unitOrder[a.unit] || 99;
+      const orderB = unitOrder[b.unit] || 99;
+      if (orderA !== orderB) {
+        return sortDirection === 'asc' ? orderA - orderB : orderB - orderA;
+      }
+      const cmp = (a.unit || '').localeCompare(b.unit || '', 'pt-BR');
+      return sortDirection === 'asc' ? cmp : -cmp;
+    }
+    if (sortField === 'unit_cost') {
+      const valA = Number(a.unit_cost_cents) || 0;
+      const valB = Number(b.unit_cost_cents) || 0;
+      return sortDirection === 'asc' ? valA - valB : valB - valA;
+    }
+    if (sortField === 'stock_value') {
+      const valA = (Number(a.quantity) || 0) * (Number(a.unit_cost_cents) || 0);
+      const valB = (Number(b.quantity) || 0) * (Number(b.unit_cost_cents) || 0);
+      return sortDirection === 'asc' ? valA - valB : valB - valA;
+    }
+    return 0;
+  });
+
   const lowStockProducts = products.filter((p: any) => p.quantity <= p.min_stock);
   const activeLowStockProducts = lowStockProducts.filter((p: any) => !excludedShoppingProductIds.includes(p.id));
   const totalValue = products.reduce((acc: number, p: any) => acc + (p.quantity * (p.unit_cost_cents / 100)), 0);
   const totalItems = products.length;
   const lowStockCount = lowStockProducts.length;
 
-  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
-  const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / ITEMS_PER_PAGE));
+  const paginatedProducts = sortedProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   // Handlers
   // Shopping list handlers
@@ -213,54 +366,6 @@ export default function InventoryClient({
     }));
   };
 
-  const handleEditClick = (p: any) => {
-    setProductToEdit(p);
-    setNewItemName(p.name);
-    setNewCategoryId(p.category_id || "");
-    setNewItemQuantity(p.quantity.toString());
-    setNewItemUnit(p.unit);
-    setNewItemMinStock(p.min_stock.toString());
-    const formattedCost = (p.unit_cost_cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    setNewItemUnitCost(formattedCost);
-    setIsEditProductModalOpen(true);
-  };
-
-  const handleUpdateProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newItemName.trim() || isSavingProduct || !productToEdit) return;
-    setIsSavingProduct(true);
-    try {
-      const digits = newItemUnitCost.replace(/\D/g, "");
-      const costCents = digits ? parseInt(digits, 10) : 0;
-      await updateInventoryItem(productToEdit.id, {
-        name: newItemName.trim(),
-        categoryId: newCategoryId || null,
-        unit: newItemUnit,
-        quantity: parseFloat(newItemQuantity.replace(',', '.')) || 0,
-        unitCostCents: costCents,
-        minStock: parseFloat(newItemMinStock.replace(',', '.')) || 0
-      });
-
-      // Update local state
-      setProducts(products.map(p => p.id === productToEdit.id ? {
-        ...p,
-        name: newItemName.trim(),
-        category_id: newCategoryId || null,
-        unit: newItemUnit,
-        quantity: parseFloat(newItemQuantity.replace(',', '.')) || 0,
-        unit_cost_cents: costCents,
-        min_stock: parseFloat(newItemMinStock.replace(',', '.')) || 0
-      } : p));
-
-      setIsEditProductModalOpen(false);
-      setProductToEdit(null);
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao atualizar produto");
-    } finally {
-      setIsSavingProduct(false);
-    }
-  };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -519,13 +624,83 @@ export default function InventoryClient({
             <div className="w-full overflow-x-auto overflow-y-hidden">
               <table className="w-full text-left text-[14px]">
                 <thead className="bg-[#FAF8F0] border-b border-[#E9E4D4]">
-                  <tr>
-                    <th className="px-6 py-2.5 font-semibold text-[#2E4233]">Produto</th>
-                    <th className="px-6 py-2.5 font-semibold text-[#2E4233]">Quantidade</th>
-                    <th className="px-6 py-2.5 font-semibold text-[#2E4233]">Unidade</th>
-                    <th className="px-6 py-2.5 font-semibold text-[#2E4233]">Custo unitário</th>
-                    <th className="px-6 py-2.5 font-semibold text-[#2E4233]">Valor em estoque</th>
-                    <th className="px-6 py-2.5 font-semibold text-[#2E4233] text-right">Ações</th>
+                  <tr className="text-[14px] font-semibold text-[#2E4233]">
+                    <th className="px-6 py-2.5">
+                      <button 
+                        type="button" 
+                        onClick={() => handleSort('name')} 
+                        className="flex items-center gap-1.5 hover:text-[#233327] transition-colors group cursor-pointer"
+                        title="Ordenar por produto (ordem alfabética)"
+                      >
+                        <span>Produto</span>
+                        {sortField === 'name' ? (
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233]" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-gray-400 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-6 py-2.5">
+                      <button 
+                        type="button" 
+                        onClick={() => handleSort('quantity')} 
+                        className="flex items-center gap-1.5 hover:text-[#233327] transition-colors group cursor-pointer"
+                        title="Ordenar por quantidade (maior para menor)"
+                      >
+                        <span>Quantidade</span>
+                        {sortField === 'quantity' ? (
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233]" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-gray-400 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-6 py-2.5">
+                      <button 
+                        type="button" 
+                        onClick={() => handleSort('unit')} 
+                        className="flex items-center gap-1.5 hover:text-[#233327] transition-colors group cursor-pointer"
+                        title="Ordenar por unidade de medição"
+                      >
+                        <span>Unidade</span>
+                        {sortField === 'unit' ? (
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233]" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-gray-400 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-6 py-2.5">
+                      <button 
+                        type="button" 
+                        onClick={() => handleSort('unit_cost')} 
+                        className="flex items-center gap-1.5 hover:text-[#233327] transition-colors group cursor-pointer"
+                        title="Ordenar por custo unitário (maior para menor)"
+                      >
+                        <span>Custo unitário</span>
+                        {sortField === 'unit_cost' ? (
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233]" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-gray-400 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-6 py-2.5">
+                      <button 
+                        type="button" 
+                        onClick={() => handleSort('stock_value')} 
+                        className="flex items-center gap-1.5 hover:text-[#233327] transition-colors group cursor-pointer"
+                        title="Ordenar por valor total em estoque (maior para menor)"
+                      >
+                        <span>Valor em estoque</span>
+                        {sortField === 'stock_value' ? (
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233]" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-gray-400 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-6 py-2.5 text-right font-semibold text-[#2E4233]">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E9E4D4] border-b border-[#E9E4D4]">
@@ -536,58 +711,142 @@ export default function InventoryClient({
                     
                     return (
                       <tr key={product.id} className="border-b border-[#E9E4D4] hover:bg-gray-50/50 transition-colors">
-                        {/* Produto: Apenas o nome com fonte destacada, sem subtítulo de categoria */}
-                        <td className="px-6 py-2">
-                          <span className="font-bold text-[#2E4233] text-[15px]">{product.name}</span>
-                        </td>
-                        
-                        <td className={`px-6 py-2 font-bold text-[15px] ${isLowStock ? 'text-[#CB5A3C]' : 'text-[#2E4233]'}`}>
-                          {formatted.qty}
-                        </td>
-                        <td className="px-6 py-2 font-medium text-gray-600 text-[14px]">{formatted.unit}</td>
-                        <td className="px-6 py-2 font-medium text-gray-600 text-[14px]">{formatCurrency((product.unit_cost_cents / 100))}</td>
-                        <td className="px-6 py-2 font-bold text-[#2E4233] text-[14px]">{formatCurrency(stockValue)}</td>
-                        
-                        {/* Menu de Ações (3 pontinhos - Janela verde, Editar branco, Excluir vermelho) */}
-                        <td className="px-6 py-2 text-right">
-                          <div className="action-menu-container relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
-                            <button 
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenActionMenuId(openActionMenuId === product.id ? null : product.id);
+                        {/* Produto: Nome clicável para edição rápida com salvamento automático */}
+                        <td className="px-6 py-2.5">
+                          {editingCell?.id === product.id && editingCell?.field === 'name' ? (
+                            <input
+                              type="text"
+                              autoFocus
+                              value={inlineValue}
+                              onChange={(e) => setInlineValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(product, 'name')}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveInlineEdit(product, 'name');
+                                if (e.key === 'Escape') setEditingCell(null);
                               }}
-                              className="text-gray-400 hover:text-[#2E4233] p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                              className="w-full max-w-[220px] px-2.5 py-1 text-[15px] font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                            />
+                          ) : (
+                            <div 
+                              onClick={() => startInlineEdit(product, 'name')}
+                              className="group/name inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] transition-colors"
+                              title="Toque ou clique para editar o nome"
                             >
-                              <SvgIcon path="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" className="w-5 h-5 ml-auto" />
-                            </button>
-                            {openActionMenuId === product.id && (
-                              <div className="absolute right-0 top-full mt-1 w-32 bg-[#2E4233] rounded-xl shadow-2xl border border-[#233327] z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 text-left">
-                                <button 
-                                  type="button"
-                                  onClick={(e) => { 
-                                    e.stopPropagation();
-                                    setOpenActionMenuId(null); 
-                                    handleEditClick(product); 
-                                  }} 
-                                  className="w-full text-left px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
-                                >
-                                  Editar
-                                </button>
-                                <button 
-                                  type="button"
-                                  onClick={(e) => { 
-                                    e.stopPropagation();
-                                    setOpenActionMenuId(null); 
-                                    setProductToDelete(product); 
-                                  }} 
-                                  className="w-full text-left px-4 py-2 text-sm font-semibold text-[#FF5252] hover:bg-red-500/20 transition-colors"
-                                >
-                                  Excluir
-                                </button>
-                              </div>
+                              <span className="font-bold text-[#2E4233] text-[15px] group-hover/name:underline decoration-[#2E4233]/40 underline-offset-2">
+                                {product.name}
+                              </span>
+                              <ChevronDown className="w-3.5 h-3.5 text-gray-400 opacity-60 group-hover/name:opacity-100 group-hover/name:text-[#2E4233] shrink-0 transition-all" />
+                              {saveSuccessCellId === `${product.id}-name` && (
+                                <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        
+                        {/* Quantidade: Clicável para edição rápida com indicador de seta para baixo */}
+                        <td className="px-6 py-2.5">
+                          {editingCell?.id === product.id && editingCell?.field === 'quantity' ? (
+                            <input
+                              type="text"
+                              autoFocus
+                              value={inlineValue}
+                              onChange={(e) => setInlineValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(product, 'quantity')}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveInlineEdit(product, 'quantity');
+                                if (e.key === 'Escape') setEditingCell(null);
+                              }}
+                              className="w-24 px-2.5 py-1 text-[15px] font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                            />
+                          ) : (
+                            <div 
+                              onClick={() => startInlineEdit(product, 'quantity')}
+                              className="group/qty inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] transition-colors"
+                              title="Toque ou clique para alterar a quantidade"
+                            >
+                              <span className={`font-bold text-[15px] ${isLowStock ? 'text-[#CB5A3C]' : 'text-[#2E4233]'}`}>
+                                {formatted.qty}
+                              </span>
+                              <ChevronDown className="w-3.5 h-3.5 text-gray-400 opacity-60 group-hover/qty:opacity-100 group-hover/qty:text-[#2E4233] shrink-0 transition-all" />
+                              {saveSuccessCellId === `${product.id}-quantity` && (
+                                <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Unidade: Lista de opções normal com salvamento automático */}
+                        <td className="px-6 py-2.5">
+                          <div className="relative inline-flex items-center group/unit">
+                            <select
+                              value={product.unit === 'un' ? 'unidades' : product.unit}
+                              onChange={(e) => handleUnitChange(product, e.target.value)}
+                              className="appearance-none font-medium text-gray-700 text-[14px] bg-transparent hover:bg-[#FAF8F0] border border-transparent hover:border-[#E9E4D4] rounded-lg pl-2 pr-6 py-1 cursor-pointer focus:outline-none focus:bg-white focus:border-[#2E4233] transition-colors"
+                              title="Selecione a unidade de medida"
+                            >
+                              <option value="unidades">unidades</option>
+                              <option value="un">un</option>
+                              <option value="kg">kg</option>
+                              <option value="g">g</option>
+                              <option value="L">L</option>
+                              <option value="ml">ml</option>
+                              <option value="caixas">caixas</option>
+                              <option value="pacotes">pacotes</option>
+                            </select>
+                            <ChevronDown className="w-3.5 h-3.5 text-gray-400 group-hover/unit:text-[#2E4233] absolute right-1.5 pointer-events-none transition-colors" />
+                            {saveSuccessCellId === `${product.id}-unit` && (
+                              <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 ml-1 animate-in fade-in" />
                             )}
                           </div>
+                        </td>
+
+                        {/* Custo unitário: Clicável para edição rápida com indicador de seta para baixo */}
+                        <td className="px-6 py-2.5">
+                          {editingCell?.id === product.id && editingCell?.field === 'unit_cost' ? (
+                            <input
+                              type="text"
+                              autoFocus
+                              value={inlineValue}
+                              onChange={(e) => setInlineValue(formatCurrencyInput(e.target.value))}
+                              onBlur={() => saveInlineEdit(product, 'unit_cost')}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveInlineEdit(product, 'unit_cost');
+                                if (e.key === 'Escape') setEditingCell(null);
+                              }}
+                              className="w-28 px-2.5 py-1 text-[14px] font-medium text-gray-800 bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                            />
+                          ) : (
+                            <div 
+                              onClick={() => startInlineEdit(product, 'unit_cost')}
+                              className="group/cost inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] transition-colors"
+                              title="Toque ou clique para alterar o custo unitário"
+                            >
+                              <span className="font-medium text-gray-600 text-[14px]">
+                                {formatCurrency(product.unit_cost_cents / 100)}
+                              </span>
+                              <ChevronDown className="w-3.5 h-3.5 text-gray-400 opacity-60 group-hover/cost:opacity-100 group-hover/cost:text-[#2E4233] shrink-0 transition-all" />
+                              {saveSuccessCellId === `${product.id}-unit_cost` && (
+                                <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Valor em estoque: Calculado dinamicamente */}
+                        <td className="px-6 py-2.5 font-bold text-[#2E4233] text-[14px]">
+                          {formatCurrency(stockValue)}
+                        </td>
+                        
+                        {/* Ações: Lixinho laranja direto para exclusão segura */}
+                        <td className="px-6 py-2.5 text-right">
+                          <button 
+                            type="button"
+                            onClick={() => setProductToDelete(product)}
+                            title="Excluir produto"
+                            className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-all cursor-pointer inline-flex items-center justify-center group"
+                          >
+                            <Trash2 className="w-4 h-4 text-[#CB5A3C] group-hover:scale-110 transition-transform" />
+                          </button>
                         </td>
                       </tr>
                     )
@@ -632,32 +891,127 @@ export default function InventoryClient({
               const formatted = formatQuantity(product.quantity, product.unit);
               
               return (
-                <div key={product.id} className="flex flex-col p-3 border-b border-[#E9E4D4] relative">
-                  <div className="flex items-start gap-2.5">
-                    <div className="flex flex-col flex-1">
-                      <div className="flex justify-between items-start w-full">
-                        <span className="font-bold text-[#2E4233] text-[14px]">{product.name}</span>
-                        <div className="flex gap-2">
-                          <button onClick={() => handleEditClick(product)} className="text-gray-400 hover:text-[#2E4233] text-xs font-semibold">Editar</button>
-                          <button onClick={() => setProductToDelete(product)} className="text-[#CB5A3C] hover:text-[#A8452B] text-xs font-semibold">Excluir</button>
+                <div key={product.id} className="flex flex-col p-3.5 border-b border-[#E9E4D4] relative">
+                  <div className="flex flex-col flex-1">
+                    {/* Linha superior: Nome do Produto e Botão Excluir Laranja */}
+                    <div className="flex justify-between items-center w-full gap-2 mb-2">
+                      {editingCell?.id === product.id && editingCell?.field === 'name' ? (
+                        <input
+                          type="text"
+                          autoFocus
+                          value={inlineValue}
+                          onChange={(e) => setInlineValue(e.target.value)}
+                          onBlur={() => saveInlineEdit(product, 'name')}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveInlineEdit(product, 'name');
+                            if (e.key === 'Escape') setEditingCell(null);
+                          }}
+                          className="flex-1 px-2.5 py-1 text-[14px] font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                        />
+                      ) : (
+                        <div 
+                          onClick={() => startInlineEdit(product, 'name')}
+                          className="flex items-center gap-1.5 cursor-pointer py-0.5"
+                          title="Toque para editar o nome"
+                        >
+                          <span className="font-bold text-[#2E4233] text-[15px]">{product.name}</span>
+                          <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          {saveSuccessCellId === `${product.id}-name` && (
+                            <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0" />
+                          )}
+                        </div>
+                      )}
+                      
+                      <button 
+                        type="button"
+                        onClick={() => setProductToDelete(product)}
+                        title="Excluir produto"
+                        className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-colors cursor-pointer shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4 text-[#CB5A3C]" />
+                      </button>
+                    </div>
+                    
+                    {/* Grade de 3 colunas: Quantidade, Unidade, Custo */}
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#E9E4D4]/60">
+                      {/* Quantidade com edição rápida */}
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Qtd</span>
+                        {editingCell?.id === product.id && editingCell?.field === 'quantity' ? (
+                          <input
+                            type="text"
+                            autoFocus
+                            value={inlineValue}
+                            onChange={(e) => setInlineValue(e.target.value)}
+                            onBlur={() => saveInlineEdit(product, 'quantity')}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveInlineEdit(product, 'quantity');
+                              if (e.key === 'Escape') setEditingCell(null);
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-sm font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-md focus:outline-none"
+                          />
+                        ) : (
+                          <div 
+                            onClick={() => startInlineEdit(product, 'quantity')}
+                            className="flex items-center gap-1 cursor-pointer"
+                          >
+                            <span className={`font-bold text-sm ${isLowStock ? 'text-[#CB5A3C]' : 'text-[#2E4233]'}`}>
+                              {formatted.qty}
+                            </span>
+                            <ChevronDown className="w-3 h-3 text-gray-400 shrink-0" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Unidade: select com opções */}
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Unidade</span>
+                        <div className="relative inline-flex items-center">
+                          <select
+                            value={product.unit === 'un' ? 'unidades' : product.unit}
+                            onChange={(e) => handleUnitChange(product, e.target.value)}
+                            className="appearance-none font-medium text-gray-700 text-xs bg-[#FAF8F0] border border-[#E9E4D4] rounded-md pl-1.5 pr-5 py-0.5 cursor-pointer focus:outline-none focus:border-[#2E4233] w-full"
+                          >
+                            <option value="unidades">unidades</option>
+                            <option value="un">un</option>
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                            <option value="L">L</option>
+                            <option value="ml">ml</option>
+                            <option value="caixas">caixas</option>
+                            <option value="pacotes">pacotes</option>
+                          </select>
+                          <ChevronDown className="w-3 h-3 text-gray-400 absolute right-1 pointer-events-none" />
                         </div>
                       </div>
-                      
-                      <div className="grid grid-cols-3 gap-2 mt-2">
-                        <div className="flex flex-col">
-                          <span className={`font-bold text-sm ${isLowStock ? 'text-[#CB5A3C]' : 'text-[#2E4233]'}`}>
-                            {formatted.qty} {formatted.unit}
-                          </span>
-                          <span className="text-[10px] text-gray-400">Qtd./Unid.</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-[#2E4233] text-sm">{formatCurrency((product.unit_cost_cents / 100))}</span>
-                          <span className="text-[10px] text-gray-400">Custo</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-[#2E4233] text-sm">{formatCurrency(stockValue)}</span>
-                          <span className="text-[10px] text-gray-400">Total</span>
-                        </div>
+
+                      {/* Custo unitário com edição rápida */}
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Custo</span>
+                        {editingCell?.id === product.id && editingCell?.field === 'unit_cost' ? (
+                          <input
+                            type="text"
+                            autoFocus
+                            value={inlineValue}
+                            onChange={(e) => setInlineValue(formatCurrencyInput(e.target.value))}
+                            onBlur={() => saveInlineEdit(product, 'unit_cost')}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveInlineEdit(product, 'unit_cost');
+                              if (e.key === 'Escape') setEditingCell(null);
+                            }}
+                            className="w-20 px-1.5 py-0.5 text-xs font-semibold text-gray-800 bg-white border-2 border-[#2E4233] rounded-md focus:outline-none"
+                          />
+                        ) : (
+                          <div 
+                            onClick={() => startInlineEdit(product, 'unit_cost')}
+                            className="flex items-center gap-1 cursor-pointer"
+                          >
+                            <span className="font-bold text-[#2E4233] text-xs">
+                              {formatCurrency((product.unit_cost_cents / 100))}
+                            </span>
+                            <ChevronDown className="w-3 h-3 text-gray-400 shrink-0" />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -782,78 +1136,7 @@ export default function InventoryClient({
 
       </div>
 
-      {/* ==================== MODAL: EDITAR PRODUTO ==================== */}
-      {isEditProductModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FDFCF9]">
-              <h3 className="font-serif font-bold text-[#CB5A3C] text-xl tracking-tight">Editar Produto</h3>
-              <button onClick={() => setIsEditProductModalOpen(false)} className="p-1.5 rounded-lg text-[#CB5A3C] hover:bg-[#CB5A3C]/10 transition-colors">
-                <SvgIcon path="M6 18L18 6M6 6l12 12" className="w-5 h-5 text-[#CB5A3C]" />
-              </button>
-            </div>
-            
-            <div className="p-6 overflow-y-auto">
-              <form id="edit-product-form" onSubmit={handleUpdateProduct} className="flex flex-col gap-5">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-semibold text-gray-700">Nome do Produto *</label>
-                  <input type="text" value={newItemName} onChange={e => setNewItemName(e.target.value)} required className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" />
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[13px] font-semibold text-gray-700">Quantidade</label>
-                    <input type="text" value={newItemQuantity} onChange={e => setNewItemQuantity(e.target.value)} className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[13px] font-semibold text-gray-700">Unidade</label>
-                    <div className="relative">
-                      <select value={newItemUnit} onChange={e => setNewItemUnit(e.target.value)} className="w-full appearance-none border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all bg-white">
-                        <option value="unidades">unidades</option>
-                        <option value="kg">kg</option>
-                        <option value="g">g</option>
-                        <option value="L">L</option>
-                        <option value="ml">ml</option>
-                        <option value="caixas">caixas</option>
-                        <option value="pacotes">pacotes</option>
-                      </select>
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <SvgIcon path="M19 9l-7 7-7-7" className="w-4 h-4" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[13px] font-semibold text-gray-700">Custo Unitário (R$)</label>
-                    <input 
-                      type="text" 
-                      value={newItemUnitCost} 
-                      onChange={e => setNewItemUnitCost(formatCurrencyInput(e.target.value))} 
-                      className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" 
-                      placeholder="R$ 0,00" 
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[13px] font-semibold text-gray-700">Estoque Mínimo</label>
-                    <input type="text" value={newItemMinStock} onChange={e => setNewItemMinStock(e.target.value)} className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" />
-                  </div>
-                </div>
-              </form>
-            </div>
-
-            <div className="p-4 border-t border-[#E9E4D4] bg-[#FDFCF9] flex justify-end gap-3">
-              <button type="button" onClick={() => setIsEditProductModalOpen(false)} className="px-5 py-2.5 text-[14px] font-semibold text-gray-600 hover:text-gray-800 transition-colors">
-                Cancelar
-              </button>
-              <button type="submit" form="edit-product-form" disabled={isSavingProduct || !newItemName.trim()} className="px-6 py-2.5 bg-[#CB5A3C] hover:bg-[#A8452B] text-white rounded-xl font-semibold text-[14px] transition-all shadow-sm disabled:opacity-50">
-                {isSavingProduct ? 'Atualizando...' : 'Atualizar Produto'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ==================== MODAL: NOVO PRODUTO ==================== */}
       {isNewProductModalOpen && (

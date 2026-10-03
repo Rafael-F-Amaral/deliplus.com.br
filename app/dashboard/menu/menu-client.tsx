@@ -53,7 +53,7 @@ export function getCategoryBadgeStyle(catName: string): { bg: string; text: stri
 
 export function getItemCategories(item: MenuItem): string[] {
   if (item.categories && item.categories.length > 0) {
-    return item.categories
+    return item.categories.slice(0, 3)
   }
   return item.category ? [item.category] : []
 }
@@ -512,7 +512,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
     if (formExtraCategory.trim()) {
       const extraList = formExtraCategory.split(",").map((c) => c.trim()).filter(Boolean)
       extraList.forEach((extra) => {
-        if (!finalCategories.some((c) => c.toLowerCase() === extra.toLowerCase())) {
+        if (!finalCategories.some((c) => c.toLowerCase() === extra.toLowerCase()) && finalCategories.length < 3) {
           finalCategories.push(extra)
         }
       })
