@@ -13,7 +13,9 @@ import {
   Pencil,
   Check,
   X,
-  Tag
+  Tag,
+  Maximize2,
+  Camera
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 
@@ -381,6 +383,12 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
   // Modal: Delete confirmation
   const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null)
 
+  // Photo interaction states (Ampliar imagem & Trocar imagem)
+  const [openPhotoMenuId, setOpenPhotoMenuId] = useState<string | null>(null)
+  const [zoomedItem, setZoomedItem] = useState<MenuItem | null>(null)
+  const [itemToChangeImage, setItemToChangeImage] = useState<MenuItem | null>(null)
+  const [newImageUrl, setNewImageUrl] = useState<string>("")
+
   // Toast notification
   const [notification, setNotification] = useState<string | null>(null)
 
@@ -393,6 +401,9 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
       }
       if (!target.closest(".action-menu-container")) {
         setOpenActionId(null)
+      }
+      if (!target.closest(".photo-menu-container")) {
+        setOpenPhotoMenuId(null)
       }
     }
     document.addEventListener("click", handleClickOutside)
@@ -573,6 +584,28 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
     setTimeout(() => setNotification(null), 3000)
   }
 
+  // Salvar imagem a partir do modal dedicado de troca de foto
+  const handleSaveChangeImage = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!itemToChangeImage) return
+
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id === itemToChangeImage.id) {
+          return {
+            ...item,
+            image: newImageUrl.trim() || item.image
+          }
+        }
+        return item
+      })
+    )
+    setItemToChangeImage(null)
+    setNewImageUrl("")
+    setNotification("Foto do produto atualizada!")
+    setTimeout(() => setNotification(null), 3000)
+  }
+
   return (
     <div className="flex flex-col w-full h-full max-h-full max-w-[1400px] mx-auto p-3 md:px-6 pt-3 md:pt-5 pb-3 overflow-hidden justify-between font-sans">
       
@@ -743,8 +776,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                 <th className="px-4 py-2.5 text-left w-[120px] whitespace-nowrap">Preço original</th>
                 <th className="px-4 py-2.5 text-left w-[140px] whitespace-nowrap">Preço promocional</th>
                 <th className="px-3 py-2.5 text-center w-[110px] whitespace-nowrap">Disponibilidade</th>
-                <th className="px-3 py-2.5 text-center w-[110px] whitespace-nowrap">Limite diário</th>
-                <th className="px-3 py-2.5 text-center w-[115px] whitespace-nowrap">Restantes</th>
+                <th className="px-4 py-2.5 text-center w-[130px] whitespace-nowrap">Limite & Restantes</th>
                 <th className="px-4 py-2.5 text-right w-[60px]">Ações</th>
               </tr>
             </thead>
@@ -758,14 +790,58 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       isPaused ? "bg-stone-50/30" : ""
                     }`}
                   >
-                    {/* Foto Thumbnail */}
+                    {/* Foto Thumbnail com Menu: Ampliar / Trocar */}
                     <td className={`px-4 py-2 align-middle transition-opacity duration-200 ${isPaused ? "opacity-35 grayscale-[20%]" : "opacity-100"}`}>
-                      <div className="w-[58px] h-[44px] rounded-xl overflow-hidden border border-[#E9E4D4] shadow-2xs shrink-0 bg-gray-50">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
+                      <div className="photo-menu-container relative inline-block">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpenPhotoMenuId(openPhotoMenuId === item.id ? null : item.id)
+                          }}
+                          className="w-[58px] h-[44px] rounded-xl overflow-hidden border border-[#E9E4D4] shadow-2xs shrink-0 bg-gray-50 block cursor-pointer group/photo relative hover:border-[#2E4233] transition-all"
+                          title="Clique para ampliar ou trocar a foto"
+                        >
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-200"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover/photo:bg-black/25 flex items-center justify-center transition-colors">
+                            <Maximize2 className="w-3.5 h-3.5 text-white opacity-0 group-hover/photo:opacity-100 transition-opacity drop-shadow" />
+                          </div>
+                        </button>
+
+                        {/* Menu de duas escolhas: Ampliar e Trocar imagem */}
+                        {openPhotoMenuId === item.id && (
+                          <div className="absolute left-0 top-full mt-1.5 w-44 bg-[#2E4233] text-white rounded-xl shadow-2xl border border-[#233327] z-50 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100 text-left">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setOpenPhotoMenuId(null)
+                                setZoomedItem(item)
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
+                            >
+                              <Maximize2 className="w-3.5 h-3.5 text-white/80" />
+                              <span>Ampliar imagem</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setOpenPhotoMenuId(null)
+                                setItemToChangeImage(item)
+                                setNewImageUrl(item.image)
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
+                            >
+                              <Camera className="w-3.5 h-3.5 text-white/80" />
+                              <span>Trocar imagem</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
 
@@ -838,40 +914,44 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       </div>
                     </td>
 
-                    {/* Limite diário (sem tracinho, apenas a palavra quando sem limite) */}
-                    <td className={`px-3 py-2 align-middle text-center whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
+                    {/* Limite diário & Restantes na mesma coluna vertical */}
+                    <td className={`px-4 py-2 align-middle text-center whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
                       {item.dailyLimit !== null ? (
-                        <span className="text-[13.5px] font-semibold text-gray-700">
-                          {item.dailyLimit} un.
-                        </span>
+                        <div className="flex flex-col items-center justify-center gap-0.5">
+                          {item.remaining === 0 ? (
+                            <>
+                              <span className="text-[13px] font-bold text-[#DC2626]">
+                                0 restantes
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className="border border-[#F87171] text-[#DC2626] bg-[#FEF2F2] text-[10px] font-bold px-1.5 py-0.2 rounded-full leading-tight">
+                                  Esgotado
+                                </span>
+                                <span className="text-[11px] text-gray-400">
+                                  de {item.dailyLimit} un.
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-[13.5px] font-bold text-[#16A34A]">
+                                {item.remaining ?? item.dailyLimit} restantes
+                              </span>
+                              <span className="text-[11px] text-gray-500 font-medium">
+                                Limite: {item.dailyLimit} un.
+                              </span>
+                            </>
+                          )}
+                        </div>
                       ) : (
-                        <span className="text-[13px] text-gray-400 font-medium">
-                          Sem limite
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Restantes (sem tracinho, apenas a palavra quando ilimitado) */}
-                    <td className={`px-3 py-2 align-middle text-center whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
-                      {item.remaining !== null ? (
-                        item.remaining === 0 ? (
-                          <div className="flex flex-col items-center">
-                            <span className="text-[13px] font-bold text-[#DC2626]">
-                              0 restantes
-                            </span>
-                            <span className="border border-[#F87171] text-[#DC2626] bg-[#FEF2F2] text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5 leading-none">
-                              Esgotado
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-[13.5px] font-bold text-[#16A34A]">
-                            {item.remaining} restantes
+                        <div className="flex flex-col items-center justify-center">
+                          <span className="text-[13px] text-gray-400 font-medium">
+                            Sem limite
                           </span>
-                        )
-                      ) : (
-                        <span className="text-[13px] text-gray-400 font-medium">
-                          Ilimitado
-                        </span>
+                          <span className="text-[10.5px] text-gray-400/80">
+                            Ilimitado
+                          </span>
+                        </div>
                       )}
                     </td>
 
@@ -953,13 +1033,8 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       <span className="text-[14px] text-gray-300 font-medium">—</span>
                     </td>
 
-                    {/* Limite diário */}
-                    <td className="px-3 py-2 align-middle text-center whitespace-nowrap">
-                      <span className="text-[14px] text-gray-300 font-medium">—</span>
-                    </td>
-
-                    {/* Restantes */}
-                    <td className="px-3 py-2 align-middle text-center whitespace-nowrap">
+                    {/* Limite & Restantes */}
+                    <td className="px-4 py-2 align-middle text-center whitespace-nowrap">
                       <span className="text-[14px] text-gray-300 font-medium">—</span>
                     </td>
 
@@ -972,7 +1047,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
 
               {filteredItems.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500 text-sm">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500 text-sm">
                     Nenhum item encontrado no cardápio.
                   </td>
                 </tr>
@@ -1026,9 +1101,55 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     isPaused ? "opacity-35 grayscale-[20%]" : "opacity-100"
                   }`}
                 >
-                  <div className="w-14 h-14 rounded-xl overflow-hidden border border-[#E9E4D4] shrink-0">
-                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                  {/* Foto Thumbnail com Menu: Ampliar / Trocar */}
+                  <div className="photo-menu-container relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setOpenPhotoMenuId(openPhotoMenuId === `m-${item.id}` ? null : `m-${item.id}`)
+                      }}
+                      className="w-14 h-14 rounded-xl overflow-hidden border border-[#E9E4D4] shrink-0 block relative group/mphoto cursor-pointer active:scale-95 transition-all"
+                      title="Toque para ampliar ou trocar a foto"
+                    >
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/mphoto:opacity-100 transition-opacity">
+                        <Maximize2 className="w-4 h-4 text-white drop-shadow" />
+                      </div>
+                    </button>
+
+                    {/* Menu de duas escolhas: Ampliar e Trocar imagem */}
+                    {openPhotoMenuId === `m-${item.id}` && (
+                      <div className="absolute left-0 top-full mt-1.5 w-44 bg-[#2E4233] text-white rounded-xl shadow-2xl border border-[#233327] z-50 py-1.5 overflow-hidden text-left animate-in fade-in zoom-in-95 duration-100">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpenPhotoMenuId(null)
+                            setZoomedItem(item)
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
+                        >
+                          <Maximize2 className="w-3.5 h-3.5 text-white/80" />
+                          <span>Ampliar imagem</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpenPhotoMenuId(null)
+                            setItemToChangeImage(item)
+                            setNewImageUrl(item.image)
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-white/80" />
+                          <span>Trocar imagem</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold text-[#2E4233] text-sm truncate">{item.name}</span>
@@ -1047,10 +1168,29 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       </div>
                     </div>
                     <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.description}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs font-bold text-[#2E4233]">{item.originalPrice}</span>
-                      {item.promoPrice && (
-                        <span className="text-xs font-bold text-[#CB5A3C]">({item.promoPrice})</span>
+                    <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-[#2E4233]">{item.originalPrice}</span>
+                        {item.promoPrice && (
+                          <span className="text-xs font-bold text-[#CB5A3C]">({item.promoPrice})</span>
+                        )}
+                      </div>
+
+                      {/* Limite & Restantes mobile */}
+                      {item.dailyLimit !== null ? (
+                        item.remaining === 0 ? (
+                          <span className="text-[10px] font-bold text-[#DC2626] bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full leading-tight">
+                            0 restantes (Esgotado)
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-[#16A34A] bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full leading-tight">
+                            {item.remaining ?? item.dailyLimit} restantes · Lim: {item.dailyLimit}
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-[10px] text-gray-400">
+                          Sem limite
+                        </span>
                       )}
                     </div>
                   </div>
@@ -1217,42 +1357,6 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     />
                   </div>
                 </div>
-
-                {/* Foto do Produto */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-semibold text-gray-700">Foto do Produto</label>
-                  <div className="flex items-center gap-3">
-                    <div className="w-[72px] h-[54px] rounded-xl overflow-hidden border border-[#E9E4D4] shadow-2xs shrink-0 bg-gray-50">
-                      <img
-                        src={formImage}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5 flex-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newUrl = prompt("URL da nova foto:", formImage)
-                          if (newUrl) setFormImage(newUrl)
-                        }}
-                        className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E9E4D4] bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs cursor-pointer"
-                      >
-                        <Upload className="w-3.5 h-3.5 text-gray-500" />
-                        <span>Alterar URL da foto</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFormImage("https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80")}
-                        className="flex items-center justify-center gap-1 px-2 py-0.5 text-xs font-semibold text-[#DC2626] hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-[#DC2626]" />
-                        <span>Restaurar foto padrão</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Preços (Original e Promocional) */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
@@ -1434,6 +1538,161 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                 Excluir
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== LIGHTBOX MODAL: AMPLIAR IMAGEM ==================== */}
+      {zoomedItem && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setZoomedItem(null)}
+        >
+          <div 
+            className="bg-[#2E4233] text-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col border border-[#3d5743] relative animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-5 py-3.5 border-b border-white/10 flex justify-between items-center bg-[#233327]">
+              <div className="flex items-center gap-2 min-w-0 pr-2">
+                <span className="font-bold text-white text-base truncate">{zoomedItem.name}</span>
+                <span className="text-xs text-white/60 shrink-0 font-medium">({zoomedItem.category})</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setZoomedItem(null)}
+                className="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Imagem Ampliada */}
+            <div className="p-4 bg-black/40 flex items-center justify-center overflow-hidden max-h-[70vh]">
+              <img
+                src={zoomedItem.image}
+                alt={zoomedItem.name}
+                className="w-full max-h-[60vh] object-contain rounded-xl shadow-lg border border-white/10"
+              />
+            </div>
+
+            {/* Footer com informações e botão para trocar foto */}
+            <div className="px-5 py-3 border-t border-white/10 bg-[#233327] flex items-center justify-between gap-3 text-xs">
+              <span className="text-white/80 line-clamp-1 flex-1">{zoomedItem.description}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const item = zoomedItem
+                  setZoomedItem(null)
+                  setItemToChangeImage(item)
+                  setNewImageUrl(item.image)
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors shrink-0 cursor-pointer"
+              >
+                <Camera className="w-3.5 h-3.5 text-white/90" />
+                <span>Trocar foto</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL SIMPLES: TROCAR IMAGEM ==================== */}
+      {itemToChangeImage && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setItemToChangeImage(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
+              <div className="flex flex-col">
+                <h3 className="font-bold text-[#2E4233] text-lg">Trocar Imagem</h3>
+                <span className="text-xs text-gray-500 font-medium truncate max-w-[280px]">
+                  {itemToChangeImage.name}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setItemToChangeImage(null)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <form onSubmit={handleSaveChangeImage} className="p-6 flex flex-col gap-4">
+              {/* Preview */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-gray-700">Pré-visualização</label>
+                <div className="w-full h-44 rounded-xl border border-[#E9E4D4] overflow-hidden bg-gray-50 flex items-center justify-center relative shadow-inner">
+                  {newImageUrl.trim() ? (
+                    <img
+                      src={newImageUrl}
+                      alt="Prévia da nova imagem"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        ;(e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80"
+                      }}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1.5 text-gray-400">
+                      <Camera className="w-8 h-8 text-gray-300" />
+                      <span className="text-xs font-medium">Insira o link da imagem abaixo</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Input URL */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-gray-700">URL da Imagem</label>
+                <input
+                  type="url"
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  placeholder="https://exemplo.com/foto-do-prato.jpg"
+                  required
+                  className="w-full border border-[#E9E4D4] rounded-xl px-3.5 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all"
+                />
+                <span className="text-[11px] text-gray-400">
+                  Cole o link direto da imagem (Unsplash, Imgur, CDN, etc).
+                </span>
+              </div>
+
+              {/* Ação rápida: Restaurar foto padrão */}
+              <button
+                type="button"
+                onClick={() => setNewImageUrl("https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80")}
+                className="text-left text-xs font-semibold text-[#CB5A3C] hover:underline flex items-center gap-1 cursor-pointer w-fit"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Restaurar foto padrão do DeliPlus</span>
+              </button>
+
+              {/* Footer */}
+              <div className="pt-3 border-t border-[#E9E4D4] flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setItemToChangeImage(null)}
+                  className="px-4 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newImageUrl.trim()}
+                  className="px-5 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  Salvar Imagem
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
