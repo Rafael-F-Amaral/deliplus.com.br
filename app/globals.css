@@ -221,3 +221,9 @@
   background-color: transparent !important;
   background: transparent !important;
 }
+
+
+::selection {
+  background-color: #CB5A3C;
+  color: white;
+}

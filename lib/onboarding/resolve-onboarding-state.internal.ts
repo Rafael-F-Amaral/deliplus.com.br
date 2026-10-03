@@ -30,7 +30,7 @@ type ResolveOnboardingStateDependencies = {
 
 export class OnboardingStateResolutionError extends Error {
   constructor(cause?: unknown) {
-    super("Unable to resolve onboarding state", { cause })
+    super("Unable to resolve onboarding state: " + (typeof cause === "object" ? JSON.stringify(cause) : String(cause)), { cause })
     this.name = "OnboardingStateResolutionError"
   }
 }
@@ -54,11 +54,11 @@ export function createResolveOnboardingState(
     try {
       lookupResult = await dependencies.findOrganization(orgId)
     } catch (cause) {
-      throw new OnboardingStateResolutionError(cause)
+      throw new OnboardingStateResolutionError(cause instanceof Error ? cause.message : String(cause))
     }
 
     if (lookupResult.error !== null) {
-      throw new OnboardingStateResolutionError(lookupResult.error)
+      throw new OnboardingStateResolutionError(lookupResult.error instanceof Error ? lookupResult.error.message : JSON.stringify(lookupResult.error))
     }
 
     if (!lookupResult.data) {

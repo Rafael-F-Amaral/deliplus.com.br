@@ -116,7 +116,7 @@ function MobileNav({ menuItems }: { menuItems: any[] }) {
 
   return (
     <>
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-[72px] bg-white border-t border-gray-100 flex items-center justify-around px-2 z-50 pb-safe">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-[72px] bg-white border-t border-gray-100 flex items-center justify-around px-2 z-50 pb-safe print:hidden">
         {mainItems.map((item) => {
           const isActive = pathname === item.href
           return (

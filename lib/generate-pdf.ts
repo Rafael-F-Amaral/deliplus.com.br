@@ -2,27 +2,39 @@
 import jsPDF from "jspdf";
 import { leafTopLeft, leafBottomRight, logoDeli } from "./pdf-assets";
 
-export const generateShoppingListPDF = (products: any[], categories: any[], extraItems: string[], storeSlug: string = "nomedaloja") => {
+export interface ExtraShoppingItemPDF {
+  id?: string;
+  name: string;
+  quantity?: number | string;
+  unit?: string;
+}
+
+export const generateShoppingListPDF = (
+  products: any[], 
+  categories: any[], 
+  extraItems: (string | ExtraShoppingItemPDF)[], 
+  siteUrl: string = "deliplus.com.br"
+) => {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4'
   });
 
-  // Background color #f3f2eb
-  doc.setFillColor(243, 242, 235);
+  // Background color pure white
+  doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, 210, 297, 'F');
 
   // Add decorative leaves FIRST so text draws over them if anything
   // Top-left leaf - make it smaller and push it to the corner
-  doc.addImage(leafTopLeft, 'JPEG', -20, -15, 60, 90, 'leaf1', 'FAST');
+  doc.addImage(leafTopLeft, 'PNG', -20, -15, 60, 90, 'leaf1', 'FAST');
   
   // Bottom-right leaf
   // Push the leaf further down and right so only the tips show like in the reference
-  doc.addImage(leafBottomRight, 'JPEG', 170, 220, 80, 53.3, 'leaf2', 'FAST');
+  doc.addImage(leafBottomRight, 'PNG', 170, 220, 80, 53.3, 'leaf2', 'FAST');
 
   // Logo - Center horizontally
-  doc.addImage(logoDeli, 'JPEG', 88, 15, 34, 13, 'logo', 'FAST');
+  doc.addImage(logoDeli, 'PNG', 88, 15, 34, 13, 'logo', 'FAST');
 
   // Slogan under logo
   doc.setFontSize(7);
@@ -58,10 +70,20 @@ export const generateShoppingListPDF = (products: any[], categories: any[], extr
   // We REMOVED the "Abastecimento da semana" subtitle as requested!
 
   // Flat list instead of grouped
-  const allItems = [...products];
+  const allItems: any[] = [...products];
   if (extraItems.length > 0) {
     extraItems.forEach(item => {
-      allItems.push({ name: item, min_stock: null, unit: '' });
+      if (typeof item === 'string') {
+        allItems.push({ name: item, min_stock: null, unit: '', customQty: null });
+      } else {
+        const unitDisplay = item.unit === 'unidades' ? 'un' : item.unit === 'caixas' ? 'cx' : item.unit === 'pacotes' ? 'pct' : (item.unit || '');
+        allItems.push({
+          name: item.name,
+          min_stock: null,
+          unit: unitDisplay,
+          customQty: item.quantity
+        });
+      }
     });
   }
 
@@ -90,7 +112,7 @@ export const generateShoppingListPDF = (products: any[], categories: any[], extr
   allItems.forEach(item => {
     if (cursorY > 260) {
       doc.addPage();
-      doc.setFillColor(243, 242, 235);
+      doc.setFillColor(255, 255, 255);
       doc.rect(0, 0, 210, 297, 'F');
       cursorY = 30;
       
@@ -111,8 +133,13 @@ export const generateShoppingListPDF = (products: any[], categories: any[], extr
     doc.text(item.name, leftMargin, cursorY);
     
     // Item Quantity
-    if (item.min_stock !== null) {
-      const qty = Math.max(1, item.min_stock * 2);
+    if (item.customQty !== undefined && item.customQty !== null) {
+      const unit = item.unit ? ` ${item.unit}` : '';
+      doc.setFont("helvetica", "bold");
+      doc.text(`${item.customQty}${unit}`, rightMargin, cursorY, { align: "right" });
+      doc.setFont("helvetica", "normal");
+    } else if (item.min_stock !== null) {
+      const qty = item.shoppingQty !== undefined ? item.shoppingQty : Math.max(1, item.min_stock * 2);
       const unit = item.unit === 'unidades' ? 'un' : item.unit;
       doc.setFont("helvetica", "bold");
       doc.text(qty + " " + unit, rightMargin, cursorY, { align: "right" });
@@ -154,7 +181,7 @@ export const generateShoppingListPDF = (products: any[], categories: any[], extr
   const d = new Date();
   const months = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
   const dateStr = `${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()}`;
-  doc.text("Gerado por DeliPlus", 105, 281, { align: "center" });
+  doc.text(siteUrl, 105, 281, { align: "center" });
   doc.text(dateStr, 105, 286, { align: "center" });
 
   // Fix bottom right leaf positioning
