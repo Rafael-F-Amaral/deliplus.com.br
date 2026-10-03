@@ -830,7 +830,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                         />
                         <span
                           className={`text-[11px] font-semibold mt-0.5 transition-colors ${
-                            item.isAvailable ? "text-[#059669]" : "text-[#EA580C]"
+                            item.isAvailable ? "text-[#2E4233]" : "text-[#CB5A3C]"
                           }`}
                         >
                           {item.isAvailable ? "Disponível" : "Pausado"}
@@ -1067,7 +1067,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     />
                     <span
                       className={`text-xs font-semibold transition-colors ${
-                        item.isAvailable ? "text-[#059669]" : "text-[#EA580C]"
+                        item.isAvailable ? "text-[#2E4233]" : "text-[#CB5A3C]"
                       }`}
                     >
                       {item.isAvailable ? "Disponível" : "Pausado"}

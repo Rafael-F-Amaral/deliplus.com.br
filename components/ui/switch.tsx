@@ -12,8 +12,8 @@ export interface SwitchProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 /**
  * DeliPlus standard toggle switch:
- * - Active (available / right): emerald green track (#10B981)
- * - Inactive (paused / left): vibrant orange track (#F97316)
+ * - Active (available / right): Deli logo green track (#2E4233)
+ * - Inactive (paused / left): Deli logo orange track (#CB5A3C)
  */
 export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
   (
@@ -23,8 +23,8 @@ export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
       className,
       disabled,
       onClick,
-      activeTrackColor = "bg-[#10B981]",
-      inactiveTrackColor = "bg-[#F97316]",
+      activeTrackColor = "bg-[#2E4233]",
+      inactiveTrackColor = "bg-[#CB5A3C]",
       ...props
     },
     ref
