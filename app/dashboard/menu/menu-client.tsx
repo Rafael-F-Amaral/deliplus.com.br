@@ -340,6 +340,24 @@ const INITIAL_ITEMS: MenuItem[] = [
   }
 ]
 
+function parseCurrency(str: string): number {
+  if (!str) return 0
+  const clean = str.replace(/[^\d,.-]/g, "").replace(",", ".")
+  return parseFloat(clean) || 0
+}
+
+function formatCurrency(num: number): string {
+  return `R$ ${num.toFixed(2).replace(".", ",")}`
+}
+
+function getDiscountPercentage(original: string, promo: string | null): number {
+  if (!promo) return 0
+  const orig = parseCurrency(original)
+  const p = parseCurrency(promo)
+  if (orig <= 0 || p <= 0 || p >= orig) return 0
+  return Math.round(((orig - p) / orig) * 100)
+}
+
 interface MenuClientProps {
   storeSlug?: string
   storeName?: string
@@ -388,6 +406,13 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
   const [zoomedItem, setZoomedItem] = useState<MenuItem | null>(null)
   const [itemToChangeImage, setItemToChangeImage] = useState<MenuItem | null>(null)
   const [newImageUrl, setNewImageUrl] = useState<string>("")
+  const [isDragging, setIsDragging] = useState(false)
+  const [showDeletePhotoConfirm, setShowDeletePhotoConfirm] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Preço Promocional: Modal de Porcentagem de Desconto
+  const [discountModalItem, setDiscountModalItem] = useState<MenuItem | null>(null)
+  const [discountPercentInput, setDiscountPercentInput] = useState<string>("15")
 
   // Toast notification
   const [notification, setNotification] = useState<string | null>(null)
@@ -594,7 +619,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
         if (item.id === itemToChangeImage.id) {
           return {
             ...item,
-            image: newImageUrl.trim() || item.image
+            image: newImageUrl.trim()
           }
         }
         return item
@@ -602,7 +627,88 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
     )
     setItemToChangeImage(null)
     setNewImageUrl("")
-    setNotification("Foto do produto atualizada!")
+    setShowDeletePhotoConfirm(false)
+    setNotification(newImageUrl.trim() ? "Foto do produto atualizada!" : "Foto removida com sucesso!")
+    setTimeout(() => setNotification(null), 3000)
+  }
+
+  // Processar arquivo de imagem do computador
+  const handleProcessImageFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      alert("Por favor, selecione um arquivo de imagem válido (PNG, JPG, WebP).")
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setNewImageUrl(e.target.result as string)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleDropImage = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleProcessImageFile(e.dataTransfer.files[0])
+    }
+  }
+
+  // Preço Promocional: Abrir modal de desconto em %
+  const handleOpenDiscountModal = (item: MenuItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setDiscountModalItem(item)
+    const currentDiscount = getDiscountPercentage(item.originalPrice, item.promoPrice)
+    setDiscountPercentInput(currentDiscount > 0 ? currentDiscount.toString() : "15")
+  }
+
+  const handleApplyDiscount = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!discountModalItem) return
+    const pct = parseFloat(discountPercentInput)
+    if (isNaN(pct) || pct <= 0) {
+      handleRemoveDiscount()
+      return
+    }
+    const cappedPct = Math.min(99, Math.max(1, Math.round(pct)))
+    const orig = parseCurrency(discountModalItem.originalPrice)
+    const calculatedPromo = orig * (1 - cappedPct / 100)
+    const formattedPromo = formatCurrency(calculatedPromo)
+
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id === discountModalItem.id) {
+          return {
+            ...item,
+            promoPrice: formattedPromo,
+            inPromo: true
+          }
+        }
+        return item
+      })
+    )
+    setDiscountModalItem(null)
+    setNotification(`Desconto de ${cappedPct}% aplicado! Preço promocional: ${formattedPromo}`)
+    setTimeout(() => setNotification(null), 3000)
+  }
+
+  const handleRemoveDiscount = () => {
+    if (!discountModalItem) return
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id === discountModalItem.id) {
+          return {
+            ...item,
+            promoPrice: null,
+            inPromo: false
+          }
+        }
+        return item
+      })
+    )
+    setDiscountModalItem(null)
+    setNotification("Preço promocional desativado.")
     setTimeout(() => setNotification(null), 3000)
   }
 
@@ -776,7 +882,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                 <th className="px-4 py-2.5 text-left w-[120px] whitespace-nowrap">Preço original</th>
                 <th className="px-4 py-2.5 text-left w-[140px] whitespace-nowrap">Preço promocional</th>
                 <th className="px-3 py-2.5 text-center w-[110px] whitespace-nowrap">Disponibilidade</th>
-                <th className="px-4 py-2.5 text-center w-[130px] whitespace-nowrap">Limite & Restantes</th>
+                <th className="px-4 py-2.5 text-center w-[130px] whitespace-nowrap">Quantidade</th>
                 <th className="px-4 py-2.5 text-right w-[60px]">Ações</th>
               </tr>
             </thead>
@@ -802,11 +908,17 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                           className="w-[58px] h-[44px] rounded-xl overflow-hidden border border-[#E9E4D4] shadow-2xs shrink-0 bg-gray-50 block cursor-pointer group/photo relative hover:border-[#2E4233] transition-all"
                           title="Clique para ampliar ou trocar a foto"
                         >
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-200"
-                          />
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-200"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                              <Camera className="w-4 h-4 text-gray-400" />
+                            </div>
+                          )}
                           <div className="absolute inset-0 bg-black/0 group-hover/photo:bg-black/25 flex items-center justify-center transition-colors">
                             <Maximize2 className="w-3.5 h-3.5 text-white opacity-0 group-hover/photo:opacity-100 transition-opacity drop-shadow" />
                           </div>
@@ -877,22 +989,32 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       </span>
                     </td>
 
-                    {/* Preço promocional (sem tracinho, apenas a palavra quando sem promoção) */}
+                    {/* Preço promocional com clique/toque para definir porcentagem de desconto */}
                     <td className={`px-4 py-2 align-middle text-left whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
-                      {item.promoPrice ? (
-                        <div className="flex flex-col">
-                          <span className="text-[14.5px] font-bold text-[#CB5A3C]">
-                            {item.promoPrice}
-                          </span>
-                          <span className="text-[11px] text-gray-400 line-through leading-tight">
-                            {item.originalPrice}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-[13px] text-gray-400 font-medium">
-                          Sem promoção
-                        </span>
-                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => handleOpenDiscountModal(item, e)}
+                        className="inline-flex items-center gap-1.5 px-2 py-1 -ml-2 rounded-lg hover:bg-orange-50/80 border border-transparent hover:border-orange-200 transition-all cursor-pointer group/promo text-left"
+                        title="Clique ou toque para aplicar desconto em porcentagem (%)"
+                      >
+                        {item.promoPrice ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[14.5px] font-bold text-[#CB5A3C]">
+                              {item.promoPrice}
+                            </span>
+                            <span className="text-[10px] font-bold bg-[#FEF2F2] text-[#CB5A3C] border border-[#FCA5A5] px-1.5 py-0.5 rounded-full">
+                              -{getDiscountPercentage(item.originalPrice, item.promoPrice)}%
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-gray-400 group-hover/promo:text-[#CB5A3C]">
+                            <span className="text-[13px] font-medium">Sem promoção</span>
+                            <span className="text-[10px] font-bold bg-gray-100 group-hover/promo:bg-[#CB5A3C] group-hover/promo:text-white text-gray-500 px-1 py-0.5 rounded transition-colors">
+                              %
+                            </span>
+                          </div>
+                        )}
+                      </button>
                     </td>
 
                     {/* Disponibilidade Switch (NÃO apagado: full opacity-100) */}
@@ -914,23 +1036,18 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       </div>
                     </td>
 
-                    {/* Limite diário & Restantes na mesma coluna vertical */}
+                    {/* Quantidade (anteriormente Limite diário & Restantes) */}
                     <td className={`px-4 py-2 align-middle text-center whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
                       {item.dailyLimit !== null ? (
                         <div className="flex flex-col items-center justify-center gap-0.5">
                           {item.remaining === 0 ? (
                             <>
-                              <span className="text-[13px] font-bold text-[#DC2626]">
+                              <span className="text-[13.5px] font-bold text-[#CB5A3C]">
                                 0 restantes
                               </span>
-                              <div className="flex items-center gap-1">
-                                <span className="border border-[#F87171] text-[#DC2626] bg-[#FEF2F2] text-[10px] font-bold px-1.5 py-0.2 rounded-full leading-tight">
-                                  Esgotado
-                                </span>
-                                <span className="text-[11px] text-gray-400">
-                                  de {item.dailyLimit} un.
-                                </span>
-                              </div>
+                              <span className="text-[11px] text-gray-400 font-medium">
+                                Limite: {item.dailyLimit} un.
+                              </span>
                             </>
                           ) : (
                             <>
@@ -1109,10 +1226,16 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                         e.stopPropagation()
                         setOpenPhotoMenuId(openPhotoMenuId === `m-${item.id}` ? null : `m-${item.id}`)
                       }}
-                      className="w-14 h-14 rounded-xl overflow-hidden border border-[#E9E4D4] shrink-0 block relative group/mphoto cursor-pointer active:scale-95 transition-all"
+                      className="w-14 h-14 rounded-xl overflow-hidden border border-[#E9E4D4] shrink-0 block relative group/mphoto cursor-pointer active:scale-95 transition-all bg-gray-50"
                       title="Toque para ampliar ou trocar a foto"
                     >
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                          <Camera className="w-5 h-5 text-gray-400" />
+                        </div>
+                      )}
                       <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/mphoto:opacity-100 transition-opacity">
                         <Maximize2 className="w-4 h-4 text-white drop-shadow" />
                       </div>
@@ -1171,16 +1294,29 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-[#2E4233]">{item.originalPrice}</span>
-                        {item.promoPrice && (
-                          <span className="text-xs font-bold text-[#CB5A3C]">({item.promoPrice})</span>
-                        )}
+                        {/* Toque no Preço Promocional no mobile para abrir modal de desconto em % */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenDiscountModal(item, e)}
+                          className="cursor-pointer"
+                        >
+                          {item.promoPrice ? (
+                            <span className="text-xs font-bold text-[#CB5A3C] bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded">
+                              {item.promoPrice} (-{getDiscountPercentage(item.originalPrice, item.promoPrice)}%)
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 hover:text-[#CB5A3C] px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                              + %
+                            </span>
+                          )}
+                        </button>
                       </div>
 
-                      {/* Limite & Restantes mobile */}
+                      {/* Quantidade mobile */}
                       {item.dailyLimit !== null ? (
                         item.remaining === 0 ? (
-                          <span className="text-[10px] font-bold text-[#DC2626] bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full leading-tight">
-                            0 restantes (Esgotado)
+                          <span className="text-[10px] font-bold text-[#CB5A3C] bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full leading-tight">
+                            0 restantes · Lim: {item.dailyLimit}
                           </span>
                         ) : (
                           <span className="text-[10px] font-semibold text-[#16A34A] bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full leading-tight">
@@ -1598,14 +1734,17 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
         </div>
       )}
 
-      {/* ==================== MODAL SIMPLES: TROCAR IMAGEM ==================== */}
+      {/* ==================== MODAL: TROCAR IMAGEM (DRAG & DROP / UPLOAD DO COMPUTADOR) ==================== */}
       {itemToChangeImage && (
         <div 
           className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
-          onClick={() => setItemToChangeImage(null)}
+          onClick={() => {
+            setItemToChangeImage(null)
+            setShowDeletePhotoConfirm(false)
+          }}
         >
           <div 
-            className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150"
+            className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150 relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -1618,84 +1757,303 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
               </div>
               <button
                 type="button"
-                onClick={() => setItemToChangeImage(null)}
+                onClick={() => {
+                  setItemToChangeImage(null)
+                  setShowDeletePhotoConfirm(false)
+                }}
                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {/* Hidden native file input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) handleProcessImageFile(file)
+                e.target.value = ""
+              }}
+            />
+
             {/* Body */}
             <form onSubmit={handleSaveChangeImage} className="p-6 flex flex-col gap-4">
-              {/* Preview */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-gray-700">Pré-visualização</label>
-                <div className="w-full h-44 rounded-xl border border-[#E9E4D4] overflow-hidden bg-gray-50 flex items-center justify-center relative shadow-inner">
-                  {newImageUrl.trim() ? (
+              {newImageUrl.trim() ? (
+                /* Imagem com Lixinho no Topo */
+                <div className="flex flex-col gap-3">
+                  <div className="relative w-full h-48 rounded-xl border border-[#E9E4D4] overflow-hidden bg-gray-50 shadow-inner group">
                     <img
                       src={newImageUrl}
-                      alt="Prévia da nova imagem"
+                      alt="Prévia da imagem"
                       className="w-full h-full object-cover"
-                      onError={(e) => {
-                        ;(e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80"
-                      }}
                     />
-                  ) : (
-                    <div className="flex flex-col items-center gap-1.5 text-gray-400">
-                      <Camera className="w-8 h-8 text-gray-300" />
-                      <span className="text-xs font-medium">Insira o link da imagem abaixo</span>
-                    </div>
-                  )}
+
+                    {/* Lixinho no topo da imagem para excluir */}
+                    <button
+                      type="button"
+                      onClick={() => setShowDeletePhotoConfirm(true)}
+                      className="absolute top-3 right-3 p-2 rounded-xl bg-white/95 hover:bg-white text-[#CB5A3C] shadow-lg border border-[#E9E4D4] transition-all hover:scale-105 cursor-pointer flex items-center justify-center"
+                      title="Excluir imagem"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Área para arrastar outra ou carregar do computador */}
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      setIsDragging(true)
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDropImage}
+                    className={`border-2 border-dashed rounded-xl p-3.5 flex items-center justify-center gap-2 cursor-pointer transition-all ${
+                      isDragging
+                        ? "border-[#2E4233] bg-[#FAF8F0]"
+                        : "border-[#E9E4D4] hover:border-[#2E4233] bg-[#FAF8F0]/40 hover:bg-[#FAF8F0]"
+                    }`}
+                  >
+                    <Upload className="w-4 h-4 text-[#2E4233]" />
+                    <span className="text-xs font-semibold text-[#2E4233]">
+                      Arraste outra foto ou clique para carregar
+                    </span>
+                  </div>
                 </div>
-              </div>
-
-              {/* Input URL */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-gray-700">URL da Imagem</label>
-                <input
-                  type="url"
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  placeholder="https://exemplo.com/foto-do-prato.jpg"
-                  required
-                  className="w-full border border-[#E9E4D4] rounded-xl px-3.5 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all"
-                />
-                <span className="text-[11px] text-gray-400">
-                  Cole o link direto da imagem (Unsplash, Imgur, CDN, etc).
-                </span>
-              </div>
-
-              {/* Ação rápida: Restaurar foto padrão */}
-              <button
-                type="button"
-                onClick={() => setNewImageUrl("https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80")}
-                className="text-left text-xs font-semibold text-[#CB5A3C] hover:underline flex items-center gap-1 cursor-pointer w-fit"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Restaurar foto padrão do DeliPlus</span>
-              </button>
+              ) : (
+                /* Área para arrastar imagem ou carregar do computador (Sem foto) */
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setIsDragging(true)
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={handleDropImage}
+                  className={`w-full h-52 rounded-xl border-2 border-dashed flex flex-col items-center justify-center p-6 cursor-pointer transition-all ${
+                    isDragging
+                      ? "border-[#2E4233] bg-[#FAF8F0] scale-[0.99]"
+                      : "border-[#E9E4D4] hover:border-[#2E4233] bg-[#FAF8F0]/40 hover:bg-[#FAF8F0]"
+                  }`}
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-white shadow-xs border border-[#E9E4D4] flex items-center justify-center mb-3 text-[#2E4233]">
+                    <Upload className="w-6 h-6 text-[#2E4233]" />
+                  </div>
+                  <p className="text-[13px] font-bold text-[#2E4233]">
+                    Arraste e solte uma imagem aqui
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    ou <span className="text-[#CB5A3C] font-semibold underline">clique para carregar do computador</span>
+                  </p>
+                  <span className="text-[11px] text-gray-400 mt-3 bg-white px-2.5 py-0.5 rounded-full border border-gray-100">
+                    PNG, JPG ou WebP
+                  </span>
+                </div>
+              )}
 
               {/* Footer */}
               <div className="pt-3 border-t border-[#E9E4D4] flex items-center justify-end gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setItemToChangeImage(null)}
+                  onClick={() => {
+                    setItemToChangeImage(null)
+                    setShowDeletePhotoConfirm(false)
+                  }}
                   className="px-4 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  disabled={!newImageUrl.trim()}
-                  className="px-5 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
                 >
                   Salvar Imagem
                 </button>
               </div>
             </form>
+
+            {/* Modal de Confirmação: Excluir Foto */}
+            {showDeletePhotoConfirm && (
+              <div 
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 rounded-2xl animate-in fade-in duration-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="bg-white rounded-2xl w-full max-w-xs shadow-2xl p-5 flex flex-col items-center text-center border border-[#E9E4D4] animate-in zoom-in-95 duration-100">
+                  <div className="w-12 h-12 rounded-full bg-[#FDF2F0] border border-[#F5D8D1] flex items-center justify-center mb-2.5">
+                    <Trash2 className="w-6 h-6 text-[#CB5A3C]" />
+                  </div>
+                  <h4 className="font-bold text-[#2E4233] text-base mb-1">Excluir foto?</h4>
+                  <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                    Tem certeza que deseja excluir a foto deste produto? Ele ficará sem foto no cardápio.
+                  </p>
+                  <div className="flex w-full gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowDeletePhotoConfirm(false)}
+                      className="flex-1 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewImageUrl("")
+                        setShowDeletePhotoConfirm(false)
+                      }}
+                      className="flex-1 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-xs font-semibold text-white shadow-sm transition-all cursor-pointer"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       )}
+
+      {/* ==================== MODAL: DEFINIR PREÇO PROMOCIONAL POR PORCENTAGEM ==================== */}
+      {discountModalItem && (() => {
+        const origNum = parseCurrency(discountModalItem.originalPrice)
+        const pct = parseFloat(discountPercentInput) || 0
+        const calculatedPromo = pct > 0 ? Math.max(0, origNum * (1 - pct / 100)) : origNum
+        const savings = origNum - calculatedPromo
+
+        return (
+          <div 
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
+            onClick={() => setDiscountModalItem(null)}
+          >
+            <div 
+              className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
+                <div className="flex flex-col">
+                  <h3 className="font-bold text-[#2E4233] text-base">Preço Promocional</h3>
+                  <span className="text-xs text-gray-500 font-medium truncate max-w-[240px]">
+                    {discountModalItem.name}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDiscountModalItem(null)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleApplyDiscount} className="p-5 flex flex-col gap-4">
+                
+                {/* Preço Original */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs">
+                  <span className="text-gray-600 font-medium">Preço Original:</span>
+                  <span className="text-sm font-bold text-[#2E4233]">{discountModalItem.originalPrice}</span>
+                </div>
+
+                {/* Campo Porcentagem de Desconto */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-semibold text-gray-700 flex justify-between">
+                    <span>Porcentagem de Desconto:</span>
+                    <span className="text-[#CB5A3C] font-bold">{pct > 0 ? `${pct}%` : "0%"}</span>
+                  </label>
+                  
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="99"
+                      step="1"
+                      value={discountPercentInput}
+                      onChange={(e) => setDiscountPercentInput(e.target.value)}
+                      placeholder="Ex: 15"
+                      autoFocus
+                      required
+                      className="w-full border border-[#E9E4D4] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#CB5A3C] focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">
+                      %
+                    </span>
+                  </div>
+
+                  {/* Atalhos rápidos de % */}
+                  <div className="flex items-center gap-1.5 pt-1">
+                    {[5, 10, 15, 20, 25, 30].map((quickPct) => (
+                      <button
+                        key={quickPct}
+                        type="button"
+                        onClick={() => setDiscountPercentInput(quickPct.toString())}
+                        className={`flex-1 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                          pct === quickPct
+                            ? "bg-[#CB5A3C] text-white border-[#CB5A3C]"
+                            : "bg-white text-gray-600 border-[#E9E4D4] hover:bg-orange-50/50 hover:text-[#CB5A3C]"
+                        }`}
+                      >
+                        {quickPct}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Prévia do Preço Calculado */}
+                <div className="p-3.5 rounded-xl bg-orange-50/70 border border-orange-200/80 flex flex-col gap-1">
+                  <span className="text-[11px] text-gray-500 font-medium">Preço promocional já calculado:</span>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xl font-bold text-[#CB5A3C]">
+                      {formatCurrency(calculatedPromo)}
+                    </span>
+                    {savings > 0 && (
+                      <span className="text-xs font-semibold text-[#16A34A]">
+                        Economia de {formatCurrency(savings)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer / Ações */}
+                <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
+                  {discountModalItem.promoPrice ? (
+                    <button
+                      type="button"
+                      onClick={handleRemoveDiscount}
+                      className="text-xs font-semibold text-red-600 hover:underline cursor-pointer"
+                    >
+                      Remover promoção
+                    </button>
+                  ) : (
+                    <div />
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDiscountModalItem(null)}
+                      className="px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                </div>
+
+              </form>
+            </div>
+          </div>
+        )
+      })()}
 
     </div>
   )
