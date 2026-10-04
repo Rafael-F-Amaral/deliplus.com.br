@@ -4,9 +4,9 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import {
   Search,
   PlusCircle,
-  Plus,
   ChevronDown,
-  MoreVertical,
+  ChevronLeft,
+  ChevronRight,
   Upload,
   Trash2,
   Calendar,
@@ -15,7 +15,9 @@ import {
   X,
   Tag,
   Maximize2,
-  Camera
+  Camera,
+  Sparkles,
+  Play
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 
@@ -36,9 +38,118 @@ export interface MenuItem {
   remaining: number | null
   availabilitySchedule?: string
   promoSchedule?: string
+  promoIndefinite?: boolean
+  promoStartDate?: string
+  promoEndDate?: string
   campaignId?: string
   campaignName?: string
 }
+
+export interface TourStep {
+  targetId: string
+  title: string
+  description: string
+  icon: React.ComponentType<{ className?: string }>
+}
+
+export const TOUR_STEPS: TourStep[] = [
+  {
+    targetId: "tour-filters",
+    title: "Busca e Filtros Inteligentes",
+    description: "Filtre seus pratos por categoria, veja apenas os itens em promoção ou disponíveis, e localize qualquer item em segundos digitando na busca.",
+    icon: Search
+  },
+  {
+    targetId: "tour-product-info",
+    title: "Edição com um Toque",
+    description: "Clique diretamente no nome ou descrição do prato para editar os dados e associar de 1 a 3 categorias sem precisar abrir formulários complexos.",
+    icon: Pencil
+  },
+  {
+    targetId: "tour-photo-action",
+    title: "Foto do Produto",
+    description: "Toque na foto para ampliar em tela cheia ou trocar rapidamente por upload ou arrastando um arquivo direto do seu computador.",
+    icon: Camera
+  },
+  {
+    targetId: "tour-price-inline",
+    title: "Preço e Estoque sem Salvar",
+    description: "Clique no preço original ou na quantidade para alterar o valor na hora. Não precisa de botão salvar: é só digitar e pronto!",
+    icon: Tag
+  },
+  {
+    targetId: "tour-promo-action",
+    title: "Preço Promocional e Período",
+    description: "Defina descontos em porcentagem com cálculo automático. Programe períodos de validade com data de início e término ou mantenha por prazo indeterminado.",
+    icon: Calendar
+  },
+  {
+    targetId: "tour-availability-switch",
+    title: "Disponibilidade Instantânea",
+    description: "Pause ou ative as vendas de qualquer produto na hora através do interruptor, sem sair da tela.",
+    icon: Check
+  },
+  {
+    targetId: "tour-delete-action",
+    title: "Exclusão com Confirmação",
+    description: "Remova produtos que não deseja mais no cardápio através do botão de lixeira laranja com modal de confirmação para evitar erros acidentais.",
+    icon: Trash2
+  }
+]
+
+export const TOUR_PROMO_MODAL_STEPS: TourStep[] = [
+  {
+    targetId: "tour-promo-modal-switch",
+    title: "Interruptor de Ativação",
+    description: "Ative ou pause a promoção instantaneamente. Ao desativar, todas as regras e datas continuam salvas, mas o desconto fica pausado para os clientes.",
+    icon: Check
+  },
+  {
+    targetId: "tour-promo-modal-calc",
+    title: "Desconto em % e Economia",
+    description: "Digite o desconto desejado ou toque nos atalhos rápidos (5% a 30%). O DeliPlus calcula automaticamente o novo preço e o valor economizado.",
+    icon: Tag
+  },
+  {
+    targetId: "tour-promo-modal-schedule",
+    title: "Período ou Prazo Indeterminado",
+    description: "Programe a promoção para começar e terminar em datas específicas, ou marque 'Prazo indeterminado' para mantê-la sem data de término.",
+    icon: Calendar
+  },
+  {
+    targetId: "tour-promo-modal-confirm",
+    title: "Confirmar Alterações",
+    description: "Clique em Confirmar para aplicar a promoção imediatamente. Os novos valores serão refletidos no cardápio e na sua loja online.",
+    icon: Check
+  }
+]
+
+export const TOUR_NEW_ITEM_MODAL_STEPS: TourStep[] = [
+  {
+    targetId: "tour-new-item-image",
+    title: "Foto do Produto",
+    description: "Suba uma foto atrativa do produto por upload ou arrastando direto do seu computador. Você pode trocar ou remover a foto a qualquer momento.",
+    icon: Camera
+  },
+  {
+    targetId: "tour-new-item-name-price",
+    title: "Nome e Preço Original",
+    description: "Preencha o nome do prato e o preço padrão de venda. Esses campos são a base de exibição no seu cardápio.",
+    icon: Tag
+  },
+  {
+    targetId: "tour-new-item-categories",
+    title: "Categorias e Tags Livres",
+    description: "Adicione categorias livres separadas por vírgula ou toque nas sugestões rápidas. O cliente poderá filtrar os pratos por essas tags.",
+    icon: Pencil
+  },
+  {
+    targetId: "tour-new-item-desc-limit",
+    title: "Descrição e Limite Diário",
+    description: "Detalhe ingredientes e modo de preparo, e ative um limite diário de vendas se o produto tiver estoque limitado por dia.",
+    icon: Check
+  }
+]
 
 export function getCategoryBadgeStyle(catName: string): { bg: string; text: string } {
   const lower = catName.toLowerCase()
@@ -358,6 +469,57 @@ function getDiscountPercentage(original: string, promo: string | null): number {
   return Math.round(((orig - p) / orig) * 100)
 }
 
+function formatPromoPeriod(
+  startDateStr: string,
+  endDateStr: string,
+  isIndefinite: boolean
+): { periodText: string; totalDays: number } {
+  if (isIndefinite) {
+    return {
+      periodText: "Prazo indeterminado",
+      totalDays: Infinity
+    }
+  }
+
+  if (!startDateStr && !endDateStr) {
+    return {
+      periodText: "Prazo indeterminado",
+      totalDays: Infinity
+    }
+  }
+
+  const formatDateBR = (isoDate: string) => {
+    if (!isoDate) return ""
+    const parts = isoDate.split("-")
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`
+    }
+    return isoDate
+  }
+
+  const startBR = formatDateBR(startDateStr)
+  const endBR = formatDateBR(endDateStr)
+
+  let totalDays = 0
+  if (startDateStr && endDateStr) {
+    const start = new Date(`${startDateStr}T00:00:00`)
+    const end = new Date(`${endDateStr}T23:59:59`)
+    const diffMs = end.getTime() - start.getTime()
+    totalDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)))
+  }
+
+  const periodText = startBR && endBR
+    ? `${startBR} até ${endBR} (${totalDays} ${totalDays === 1 ? "dia" : "dias"})`
+    : startBR
+    ? `A partir de ${startBR}`
+    : `Até ${endBR}`
+
+  return {
+    periodText,
+    totalDays
+  }
+}
+
 interface MenuClientProps {
   storeSlug?: string
   storeName?: string
@@ -384,19 +546,17 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [itemToEdit, setItemToEdit] = useState<MenuItem | null>(null)
 
-  // Form states inside Modal
+  // Form states inside Modal (Novo Item / Editar Item)
   const [formName, setFormName] = useState("")
-  const [formCategory, setFormCategory] = useState("Bowls")
-  const [formExtraCategory, setFormExtraCategory] = useState("")
+  const [formCategories, setFormCategories] = useState<string[]>(["Bowls"])
+  const [formCategoryInput, setFormCategoryInput] = useState("")
   const [formImage, setFormImage] = useState("")
   const [formOriginalPrice, setFormOriginalPrice] = useState("")
-  const [formPromoPrice, setFormPromoPrice] = useState("")
-  const [formInPromo, setFormInPromo] = useState(false)
   const [formDescription, setFormDescription] = useState("")
-  const [formAvailabilitySchedule, setFormAvailabilitySchedule] = useState("Todos os dias, 11:00 – 23:00")
-  const [formPromoSchedule, setFormPromoSchedule] = useState("")
   const [formDailyLimit, setFormDailyLimit] = useState("")
   const [formHasDailyLimit, setFormHasDailyLimit] = useState(false)
+  const [newItemIsDragging, setNewItemIsDragging] = useState(false)
+  const newItemFileInputRef = useRef<HTMLInputElement>(null)
 
   // Modal: Delete confirmation
   const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null)
@@ -410,9 +570,17 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
   const [showDeletePhotoConfirm, setShowDeletePhotoConfirm] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Preço Promocional: Modal de Porcentagem de Desconto
+  // Preço Promocional: Modal de Porcentagem de Desconto e Programação
   const [discountModalItem, setDiscountModalItem] = useState<MenuItem | null>(null)
   const [discountPercentInput, setDiscountPercentInput] = useState<string>("15")
+  const [promoIsActive, setPromoIsActive] = useState<boolean>(false)
+  const [promoIndefinite, setPromoIndefinite] = useState<boolean>(true)
+  const [promoStartDate, setPromoStartDate] = useState<string>(() => new Date().toISOString().split("T")[0])
+  const [promoEndDate, setPromoEndDate] = useState<string>(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 7)
+    return d.toISOString().split("T")[0]
+  })
 
   // Edição rápida inline (Preço original e Quantidade)
   const [inlineEditingCell, setInlineEditingCell] = useState<{ id: string; field: "originalPrice" | "dailyLimit" } | null>(null)
@@ -428,6 +596,189 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
 
   // Toast notification
   const [notification, setNotification] = useState<string | null>(null)
+
+  // Tutorial / Spotlight states
+  const [showTourPrompt, setShowTourPrompt] = useState<boolean>(true)
+  const [tourStep, setTourStep] = useState<number | null>(null)
+  const [spotlightRect, setSpotlightRect] = useState<DOMRect | null>(null)
+  const [modalTourType, setModalTourType] = useState<"promo" | "new_item" | null>(null)
+  const [modalTourStep, setModalTourStep] = useState<number | null>(null)
+
+  // Current active step across main tour and in-modal tours
+  const activeTourStep = useMemo(() => {
+    if (modalTourType === "promo" && modalTourStep !== null) {
+      return TOUR_PROMO_MODAL_STEPS[modalTourStep] || null
+    }
+    if (modalTourType === "new_item" && modalTourStep !== null) {
+      return TOUR_NEW_ITEM_MODAL_STEPS[modalTourStep] || null
+    }
+    if (tourStep !== null) {
+      return TOUR_STEPS[tourStep] || null
+    }
+    return null
+  }, [modalTourType, modalTourStep, tourStep])
+
+  const activeTourTotalSteps = useMemo(() => {
+    if (modalTourType === "promo") return TOUR_PROMO_MODAL_STEPS.length
+    if (modalTourType === "new_item") return TOUR_NEW_ITEM_MODAL_STEPS.length
+    return TOUR_STEPS.length
+  }, [modalTourType])
+
+  const activeTourCurrentIndex = useMemo(() => {
+    if (modalTourType !== null) return modalTourStep ?? 0
+    return tourStep ?? 0
+  }, [modalTourType, modalTourStep, tourStep])
+
+  const handleNextTour = () => {
+    if (modalTourType === "promo" && modalTourStep !== null) {
+      if (modalTourStep < TOUR_PROMO_MODAL_STEPS.length - 1) {
+        setModalTourStep(modalTourStep + 1)
+      } else {
+        setModalTourType(null)
+        setModalTourStep(null)
+        setDiscountModalItem(null)
+        if (tourStep !== null) {
+          setTourStep(5)
+        }
+      }
+    } else if (modalTourType === "new_item" && modalTourStep !== null) {
+      if (modalTourStep < TOUR_NEW_ITEM_MODAL_STEPS.length - 1) {
+        setModalTourStep(modalTourStep + 1)
+      } else {
+        setModalTourType(null)
+        setModalTourStep(null)
+      }
+    } else if (tourStep !== null) {
+      if (tourStep < TOUR_STEPS.length - 1) {
+        setTourStep(tourStep + 1)
+      } else {
+        setTourStep(null)
+        setNotification("🎉 Tutorial concluído! Bom trabalho.")
+        setTimeout(() => setNotification(null), 3500)
+      }
+    }
+  }
+
+  const handlePrevTour = () => {
+    if (modalTourType !== null && modalTourStep !== null) {
+      if (modalTourStep > 0) {
+        setModalTourStep(modalTourStep - 1)
+      }
+    } else if (tourStep !== null && tourStep > 0) {
+      setTourStep(tourStep - 1)
+    }
+  }
+
+  const handleCloseTour = () => {
+    if (modalTourType !== null) {
+      setModalTourType(null)
+      setModalTourStep(null)
+    } else {
+      setTourStep(null)
+    }
+  }
+
+  // Spotlight position tracker & keyboard listener
+  useEffect(() => {
+    if (!activeTourStep) return
+
+    const updateRect = () => {
+      // Find element (desktop or mobile)
+      let el = document.getElementById(activeTourStep.targetId)
+      if (!el || el.offsetParent === null) {
+        const mEl = document.getElementById(`m-${activeTourStep.targetId}`)
+        if (mEl && mEl.offsetParent !== null) {
+          el = mEl
+        }
+      }
+
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
+        const rect = el.getBoundingClientRect()
+        setSpotlightRect(rect)
+      } else {
+        setSpotlightRect(null)
+      }
+    }
+
+    const rafId = requestAnimationFrame(updateRect)
+    const timer = setTimeout(updateRect, 120)
+
+    window.addEventListener("resize", updateRect)
+    window.addEventListener("scroll", updateRect, true)
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleCloseTour()
+      } else if (e.key === "ArrowRight") {
+        handleNextTour()
+      } else if (e.key === "ArrowLeft") {
+        handlePrevTour()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      clearTimeout(timer)
+      window.removeEventListener("resize", updateRect)
+      window.removeEventListener("scroll", updateRect, true)
+      window.removeEventListener("keydown", handleKeyDown)
+      setSpotlightRect(null)
+    }
+  }, [activeTourStep])
+
+  const getTourCardStyle = () => {
+    if (typeof window === "undefined") {
+      return { top: "50%", left: "50%", transform: "translate(-50%, -50%)" }
+    }
+
+    const isMobile = window.innerWidth < 768
+    if (isMobile) {
+      return {
+        bottom: 24,
+        left: 16,
+        right: 16,
+        maxWidth: "calc(100vw - 32px)",
+        margin: "0 auto"
+      }
+    }
+
+    if (!spotlightRect) {
+      return {
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)"
+      }
+    }
+
+    const cardWidth = 380
+    const estimatedCardHeight = 260
+    const padding = 16
+
+    const spaceBelow = window.innerHeight - (spotlightRect.bottom + padding)
+    const spaceAbove = spotlightRect.top - padding
+
+    let top = 0
+    let transform: string | undefined = undefined
+
+    if (spaceBelow >= estimatedCardHeight || spaceBelow >= spaceAbove) {
+      top = spotlightRect.bottom + padding
+    } else {
+      top = Math.max(estimatedCardHeight + padding, spotlightRect.top - padding)
+      transform = "translateY(-100%)"
+    }
+
+    let left = spotlightRect.left + spotlightRect.width / 2 - cardWidth / 2
+    left = Math.max(padding, Math.min(left, window.innerWidth - cardWidth - padding))
+
+    return {
+      top,
+      left,
+      width: cardWidth,
+      transform
+    }
+  }
 
   // Close menus on click outside
   useEffect(() => {
@@ -503,20 +854,46 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
     )
   }
 
+  // Adicionar categoria livre ao formulário de item (suporta vírgulas)
+  const handleAddCategoryToForm = (catStr: string) => {
+    if (!catStr) return
+    const parts = catStr.split(",").map((c) => c.trim()).filter(Boolean)
+    setFormCategories((prev) => {
+      const next = [...prev]
+      for (const p of parts) {
+        if (!next.some((c) => c.toLowerCase() === p.toLowerCase())) {
+          next.push(p)
+        }
+      }
+      return next
+    })
+  }
+
+  // Processar upload de imagem no modal de novo item
+  const handleProcessNewItemImage = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      alert("Por favor, selecione um arquivo de imagem válido (PNG, JPG, WebP).")
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setFormImage(e.target.result as string)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
   // Open Edit Modal
   const handleOpenEditModal = (item: MenuItem) => {
     setItemToEdit(item)
     setFormName(item.name)
     const cats = getItemCategories(item)
-    setFormCategory(cats[0] || "Bowls")
-    setFormExtraCategory(cats.length > 1 ? cats.slice(1).join(", ") : "")
+    setFormCategories(cats.length > 0 ? cats : [item.category || "Bowls"])
+    setFormCategoryInput("")
     setFormImage(item.image)
     setFormOriginalPrice(item.originalPrice)
-    setFormPromoPrice(item.promoPrice || "")
-    setFormInPromo(item.inPromo)
     setFormDescription(item.description)
-    setFormAvailabilitySchedule(item.availabilitySchedule || "Todos os dias, 11:00 – 23:00")
-    setFormPromoSchedule(item.promoSchedule || "")
     setFormDailyLimit(item.dailyLimit !== null ? item.dailyLimit.toString() : "")
     setFormHasDailyLimit(item.dailyLimit !== null)
     setIsModalOpen(true)
@@ -526,15 +903,11 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
   const handleOpenNewItemModal = () => {
     setItemToEdit(null)
     setFormName("")
-    setFormCategory("Bowls")
-    setFormExtraCategory("")
-    setFormImage("https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80")
+    setFormCategories(["Bowls"])
+    setFormCategoryInput("")
+    setFormImage("")
     setFormOriginalPrice("R$ 35,00")
-    setFormPromoPrice("")
-    setFormInPromo(false)
     setFormDescription("")
-    setFormAvailabilitySchedule("Todos os dias, 11:00 – 23:00")
-    setFormPromoSchedule("")
     setFormDailyLimit("")
     setFormHasDailyLimit(false)
     setIsModalOpen(true)
@@ -545,26 +918,23 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
     e.preventDefault()
     if (!formName.trim()) return
 
-    const limitNum = formHasDailyLimit ? parseInt(formDailyLimit, 10) || null : null
+    const limitNum = formHasDailyLimit && formDailyLimit.trim() ? parseInt(formDailyLimit, 10) || null : null
 
-    const categoryBadgeStyles: Record<string, { bg: string; text: string }> = {
-      Bowls: { bg: "bg-[#EBF5ED]", text: "text-[#477A55]" },
-      Bebidas: { bg: "bg-[#FDF4E7]", text: "text-[#BA732F]" },
-      Sobremesas: { bg: "bg-[#F7EDF9]", text: "text-[#8E5296]" },
-      Entradas: { bg: "bg-[#EFF6FF]", text: "text-[#2563EB]" }
-    }
-
-    const badgeStyle = categoryBadgeStyles[formCategory] || { bg: "bg-gray-100", text: "text-gray-700" }
-
-    const finalCategories = [formCategory]
-    if (formExtraCategory.trim()) {
-      const extraList = formExtraCategory.split(",").map((c) => c.trim()).filter(Boolean)
-      extraList.forEach((extra) => {
-        if (!finalCategories.some((c) => c.toLowerCase() === extra.toLowerCase()) && finalCategories.length < 3) {
-          finalCategories.push(extra)
+    // Incorporar qualquer texto restante no input de categoria livre
+    let finalCategories = [...formCategories]
+    if (formCategoryInput.trim()) {
+      const extraParts = formCategoryInput.split(",").map((s) => s.trim()).filter(Boolean)
+      for (const p of extraParts) {
+        if (!finalCategories.some((c) => c.toLowerCase() === p.toLowerCase())) {
+          finalCategories.push(p)
         }
-      })
+      }
     }
+    if (finalCategories.length === 0) {
+      finalCategories = ["Geral"]
+    }
+    const mainCategory = finalCategories[0]
+    const badgeStyle = getCategoryBadgeStyle(mainCategory)
 
     if (itemToEdit) {
       // Editing existing item
@@ -574,17 +944,13 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
             return {
               ...item,
               name: formName.trim(),
-              category: formCategory,
+              category: mainCategory,
               categories: finalCategories,
               categoryBg: badgeStyle.bg,
               categoryText: badgeStyle.text,
               image: formImage || item.image,
               originalPrice: formOriginalPrice.trim() || item.originalPrice,
-              promoPrice: formInPromo ? formPromoPrice.trim() || null : null,
-              inPromo: formInPromo,
               description: formDescription.trim(),
-              availabilitySchedule: formAvailabilitySchedule,
-              promoSchedule: formInPromo ? formPromoSchedule : "",
               dailyLimit: limitNum,
               remaining: limitNum !== null ? (item.remaining ?? limitNum) : null
             }
@@ -598,20 +964,20 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
       const newItem: MenuItem = {
         id: `item-${Date.now()}`,
         name: formName.trim(),
-        category: formCategory,
+        category: mainCategory,
         categories: finalCategories,
         categoryBg: badgeStyle.bg,
         categoryText: badgeStyle.text,
         image: formImage || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80",
         description: formDescription.trim() || "Item adicionado ao cardápio.",
-        originalPrice: formOriginalPrice.trim() || "R$ 30,00",
-        promoPrice: formInPromo ? formPromoPrice.trim() || null : null,
-        inPromo: formInPromo,
+        originalPrice: formOriginalPrice.trim() || "R$ 35,00",
+        promoPrice: null,
+        inPromo: false,
         isAvailable: true,
         dailyLimit: limitNum,
         remaining: limitNum,
-        availabilitySchedule: formAvailabilitySchedule,
-        promoSchedule: formInPromo ? formPromoSchedule : ""
+        availabilitySchedule: "Todos os dias, 11:00 – 23:00",
+        promoSchedule: ""
       }
       setItems((prev) => [newItem, ...prev])
       setNotification("Novo item adicionado ao cardápio!")
@@ -620,6 +986,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
     setIsModalOpen(false)
     setTimeout(() => setNotification(null), 3000)
   }
+
 
   // Salvar imagem a partir do modal dedicado de troca de foto
   const handleSaveChangeImage = (e?: React.FormEvent) => {
@@ -667,17 +1034,50 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
     }
   }
 
-  // Preço Promocional: Abrir modal de desconto em %
+  // Preço Promocional: Abrir modal de desconto em % e agendamento
   const handleOpenDiscountModal = (item: MenuItem, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
     setDiscountModalItem(item)
     const currentDiscount = getDiscountPercentage(item.originalPrice, item.promoPrice)
     setDiscountPercentInput(currentDiscount > 0 ? currentDiscount.toString() : "15")
+
+    // Define o switch conforme o estado real atual do produto:
+    // Se o item NÃO estiver em promoção ativa, abre com switch OFF ("Promoção desativada") e conteúdo apagado!
+    const isCurrentlyInPromo = Boolean(item.inPromo && item.promoPrice)
+    setPromoIsActive(isCurrentlyInPromo)
+
+    if (typeof item.promoIndefinite === "boolean") {
+      setPromoIndefinite(item.promoIndefinite)
+    } else {
+      const isIndefinite = !item.promoSchedule || item.promoSchedule === "Prazo indeterminado" || !item.promoSchedule.includes("até")
+      setPromoIndefinite(isIndefinite)
+    }
+
+    if (item.promoStartDate) {
+      setPromoStartDate(item.promoStartDate)
+    } else {
+      const today = new Date().toISOString().split("T")[0]
+      setPromoStartDate(today)
+    }
+
+    if (item.promoEndDate) {
+      setPromoEndDate(item.promoEndDate)
+    } else {
+      const nextWeek = new Date()
+      nextWeek.setDate(nextWeek.getDate() + 7)
+      setPromoEndDate(nextWeek.toISOString().split("T")[0])
+    }
   }
 
   const handleApplyDiscount = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!discountModalItem) return
+
+    if (!promoIsActive) {
+      handleRemoveDiscount()
+      return
+    }
+
     const pct = parseFloat(discountPercentInput)
     if (isNaN(pct) || pct <= 0) {
       handleRemoveDiscount()
@@ -688,20 +1088,27 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
     const calculatedPromo = orig * (1 - cappedPct / 100)
     const formattedPromo = formatCurrency(calculatedPromo)
 
+    const periodInfo = formatPromoPeriod(promoStartDate, promoEndDate, promoIndefinite)
+    const scheduleText = periodInfo.periodText
+
     setItems((prev) =>
       prev.map((item) => {
         if (item.id === discountModalItem.id) {
           return {
             ...item,
             promoPrice: formattedPromo,
-            inPromo: true
+            inPromo: true,
+            promoSchedule: scheduleText,
+            promoIndefinite: promoIndefinite,
+            promoStartDate: promoStartDate,
+            promoEndDate: promoEndDate
           }
         }
         return item
       })
     )
     setDiscountModalItem(null)
-    setNotification(`Desconto de ${cappedPct}% aplicado! Preço promocional: ${formattedPromo}`)
+    setNotification(`Promoção confirmada! Preço promocional: ${formattedPromo}`)
     setTimeout(() => setNotification(null), 3000)
   }
 
@@ -713,7 +1120,11 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
           return {
             ...item,
             promoPrice: null,
-            inPromo: false
+            inPromo: false,
+            promoSchedule: "",
+            promoIndefinite: promoIndefinite,
+            promoStartDate: promoStartDate,
+            promoEndDate: promoEndDate
           }
         }
         return item
@@ -899,11 +1310,26 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
-                  <span>Clique nos 3 pontinhos para editar detalhes ou excluir itens.</span>
+                  <span>Toque ou clique direto nas informações para editar produto, preço e quantidade.</span>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Botão de Tutorial Interativo / Spotlight */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowTourPrompt(false)
+              setTourStep(0)
+            }}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] hover:border-[#2E4233] text-[#2E4233] text-xs font-semibold hover:bg-white shadow-2xs transition-all cursor-pointer group ml-1"
+            title="Abrir o tutorial interativo do Cardápio"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#CB5A3C] group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline">Tutorial interativo</span>
+            <span className="sm:hidden">Tutorial</span>
+          </button>
         </div>
         <p className="text-[#2E4233] text-sm md:text-base font-medium mt-0.5">
           Gerencie os produtos, preços e disponibilidade do seu cardápio.
@@ -911,7 +1337,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
       </div>
 
       {/* Controls Row: Filters, Search & Novo Item (Same pattern as Estoque) */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 mb-2.5 shrink-0 z-30 relative">
+      <div id="tour-filters" className="flex flex-col sm:flex-row items-center justify-between gap-2.5 mb-2.5 shrink-0 z-30 relative bg-white/40 sm:bg-transparent p-1.5 sm:p-0 rounded-2xl">
         <div className="flex items-center gap-2 w-full sm:w-auto overflow-visible relative flex-wrap">
           <button 
             type="button"
@@ -1038,7 +1464,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E9E4D4] border-b border-[#E9E4D4]">
-              {paginatedItems.map((item) => {
+              {paginatedItems.map((item, itemIdx) => {
                 const isPaused = !item.isAvailable
                 return (
                   <tr
@@ -1048,7 +1474,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     }`}
                   >
                     {/* Foto Thumbnail com Menu: Ampliar / Trocar */}
-                    <td className={`px-4 py-2 align-middle transition-opacity duration-200 ${isPaused ? "opacity-35 grayscale-[20%]" : "opacity-100"}`}>
+                    <td id={itemIdx === 0 ? "tour-photo-action" : undefined} className={`px-4 py-2 align-middle transition-opacity duration-200 ${isPaused ? "opacity-35 grayscale-[20%]" : "opacity-100"}`}>
                       <div className="photo-menu-container relative inline-block">
                         <button
                           type="button"
@@ -1109,7 +1535,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     </td>
 
                     {/* Produto com badges de categoria ao lado do nome - Clicável para abrir modal pequeno de edição */}
-                    <td className={`px-4 py-2 align-middle transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
+                    <td id={itemIdx === 0 ? "tour-product-info" : undefined} className={`px-4 py-2 align-middle transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
                       <div 
                         onClick={(e) => handleOpenProductModal(item, e)}
                         className="group/prod flex flex-col pr-2 cursor-pointer p-1.5 -m-1.5 rounded-xl hover:bg-[#FAF8F0] transition-colors"
@@ -1139,7 +1565,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     </td>
 
                     {/* Preço original com edição inline automática */}
-                    <td className={`px-4 py-2 align-middle text-left whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
+                    <td id={itemIdx === 0 ? "tour-price-inline" : undefined} className={`px-4 py-2 align-middle text-left whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
                       {inlineEditingCell?.id === item.id && inlineEditingCell?.field === "originalPrice" ? (
                         <input
                           type="text"
@@ -1170,15 +1596,15 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       )}
                     </td>
 
-                    {/* Preço promocional em Verde Esmeralda com link sublinhado "Editar Promoção" */}
-                    <td className={`px-4 py-2 align-middle text-left whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
+                    {/* Preço promocional em Laranja da Logo com link sublinhado "Editar Promoção" */}
+                    <td id={itemIdx === 0 ? "tour-promo-action" : undefined} className={`px-4 py-2 align-middle text-left whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
                       <div className="flex flex-col items-start gap-0.5">
                         {item.promoPrice ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[14.5px] font-bold text-[#059669]">
+                            <span className="text-[14.5px] font-bold text-[#CB5A3C]">
                               {item.promoPrice}
                             </span>
-                            <span className="text-[10px] font-bold bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0] px-1.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold bg-[#FDF2F0] text-[#CB5A3C] border border-[#CB5A3C]/20 px-1.5 py-0.5 rounded-full">
                               -{getDiscountPercentage(item.originalPrice, item.promoPrice)}%
                             </span>
                           </div>
@@ -1189,8 +1615,14 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                         )}
                         <button
                           type="button"
-                          onClick={(e) => handleOpenDiscountModal(item, e)}
-                          className="text-[11.5px] font-semibold text-[#059669] underline decoration-[#059669]/60 hover:decoration-[#059669] hover:text-[#047857] transition-all cursor-pointer text-left"
+                          onClick={(e) => {
+                            handleOpenDiscountModal(item, e)
+                            if (tourStep === 4) {
+                              setModalTourType("promo")
+                              setModalTourStep(0)
+                            }
+                          }}
+                          className="text-[11.5px] font-semibold text-[#CB5A3C] underline decoration-[#CB5A3C]/60 hover:decoration-[#CB5A3C] hover:text-[#b0482e] transition-all cursor-pointer text-left"
                         >
                           Editar Promoção
                         </button>
@@ -1198,7 +1630,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     </td>
 
                     {/* Disponibilidade Switch (NÃO apagado: full opacity-100) */}
-                    <td className="px-3 py-2 align-middle text-center opacity-100" onClick={(e) => e.stopPropagation()}>
+                    <td id={itemIdx === 0 ? "tour-availability-switch" : undefined} className="px-3 py-2 align-middle text-center opacity-100" onClick={(e) => e.stopPropagation()}>
                       <div className="flex flex-col items-center justify-center">
                         <Switch
                           checked={item.isAvailable}
@@ -1267,47 +1699,19 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       )}
                     </td>
 
-                    {/* Menu de Ações (3 pontinhos - NÃO apagado: full opacity-100) */}
-                    <td className="px-4 py-2 text-right opacity-100">
-                      <div className="action-menu-container relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
-                        <button 
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setOpenActionId(openActionId === item.id ? null : item.id)
-                          }}
-                          className="text-gray-400 hover:text-[#2E4233] p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                        >
-                          <MoreVertical className="w-5 h-5 ml-auto" />
-                        </button>
-
-                        {openActionId === item.id && (
-                          <div className="absolute right-0 top-full mt-1 w-32 bg-[#2E4233] rounded-xl shadow-2xl border border-[#233327] z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 text-left">
-                            <button 
-                              type="button"
-                              onClick={(e) => { 
-                                e.stopPropagation()
-                                setOpenActionId(null)
-                                handleOpenEditModal(item)
-                              }} 
-                              className="w-full text-left px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
-                            >
-                              Editar
-                            </button>
-                            <button 
-                              type="button"
-                              onClick={(e) => { 
-                                e.stopPropagation()
-                                setOpenActionId(null)
-                                itemToDelete ? null : setItemToDelete(item)
-                              }} 
-                              className="w-full text-left px-4 py-2 text-sm font-semibold text-[#FF5252] hover:bg-red-500/20 transition-colors cursor-pointer"
-                            >
-                              Excluir
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                    {/* Ações: Lixinho laranja de excluir direto com modal de confirmação */}
+                    <td id={itemIdx === 0 ? "tour-delete-action" : undefined} className="px-4 py-2 text-right opacity-100" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setItemToDelete(item)
+                        }}
+                        title="Excluir produto do cardápio"
+                        className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-all cursor-pointer inline-flex items-center justify-center group"
+                      >
+                        <Trash2 className="w-4 h-4 text-[#CB5A3C] group-hover:scale-110 transition-transform" />
+                      </button>
                     </td>
                   </tr>
                 )
@@ -1398,7 +1802,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
       {/* Mobile Card List View (Matching Estoque mobile responsive behavior) */}
       <div className="md:hidden flex flex-col flex-1 h-full min-h-0 bg-white border border-[#E9E4D4] rounded-2xl overflow-hidden shadow-sm justify-between">
         <div className="overflow-y-auto divide-y divide-[#E9E4D4]">
-          {paginatedItems.map((item) => {
+          {paginatedItems.map((item, itemIdx) => {
             const isPaused = !item.isAvailable
             return (
               <div
@@ -1414,7 +1818,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                   }`}
                 >
                   {/* Foto Thumbnail com Menu: Ampliar / Trocar */}
-                  <div className="photo-menu-container relative shrink-0">
+                  <div id={itemIdx === 0 ? "m-tour-photo-action" : undefined} className="photo-menu-container relative shrink-0">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -1471,6 +1875,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                   <div className="flex-1 min-w-0">
                     {/* Toque no Produto abre o Modal Pequeno de Edição */}
                     <div 
+                      id={itemIdx === 0 ? "m-tour-product-info" : undefined}
                       onClick={(e) => handleOpenProductModal(item, e)}
                       className="cursor-pointer group/mprod"
                       title="Toque para editar nome, descrição e categorias"
@@ -1503,7 +1908,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     <div className="flex items-start justify-between gap-2 mt-2 pt-1.5 border-t border-gray-100 flex-wrap">
                       <div className="flex flex-col gap-1">
                         {/* Preço original inline */}
-                        <div className="flex items-center gap-1.5">
+                        <div id={itemIdx === 0 ? "m-tour-price-inline" : undefined} className="flex items-center gap-1.5">
                           <span className="text-[10px] uppercase font-bold text-gray-400">Orig:</span>
                           {inlineEditingCell?.id === item.id && inlineEditingCell?.field === "originalPrice" ? (
                             <input
@@ -1533,10 +1938,10 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                           )}
                         </div>
 
-                        {/* Preço Promocional em Verde Esmeralda + Link Editar Promoção */}
-                        <div className="flex flex-col items-start">
+                        {/* Preço Promocional em Laranja da Logo + Link Editar Promoção */}
+                        <div id={itemIdx === 0 ? "m-tour-promo-action" : undefined} className="flex flex-col items-start">
                           {item.promoPrice ? (
-                            <span className="text-xs font-bold text-[#059669] bg-[#ECFDF5] border border-[#A7F3D0] px-1.5 py-0.5 rounded">
+                            <span className="text-xs font-bold text-[#CB5A3C] bg-[#FDF2F0] border border-[#CB5A3C]/20 px-1.5 py-0.5 rounded">
                               {item.promoPrice} (-{getDiscountPercentage(item.originalPrice, item.promoPrice)}%)
                             </span>
                           ) : (
@@ -1544,8 +1949,14 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                           )}
                           <button
                             type="button"
-                            onClick={(e) => handleOpenDiscountModal(item, e)}
-                            className="text-[11px] font-semibold text-[#059669] underline decoration-[#059669]/60 hover:decoration-[#059669] mt-0.5 cursor-pointer text-left"
+                            onClick={(e) => {
+                              handleOpenDiscountModal(item, e)
+                              if (tourStep === 4) {
+                                setModalTourType("promo")
+                                setModalTourStep(0)
+                              }
+                            }}
+                            className="text-[11px] font-semibold text-[#CB5A3C] underline decoration-[#CB5A3C]/60 hover:decoration-[#CB5A3C] mt-0.5 cursor-pointer text-left"
                           >
                             Editar Promoção
                           </button>
@@ -1604,7 +2015,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
 
                 {/* Barra de ações (Switch e botões com opacidade normal 100) */}
                 <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs opacity-100">
-                  <div className="flex items-center gap-2">
+                  <div id={itemIdx === 0 ? "m-tour-availability-switch" : undefined} className="flex items-center gap-2">
                     <Switch
                       checked={item.isAvailable}
                       onClick={(e) => handleToggleAvailability(item.id, e)}
@@ -1628,10 +2039,13 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       Editar
                     </button>
                     <button
+                      id={itemIdx === 0 ? "m-tour-delete-action" : undefined}
                       type="button"
                       onClick={() => setItemToDelete(item)}
-                      className="text-[#CB5A3C] font-semibold hover:underline cursor-pointer"
+                      title="Excluir item"
+                      className="text-[#CB5A3C] font-semibold hover:underline cursor-pointer inline-flex items-center gap-1"
                     >
+                      <Trash2 className="w-3.5 h-3.5 text-[#CB5A3C]" />
                       Excluir
                     </button>
                   </div>
@@ -1670,7 +2084,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
 
       {/* ==================== MODAL: EDITOR DE ITEM ==================== */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className={`fixed inset-0 ${modalTourType === "new_item" ? "z-[135]" : "z-50"} flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150`}>
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
             
             {/* Modal Header */}
@@ -1680,35 +2094,23 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                   {itemToEdit ? "Editar Item do Cardápio" : "Novo Item do Cardápio"}
                 </h3>
                 
-                {/* Tooltip */}
-                <div className="relative group inline-block">
-                  <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
-                    ?
-                  </div>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[270px] p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left">
-                    <p className="text-[12px] font-bold text-white mb-2 leading-relaxed">
-                      Dica de cadastro do cardápio:
-                    </p>
-                    <div className="flex flex-col gap-2 text-[11px] text-white/95 leading-snug">
-                      <div className="flex items-start gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
-                        <span>Mantenha fotos nítidas e descrições detalhadas dos ingredientes.</span>
-                      </div>
-                      <div className="flex items-start gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
-                        <span>Preço promocional aparecerá em destaque riscando o preço original.</span>
-                      </div>
-                      <div className="flex items-start gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
-                        <span>O limite diário pausa as vendas automaticamente ao esgotar.</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                {/* Botão de Tutorial Interativo (?) */}
+                <button
+                  id="tour-help-new-item"
+                  type="button"
+                  onClick={() => {
+                    setModalTourType("new_item")
+                    setModalTourStep(0)
+                  }}
+                  className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[11px] font-extrabold shadow-sm hover:bg-[#233327] hover:scale-105 transition-all cursor-pointer"
+                  title="Iniciar tutorial guiado deste modal"
+                >
+                  ?
+                </button>
               </div>
 
               <button 
-                type="button"
+                type="button" 
                 onClick={() => setIsModalOpen(false)} 
                 className="p-1.5 rounded-lg text-[#CB5A3C] hover:bg-[#CB5A3C]/10 transition-colors cursor-pointer"
               >
@@ -1717,54 +2119,107 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
             </div>
             
             {/* Modal Body / Scrollable Form */}
-            <div className="p-6 overflow-y-auto">
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
               <form id="menu-item-form" onSubmit={handleSaveModal} className="flex flex-col gap-4">
                 
-                {/* Nome do Item */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-semibold text-gray-700">Nome do Item *</label>
-                  <input 
-                    type="text" 
-                    value={formName} 
-                    onChange={(e) => setFormName(e.target.value)} 
-                    required 
-                    className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" 
-                    placeholder="Ex: Bowl Salmão Grelhado" 
+                {/* 1. Foto do Produto */}
+                <div id="tour-new-item-image" className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-semibold text-gray-700">Foto do Produto</label>
+                    <span className="text-[11px] text-gray-400">Opcional</span>
+                  </div>
+
+                  {formImage ? (
+                    <div className="flex items-center gap-3 p-2.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/60">
+                      <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-[#E9E4D4] bg-white shrink-0 shadow-xs">
+                        <img src={formImage} alt="Foto do produto" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 flex flex-col justify-center min-w-0">
+                        <span className="text-xs font-bold text-gray-800 truncate">Foto anexada</span>
+                        <span className="text-[11px] text-gray-500">Exibição otimizada para o cliente</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => newItemFileInputRef.current?.click()}
+                          className="px-3 py-1.5 rounded-lg border border-[#E9E4D4] bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#2E4233] transition-colors cursor-pointer"
+                        >
+                          Trocar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormImage("")}
+                          className="p-1.5 rounded-lg text-[#CB5A3C] hover:bg-red-50 transition-colors cursor-pointer"
+                          title="Remover foto"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => newItemFileInputRef.current?.click()}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        setNewItemIsDragging(true)
+                      }}
+                      onDragLeave={() => setNewItemIsDragging(false)}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        setNewItemIsDragging(false)
+                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                          handleProcessNewItemImage(e.dataTransfer.files[0])
+                        }
+                      }}
+                      className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        newItemIsDragging
+                          ? "border-[#2E4233] bg-[#EBF5ED]/50"
+                          : "border-[#E9E4D4] hover:border-[#2E4233] bg-[#FAF8F0]/30 hover:bg-[#FAF8F0]/60"
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-xl bg-white border border-[#E9E4D4] flex items-center justify-center text-[#CB5A3C] shadow-xs">
+                        <Upload className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <span className="text-xs font-bold text-gray-800">
+                          Clique ou arraste uma foto para subir
+                        </span>
+                        <span className="text-[11px] text-gray-400">
+                          PNG, JPG ou WebP até 5MB
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <input
+                    type="file"
+                    ref={newItemFileInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleProcessNewItemImage(file)
+                      e.target.value = ""
+                    }}
                   />
                 </div>
 
-                {/* Categorias (Principal + Adicional) */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* 2. Nome e Preço Original */}
+                <div id="tour-new-item-name-price" className="flex flex-col gap-3">
+                  {/* Nome do Item */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[13px] font-semibold text-gray-700">Categoria Principal *</label>
-                    <div className="relative">
-                      <select
-                        value={formCategory}
-                        onChange={(e) => setFormCategory(e.target.value)}
-                        className="w-full appearance-none border border-[#E9E4D4] rounded-xl px-4 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all bg-white text-gray-800 cursor-pointer"
-                      >
-                        <option value="Bowls">Bowls</option>
-                        <option value="Bebidas">Bebidas</option>
-                        <option value="Sobremesas">Sobremesas</option>
-                        <option value="Entradas">Entradas</option>
-                      </select>
-                      <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[13px] font-semibold text-gray-700">Categoria Extra / Tag</label>
-                    <input
-                      type="text"
-                      value={formExtraCategory}
-                      onChange={(e) => setFormExtraCategory(e.target.value)}
-                      placeholder="Ex: Mais pedido, Vegano..."
-                      className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all bg-white text-gray-800"
+                    <label className="text-[13px] font-semibold text-gray-700">Nome do Item *</label>
+                    <input 
+                      type="text" 
+                      value={formName} 
+                      onChange={(e) => setFormName(e.target.value)} 
+                      required 
+                      className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" 
+                      placeholder="Ex: Bowl Salmão Grelhado" 
                     />
                   </div>
-                </div>
-                {/* Preços (Original e Promocional) */}
-                <div className="grid grid-cols-2 gap-3">
+
+                  {/* Preço Original */}
                   <div className="flex flex-col gap-1">
                     <label className="text-[13px] font-semibold text-gray-700">Preço Original *</label>
                     <input 
@@ -1772,112 +2227,158 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       value={formOriginalPrice} 
                       onChange={(e) => setFormOriginalPrice(e.target.value)} 
                       required
-                      className="w-full border border-[#E9E4D4] rounded-xl px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" 
-                      placeholder="R$ 0,00" 
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[13px] font-semibold text-gray-700">Preço Promocional</label>
-                    <input 
-                      type="text" 
-                      value={formPromoPrice} 
-                      onChange={(e) => setFormPromoPrice(e.target.value)} 
-                      className="w-full border border-[#E9E4D4] rounded-xl px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" 
+                      className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" 
                       placeholder="R$ 0,00" 
                     />
                   </div>
                 </div>
 
-                {/* Checkbox: Ativar Promoção */}
-                <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <div
-                      onClick={() => setFormInPromo(!formInPromo)}
-                      className={`w-4 h-4 rounded flex items-center justify-center transition-colors cursor-pointer ${
-                        formInPromo ? "bg-[#CB5A3C] text-white" : "border border-gray-300 bg-white"
-                      }`}
-                    >
-                      {formInPromo && <Check className="w-3 h-3 stroke-[3]" />}
-                    </div>
-                    <span className="text-[13px] font-semibold text-gray-700">Ativar preço promocional</span>
-                  </label>
-
-                  {/* Interligação com Marketing */}
-                  <div className="flex items-start gap-2 p-2.5 rounded-xl bg-orange-50/60 border border-orange-200/80 text-xs text-[#2E4233]">
-                    <Tag className="w-4 h-4 text-[#CB5A3C] shrink-0 mt-0.5" />
-                    <div className="flex flex-col">
-                      <span className="font-bold text-[#CB5A3C] text-[11.5px]">Interligado com Marketing:</span>
-                      <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">
-                        Campanhas criadas no menu <strong>Marketing</strong> podem ativar promoções automaticamente nos produtos participantes para exibição destacada no Storefront.
-                      </p>
-                    </div>
+                {/* 3. Categorias (Tags livres) */}
+                <div id="tour-new-item-categories" className="flex flex-col gap-2 pt-2 border-t border-[#E9E4D4]/60">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-semibold text-gray-700">
+                      Categorias / Tags
+                    </label>
+                    <span className="text-[11px] text-gray-400 font-medium">
+                      Campo livre · Separe por vírgulas
+                    </span>
                   </div>
-                </div>
 
-                {/* Descrição / Ingredientes */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex justify-between items-center">
-                    <label className="text-[13px] font-semibold text-gray-700">Descrição / Ingredientes</label>
-                    <span className="text-[11px] text-gray-400">{formDescription.length}/300</span>
-                  </div>
-                  <textarea
-                    value={formDescription}
-                    maxLength={300}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    rows={3}
-                    className="w-full border border-[#E9E4D4] rounded-xl p-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all resize-none leading-relaxed"
-                    placeholder="Descreva os ingredientes e detalhes para o cliente..."
-                  />
-                </div>
-
-                {/* Horário de Disponibilidade */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[13px] font-semibold text-gray-700">Programar Disponibilidade</label>
-                  <div
-                    onClick={() => {
-                      const schedule = prompt("Horário de disponibilidade:", formAvailabilitySchedule)
-                      if (schedule) setFormAvailabilitySchedule(schedule)
-                    }}
-                    className="border border-[#E9E4D4] rounded-xl px-3.5 py-2 flex items-center justify-between text-xs text-gray-700 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                      <span>{formAvailabilitySchedule}</span>
-                    </div>
-                    <Pencil className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </div>
-
-                {/* Limite Diário */}
-                <div className="flex flex-col gap-2 pt-1 border-t border-gray-100">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <div
-                      onClick={() => setFormHasDailyLimit(!formHasDailyLimit)}
-                      className={`w-4 h-4 rounded flex items-center justify-center transition-colors cursor-pointer ${
-                        formHasDailyLimit ? "bg-[#CB5A3C] text-white" : "border border-gray-300 bg-white"
-                      }`}
-                    >
-                      {formHasDailyLimit && <Check className="w-3 h-3 stroke-[3]" />}
-                    </div>
-                    <span className="text-[13px] font-semibold text-gray-700">Ativar limite diário de vendas</span>
-                  </label>
-
-                  {formHasDailyLimit && (
-                    <div className="flex items-center gap-2 pl-6">
-                      <input
-                        type="number"
-                        value={formDailyLimit}
-                        onChange={(e) => setFormDailyLimit(e.target.value)}
-                        placeholder="Ex: 50"
-                        className="w-24 border border-[#E9E4D4] rounded-xl px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233]"
-                      />
-                      <span className="text-xs text-gray-500 font-medium">unidades por dia</span>
+                  {/* Tags adicionadas */}
+                  {formCategories.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-[#FAF8F0]/70 rounded-xl border border-[#E9E4D4] items-center">
+                      {formCategories.map((cat, idx) => {
+                        const style = getCategoryBadgeStyle(cat)
+                        return (
+                          <div
+                            key={idx}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${style.bg} ${style.text} shadow-2xs`}
+                          >
+                            <span>{cat}</span>
+                            <button
+                              type="button"
+                              onClick={() => setFormCategories((prev) => prev.filter((_, i) => i !== idx))}
+                              className="hover:opacity-75 cursor-pointer p-0.5 rounded transition-opacity"
+                              title="Remover tag"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
+
+                  {/* Input livre para digitar categorias */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={formCategoryInput}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val.includes(",")) {
+                          handleAddCategoryToForm(val)
+                          setFormCategoryInput("")
+                        } else {
+                          setFormCategoryInput(val)
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === ",") {
+                          e.preventDefault()
+                          if (formCategoryInput.trim()) {
+                            handleAddCategoryToForm(formCategoryInput)
+                            setFormCategoryInput("")
+                          }
+                        }
+                      }}
+                      placeholder="Digite categorias (ex: Bowls, Vegano, Sem Glúten)..."
+                      className="flex-1 px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-xs text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (formCategoryInput.trim()) {
+                          handleAddCategoryToForm(formCategoryInput)
+                          setFormCategoryInput("")
+                        }
+                      }}
+                      className="px-3.5 py-2 bg-[#2E4233] text-white text-xs font-semibold rounded-xl hover:bg-[#233327] transition-colors cursor-pointer shrink-0"
+                    >
+                      + Adicionar
+                    </button>
+                  </div>
+
+                  {/* Sugestões rápidas de categoria */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] text-gray-400 font-medium">Sugestões:</span>
+                    {["Bowls", "Bebidas", "Sobremesas", "Entradas", "Mais pedido", "Vegano", "Destaque", "Fitness"].map((sug) => {
+                      const alreadyHas = formCategories.some((c) => c.toLowerCase() === sug.toLowerCase())
+                      if (alreadyHas) return null
+                      return (
+                        <button
+                          key={sug}
+                          type="button"
+                          onClick={() => handleAddCategoryToForm(sug)}
+                          className="px-2 py-0.5 bg-white border border-[#E9E4D4] hover:border-[#2E4233] text-gray-600 hover:text-[#2E4233] rounded-md text-[11px] font-medium transition-colors cursor-pointer"
+                        >
+                          + {sug}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* 4. Descrição e Limite Diário */}
+                <div id="tour-new-item-desc-limit" className="flex flex-col gap-3">
+                  {/* Descrição / Ingredientes */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[13px] font-semibold text-gray-700">Descrição / Ingredientes</label>
+                      <span className="text-[11px] text-gray-400">{formDescription.length}/300</span>
+                    </div>
+                    <textarea
+                      value={formDescription}
+                      maxLength={300}
+                      onChange={(e) => setFormDescription(e.target.value)}
+                      rows={3}
+                      className="w-full border border-[#E9E4D4] rounded-xl p-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all resize-none leading-relaxed"
+                      placeholder="Descreva os ingredientes e detalhes para o cliente..."
+                    />
+                  </div>
+
+                  {/* Limite Diário */}
+                  <div className="flex flex-col gap-2 pt-1 border-t border-gray-100">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <div
+                        onClick={() => setFormHasDailyLimit(!formHasDailyLimit)}
+                        className={`w-4 h-4 rounded flex items-center justify-center transition-colors cursor-pointer ${
+                          formHasDailyLimit ? "bg-[#CB5A3C] text-white" : "border border-gray-300 bg-white"
+                        }`}
+                      >
+                        {formHasDailyLimit && <Check className="w-3 h-3 stroke-[3]" />}
+                      </div>
+                      <span className="text-[13px] font-semibold text-gray-700">Ativar limite diário de vendas</span>
+                    </label>
+
+                    {formHasDailyLimit && (
+                      <div className="flex items-center gap-2 pl-6">
+                        <input
+                          type="number"
+                          value={formDailyLimit}
+                          onChange={(e) => setFormDailyLimit(e.target.value)}
+                          placeholder="Ex: 50"
+                          className="w-24 border border-[#E9E4D4] rounded-xl px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233]"
+                        />
+                        <span className="text-xs text-gray-500 font-medium">unidades por dia</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
               </form>
             </div>
+
 
             {/* Modal Footer (Matching Estoque) */}
             <div className="p-4 border-t border-[#E9E4D4] bg-[#FDFCF9] flex justify-end gap-3">
@@ -1920,7 +2421,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
 
             <h3 className="font-bold text-[#2E4233] text-lg mb-1">Excluir item?</h3>
             <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Tem certeza que deseja excluir <span className="font-bold text-gray-800">"{itemToDelete.name}"</span> do cardápio? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir <span className="font-bold text-gray-800">&quot;{itemToDelete.name}&quot;</span> do cardápio? Esta ação não pode ser desfeita.
             </p>
 
             <div className="flex w-full gap-3">
@@ -2357,7 +2858,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
         </div>
       )}
 
-      {/* ==================== MODAL: DEFINIR PREÇO PROMOCIONAL POR PORCENTAGEM (TEMA VERDE ESMERALDA) ==================== */}
+      {/* ==================== MODAL: DEFINIR PREÇO PROMOCIONAL (TEMA LARANJA DELI + BOTÕES VERDES) ==================== */}
       {discountModalItem && (() => {
         const origNum = parseCurrency(discountModalItem.originalPrice)
         const pct = parseFloat(discountPercentInput) || 0
@@ -2366,20 +2867,34 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
 
         return (
           <div 
-            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
+            className={`fixed inset-0 ${modalTourType === "promo" ? "z-[135]" : "z-[110]"} flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150`}
             onClick={() => setDiscountModalItem(null)}
           >
             <div 
-              className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150"
+              className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
               <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
-                <div className="flex flex-col">
-                  <h3 className="font-bold text-[#059669] text-base">Preço Promocional</h3>
-                  <span className="text-xs text-gray-500 font-medium truncate max-w-[240px]">
-                    {discountModalItem.name}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col">
+                    <h3 className="font-bold text-[#CB5A3C] text-base">Preço Promocional</h3>
+                    <span className="text-xs text-gray-500 font-medium truncate max-w-[240px]">
+                      {discountModalItem.name}
+                    </span>
+                  </div>
+                  <button
+                    id="tour-help-promo"
+                    type="button"
+                    onClick={() => {
+                      setModalTourType("promo")
+                      setModalTourStep(0)
+                    }}
+                    className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[11px] font-extrabold shadow-sm hover:bg-[#233327] hover:scale-105 transition-all cursor-pointer shrink-0"
+                    title="Iniciar tutorial guiado deste modal"
+                  >
+                    ?
+                  </button>
                 </div>
                 <button
                   type="button"
@@ -2391,100 +2906,183 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
               </div>
 
               {/* Form */}
-              <form onSubmit={handleApplyDiscount} className="p-5 flex flex-col gap-4">
+              <form onSubmit={handleApplyDiscount} className="flex flex-col">
                 
-                {/* Preço Original */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs">
-                  <span className="text-gray-600 font-medium">Preço Original:</span>
-                  <span className="text-sm font-bold text-[#2E4233]">{discountModalItem.originalPrice}</span>
-                </div>
-
-                {/* Campo Porcentagem de Desconto */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold text-gray-700 flex justify-between">
-                    <span>Porcentagem de Desconto:</span>
-                    <span className="text-[#059669] font-bold">{pct > 0 ? `${pct}%` : "0%"}</span>
-                  </label>
+                {/* Conteúdo configurável (Apagado quando promoção desativada) */}
+                <div className={`p-5 flex flex-col gap-4 transition-all duration-200 ${!promoIsActive ? "opacity-35 pointer-events-none select-none grayscale-[0.3]" : ""}`}>
                   
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="1"
-                      max="99"
-                      step="1"
-                      value={discountPercentInput}
-                      onChange={(e) => setDiscountPercentInput(e.target.value)}
-                      placeholder="Ex: 15"
-                      autoFocus
-                      required
-                      className="w-full border border-[#E9E4D4] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#059669] focus:outline-none focus:ring-2 focus:ring-[#059669]/20 focus:border-[#059669] transition-all"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">
-                      %
-                    </span>
-                  </div>
-
-                  {/* Atalhos rápidos de % */}
-                  <div className="flex items-center gap-1.5 pt-1">
-                    {[5, 10, 15, 20, 25, 30].map((quickPct) => (
-                      <button
-                        key={quickPct}
-                        type="button"
-                        onClick={() => setDiscountPercentInput(quickPct.toString())}
-                        className={`flex-1 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
-                          pct === quickPct
-                            ? "bg-[#059669] text-white border-[#059669]"
-                            : "bg-white text-gray-600 border-[#E9E4D4] hover:bg-emerald-50/50 hover:text-[#059669]"
-                        }`}
-                      >
-                        {quickPct}%
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Prévia do Preço Calculado em Verde Esmeralda */}
-                <div className="p-3.5 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] flex flex-col gap-1">
-                  <span className="text-[11px] text-gray-500 font-medium">Preço promocional já calculado:</span>
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-xl font-bold text-[#059669]">
-                      {formatCurrency(calculatedPromo)}
-                    </span>
-                    {savings > 0 && (
-                      <span className="text-xs font-semibold text-[#059669]">
-                        Economia de {formatCurrency(savings)}
+                  {/* Comparativo de Preços: Original e Promocional juntos */}
+                  <div className="p-3.5 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-between gap-3 shadow-xs">
+                    <div className="flex flex-col">
+                      <span className="text-[11px] text-gray-500 font-medium">Preço Original</span>
+                      <span className="text-sm font-semibold text-gray-400 line-through">
+                        {discountModalItem.originalPrice}
                       </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FDF2F0] border border-[#CB5A3C]/20">
+                      <span className="text-xs font-bold text-[#CB5A3C]">
+                        -{pct > 0 ? pct : 0}%
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col items-end">
+                      <span className="text-[11px] text-gray-500 font-medium">Preço Promocional</span>
+                      <span className="text-xl font-extrabold text-[#CB5A3C]">
+                        {formatCurrency(calculatedPromo)}
+                      </span>
+                      {savings > 0 && (
+                        <span className="text-[10.5px] font-semibold text-[#2E4233]">
+                          Economia de {formatCurrency(savings)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Campo Porcentagem de Desconto */}
+                  <div id="tour-promo-modal-calc" className="flex flex-col gap-2 p-1 rounded-xl">
+                    <label className="text-xs font-semibold text-gray-700 flex justify-between">
+                      <span>Porcentagem de Desconto:</span>
+                      <span className="text-[#CB5A3C] font-bold">{pct > 0 ? `${pct}%` : "0%"}</span>
+                    </label>
+                    
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        max="99"
+                        step="1"
+                        value={discountPercentInput}
+                        onChange={(e) => setDiscountPercentInput(e.target.value)}
+                        placeholder="Ex: 15"
+                        autoFocus={promoIsActive}
+                        className="w-full border border-[#E9E4D4] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#CB5A3C] focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">
+                        %
+                      </span>
+                    </div>
+
+                    {/* Atalhos rápidos de % (Botões na cor verde Deli) */}
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      {[5, 10, 15, 20, 25, 30].map((quickPct) => (
+                        <button
+                          key={quickPct}
+                          type="button"
+                          onClick={() => setDiscountPercentInput(quickPct.toString())}
+                          className={`flex-1 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                            pct === quickPct
+                              ? "bg-[#2E4233] text-white border-[#2E4233]"
+                              : "bg-white text-gray-600 border-[#E9E4D4] hover:bg-[#FAF8F0] hover:text-[#2E4233]"
+                          }`}
+                        >
+                          {quickPct}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Programação da Promoção (acima dos botões) */}
+                  <div id="tour-promo-modal-schedule" className="flex flex-col gap-2.5 pt-3 border-t border-gray-100 p-1 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                        Programar promoção
+                      </span>
+                      <div className="flex items-center gap-2 select-none">
+                        <span 
+                          onClick={() => setPromoIndefinite(!promoIndefinite)}
+                          className="text-[11px] font-medium text-gray-600 cursor-pointer"
+                        >
+                          Prazo indeterminado
+                        </span>
+                        <Switch
+                          checked={promoIndefinite}
+                          onCheckedChange={setPromoIndefinite}
+                          activeTrackColor="bg-[#2E4233]"
+                          inactiveTrackColor="bg-stone-300"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Campos de Data de Início e Data de Término (Apagados quando prazo indeterminado) */}
+                    <div className={`grid grid-cols-2 gap-2.5 transition-all duration-200 ${promoIndefinite ? "opacity-35 pointer-events-none select-none grayscale-[0.3]" : ""}`}>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[11px] font-medium text-gray-600">Data de início</label>
+                        <input
+                          type="date"
+                          value={promoStartDate}
+                          onChange={(e) => setPromoStartDate(e.target.value)}
+                          disabled={promoIndefinite}
+                          className="w-full border border-[#E9E4D4] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-[#2E4233]"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[11px] font-medium text-gray-600">Data de término</label>
+                        <input
+                          type="date"
+                          value={promoEndDate}
+                          min={promoStartDate}
+                          onChange={(e) => setPromoEndDate(e.target.value)}
+                          disabled={promoIndefinite}
+                          className="w-full border border-[#E9E4D4] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-[#2E4233]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Resumo do período programado quando NÃO for prazo indeterminado */}
+                    {!promoIndefinite && promoStartDate && promoEndDate && (
+                      <div className="p-2 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-between text-xs text-gray-700 animate-in fade-in">
+                        <span className="text-[11px] text-gray-500 font-medium">Período programado:</span>
+                        <span className="text-[11.5px] font-bold text-[#2E4233]">
+                          {formatPromoPeriod(promoStartDate, promoEndDate, false).periodText}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Aviso quando ativado por prazo indeterminado (Regra estrita: NÃO escrever 'permanente') */}
+                    {promoIndefinite && (
+                      <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/60 flex items-center gap-2 text-xs text-amber-900 animate-in fade-in duration-150">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-600 shrink-0" />
+                        <span className="text-[11.5px] font-medium">A promoção está ativa por prazo indeterminado</span>
+                      </div>
                     )}
                   </div>
+
                 </div>
 
                 {/* Footer / Ações */}
-                <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
-                  {discountModalItem.promoPrice ? (
-                    <button
-                      type="button"
-                      onClick={handleRemoveDiscount}
-                      className="text-xs font-semibold text-red-600 hover:underline cursor-pointer"
+                <div className="pt-3 border-t border-[#E9E4D4] flex items-center justify-between gap-2 bg-[#FAF8F0] px-5 py-3.5">
+                  {/* Switch para ligar/desligar promoção (Substitui 'Remover promoção') */}
+                  <div id="tour-promo-modal-switch" className="flex items-center gap-2 select-none p-1 rounded-lg">
+                    <Switch
+                      checked={promoIsActive}
+                      onCheckedChange={setPromoIsActive}
+                      activeTrackColor="bg-[#2E4233]"
+                      inactiveTrackColor="bg-stone-300"
+                    />
+                    <span 
+                      onClick={() => setPromoIsActive(!promoIsActive)}
+                      className="text-xs font-semibold text-gray-700 cursor-pointer"
                     >
-                      Remover promoção
-                    </button>
-                  ) : (
-                    <div />
-                  )}
+                      {promoIsActive ? "Promoção ativa" : "Promoção desativada"}
+                    </span>
+                  </div>
 
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setDiscountModalItem(null)}
-                      className="px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
                     >
                       Cancelar
                     </button>
                     <button
+                      id="tour-promo-modal-confirm"
                       type="submit"
-                      className="px-4 py-2 rounded-xl bg-[#059669] hover:bg-[#047857] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
                     >
-                      Aplicar
+                      Confirmar
                     </button>
                   </div>
                 </div>
@@ -2494,6 +3092,276 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
           </div>
         )
       })()}
+
+      {/* Modal de Pergunta / Aviso Pré-Tutorial */}
+      {showTourPrompt && tourStep === null && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white border border-[#E9E4D4] rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header com cor verde Deli */}
+            <div className="bg-[#2E4233] p-5 text-white flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/20">
+                  <Sparkles className="w-5 h-5 text-[#CB5A3C]" />
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/10 text-[11px] font-semibold text-white/90 mb-1">
+                    <span>Tutorial Rápido</span>
+                    <span>•</span>
+                    <span>1 minuto</span>
+                  </div>
+                  <h3 className="text-lg font-serif font-bold text-white tracking-tight">
+                    Conheça o Cardápio DeliPlus
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTourPrompt(false)}
+                className="text-white/60 hover:text-white transition-colors cursor-pointer p-1"
+                title="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Corpo da pergunta */}
+            <div className="p-5 flex flex-col gap-4">
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 mb-1">
+                  Gostaria de ver um breve tutorial interativo?
+                </h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Preparamos um guia com efeito holofote que destaca cada funcionalidade diretamente na sua tela:
+                </p>
+              </div>
+
+              {/* Recursos em destaque */}
+              <div className="grid grid-cols-1 gap-2 bg-[#FAF8F0] p-3 rounded-xl border border-[#E9E4D4] text-xs text-gray-700">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-[#EBF5ED] text-[#477A55] flex items-center justify-center font-bold text-[11px] shrink-0">✓</span>
+                  <span><strong>Edição com um toque:</strong> altere nome, preço e estoque sem salvar.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-[#FDF2F0] text-[#CB5A3C] flex items-center justify-center font-bold text-[11px] shrink-0">%</span>
+                  <span><strong>Preços promocionais:</strong> cálculo em porcentagem e datas agendadas.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-[11px] shrink-0">📸</span>
+                  <span><strong>Fotos dos pratos:</strong> amplie e troque com upload ou arrastar arquivos.</span>
+                </div>
+              </div>
+
+              {/* Ações */}
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTourPrompt(false)}
+                  className="px-4 py-2.5 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  Agora não / Pular
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTourPrompt(false)
+                    setTourStep(0)
+                  }}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white text-xs font-bold shadow-md hover:shadow transition-all cursor-pointer"
+                >
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span>Iniciar tutorial</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Spotlight Overlay & Floating Step Card */}
+      {activeTourStep && (
+        <div className="fixed inset-0 z-[140] pointer-events-auto">
+          {/* SVG Cutout Darkness Mask */}
+          <svg className="fixed inset-0 w-full h-full pointer-events-none z-[141]">
+            <defs>
+              <mask id="spotlight-mask">
+                <rect x="0" y="0" width="100%" height="100%" fill="white" />
+                {spotlightRect && (
+                  <rect
+                    x={Math.max(0, spotlightRect.left - 6)}
+                    y={Math.max(0, spotlightRect.top - 6)}
+                    width={spotlightRect.width + 12}
+                    height={spotlightRect.height + 12}
+                    rx={14}
+                    ry={14}
+                    fill="black"
+                  />
+                )}
+              </mask>
+            </defs>
+            <rect
+              x="0"
+              y="0"
+              width="100%"
+              height="100%"
+              fill="rgba(15, 23, 42, 0.78)"
+              mask="url(#spotlight-mask)"
+            />
+          </svg>
+
+          {/* Highlighted Pulse Ring around element */}
+          {spotlightRect && (
+            <div
+              className="fixed pointer-events-none z-[142] rounded-2xl border-2 border-[#16A34A] ring-4 ring-[#16A34A]/30 shadow-[0_0_30px_rgba(22,163,74,0.45)] transition-all duration-300 animate-pulse"
+              style={{
+                top: Math.max(0, spotlightRect.top - 6),
+                left: Math.max(0, spotlightRect.left - 6),
+                width: spotlightRect.width + 12,
+                height: spotlightRect.height + 12,
+              }}
+            />
+          )}
+
+          {/* Floating Step Popover Card */}
+          <div
+            className="fixed z-[143] bg-white rounded-2xl shadow-2xl border border-stone-200 p-5 transition-all duration-300 animate-in fade-in zoom-in-95 max-w-[380px]"
+            style={getTourCardStyle() as React.CSSProperties}
+          >
+            {/* Top Bar: Step Counter & Close */}
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#EBF5ED] text-[#2E4233] text-[11px] font-bold tracking-wide">
+                  {modalTourType === "promo" 
+                    ? `PROMOÇÃO: ${activeTourCurrentIndex + 1}/${activeTourTotalSteps}`
+                    : modalTourType === "new_item"
+                    ? `NOVO ITEM: ${activeTourCurrentIndex + 1}/${activeTourTotalSteps}`
+                    : `PASSO ${activeTourCurrentIndex + 1} DE ${activeTourTotalSteps}`}
+                </span>
+                <span className="text-[11px] text-gray-400 font-medium">
+                  {modalTourType ? "Modo Interativo" : "Tutorial Cardápio"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseTour}
+                className="p-1 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                title="Fechar tutorial (Esc)"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Step Content */}
+            <div className="py-4">
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="w-8 h-8 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-center text-[#2E4233] shrink-0">
+                  {(() => {
+                    const StepIcon = activeTourStep.icon
+                    return <StepIcon className="w-4 h-4 text-[#CB5A3C]" />
+                  })()}
+                </div>
+                <h4 className="font-bold text-gray-900 text-sm md:text-base leading-tight">
+                  {activeTourStep.title}
+                </h4>
+              </div>
+              <p className="text-xs md:text-[13px] text-gray-600 leading-relaxed">
+                {activeTourStep.description}
+              </p>
+
+              {/* Botão Interativo para entrar no modal de promoção quando no passo 4 */}
+              {tourStep === 4 && modalTourType === null && (
+                <div className="mt-3 p-3 rounded-xl bg-orange-50 border border-orange-200/80 flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#CB5A3C]">
+                    <Sparkles className="w-4 h-4 shrink-0" />
+                    <span>Quer testar as opções no modal agora?</span>
+                  </div>
+                  <p className="text-[11.5px] text-gray-600 leading-snug">
+                    Abra o modal para o spotlight explicar o switch de ativação, o cálculo de % e os prazos.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const itemToPromo = items.find((i) => i.id === "item-1") || items[0]
+                      if (itemToPromo) {
+                        handleOpenDiscountModal(itemToPromo)
+                        setModalTourType("promo")
+                        setModalTourStep(0)
+                      }
+                    }}
+                    className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-white" />
+                    <span>Abrir modal e iniciar explicação</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Progress Dots */}
+            <div className="flex items-center justify-center gap-1.5 pb-4">
+              {Array.from({ length: activeTourTotalSteps }).map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    if (modalTourType !== null) {
+                      setModalTourStep(idx)
+                    } else {
+                      setTourStep(idx)
+                    }
+                  }}
+                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                    idx === activeTourCurrentIndex
+                      ? "w-6 bg-[#2E4233]"
+                      : idx < activeTourCurrentIndex
+                      ? "w-2 bg-[#2E4233]/40"
+                      : "w-2 bg-gray-200"
+                  }`}
+                  title={`Ir para passo ${idx + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* Navigation Footer */}
+            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={handleCloseTour}
+                className="text-xs font-semibold text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+              >
+                Pular tutorial
+              </button>
+
+              <div className="flex items-center gap-2">
+                {activeTourCurrentIndex > 0 && (
+                  <button
+                    type="button"
+                    onClick={handlePrevTour}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Anterior</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleNextTour}
+                  className="flex items-center gap-1 px-4 py-1.5 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                >
+                  <span>
+                    {activeTourCurrentIndex === activeTourTotalSteps - 1
+                      ? modalTourType === "promo"
+                        ? "Voltar ao Cardápio"
+                        : "Concluir"
+                      : "Próximo"}
+                  </span>
+                  {activeTourCurrentIndex < activeTourTotalSteps - 1 && <ChevronRight className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
