@@ -634,9 +634,9 @@ export default function InventoryClient({
                       >
                         <span>Produto</span>
                         {sortField === 'name' ? (
-                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233]" />
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                         ) : (
-                          <ArrowUpDown className="w-3 h-3 text-gray-400 opacity-40 group-hover:opacity-100 transition-opacity" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                         )}
                       </button>
                     </th>
@@ -649,9 +649,9 @@ export default function InventoryClient({
                       >
                         <span>Quantidade</span>
                         {sortField === 'quantity' ? (
-                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233]" />
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                         ) : (
-                          <ArrowUpDown className="w-3 h-3 text-gray-400 opacity-40 group-hover:opacity-100 transition-opacity" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                         )}
                       </button>
                     </th>
@@ -664,9 +664,9 @@ export default function InventoryClient({
                       >
                         <span>Unidade</span>
                         {sortField === 'unit' ? (
-                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233]" />
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                         ) : (
-                          <ArrowUpDown className="w-3 h-3 text-gray-400 opacity-40 group-hover:opacity-100 transition-opacity" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                         )}
                       </button>
                     </th>
@@ -679,9 +679,9 @@ export default function InventoryClient({
                       >
                         <span>Custo unitário</span>
                         {sortField === 'unit_cost' ? (
-                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233]" />
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                         ) : (
-                          <ArrowUpDown className="w-3 h-3 text-gray-400 opacity-40 group-hover:opacity-100 transition-opacity" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                         )}
                       </button>
                     </th>
@@ -694,9 +694,9 @@ export default function InventoryClient({
                       >
                         <span>Valor em estoque</span>
                         {sortField === 'stock_value' ? (
-                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233]" />
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                         ) : (
-                          <ArrowUpDown className="w-3 h-3 text-gray-400 opacity-40 group-hover:opacity-100 transition-opacity" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                         )}
                       </button>
                     </th>
@@ -735,7 +735,7 @@ export default function InventoryClient({
                               <span className="font-bold text-[#2E4233] text-[15px] group-hover/name:underline decoration-[#2E4233]/40 underline-offset-2">
                                 {product.name}
                               </span>
-                              <ChevronDown className="w-3.5 h-3.5 text-gray-400 opacity-60 group-hover/name:opacity-100 group-hover/name:text-[#2E4233] shrink-0 transition-all" />
+                              <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                               {saveSuccessCellId === `${product.id}-name` && (
                                 <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
                               )}
@@ -767,7 +767,7 @@ export default function InventoryClient({
                               <span className={`font-bold text-[15px] ${isLowStock ? 'text-[#CB5A3C]' : 'text-[#2E4233]'}`}>
                                 {formatted.qty}
                               </span>
-                              <ChevronDown className="w-3.5 h-3.5 text-gray-400 opacity-60 group-hover/qty:opacity-100 group-hover/qty:text-[#2E4233] shrink-0 transition-all" />
+                              <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                               {saveSuccessCellId === `${product.id}-quantity` && (
                                 <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
                               )}
@@ -793,7 +793,7 @@ export default function InventoryClient({
                               <option value="caixas">caixas</option>
                               <option value="pacotes">pacotes</option>
                             </select>
-                            <ChevronDown className="w-3.5 h-3.5 text-gray-400 group-hover/unit:text-[#2E4233] absolute right-1.5 pointer-events-none transition-colors" />
+                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] absolute right-1.5 pointer-events-none transition-colors" />
                             {saveSuccessCellId === `${product.id}-unit` && (
                               <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 ml-1 animate-in fade-in" />
                             )}
@@ -824,7 +824,7 @@ export default function InventoryClient({
                               <span className="font-medium text-gray-600 text-[14px]">
                                 {formatCurrency(product.unit_cost_cents / 100)}
                               </span>
-                              <ChevronDown className="w-3.5 h-3.5 text-gray-400 opacity-60 group-hover/cost:opacity-100 group-hover/cost:text-[#2E4233] shrink-0 transition-all" />
+                              <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                               {saveSuccessCellId === `${product.id}-unit_cost` && (
                                 <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
                               )}
@@ -915,7 +915,7 @@ export default function InventoryClient({
                           title="Toque para editar o nome"
                         >
                           <span className="font-bold text-[#2E4233] text-[15px]">{product.name}</span>
-                          <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                           {saveSuccessCellId === `${product.id}-name` && (
                             <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0" />
                           )}
@@ -958,7 +958,7 @@ export default function InventoryClient({
                             <span className={`font-bold text-sm ${isLowStock ? 'text-[#CB5A3C]' : 'text-[#2E4233]'}`}>
                               {formatted.qty}
                             </span>
-                            <ChevronDown className="w-3 h-3 text-gray-400 shrink-0" />
+                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                           </div>
                         )}
                       </div>
@@ -981,7 +981,7 @@ export default function InventoryClient({
                             <option value="caixas">caixas</option>
                             <option value="pacotes">pacotes</option>
                           </select>
-                          <ChevronDown className="w-3 h-3 text-gray-400 absolute right-1 pointer-events-none" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] absolute right-1 pointer-events-none" />
                         </div>
                       </div>
 
@@ -1009,7 +1009,7 @@ export default function InventoryClient({
                             <span className="font-bold text-[#2E4233] text-xs">
                               {formatCurrency((product.unit_cost_cents / 100))}
                             </span>
-                            <ChevronDown className="w-3 h-3 text-gray-400 shrink-0" />
+                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                           </div>
                         )}
                       </div>

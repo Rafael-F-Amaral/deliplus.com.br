@@ -414,6 +414,18 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
   const [discountModalItem, setDiscountModalItem] = useState<MenuItem | null>(null)
   const [discountPercentInput, setDiscountPercentInput] = useState<string>("15")
 
+  // Edição rápida inline (Preço original e Quantidade)
+  const [inlineEditingCell, setInlineEditingCell] = useState<{ id: string; field: "originalPrice" | "dailyLimit" } | null>(null)
+  const [inlineEditValue, setInlineEditValue] = useState<string>("")
+  const [inlineSuccessCellId, setInlineSuccessCellId] = useState<string | null>(null)
+
+  // Modal Pequeno: Editar Produto (Nome, Descrição e 1 a 3 Categorias)
+  const [prodModalItem, setProdModalItem] = useState<MenuItem | null>(null)
+  const [prodModalName, setProdModalName] = useState("")
+  const [prodModalDesc, setProdModalDesc] = useState("")
+  const [prodModalCategories, setProdModalCategories] = useState<string[]>([])
+  const [prodModalNewCat, setProdModalNewCat] = useState("")
+
   // Toast notification
   const [notification, setNotification] = useState<string | null>(null)
 
@@ -712,6 +724,145 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
     setTimeout(() => setNotification(null), 3000)
   }
 
+  // Formatar entrada de moeda em tempo real (R$ 0,00)
+  const formatCurrencyInput = (rawValue: string) => {
+    const digits = rawValue.replace(/\D/g, "")
+    if (!digits) return ""
+    const cents = parseInt(digits, 10)
+    return (cents / 100).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL"
+    })
+  }
+
+  // Iniciar edição rápida inline (Preço original e Quantidade)
+  const startInlineEdit = (item: MenuItem, field: "originalPrice" | "dailyLimit", e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setInlineEditingCell({ id: item.id, field })
+    if (field === "originalPrice") {
+      setInlineEditValue(item.originalPrice)
+    } else if (field === "dailyLimit") {
+      setInlineEditValue(item.dailyLimit !== null ? item.dailyLimit.toString() : "")
+    }
+  }
+
+  // Salvar alteração rápida inline sem botão de salvar
+  const saveInlineEdit = (item: MenuItem, field: "originalPrice" | "dailyLimit") => {
+    const val = inlineEditValue
+    setInlineEditingCell(null)
+
+    if (field === "originalPrice") {
+      const digits = val.replace(/\D/g, "")
+      if (!digits) return
+      const cents = parseInt(digits, 10)
+      if (cents <= 0) return
+      const formattedPrice = (cents / 100).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+      })
+      if (formattedPrice === item.originalPrice) return
+
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it.id === item.id) {
+            let updatedPromo = it.promoPrice
+            if (it.inPromo && it.promoPrice) {
+              const oldPct = getDiscountPercentage(it.originalPrice, it.promoPrice)
+              if (oldPct > 0) {
+                const newOrig = cents / 100
+                const calculated = newOrig * (1 - oldPct / 100)
+                updatedPromo = formatCurrency(calculated)
+              }
+            }
+            return {
+              ...it,
+              originalPrice: formattedPrice,
+              promoPrice: updatedPromo
+            }
+          }
+          return it
+        })
+      )
+      setInlineSuccessCellId(`${item.id}-originalPrice`)
+      setTimeout(() => setInlineSuccessCellId(null), 1500)
+    } else if (field === "dailyLimit") {
+      const trimmed = val.trim()
+      let newLimit: number | null = null
+      if (trimmed !== "") {
+        const parsed = parseInt(trimmed, 10)
+        if (isNaN(parsed) || parsed < 0) return
+        newLimit = parsed
+      }
+      if (newLimit === item.dailyLimit) return
+
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it.id === item.id) {
+            return {
+              ...it,
+              dailyLimit: newLimit,
+              remaining: newLimit !== null ? (it.remaining !== null ? Math.min(it.remaining, newLimit) : newLimit) : null
+            }
+          }
+          return it
+        })
+      )
+      setInlineSuccessCellId(`${item.id}-dailyLimit`)
+      setTimeout(() => setInlineSuccessCellId(null), 1500)
+    }
+  }
+
+  // Abrir Modal Pequeno para Editar Produto (Nome, Descrição e Categorias)
+  const handleOpenProductModal = (item: MenuItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setProdModalItem(item)
+    setProdModalName(item.name)
+    setProdModalDesc(item.description)
+    const cats = getItemCategories(item)
+    setProdModalCategories(cats.length > 0 ? cats : [item.category || "Bowls"])
+    setProdModalNewCat("")
+  }
+
+  // Adicionar categoria ao Produto Modal (mínimo 1, máximo 3)
+  const handleAddCatToProdModal = (catName: string) => {
+    const trimmed = catName.trim()
+    if (!trimmed) return
+    if (prodModalCategories.length >= 3) return
+    if (prodModalCategories.some((c) => c.toLowerCase() === trimmed.toLowerCase())) return
+    setProdModalCategories((prev) => [...prev, trimmed])
+    setProdModalNewCat("")
+  }
+
+  // Salvar alterações do Modal Pequeno de Produto
+  const handleSaveProductModal = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!prodModalItem || !prodModalName.trim()) return
+    if (prodModalCategories.length < 1) return
+
+    const mainCategory = prodModalCategories[0]
+    const badgeStyle = getCategoryBadgeStyle(mainCategory)
+
+    setItems((prev) =>
+      prev.map((it) => {
+        if (it.id === prodModalItem.id) {
+          return {
+            ...it,
+            name: prodModalName.trim(),
+            description: prodModalDesc.trim(),
+            category: mainCategory,
+            categories: prodModalCategories,
+            categoryBg: badgeStyle.bg,
+            categoryText: badgeStyle.text
+          }
+        }
+        return it
+      })
+    )
+    setProdModalItem(null)
+    setNotification("Produto atualizado com sucesso!")
+    setTimeout(() => setNotification(null), 3000)
+  }
+
   return (
     <div className="flex flex-col w-full h-full max-h-full max-w-[1400px] mx-auto p-3 md:px-6 pt-3 md:pt-5 pb-3 overflow-hidden justify-between font-sans">
       
@@ -878,7 +1029,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
             <thead className="bg-[#FAF8F0] border-b border-[#E9E4D4]">
               <tr className="text-[14px] font-semibold text-[#2E4233]">
                 <th className="px-4 py-2.5 w-[80px]">Foto</th>
-                <th className="px-4 py-2.5">Produto & Descrição</th>
+                <th className="px-4 py-2.5">Produto</th>
                 <th className="px-4 py-2.5 text-left w-[120px] whitespace-nowrap">Preço original</th>
                 <th className="px-4 py-2.5 text-left w-[140px] whitespace-nowrap">Preço promocional</th>
                 <th className="px-3 py-2.5 text-center w-[110px] whitespace-nowrap">Disponibilidade</th>
@@ -957,13 +1108,18 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       </div>
                     </td>
 
-                    {/* Produto & Descrição com badges de categoria ao lado do nome */}
+                    {/* Produto com badges de categoria ao lado do nome - Clicável para abrir modal pequeno de edição */}
                     <td className={`px-4 py-2 align-middle transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
-                      <div className="flex flex-col pr-2">
+                      <div 
+                        onClick={(e) => handleOpenProductModal(item, e)}
+                        className="group/prod flex flex-col pr-2 cursor-pointer p-1.5 -m-1.5 rounded-xl hover:bg-[#FAF8F0] transition-colors"
+                        title="Toque ou clique para editar nome, descrição e categorias"
+                      >
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-[#2E4233] text-[15px] leading-tight">
+                          <span className="font-bold text-[#2E4233] text-[15px] leading-tight group-hover/prod:underline decoration-[#2E4233]/40 underline-offset-2">
                             {item.name}
                           </span>
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
                           {getItemCategories(item).map((cat, idx) => {
                             const style = getCategoryBadgeStyle(cat)
                             return (
@@ -982,39 +1138,63 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       </div>
                     </td>
 
-                    {/* Preço original */}
+                    {/* Preço original com edição inline automática */}
                     <td className={`px-4 py-2 align-middle text-left whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
-                      <span className="text-[14px] font-medium text-gray-700">
-                        {item.originalPrice}
-                      </span>
+                      {inlineEditingCell?.id === item.id && inlineEditingCell?.field === "originalPrice" ? (
+                        <input
+                          type="text"
+                          autoFocus
+                          value={inlineEditValue}
+                          onChange={(e) => setInlineEditValue(formatCurrencyInput(e.target.value))}
+                          onBlur={() => saveInlineEdit(item, "originalPrice")}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveInlineEdit(item, "originalPrice")
+                            if (e.key === "Escape") setInlineEditingCell(null)
+                          }}
+                          className="w-28 px-2.5 py-1 text-[14px] font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                        />
+                      ) : (
+                        <div
+                          onClick={(e) => startInlineEdit(item, "originalPrice", e)}
+                          className="group/orig inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] transition-colors"
+                          title="Toque ou clique para alterar o preço original"
+                        >
+                          <span className="text-[14px] font-medium text-gray-700 group-hover/orig:text-[#2E4233]">
+                            {item.originalPrice}
+                          </span>
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          {inlineSuccessCellId === `${item.id}-originalPrice` && (
+                            <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
+                          )}
+                        </div>
+                      )}
                     </td>
 
-                    {/* Preço promocional com clique/toque para definir porcentagem de desconto */}
+                    {/* Preço promocional em Verde Esmeralda com link sublinhado "Editar Promoção" */}
                     <td className={`px-4 py-2 align-middle text-left whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
-                      <button
-                        type="button"
-                        onClick={(e) => handleOpenDiscountModal(item, e)}
-                        className="inline-flex items-center gap-1.5 px-2 py-1 -ml-2 rounded-lg hover:bg-orange-50/80 border border-transparent hover:border-orange-200 transition-all cursor-pointer group/promo text-left"
-                        title="Clique ou toque para aplicar desconto em porcentagem (%)"
-                      >
+                      <div className="flex flex-col items-start gap-0.5">
                         {item.promoPrice ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[14.5px] font-bold text-[#CB5A3C]">
+                            <span className="text-[14.5px] font-bold text-[#059669]">
                               {item.promoPrice}
                             </span>
-                            <span className="text-[10px] font-bold bg-[#FEF2F2] text-[#CB5A3C] border border-[#FCA5A5] px-1.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0] px-1.5 py-0.5 rounded-full">
                               -{getDiscountPercentage(item.originalPrice, item.promoPrice)}%
                             </span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1 text-gray-400 group-hover/promo:text-[#CB5A3C]">
-                            <span className="text-[13px] font-medium">Sem promoção</span>
-                            <span className="text-[10px] font-bold bg-gray-100 group-hover/promo:bg-[#CB5A3C] group-hover/promo:text-white text-gray-500 px-1 py-0.5 rounded transition-colors">
-                              %
-                            </span>
-                          </div>
+                          <span className="text-[13px] text-gray-400 font-medium">
+                            Sem promoção
+                          </span>
                         )}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenDiscountModal(item, e)}
+                          className="text-[11.5px] font-semibold text-[#059669] underline decoration-[#059669]/60 hover:decoration-[#059669] hover:text-[#047857] transition-all cursor-pointer text-left"
+                        >
+                          Editar Promoção
+                        </button>
+                      </div>
                     </td>
 
                     {/* Disponibilidade Switch (NÃO apagado: full opacity-100) */}
@@ -1036,37 +1216,52 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       </div>
                     </td>
 
-                    {/* Quantidade (anteriormente Limite diário & Restantes) */}
+                    {/* Quantidade com edição inline rápida */}
                     <td className={`px-4 py-2 align-middle text-center whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
-                      {item.dailyLimit !== null ? (
-                        <div className="flex flex-col items-center justify-center gap-0.5">
-                          {item.remaining === 0 ? (
-                            <>
-                              <span className="text-[13.5px] font-bold text-[#CB5A3C]">
-                                0 restantes
-                              </span>
-                              <span className="text-[11px] text-gray-400 font-medium">
-                                Limite: {item.dailyLimit} un.
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="text-[13.5px] font-bold text-[#16A34A]">
-                                {item.remaining ?? item.dailyLimit} restantes
-                              </span>
-                              <span className="text-[11px] text-gray-500 font-medium">
-                                Limite: {item.dailyLimit} un.
-                              </span>
-                            </>
-                          )}
-                        </div>
+                      {inlineEditingCell?.id === item.id && inlineEditingCell?.field === "dailyLimit" ? (
+                        <input
+                          type="number"
+                          min="0"
+                          autoFocus
+                          value={inlineEditValue}
+                          placeholder="Ilimitado"
+                          onChange={(e) => setInlineEditValue(e.target.value)}
+                          onBlur={() => saveInlineEdit(item, "dailyLimit")}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveInlineEdit(item, "dailyLimit")
+                            if (e.key === "Escape") setInlineEditingCell(null)
+                          }}
+                          className="w-20 px-2 py-1 text-center text-[13.5px] font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                        />
                       ) : (
-                        <div className="flex flex-col items-center justify-center">
-                          <span className="text-[13px] text-gray-400 font-medium">
-                            Sem limite
-                          </span>
-                          <span className="text-[10.5px] text-gray-400/80">
-                            Ilimitado
+                        <div
+                          onClick={(e) => startInlineEdit(item, "dailyLimit", e)}
+                          className="group/qty inline-flex flex-col items-center justify-center cursor-pointer py-1 px-2 -mx-1 rounded-lg hover:bg-[#FAF8F0] transition-colors"
+                          title="Toque ou clique para alterar o limite de quantidade diária"
+                        >
+                          <div className="flex items-center gap-1">
+                            {item.dailyLimit !== null ? (
+                              item.remaining === 0 ? (
+                                <span className="text-[13.5px] font-bold text-[#CB5A3C]">
+                                  0 restantes
+                                </span>
+                              ) : (
+                                <span className="text-[13.5px] font-bold text-[#16A34A]">
+                                  {item.remaining ?? item.dailyLimit} restantes
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-[13px] text-gray-400 font-medium">
+                                Sem limite
+                              </span>
+                            )}
+                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                            {inlineSuccessCellId === `${item.id}-dailyLimit` && (
+                              <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
+                            )}
+                          </div>
+                          <span className="text-[11px] text-gray-400 font-medium">
+                            {item.dailyLimit !== null ? `Limite: ${item.dailyLimit} un.` : "Ilimitado"}
                           </span>
                         </div>
                       )}
@@ -1274,60 +1469,135 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-[#2E4233] text-sm truncate">{item.name}</span>
-                      <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
-                        {getItemCategories(item).map((cat, idx) => {
-                          const style = getCategoryBadgeStyle(cat)
-                          return (
-                            <span
-                              key={idx}
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${style.bg} ${style.text}`}
-                            >
-                              {cat}
-                            </span>
-                          )
-                        })}
+                    {/* Toque no Produto abre o Modal Pequeno de Edição */}
+                    <div 
+                      onClick={(e) => handleOpenProductModal(item, e)}
+                      className="cursor-pointer group/mprod"
+                      title="Toque para editar nome, descrição e categorias"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="font-bold text-[#2E4233] text-sm truncate group-hover/mprod:underline">
+                            {item.name}
+                          </span>
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
+                          {getItemCategories(item).map((cat, idx) => {
+                            const style = getCategoryBadgeStyle(cat)
+                            return (
+                              <span
+                                key={idx}
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold ${style.bg} ${style.text}`}
+                              >
+                                {cat}
+                              </span>
+                            )
+                          })}
+                        </div>
                       </div>
+                      <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.description}</p>
                     </div>
-                    <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.description}</p>
-                    <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-[#2E4233]">{item.originalPrice}</span>
-                        {/* Toque no Preço Promocional no mobile para abrir modal de desconto em % */}
-                        <button
-                          type="button"
-                          onClick={(e) => handleOpenDiscountModal(item, e)}
-                          className="cursor-pointer"
-                        >
+
+                    {/* Preços e Quantidade */}
+                    <div className="flex items-start justify-between gap-2 mt-2 pt-1.5 border-t border-gray-100 flex-wrap">
+                      <div className="flex flex-col gap-1">
+                        {/* Preço original inline */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] uppercase font-bold text-gray-400">Orig:</span>
+                          {inlineEditingCell?.id === item.id && inlineEditingCell?.field === "originalPrice" ? (
+                            <input
+                              type="text"
+                              autoFocus
+                              value={inlineEditValue}
+                              onChange={(e) => setInlineEditValue(formatCurrencyInput(e.target.value))}
+                              onBlur={() => saveInlineEdit(item, "originalPrice")}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveInlineEdit(item, "originalPrice")
+                                if (e.key === "Escape") setInlineEditingCell(null)
+                              }}
+                              className="w-20 px-1 py-0.5 text-xs font-bold text-[#2E4233] bg-white border border-[#2E4233] rounded"
+                            />
+                          ) : (
+                            <div 
+                              onClick={(e) => startInlineEdit(item, "originalPrice", e)}
+                              className="flex items-center gap-1 cursor-pointer"
+                              title="Toque para editar preço original"
+                            >
+                              <span className="text-xs font-bold text-[#2E4233]">{item.originalPrice}</span>
+                              <ChevronDown className="w-3 h-3 text-[#2E4233] shrink-0" />
+                              {inlineSuccessCellId === `${item.id}-originalPrice` && (
+                                <Check className="w-3 h-3 text-[#16A34A] shrink-0" />
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Preço Promocional em Verde Esmeralda + Link Editar Promoção */}
+                        <div className="flex flex-col items-start">
                           {item.promoPrice ? (
-                            <span className="text-xs font-bold text-[#CB5A3C] bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded">
+                            <span className="text-xs font-bold text-[#059669] bg-[#ECFDF5] border border-[#A7F3D0] px-1.5 py-0.5 rounded">
                               {item.promoPrice} (-{getDiscountPercentage(item.originalPrice, item.promoPrice)}%)
                             </span>
                           ) : (
-                            <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 hover:text-[#CB5A3C] px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                              + %
-                            </span>
+                            <span className="text-[11px] text-gray-400 font-medium">Sem promoção</span>
                           )}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleOpenDiscountModal(item, e)}
+                            className="text-[11px] font-semibold text-[#059669] underline decoration-[#059669]/60 hover:decoration-[#059669] mt-0.5 cursor-pointer text-left"
+                          >
+                            Editar Promoção
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Quantidade mobile */}
-                      {item.dailyLimit !== null ? (
-                        item.remaining === 0 ? (
-                          <span className="text-[10px] font-bold text-[#CB5A3C] bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full leading-tight">
-                            0 restantes · Lim: {item.dailyLimit}
-                          </span>
+                      {/* Quantidade mobile com edição rápida */}
+                      <div className="flex flex-col items-end">
+                        <span className="text-[10px] uppercase font-bold text-gray-400 mb-0.5">Estoque diário</span>
+                        {inlineEditingCell?.id === item.id && inlineEditingCell?.field === "dailyLimit" ? (
+                          <input
+                            type="number"
+                            min="0"
+                            autoFocus
+                            value={inlineEditValue}
+                            placeholder="Ilimitado"
+                            onChange={(e) => setInlineEditValue(e.target.value)}
+                            onBlur={() => saveInlineEdit(item, "dailyLimit")}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") saveInlineEdit(item, "dailyLimit")
+                              if (e.key === "Escape") setInlineEditingCell(null)
+                            }}
+                            className="w-16 px-1 py-0.5 text-center text-xs font-bold text-[#2E4233] bg-white border border-[#2E4233] rounded"
+                          />
                         ) : (
-                          <span className="text-[10px] font-semibold text-[#16A34A] bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full leading-tight">
-                            {item.remaining ?? item.dailyLimit} restantes · Lim: {item.dailyLimit}
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-[10px] text-gray-400">
-                          Sem limite
-                        </span>
-                      )}
+                          <div
+                            onClick={(e) => startInlineEdit(item, "dailyLimit", e)}
+                            className="flex items-center gap-1 cursor-pointer"
+                            title="Toque para editar limite diário"
+                          >
+                            {item.dailyLimit !== null ? (
+                              item.remaining === 0 ? (
+                                <span className="text-[11px] font-bold text-[#CB5A3C] bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full leading-tight">
+                                  0 rest. · Lim: {item.dailyLimit}
+                                </span>
+                              ) : (
+                                <span className="text-[11px] font-semibold text-[#16A34A] bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full leading-tight">
+                                  {item.remaining ?? item.dailyLimit} rest. · Lim: {item.dailyLimit}
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-[11px] text-gray-400 font-medium">
+                                Sem limite
+                              </span>
+                            )}
+                            <ChevronDown className="w-3 h-3 text-[#2E4233] shrink-0" />
+                            {inlineSuccessCellId === `${item.id}-dailyLimit` && (
+                              <Check className="w-3 h-3 text-[#16A34A] shrink-0" />
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1917,7 +2187,177 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
         </div>
       )}
 
-      {/* ==================== MODAL: DEFINIR PREÇO PROMOCIONAL POR PORCENTAGEM ==================== */}
+      {/* ==================== MODAL PEQUENO: EDITAR PRODUTO (NOME, DESCRIÇÃO, CATEGORIAS 1 A 3) ==================== */}
+      {prodModalItem && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setProdModalItem(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150 max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
+              <div>
+                <h3 className="font-bold text-[#2E4233] text-base">Editar Produto</h3>
+                <p className="text-xs text-gray-500 font-medium">Nome, descrição e categorias (mín. 1, máx. 3)</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setProdModalItem(null)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSaveProductModal} className="p-5 flex flex-col gap-4 overflow-y-auto">
+              {/* Nome do Produto */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-gray-700">
+                  Nome do Produto <span className="text-[#CB5A3C]">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={prodModalName}
+                  onChange={(e) => setProdModalName(e.target.value)}
+                  placeholder="Ex: Bowl Salmão Grelhado"
+                  className="w-full px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-sm font-semibold text-[#2E4233] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all"
+                />
+              </div>
+
+              {/* Descrição */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-gray-700">
+                  Descrição
+                </label>
+                <textarea
+                  rows={3}
+                  value={prodModalDesc}
+                  onChange={(e) => setProdModalDesc(e.target.value)}
+                  placeholder="Descreva os ingredientes, modo de preparo ou especificações..."
+                  className="w-full px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all resize-none"
+                />
+              </div>
+
+              {/* Categorias (Travadas em mínimo 1 e máximo 3) */}
+              <div className="flex flex-col gap-2 pt-2 border-t border-[#E9E4D4]/60">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-gray-700">
+                    Categorias ({prodModalCategories.length}/3)
+                  </label>
+                  <span className="text-[11px] font-medium text-gray-400">
+                    Mínimo 1 · Máximo 3
+                  </span>
+                </div>
+
+                {/* Chips selecionados */}
+                <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-[#FAF8F0]/70 rounded-xl border border-[#E9E4D4] items-center">
+                  {prodModalCategories.map((cat, idx) => {
+                    const style = getCategoryBadgeStyle(cat)
+                    const canRemove = prodModalCategories.length > 1
+                    return (
+                      <div
+                        key={idx}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${style.bg} ${style.text} shadow-2xs`}
+                      >
+                        <span>{cat}</span>
+                        {canRemove ? (
+                          <button
+                            type="button"
+                            onClick={() => setProdModalCategories((prev) => prev.filter((_, i) => i !== idx))}
+                            className="hover:opacity-75 cursor-pointer p-0.5 rounded transition-opacity"
+                            title="Remover tag"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        ) : (
+                          <span className="text-[10px] opacity-40 ml-0.5" title="Mínimo de 1 categoria obrigatória">
+                            (fixa)
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Campo para adicionar categoria se < 3 */}
+                {prodModalCategories.length < 3 ? (
+                  <div className="flex flex-col gap-2 mt-1">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={prodModalNewCat}
+                        onChange={(e) => setProdModalNewCat(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault()
+                            handleAddCatToProdModal(prodModalNewCat)
+                          }
+                        }}
+                        placeholder="Digitar nova tag ou escolher abaixo..."
+                        className="flex-1 px-3 py-1.5 border border-[#E9E4D4] rounded-xl text-xs focus:outline-none focus:border-[#2E4233]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleAddCatToProdModal(prodModalNewCat)}
+                        className="px-3 py-1.5 bg-[#2E4233] text-white text-xs font-semibold rounded-xl hover:bg-[#233327] transition-colors cursor-pointer"
+                      >
+                        + Adicionar
+                      </button>
+                    </div>
+
+                    {/* Sugestões rápidas de categoria */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px] text-gray-400 font-medium">Sugestões:</span>
+                      {["Bowls", "Bebidas", "Sobremesas", "Entradas", "Mais pedido", "Vegano", "Orgânico", "Destaque"].map((sug) => {
+                        const alreadyHas = prodModalCategories.some((c) => c.toLowerCase() === sug.toLowerCase())
+                        if (alreadyHas) return null
+                        return (
+                          <button
+                            key={sug}
+                            type="button"
+                            onClick={() => handleAddCatToProdModal(sug)}
+                            className="px-2 py-0.5 bg-white border border-[#E9E4D4] hover:border-[#2E4233] text-gray-600 hover:text-[#2E4233] rounded-md text-[11px] font-medium transition-colors cursor-pointer"
+                          >
+                            + {sug}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-lg font-medium">
+                    Limite máximo de 3 categorias atingido.
+                  </p>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setProdModalItem(null)}
+                  className="px-4 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                >
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL: DEFINIR PREÇO PROMOCIONAL POR PORCENTAGEM (TEMA VERDE ESMERALDA) ==================== */}
       {discountModalItem && (() => {
         const origNum = parseCurrency(discountModalItem.originalPrice)
         const pct = parseFloat(discountPercentInput) || 0
@@ -1936,7 +2376,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
               {/* Header */}
               <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
                 <div className="flex flex-col">
-                  <h3 className="font-bold text-[#2E4233] text-base">Preço Promocional</h3>
+                  <h3 className="font-bold text-[#059669] text-base">Preço Promocional</h3>
                   <span className="text-xs text-gray-500 font-medium truncate max-w-[240px]">
                     {discountModalItem.name}
                   </span>
@@ -1963,7 +2403,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-semibold text-gray-700 flex justify-between">
                     <span>Porcentagem de Desconto:</span>
-                    <span className="text-[#CB5A3C] font-bold">{pct > 0 ? `${pct}%` : "0%"}</span>
+                    <span className="text-[#059669] font-bold">{pct > 0 ? `${pct}%` : "0%"}</span>
                   </label>
                   
                   <div className="relative">
@@ -1977,7 +2417,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                       placeholder="Ex: 15"
                       autoFocus
                       required
-                      className="w-full border border-[#E9E4D4] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#CB5A3C] focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all"
+                      className="w-full border border-[#E9E4D4] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#059669] focus:outline-none focus:ring-2 focus:ring-[#059669]/20 focus:border-[#059669] transition-all"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">
                       %
@@ -1993,8 +2433,8 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                         onClick={() => setDiscountPercentInput(quickPct.toString())}
                         className={`flex-1 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
                           pct === quickPct
-                            ? "bg-[#CB5A3C] text-white border-[#CB5A3C]"
-                            : "bg-white text-gray-600 border-[#E9E4D4] hover:bg-orange-50/50 hover:text-[#CB5A3C]"
+                            ? "bg-[#059669] text-white border-[#059669]"
+                            : "bg-white text-gray-600 border-[#E9E4D4] hover:bg-emerald-50/50 hover:text-[#059669]"
                         }`}
                       >
                         {quickPct}%
@@ -2003,15 +2443,15 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                   </div>
                 </div>
 
-                {/* Prévia do Preço Calculado */}
-                <div className="p-3.5 rounded-xl bg-orange-50/70 border border-orange-200/80 flex flex-col gap-1">
+                {/* Prévia do Preço Calculado em Verde Esmeralda */}
+                <div className="p-3.5 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] flex flex-col gap-1">
                   <span className="text-[11px] text-gray-500 font-medium">Preço promocional já calculado:</span>
                   <div className="flex items-baseline justify-between">
-                    <span className="text-xl font-bold text-[#CB5A3C]">
+                    <span className="text-xl font-bold text-[#059669]">
                       {formatCurrency(calculatedPromo)}
                     </span>
                     {savings > 0 && (
-                      <span className="text-xs font-semibold text-[#16A34A]">
+                      <span className="text-xs font-semibold text-[#059669]">
                         Economia de {formatCurrency(savings)}
                       </span>
                     )}
@@ -2042,7 +2482,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-[#059669] hover:bg-[#047857] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
                     >
                       Aplicar
                     </button>
