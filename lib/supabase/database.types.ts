@@ -461,6 +461,98 @@ export type Database = {
           },
         ]
       }
+      inventory_categories: {
+        Row: {
+          color_bg: string
+          color_text: string
+          created_at: string
+          id: string
+          name: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          color_bg?: string
+          color_text?: string
+          created_at?: string
+          id?: string
+          name: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          color_bg?: string
+          color_text?: string
+          created_at?: string
+          id?: string
+          name?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_categories_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_items: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          id: string
+          min_stock: number
+          name: string
+          quantity: number
+          store_id: string
+          unit: string
+          unit_cost_cents: number
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          min_stock?: number
+          name: string
+          quantity?: number
+          store_id: string
+          unit?: string
+          unit_cost_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          min_stock?: number
+          name?: string
+          quantity?: number
+          store_id?: string
+          unit?: string
+          unit_cost_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           id: string
@@ -499,6 +591,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_menu_items"
             referencedColumns: ["id"]
           },
         ]
@@ -577,33 +676,60 @@ export type Database = {
           category_id: string
           created_at: string
           daily_limit: number | null
+          daily_remaining: number | null
           description: string | null
           id: string
+          image_url: string | null
+          in_promo: boolean
           is_active: boolean
           name: string
           price_cents: number
+          promo_end_date: string | null
+          promo_indefinite: boolean
+          promo_price_cents: number | null
+          promo_start_date: string | null
+          store_id: string | null
+          tags: string[]
           updated_at: string
         }
         Insert: {
           category_id: string
           created_at?: string
           daily_limit?: number | null
+          daily_remaining?: number | null
           description?: string | null
           id?: string
+          image_url?: string | null
+          in_promo?: boolean
           is_active?: boolean
           name: string
           price_cents?: number
+          promo_end_date?: string | null
+          promo_indefinite?: boolean
+          promo_price_cents?: number | null
+          promo_start_date?: string | null
+          store_id?: string | null
+          tags?: string[]
           updated_at?: string
         }
         Update: {
           category_id?: string
           created_at?: string
           daily_limit?: number | null
+          daily_remaining?: number | null
           description?: string | null
           id?: string
+          image_url?: string | null
+          in_promo?: boolean
           is_active?: boolean
           name?: string
           price_cents?: number
+          promo_end_date?: string | null
+          promo_indefinite?: boolean
+          promo_price_cents?: number | null
+          promo_start_date?: string | null
+          store_id?: string | null
+          tags?: string[]
           updated_at?: string
         }
         Relationships: [
@@ -612,6 +738,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -722,9 +855,149 @@ export type Database = {
         }
         Relationships: []
       }
+      user_tour_progress: {
+        Row: {
+          clerk_user_id: string
+          completed: boolean
+          created_at: string
+          dismissed: boolean
+          id: string
+          tour_key: string
+          updated_at: string
+        }
+        Insert: {
+          clerk_user_id: string
+          completed?: boolean
+          created_at?: string
+          dismissed?: boolean
+          id?: string
+          tour_key: string
+          updated_at?: string
+        }
+        Update: {
+          clerk_user_id?: string
+          completed?: boolean
+          created_at?: string
+          dismissed?: boolean
+          id?: string
+          tour_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      vw_inventory_alerts: {
+        Row: {
+          category_color_bg: string | null
+          category_color_text: string | null
+          category_id: string | null
+          category_name: string | null
+          created_at: string | null
+          id: string | null
+          min_stock: number | null
+          name: string | null
+          quantity: number | null
+          store_id: string | null
+          unit: string | null
+          unit_cost_cents: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_inventory_summary: {
+        Row: {
+          avg_cost_cents: number | null
+          store_id: string | null
+          total_items: number | null
+          total_value_cents: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_menu_items: {
+        Row: {
+          category_id: string | null
+          category_name: string | null
+          category_sort_order: number | null
+          created_at: string | null
+          daily_limit: number | null
+          daily_remaining: number | null
+          description: string | null
+          discount_percentage: number | null
+          id: string | null
+          image_url: string | null
+          in_promo: boolean | null
+          is_active: boolean | null
+          is_out_of_stock: boolean | null
+          name: string | null
+          price_cents: number | null
+          promo_end_date: string | null
+          promo_indefinite: boolean | null
+          promo_price_cents: number | null
+          promo_start_date: string | null
+          store_id: string | null
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_menu_summary: {
+        Row: {
+          active_products: number | null
+          out_of_stock_products: number | null
+          paused_products: number | null
+          promo_products: number | null
+          store_id: string | null
+          total_products: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       activate_first_store_with_initial_trial: {

@@ -20,6 +20,18 @@ import {
   Play
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
+import {
+  createMenuProduct,
+  updateMenuProduct,
+  deleteMenuProduct,
+  toggleProductAvailability,
+  inlineUpdatePrice,
+  inlineUpdateDailyLimit,
+  applyPromoDiscount,
+  removePromoDiscount,
+  recordTourProgress,
+  uploadMenuProductImage
+} from "./actions"
 
 export interface MenuItem {
   id: string
@@ -171,297 +183,17 @@ export function getItemCategories(item: MenuItem): string[] {
   return item.category ? [item.category] : []
 }
 
-const INITIAL_ITEMS: MenuItem[] = [
-  {
-    id: "item-1",
-    name: "M Bowl Noma",
-    category: "Bowls",
-    categories: ["Bowls", "Mais pedido"],
-    categoryBg: "bg-[#EBF5ED]",
-    categoryText: "text-[#477A55]",
-    image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80",
-    description: "Salmão grelhado, arroz cateto, edamame, manga, repolho roxo, cenoura, gergelim e molho da casa.",
-    originalPrice: "R$ 49,90",
-    promoPrice: "R$ 42,90",
-    inPromo: true,
-    isAvailable: true,
-    dailyLimit: null,
-    remaining: null,
-    availabilitySchedule: "Todos os dias, 11:00 – 23:00",
-    promoSchedule: "Até 15/07/2025"
-  },
-  {
-    id: "item-2",
-    name: "Chá da casa",
-    category: "Bebidas",
-    categories: ["Bebidas", "Orgânico"],
-    categoryBg: "bg-[#FDF4E7]",
-    categoryText: "text-[#BA732F]",
-    image: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=400&auto=format&fit=crop&q=80",
-    description: "Blend de ervas orgânicas da estação. Leve, aromático e reconfortante.",
-    originalPrice: "R$ 12,90",
-    promoPrice: "R$ 10,90",
-    inPromo: true,
-    isAvailable: true,
-    dailyLimit: 50,
-    remaining: 0,
-    availabilitySchedule: "Todos os dias, 07:00 – 22:00",
-    promoSchedule: "Até 01/06/2025"
-  },
-  {
-    id: "item-3",
-    name: "Brownie de chocolate",
-    category: "Sobremesas",
-    categoryBg: "bg-[#F7EDF9]",
-    categoryText: "text-[#8E5296]",
-    image: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=400&auto=format&fit=crop&q=80",
-    description: "Brownie úmido com cacau belga e gotas de chocolate nobre.",
-    originalPrice: "R$ 16,90",
-    promoPrice: null,
-    inPromo: false,
-    isAvailable: true,
-    dailyLimit: null,
-    remaining: null,
-    availabilitySchedule: "Todos os dias, 11:00 – 22:00",
-    promoSchedule: ""
-  },
-  {
-    id: "item-4",
-    name: "Suco detox verde",
-    category: "Bebidas",
-    categoryBg: "bg-[#FDF4E7]",
-    categoryText: "text-[#BA732F]",
-    image: "https://images.unsplash.com/photo-1613478223719-2ab802602423?w=400&auto=format&fit=crop&q=80",
-    description: "Couve, maçã verde, pepino, limão e gengibre prensados a frio.",
-    originalPrice: "R$ 15,90",
-    promoPrice: null,
-    inPromo: false,
-    isAvailable: true,
-    dailyLimit: 30,
-    remaining: 18,
-    availabilitySchedule: "Todos os dias, 08:00 – 20:00",
-    promoSchedule: ""
-  },
-  {
-    id: "item-5",
-    name: "Poke Clássico de Atum",
-    category: "Bowls",
-    categories: ["Bowls", "Destaque"],
-    categoryBg: "bg-[#EBF5ED]",
-    categoryText: "text-[#477A55]",
-    image: "https://images.unsplash.com/photo-1543339308-43e59d6b73a6?w=400&auto=format&fit=crop&q=80",
-    description: "Atum fresco marinado, arroz shari, avocado, nori, pepino e molho shoyu especial.",
-    originalPrice: "R$ 52,90",
-    promoPrice: "R$ 47,90",
-    inPromo: true,
-    isAvailable: true,
-    dailyLimit: 40,
-    remaining: 12,
-    availabilitySchedule: "Todos os dias, 11:30 – 22:30",
-    promoSchedule: "Até 30/08/2025"
-  },
-  {
-    id: "item-6",
-    name: "Bowl Frango Teriyaki",
-    category: "Bowls",
-    categoryBg: "bg-[#EBF5ED]",
-    categoryText: "text-[#477A55]",
-    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&auto=format&fit=crop&q=80",
-    description: "Filé de frango grelhado ao molho teriyaki, quinoa real, brócolis tostado e lâminas de amêndoas.",
-    originalPrice: "R$ 44,90",
-    promoPrice: null,
-    inPromo: false,
-    isAvailable: true,
-    dailyLimit: 35,
-    remaining: 20,
-    availabilitySchedule: "Todos os dias, 11:00 – 23:00",
-    promoSchedule: ""
-  },
-  {
-    id: "item-7",
-    name: "Açaí Especial Noma 400ml",
-    category: "Sobremesas",
-    categoryBg: "bg-[#F7EDF9]",
-    categoryText: "text-[#8E5296]",
-    image: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=400&auto=format&fit=crop&q=80",
-    description: "Açaí puro batido com banana, granola crocante artesanal, morangos frescos e mel orgânico.",
-    originalPrice: "R$ 28,00",
-    promoPrice: "R$ 24,00",
-    inPromo: true,
-    isAvailable: true,
-    dailyLimit: 60,
-    remaining: 45,
-    availabilitySchedule: "Todos os dias, 12:00 – 22:00",
-    promoSchedule: "Até 20/07/2025"
-  },
-  {
-    id: "item-8",
-    name: "Kombucha Hibisco e Limão",
-    category: "Bebidas",
-    categoryBg: "bg-[#FDF4E7]",
-    categoryText: "text-[#BA732F]",
-    image: "https://images.unsplash.com/photo-1556881286-fc6915169721?w=400&auto=format&fit=crop&q=80",
-    description: "Bebida fermentada naturalmente probiótica com infusão de flores de hibisco.",
-    originalPrice: "R$ 18,00",
-    promoPrice: null,
-    inPromo: false,
-    isAvailable: false,
-    dailyLimit: 25,
-    remaining: 0,
-    availabilitySchedule: "Todos os dias, 08:00 – 22:00",
-    promoSchedule: ""
-  },
-  {
-    id: "item-9",
-    name: "Dadinhos de Tapioca",
-    category: "Entradas",
-    categories: ["Entradas", "Mais pedido"],
-    categoryBg: "bg-[#EFF6FF]",
-    categoryText: "text-[#2563EB]",
-    image: "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=400&auto=format&fit=crop&q=80",
-    description: "Queijo coalho e tapioca granulada crocantes, acompanhados de geleia de pimenta defumada.",
-    originalPrice: "R$ 26,00",
-    promoPrice: "R$ 22,00",
-    inPromo: true,
-    isAvailable: true,
-    dailyLimit: null,
-    remaining: null,
-    availabilitySchedule: "Todos os dias, 12:00 – 23:00",
-    promoSchedule: "Até 10/08/2025"
-  },
-  {
-    id: "item-10",
-    name: "Bowl Vegano Raízes",
-    category: "Bowls",
-    categories: ["Bowls", "Vegano"],
-    categoryBg: "bg-[#EBF5ED]",
-    categoryText: "text-[#477A55]",
-    image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&auto=format&fit=crop&q=80",
-    description: "Abóbora assada, grão de bico crocante, rúcula, castanhas e molho tahine artesanal.",
-    originalPrice: "R$ 39,90",
-    promoPrice: "R$ 34,90",
-    inPromo: true,
-    isAvailable: true,
-    dailyLimit: null,
-    remaining: null,
-    availabilitySchedule: "Todos os dias, 11:00 – 22:00",
-    promoSchedule: "Até 31/07/2025"
-  },
-  {
-    id: "item-11",
-    name: "Cheesecake Frutas Vermelhas",
-    category: "Sobremesas",
-    categoryBg: "bg-[#F7EDF9]",
-    categoryText: "text-[#8E5296]",
-    image: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=400&auto=format&fit=crop&q=80",
-    description: "Base crocante de amêndoas com creme leve de cream cheese e calda artesanal de amoras.",
-    originalPrice: "R$ 22,00",
-    promoPrice: null,
-    inPromo: false,
-    isAvailable: false,
-    dailyLimit: null,
-    remaining: null,
-    availabilitySchedule: "Todos os dias, 12:00 – 22:00",
-    promoSchedule: ""
-  },
-  {
-    id: "item-12",
-    name: "Edamame ao Sal Grosso",
-    category: "Entradas",
-    categoryBg: "bg-[#EFF6FF]",
-    categoryText: "text-[#2563EB]",
-    image: "https://images.unsplash.com/photo-1559847844-5315695dadae?w=400&auto=format&fit=crop&q=80",
-    description: "Vagens frescas de soja no vapor finalizadas com flor de sal e óleo de gergelim tostado.",
-    originalPrice: "R$ 19,90",
-    promoPrice: null,
-    inPromo: false,
-    isAvailable: true,
-    dailyLimit: null,
-    remaining: null,
-    availabilitySchedule: "Todos os dias, 11:30 – 23:00",
-    promoSchedule: ""
-  },
-  {
-    id: "item-13",
-    name: "Água de Coco Natural",
-    category: "Bebidas",
-    categoryBg: "bg-[#FDF4E7]",
-    categoryText: "text-[#BA732F]",
-    image: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&auto=format&fit=crop&q=80",
-    description: "Água de coco 100% natural servida bem gelada (300ml).",
-    originalPrice: "R$ 11,00",
-    promoPrice: null,
-    inPromo: false,
-    isAvailable: true,
-    dailyLimit: null,
-    remaining: null,
-    availabilitySchedule: "Todos os dias, 08:00 – 23:00",
-    promoSchedule: ""
-  },
-  {
-    id: "item-14",
-    name: "Wrap de Frango com Cream Cheese",
-    category: "Entradas",
-    categoryBg: "bg-[#EFF6FF]",
-    categoryText: "text-[#2563EB]",
-    image: "https://images.unsplash.com/photo-1509722747041-616f39b57569?w=400&auto=format&fit=crop&q=80",
-    description: "Pão folha integral, tiras de peito de frango grelhado, cream cheese, alface romana e tomate.",
-    originalPrice: "R$ 32,00",
-    promoPrice: null,
-    inPromo: false,
-    isAvailable: true,
-    dailyLimit: 30,
-    remaining: 14,
-    availabilitySchedule: "Todos os dias, 11:00 – 22:30",
-    promoSchedule: ""
-  },
-  {
-    id: "item-15",
-    name: "Pudim de Leite Artesanal",
-    category: "Sobremesas",
-    categoryBg: "bg-[#F7EDF9]",
-    categoryText: "text-[#8E5296]",
-    image: "https://images.unsplash.com/photo-1517433670267-08bbd4be890f?w=400&auto=format&fit=crop&q=80",
-    description: "Pudim cremoso sem furinhos com calda clássica de caramelo dourado.",
-    originalPrice: "R$ 14,00",
-    promoPrice: null,
-    inPromo: false,
-    isAvailable: true,
-    dailyLimit: 20,
-    remaining: 5,
-    availabilitySchedule: "Todos os dias, 11:30 – 22:00",
-    promoSchedule: ""
-  },
-  {
-    id: "item-16",
-    name: "Bowl Salmão Fresh",
-    category: "Bowls",
-    categoryBg: "bg-[#EBF5ED]",
-    categoryText: "text-[#477A55]",
-    image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80",
-    description: "Cubos de salmão fresco marinado no limão siciliano, arroz integral, manga e cebolinha.",
-    originalPrice: "R$ 56,00",
-    promoPrice: "R$ 49,90",
-    inPromo: true,
-    isAvailable: true,
-    dailyLimit: null,
-    remaining: null,
-    availabilitySchedule: "Todos os dias, 11:30 – 23:00",
-    promoSchedule: "Até 31/08/2025"
-  }
-]
-
-function parseCurrency(str: string): number {
+export function parseCurrency(str: string): number {
   if (!str) return 0
   const clean = str.replace(/[^\d,.-]/g, "").replace(",", ".")
   return parseFloat(clean) || 0
 }
 
-function formatCurrency(num: number): string {
+export function formatCurrency(num: number): string {
   return `R$ ${num.toFixed(2).replace(".", ",")}`
 }
 
-function getDiscountPercentage(original: string, promo: string | null): number {
+export function getDiscountPercentage(original: string, promo: string | null): number {
   if (!promo) return 0
   const orig = parseCurrency(original)
   const p = parseCurrency(promo)
@@ -469,10 +201,10 @@ function getDiscountPercentage(original: string, promo: string | null): number {
   return Math.round(((orig - p) / orig) * 100)
 }
 
-function formatPromoPeriod(
-  startDateStr: string,
-  endDateStr: string,
-  isIndefinite: boolean
+export function formatPromoPeriod(
+  startDateStr?: string | null,
+  endDateStr?: string | null,
+  isIndefinite?: boolean
 ): { periodText: string; totalDays: number } {
   if (isIndefinite) {
     return {
@@ -488,7 +220,7 @@ function formatPromoPeriod(
     }
   }
 
-  const formatDateBR = (isoDate: string) => {
+  const formatDateBR = (isoDate?: string | null) => {
     if (!isoDate) return ""
     const parts = isoDate.split("-")
     if (parts.length === 3) {
@@ -520,13 +252,22 @@ function formatPromoPeriod(
   }
 }
 
-interface MenuClientProps {
+export interface MenuClientProps {
   storeSlug?: string
   storeName?: string
+  initialItems?: MenuItem[]
+  initialCategories?: { id: string; name: string }[]
+  tourAlreadyDismissed?: boolean
 }
 
-export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa Noma" }: MenuClientProps) {
-  const [items, setItems] = useState<MenuItem[]>(INITIAL_ITEMS)
+export default function MenuClient({
+  storeSlug = "casa-noma",
+  storeName = "Casa Noma",
+  initialItems = [],
+  initialCategories = [],
+  tourAlreadyDismissed = false
+}: MenuClientProps) {
+  const [items, setItems] = useState<MenuItem[]>(initialItems)
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState("")
@@ -598,7 +339,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
   const [notification, setNotification] = useState<string | null>(null)
 
   // Tutorial / Spotlight states
-  const [showTourPrompt, setShowTourPrompt] = useState<boolean>(true)
+  const [showTourPrompt, setShowTourPrompt] = useState<boolean>(!tourAlreadyDismissed)
   const [tourStep, setTourStep] = useState<number | null>(null)
   const [spotlightRect, setSpotlightRect] = useState<DOMRect | null>(null)
   const [modalTourType, setModalTourType] = useState<"promo" | "new_item" | null>(null)
@@ -653,6 +394,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
         setTourStep(tourStep + 1)
       } else {
         setTourStep(null)
+        recordTourProgress("menu_tour", { completed: true });
         setNotification("🎉 Tutorial concluído! Bom trabalho.")
         setTimeout(() => setNotification(null), 3500)
       }
@@ -675,7 +417,13 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
       setModalTourStep(null)
     } else {
       setTourStep(null)
+      recordTourProgress("menu_tour", { dismissed: true })
     }
+  }
+
+  const handleDismissTourPrompt = () => {
+    setShowTourPrompt(false)
+    recordTourProgress("menu_tour", { dismissed: true })
   }
 
   // Spotlight position tracker & keyboard listener
@@ -800,14 +548,30 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
 
   // Categories list
   const categories = useMemo(() => {
-    return [
-      { id: "all", name: "Todas as categorias" },
-      { id: "Bowls", name: "Bowls", color: "#477A55" },
-      { id: "Bebidas", name: "Bebidas", color: "#BA732F" },
-      { id: "Sobremesas", name: "Sobremesas", color: "#8E5296" },
-      { id: "Entradas", name: "Entradas", color: "#2563EB" }
-    ]
-  }, [])
+    const catMap = new Map<string, { id: string; name: string; color?: string }>()
+    catMap.set("all", { id: "all", name: "Todas as categorias" })
+
+    // Include initial categories from DB
+    for (const c of initialCategories) {
+      catMap.set(c.name, { id: c.name, name: c.name })
+    }
+
+    // Include categories from loaded items
+    for (const it of items) {
+      if (it.category && !catMap.has(it.category)) {
+        catMap.set(it.category, { id: it.category, name: it.category })
+      }
+      if (it.categories) {
+        for (const c of it.categories) {
+          if (!catMap.has(c)) {
+            catMap.set(c, { id: c, name: c })
+          }
+        }
+      }
+    }
+
+    return Array.from(catMap.values())
+  }, [items, initialCategories])
 
   // Filtered Items
   const filteredItems = useMemo(() => {
@@ -847,11 +611,15 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
   // Toggle availability switch directly from table
   const handleToggleAvailability = (id: string, e?: React.MouseEvent | React.SyntheticEvent) => {
     e?.stopPropagation()
+    const targetItem = items.find((it) => it.id === id)
+    if (!targetItem) return
+    const newStatus = !targetItem.isAvailable
     setItems((prev) =>
       prev.map((item) =>
-        item.id === id ? { ...item, isAvailable: !item.isAvailable } : item
+        item.id === id ? { ...item, isAvailable: newStatus } : item
       )
     )
+    toggleProductAvailability(id, newStatus).catch(console.error)
   }
 
   // Adicionar categoria livre ao formulário de item (suporta vírgulas)
@@ -870,18 +638,24 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
   }
 
   // Processar upload de imagem no modal de novo item
-  const handleProcessNewItemImage = (file: File) => {
+  const handleProcessNewItemImage = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       alert("Por favor, selecione um arquivo de imagem válido (PNG, JPG, WebP).")
       return
     }
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      if (e.target?.result) {
-        setFormImage(e.target.result as string)
+    const localPreview = URL.createObjectURL(file)
+    setFormImage(localPreview)
+
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await uploadMenuProductImage(fd)
+      if (res?.publicUrl) {
+        setFormImage(res.publicUrl)
       }
+    } catch (err) {
+      console.error("Erro ao enviar imagem para o Supabase Storage:", err)
     }
-    reader.readAsDataURL(file)
   }
 
   // Open Edit Modal
@@ -959,10 +733,20 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
         })
       )
       setNotification("Item atualizado com sucesso!")
+      updateMenuProduct(itemToEdit.id, {
+        name: formName.trim(),
+        categoryName: mainCategory,
+        categories: finalCategories,
+        priceCents: Math.round(parseCurrency(formOriginalPrice.trim() || itemToEdit.originalPrice) * 100),
+        description: formDescription.trim(),
+        dailyLimit: limitNum,
+        imageUrl: formImage || itemToEdit.image
+      }).catch(console.error)
     } else {
       // Creating new item
+      const tempId = `temp-${Date.now()}`
       const newItem: MenuItem = {
-        id: `item-${Date.now()}`,
+        id: tempId,
         name: formName.trim(),
         category: mainCategory,
         categories: finalCategories,
@@ -981,6 +765,21 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
       }
       setItems((prev) => [newItem, ...prev])
       setNotification("Novo item adicionado ao cardápio!")
+
+      const priceNum = parseCurrency(formOriginalPrice.trim() || "R$ 35,00")
+      createMenuProduct({
+        name: formName.trim(),
+        categoryName: mainCategory,
+        categories: finalCategories,
+        priceCents: Math.round(priceNum * 100),
+        description: formDescription.trim(),
+        dailyLimit: limitNum,
+        imageUrl: formImage || undefined
+      }).then((res) => {
+        if (res?.id) {
+          setItems((prev) => prev.map((it) => (it.id === tempId ? { ...it, id: res.id } : it)))
+        }
+      }).catch(console.error)
     }
 
     setIsModalOpen(false)
@@ -1012,18 +811,24 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
   }
 
   // Processar arquivo de imagem do computador
-  const handleProcessImageFile = (file: File) => {
+  const handleProcessImageFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       alert("Por favor, selecione um arquivo de imagem válido (PNG, JPG, WebP).")
       return
     }
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      if (e.target?.result) {
-        setNewImageUrl(e.target.result as string)
+    const localPreview = URL.createObjectURL(file)
+    setNewImageUrl(localPreview)
+
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await uploadMenuProductImage(fd)
+      if (res?.publicUrl) {
+        setNewImageUrl(res.publicUrl)
       }
+    } catch (err) {
+      console.error("Erro ao enviar imagem para o Supabase Storage:", err)
     }
-    reader.readAsDataURL(file)
   }
 
   const handleDropImage = (e: React.DragEvent) => {
@@ -1109,6 +914,13 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
     )
     setDiscountModalItem(null)
     setNotification(`Promoção confirmada! Preço promocional: ${formattedPromo}`)
+    applyPromoDiscount(discountModalItem.id, {
+      promoPriceCents: Math.round(calculatedPromo * 100),
+      inPromo: true,
+      promoIndefinite: promoIndefinite,
+      promoStartDate: promoStartDate || null,
+      promoEndDate: promoEndDate || null
+    }).catch(console.error)
     setTimeout(() => setNotification(null), 3000)
   }
 
@@ -1132,6 +944,11 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
     )
     setDiscountModalItem(null)
     setNotification("Preço promocional desativado.")
+    removePromoDiscount(discountModalItem.id, {
+      promoIndefinite: promoIndefinite,
+      promoStartDate: promoStartDate || null,
+      promoEndDate: promoEndDate || null
+    }).catch(console.error)
     setTimeout(() => setNotification(null), 3000)
   }
 
@@ -1196,6 +1013,10 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
       )
       setInlineSuccessCellId(`${item.id}-originalPrice`)
       setTimeout(() => setInlineSuccessCellId(null), 1500)
+      const updatedPromoCents = item.inPromo && item.promoPrice
+        ? Math.round(parseCurrency(formatCurrency((cents / 100) * (1 - getDiscountPercentage(item.originalPrice, item.promoPrice) / 100))) * 100)
+        : null
+      inlineUpdatePrice(item.id, cents, updatedPromoCents).catch(console.error)
     } else if (field === "dailyLimit") {
       const trimmed = val.trim()
       let newLimit: number | null = null
@@ -1220,6 +1041,8 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
       )
       setInlineSuccessCellId(`${item.id}-dailyLimit`)
       setTimeout(() => setInlineSuccessCellId(null), 1500)
+      const newRemaining = newLimit !== null ? (item.remaining !== null ? Math.min(item.remaining, newLimit) : newLimit) : null
+      inlineUpdateDailyLimit(item.id, newLimit, newRemaining).catch(console.error)
     }
   }
 
@@ -1320,7 +1143,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
           <button
             type="button"
             onClick={() => {
-              setShowTourPrompt(false)
+              setShowTourPrompt(false); recordTourProgress("menu_tour", { dismissed: true });
               setTourStep(0)
             }}
             className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] hover:border-[#2E4233] text-[#2E4233] text-xs font-semibold hover:bg-white shadow-2xs transition-all cursor-pointer group ml-1"
@@ -1469,6 +1292,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
                 return (
                   <tr
                     key={item.id}
+                    data-product-row={item.id}
                     className={`border-b border-[#E9E4D4] hover:bg-gray-50/60 transition-colors ${
                       isPaused ? "bg-stone-50/30" : ""
                     }`}
@@ -1807,6 +1631,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
             return (
               <div
                 key={item.id}
+                data-product-card={item.id}
                 className={`p-3 flex flex-col gap-2 transition-colors ${
                   isPaused ? "bg-stone-50/30" : ""
                 }`}
@@ -2435,10 +2260,12 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
               <button 
                 type="button" 
                 onClick={() => {
-                  setItems((prev) => prev.filter((i) => i.id !== itemToDelete.id))
+                  const toDeleteId = itemToDelete.id
+                  setItems((prev) => prev.filter((i) => i.id !== toDeleteId))
                   setItemToDelete(null)
                   setNotification("Item removido do cardápio.")
                   setTimeout(() => setNotification(null), 3000)
+                  deleteMenuProduct(toDeleteId).catch(console.error)
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-[14px] font-semibold text-white shadow-sm transition-all cursor-pointer"
               >
@@ -3116,7 +2943,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
               </div>
               <button
                 type="button"
-                onClick={() => setShowTourPrompt(false)}
+                onClick={handleDismissTourPrompt}
                 className="text-white/60 hover:text-white transition-colors cursor-pointer p-1"
                 title="Fechar"
               >
@@ -3155,7 +2982,7 @@ export default function MenuClient({ storeSlug = "casa-noma", storeName = "Casa 
               <div className="flex items-center justify-end gap-2.5 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowTourPrompt(false)}
+                  onClick={handleDismissTourPrompt}
                   className="px-4 py-2.5 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
                 >
                   Agora não / Pular
