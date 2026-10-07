@@ -18,9 +18,9 @@ import {
   Search,
   Calendar,
   ChevronDown,
-  RotateCw,
-  Volume2,
-  VolumeX,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   MapPin,
   Clock,
   ArrowRight,
@@ -229,7 +229,20 @@ export default function OrdersClient() {
   const [isSoundActive, setIsSoundActive] = useState(true)
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false)
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null)
-  const [lastUpdated, setLastUpdated] = useState('18:45')
+  type SortField = 'id' | 'client' | 'items' | 'time' | 'type' | 'total' | 'status'
+  type SortDirection = 'asc' | 'desc'
+
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
 
   // Selected Order
   const activeOrder = useMemo(() => {
@@ -246,9 +259,9 @@ export default function OrdersClient() {
     }
   }, [])
 
-  // Filtered orders
+  // Filtered and sorted orders
   const filteredOrders = useMemo(() => {
-    return orders.filter(order => {
+    const list = orders.filter(order => {
       // Search
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase()
@@ -267,7 +280,69 @@ export default function OrdersClient() {
       }
       return true
     })
-  }, [orders, searchQuery, statusFilter, typeFilter])
+
+    if (!sortField) return list
+
+    const STATUS_PRIORITY: Record<string, number> = {
+      'Novo': 1,
+      'Em preparo': 2,
+      'Pronto': 3,
+      'Em entrega': 4,
+      'Concluído': 5,
+    }
+
+    return [...list].sort((a, b) => {
+      let comparison = 0
+
+      switch (sortField) {
+        case 'id': {
+          const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0
+          const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0
+          comparison = numA - numB
+          break
+        }
+        case 'client': {
+          comparison = a.client.localeCompare(b.client, 'pt-BR', { sensitivity: 'base' })
+          break
+        }
+        case 'items': {
+          comparison = a.itemsCount - b.itemsCount
+          break
+        }
+        case 'time': {
+          const [hA, mA] = a.time.split(':').map(Number)
+          const [hB, mB] = b.time.split(':').map(Number)
+          comparison = (hA * 60 + mA) - (hB * 60 + mB)
+          break
+        }
+        case 'type': {
+          comparison = a.type.localeCompare(b.type, 'pt-BR')
+          break
+        }
+        case 'total': {
+          const parseTotal = (t: string) => {
+            const clean = t.replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')
+            return parseFloat(clean) || 0
+          }
+          comparison = parseTotal(a.total) - parseTotal(b.total)
+          break
+        }
+        case 'status': {
+          const priorityA = STATUS_PRIORITY[a.status] || 99
+          const priorityB = STATUS_PRIORITY[b.status] || 99
+          comparison = priorityA - priorityB
+          if (comparison === 0) {
+            const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0
+            const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0
+            return numB - numA
+          }
+          break
+        }
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison
+    })
+  }, [orders, searchQuery, statusFilter, typeFilter, sortField, sortDirection])
 
   // Play audio chime
   const playSound = () => {
@@ -331,58 +406,10 @@ export default function OrdersClient() {
         )}
       >
         {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-[30px] lg:text-[34px] font-serif font-bold text-[#1C2C22] tracking-tight leading-none">
-                Pedidos
-              </h1>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Fila ao vivo</span>
-              </div>
-            </div>
-            <p className="text-sm text-gray-500 mt-1">
-              Gestão da fila de preparo e despacho • <span className="font-medium text-[#1C2C22]">Casa Noma</span>
-            </p>
-          </div>
-
-          {/* Quick Header Actions */}
-          <div className="flex items-center gap-2.5 self-start md:self-auto">
-            <button
-              onClick={() => setIsSoundActive(!isSoundActive)}
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all shadow-sm",
-                isSoundActive
-                  ? "bg-white border-[#E9E4D4] text-[#1C2C22] hover:bg-[#F5F2E9]"
-                  : "bg-red-50 border-red-200 text-red-700"
-              )}
-              title="Notificação sonora para novos pedidos"
-            >
-              {isSoundActive ? (
-                <>
-                  <Volume2 className="w-4 h-4 text-[#CB5A3C]" />
-                  <span>Som ligado</span>
-                </>
-              ) : (
-                <>
-                  <VolumeX className="w-4 h-4 text-red-500" />
-                  <span>Som mudo</span>
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={() => {
-                const now = new Date()
-                setLastUpdated(now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
-              }}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-[#E9E4D4] text-[#1C2C22] hover:bg-[#F5F2E9] transition-all shadow-sm"
-            >
-              <RotateCw className="w-3.5 h-3.5 text-gray-500" />
-              <span>Atualizar ({lastUpdated})</span>
-            </button>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-[30px] lg:text-[34px] font-serif font-bold text-[#CB5A3C] tracking-tight leading-none">
+            Pedidos
+          </h1>
         </div>
 
         {/* Filter Controls Bar */}
@@ -571,14 +598,154 @@ export default function OrdersClient() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-[#E9E4D4] bg-[#FAF8F0]/80 text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                  <th className="py-3.5 pl-5 pr-2 whitespace-nowrap">Pedido</th>
-                  <th className="py-3.5 px-2 whitespace-nowrap">Cliente</th>
-                  <th className="py-3.5 px-2 whitespace-nowrap">Itens</th>
-                  <th className="py-3.5 px-2 whitespace-nowrap">Horário</th>
-                  <th className="py-3.5 px-2 whitespace-nowrap">Tipo</th>
-                  <th className="py-3.5 px-2 whitespace-nowrap">Total</th>
-                  <th className="py-3.5 px-2 text-center whitespace-nowrap">Status</th>
-                  <th className="py-3.5 pr-5 pl-2 text-right whitespace-nowrap">Ações</th>
+                  <th
+                    onClick={() => handleSort('id')}
+                    className={cn(
+                      "py-3.5 pl-5 pr-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      sortField === 'id' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
+                    )}
+                    title="Organizar por número do pedido"
+                  >
+                    <div className="inline-flex items-center gap-1.5">
+                      <span>Pedido</span>
+                      {sortField === 'id' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('client')}
+                    className={cn(
+                      "py-3.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      sortField === 'client' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
+                    )}
+                    title="Organizar por nome do cliente"
+                  >
+                    <div className="inline-flex items-center gap-1.5">
+                      <span>Cliente</span>
+                      {sortField === 'client' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('items')}
+                    className={cn(
+                      "py-3.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      sortField === 'items' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
+                    )}
+                    title="Organizar por quantidade de itens"
+                  >
+                    <div className="inline-flex items-center gap-1.5">
+                      <span>Itens</span>
+                      {sortField === 'items' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('time')}
+                    className={cn(
+                      "py-3.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      sortField === 'time' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
+                    )}
+                    title="Organizar por horário"
+                  >
+                    <div className="inline-flex items-center gap-1.5">
+                      <span>Horário</span>
+                      {sortField === 'time' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('type')}
+                    className={cn(
+                      "py-3.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      sortField === 'type' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
+                    )}
+                    title="Organizar por tipo (Delivery / Retirada)"
+                  >
+                    <div className="inline-flex items-center gap-1.5">
+                      <span>Tipo</span>
+                      {sortField === 'type' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('total')}
+                    className={cn(
+                      "py-3.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      sortField === 'total' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
+                    )}
+                    title="Organizar por valor total"
+                  >
+                    <div className="inline-flex items-center gap-1.5">
+                      <span>Total</span>
+                      {sortField === 'total' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('status')}
+                    className={cn(
+                      "py-3.5 px-2 text-center whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      sortField === 'status' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
+                    )}
+                    title="Organizar por status (agrupar iguais)"
+                  >
+                    <div className="inline-flex items-center justify-center gap-1.5">
+                      <span>Status</span>
+                      {sortField === 'status' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </th>
+                  <th className="py-3.5 pr-5 pl-2 text-right whitespace-nowrap select-none">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E9E4D4]/60">
