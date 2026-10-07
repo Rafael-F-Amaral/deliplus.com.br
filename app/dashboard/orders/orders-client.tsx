@@ -1,11 +1,10 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
   ShoppingBag,
-  CookingPot,
   CircleCheck,
   Bike,
   Printer,
@@ -23,11 +22,7 @@ import {
   ArrowDown,
   MapPin,
   Clock,
-  ArrowRight,
-  ExternalLink,
-  ChevronRight,
-  Sparkles,
-  AlertCircle
+  ExternalLink
 } from 'lucide-react'
 
 export interface OrderItem {
@@ -229,13 +224,16 @@ export default function OrdersClient() {
   const [isSoundActive, setIsSoundActive] = useState(true)
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false)
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null)
-  type SortField = 'id' | 'client' | 'items' | 'time' | 'type' | 'total' | 'status'
+  type SortField = 'id' | 'client' | 'time' | 'type' | 'total' | 'status'
   type SortDirection = 'asc' | 'desc'
 
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
 
   const handleSort = (field: SortField) => {
+    setCurrentPage(1)
     if (sortField === field) {
       setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'))
     } else {
@@ -248,16 +246,6 @@ export default function OrdersClient() {
   const activeOrder = useMemo(() => {
     return orders.find(o => o.id === selectedOrderId) || null
   }, [orders, selectedOrderId])
-
-  // KPI counts
-  const kpiCounts = useMemo(() => {
-    return {
-      novos: 12,
-      emPreparo: 8,
-      prontos: 16,
-      emEntrega: 7
-    }
-  }, [])
 
   // Filtered and sorted orders
   const filteredOrders = useMemo(() => {
@@ -305,10 +293,6 @@ export default function OrdersClient() {
           comparison = a.client.localeCompare(b.client, 'pt-BR', { sensitivity: 'base' })
           break
         }
-        case 'items': {
-          comparison = a.itemsCount - b.itemsCount
-          break
-        }
         case 'time': {
           const [hA, mA] = a.time.split(':').map(Number)
           const [hB, mB] = b.time.split(':').map(Number)
@@ -344,11 +328,18 @@ export default function OrdersClient() {
     })
   }, [orders, searchQuery, statusFilter, typeFilter, sortField, sortDirection])
 
+  // Pagination calculation
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ITEMS_PER_PAGE))
+  const paginatedOrders = useMemo(() => {
+    return filteredOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  }, [filteredOrders, currentPage, ITEMS_PER_PAGE])
+
   // Play audio chime
   const playSound = () => {
     if (!isSoundActive || typeof window === 'undefined') return
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      const audioCtx = new AudioCtxClass()
       const osc = audioCtx.createOscillator()
       const gain = audioCtx.createGain()
       osc.type = 'sine'
@@ -360,7 +351,7 @@ export default function OrdersClient() {
       gain.connect(audioCtx.destination)
       osc.start()
       osc.stop(audioCtx.currentTime + 0.3)
-    } catch (e) {
+    } catch {
       // AudioContext unavailable
     }
   }
@@ -397,7 +388,7 @@ export default function OrdersClient() {
   }
 
   return (
-    <div className="flex h-full w-full relative min-h-screen bg-[#FAF8F0]">
+    <div className="flex w-full relative min-h-full bg-[#FAF8F0]">
       {/* Main Content Area */}
       <div
         className={cn(
@@ -418,7 +409,10 @@ export default function OrdersClient() {
           <div className="relative inline-block">
             <select
               value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
+              onChange={(e) => {
+                setDateFilter(e.target.value)
+                setCurrentPage(1)
+              }}
               className="appearance-none bg-white border border-[#E9E4D4] rounded-xl pl-9 pr-8 py-2.5 text-xs font-semibold text-[#1C2C22] hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-sm cursor-pointer"
             >
               <option value="Hoje">Hoje</option>
@@ -436,13 +430,19 @@ export default function OrdersClient() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setCurrentPage(1)
+              }}
               placeholder="Buscar pedido, cliente ou telefone..."
               className="w-full bg-white border border-[#E9E4D4] rounded-xl pl-10 pr-9 py-2.5 text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 focus:border-[#1E3A2B] transition-all shadow-sm"
             />
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery('')}
+                onClick={() => {
+                  setSearchQuery('')
+                  setCurrentPage(1)
+                }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 <X className="w-3.5 h-3.5" />
@@ -454,7 +454,10 @@ export default function OrdersClient() {
           <div className="relative inline-block">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as 'Todos' | 'Novo' | 'Em preparo' | 'Pronto' | 'Em entrega')
+                setCurrentPage(1)
+              }}
               className="appearance-none bg-white border border-[#E9E4D4] rounded-xl pl-4 pr-8 py-2.5 text-xs font-semibold text-[#1C2C22] hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-sm cursor-pointer"
             >
               <option value="Todos">Todos os status</option>
@@ -470,7 +473,10 @@ export default function OrdersClient() {
           <div className="relative inline-block">
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as any)}
+              onChange={(e) => {
+                setTypeFilter(e.target.value as 'Todos' | 'Delivery' | 'Retirada')
+                setCurrentPage(1)
+              }}
               className="appearance-none bg-white border border-[#E9E4D4] rounded-xl pl-4 pr-8 py-2.5 text-xs font-semibold text-[#1C2C22] hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-sm cursor-pointer"
             >
               <option value="Todos">Todos os tipos de entrega</option>
@@ -481,116 +487,7 @@ export default function OrdersClient() {
           </div>
         </div>
 
-        {/* KPI Cards Row (Interactive) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-7">
-          {/* Card 1: Novos */}
-          <div
-            onClick={() => setStatusFilter(statusFilter === 'Novo' ? 'Todos' : 'Novo')}
-            className={cn(
-              "bg-white rounded-2xl p-4 sm:p-5 border transition-all cursor-pointer relative shadow-sm overflow-hidden group hover:shadow-md",
-              statusFilter === 'Novo'
-                ? "border-[#CB5A3C] ring-2 ring-[#CB5A3C]/20 bg-[#FFF9F7]"
-                : "border-[#E9E4D4] hover:border-[#CB5A3C]/50"
-            )}
-          >
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="w-10 h-10 rounded-xl bg-[#FEF2EE] text-[#CB5A3C] flex items-center justify-center border border-[#FADCD5]">
-                <ShoppingBag className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-red-100/70 text-red-700">
-                Urgente
-              </span>
-            </div>
-            <div>
-              <span className="text-[32px] font-serif font-bold text-[#1C2C22] leading-none block">
-                {kpiCounts.novos}
-              </span>
-              <p className="text-xs font-semibold text-gray-500 mt-1">Novos pedidos</p>
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#CB5A3C]"></div>
-          </div>
 
-          {/* Card 2: Em preparo */}
-          <div
-            onClick={() => setStatusFilter(statusFilter === 'Em preparo' ? 'Todos' : 'Em preparo')}
-            className={cn(
-              "bg-white rounded-2xl p-4 sm:p-5 border transition-all cursor-pointer relative shadow-sm overflow-hidden group hover:shadow-md",
-              statusFilter === 'Em preparo'
-                ? "border-[#D97706] ring-2 ring-[#D97706]/20 bg-[#FFFDF5]"
-                : "border-[#E9E4D4] hover:border-[#D97706]/50"
-            )}
-          >
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="w-10 h-10 rounded-xl bg-[#FFFBEB] text-[#D97706] flex items-center justify-center border border-[#FDE68A]">
-                <CookingPot className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-amber-100/70 text-amber-800">
-                Cozinha
-              </span>
-            </div>
-            <div>
-              <span className="text-[32px] font-serif font-bold text-[#1C2C22] leading-none block">
-                {kpiCounts.emPreparo}
-              </span>
-              <p className="text-xs font-semibold text-gray-500 mt-1">Em preparo</p>
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#D97706]"></div>
-          </div>
-
-          {/* Card 3: Prontos */}
-          <div
-            onClick={() => setStatusFilter(statusFilter === 'Pronto' ? 'Todos' : 'Pronto')}
-            className={cn(
-              "bg-white rounded-2xl p-4 sm:p-5 border transition-all cursor-pointer relative shadow-sm overflow-hidden group hover:shadow-md",
-              statusFilter === 'Pronto'
-                ? "border-[#16A34A] ring-2 ring-[#16A34A]/20 bg-[#F6FEF8]"
-                : "border-[#E9E4D4] hover:border-[#16A34A]/50"
-            )}
-          >
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="w-10 h-10 rounded-xl bg-[#F0FDF4] text-[#16A34A] flex items-center justify-center border border-[#BBF7D0]">
-                <CircleCheck className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-emerald-100/70 text-emerald-800">
-                Balcão
-              </span>
-            </div>
-            <div>
-              <span className="text-[32px] font-serif font-bold text-[#1C2C22] leading-none block">
-                {kpiCounts.prontos}
-              </span>
-              <p className="text-xs font-semibold text-gray-500 mt-1">Prontos p/ saída</p>
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#16A34A]"></div>
-          </div>
-
-          {/* Card 4: Em entrega */}
-          <div
-            onClick={() => setStatusFilter(statusFilter === 'Em entrega' ? 'Todos' : 'Em entrega')}
-            className={cn(
-              "bg-white rounded-2xl p-4 sm:p-5 border transition-all cursor-pointer relative shadow-sm overflow-hidden group hover:shadow-md",
-              statusFilter === 'Em entrega'
-                ? "border-[#0284C7] ring-2 ring-[#0284C7]/20 bg-[#F4FAFF]"
-                : "border-[#E9E4D4] hover:border-[#0284C7]/50"
-            )}
-          >
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="w-10 h-10 rounded-xl bg-[#F0F9FF] text-[#0284C7] flex items-center justify-center border border-[#BAE6FD]">
-                <Bike className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-sky-100/70 text-sky-800">
-                Trânsito
-              </span>
-            </div>
-            <div>
-              <span className="text-[32px] font-serif font-bold text-[#1C2C22] leading-none block">
-                {kpiCounts.emEntrega}
-              </span>
-              <p className="text-xs font-semibold text-gray-500 mt-1">Em entrega</p>
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#0284C7]"></div>
-          </div>
-        </div>
 
         {/* Orders Table Container */}
         <div className="bg-white rounded-2xl border border-[#E9E4D4] shadow-sm overflow-hidden">
@@ -640,27 +537,7 @@ export default function OrdersClient() {
                       )}
                     </div>
                   </th>
-                  <th
-                    onClick={() => handleSort('items')}
-                    className={cn(
-                      "py-3.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
-                      sortField === 'items' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
-                    )}
-                    title="Organizar por quantidade de itens"
-                  >
-                    <div className="inline-flex items-center gap-1.5">
-                      <span>Itens</span>
-                      {sortField === 'items' ? (
-                        sortDirection === 'asc' ? (
-                          <ArrowUp className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                        ) : (
-                          <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                        )
-                      ) : (
-                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
-                      )}
-                    </div>
-                  </th>
+
                   <th
                     onClick={() => handleSort('time')}
                     className={cn(
@@ -751,12 +628,12 @@ export default function OrdersClient() {
               <tbody className="divide-y divide-[#E9E4D4]/60">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-gray-500 text-sm">
+                    <td colSpan={7} className="py-12 text-center text-gray-500 text-sm">
                       Nenhum pedido encontrado para os filtros selecionados.
                     </td>
                   </tr>
                 ) : (
-                  filteredOrders.map((order) => {
+                  paginatedOrders.map((order) => {
                     const isSelected = order.id === selectedOrderId
                     const isNovo = order.status === 'Novo'
                     const isPreparo = order.status === 'Em preparo'
@@ -784,7 +661,6 @@ export default function OrdersClient() {
                               <span className="font-bold text-sm text-[#1C2C22] group-hover:text-[#CB5A3C] transition-colors">
                                 {order.id}
                               </span>
-                              <div className="text-[11px] text-gray-400">Cardápio Digital</div>
                             </div>
                           </div>
                         </td>
@@ -806,16 +682,6 @@ export default function OrdersClient() {
                             >
                               <MessageSquare className="w-3.5 h-3.5" />
                             </a>
-                          </div>
-                        </td>
-
-                        {/* Itens */}
-                        <td className="py-3.5 px-2">
-                          <div className="text-sm font-semibold text-[#1C2C22]">
-                            {order.itemsCount} {order.itemsCount === 1 ? 'item' : 'itens'}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate max-w-[130px]">
-                            {order.itemsDesc}
                           </div>
                         </td>
 
@@ -914,41 +780,27 @@ export default function OrdersClient() {
             </table>
           </div>
 
-          {/* Table Footer with Pagination */}
-          <div className="p-4 border-t border-[#E9E4D4] bg-[#FAF8F0]/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
-            <div>
-              Mostrando <span className="font-semibold text-[#1C2C22]">1 a {filteredOrders.length}</span> de{' '}
-              <span className="font-semibold text-[#1C2C22]">24 pedidos</span>
-            </div>
+          {/* Pagination Controls pinned at bottom (Centered with item count) */}
+          <div className="relative flex justify-center items-center px-6 py-2.5 border-t border-[#E9E4D4] bg-[#FAF8F0]/30 shrink-0 min-h-[44px]">
+            <span className="hidden sm:inline-block absolute left-6 text-xs text-gray-500 font-medium">
+              Mostrando {filteredOrders.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredOrders.length)} de {filteredOrders.length} pedidos
+            </span>
 
-            <div className="flex items-center gap-1.5">
-              <button
-                disabled
-                className="w-8 h-8 rounded-lg border border-[#E9E4D4] bg-white flex items-center justify-center text-gray-300 cursor-not-allowed"
-              >
-                &lsaquo;
-              </button>
-              <button className="w-8 h-8 rounded-lg border border-[#1E3A2B] bg-[#1E3A2B] text-white font-bold flex items-center justify-center">
-                1
-              </button>
-              <button className="w-8 h-8 rounded-lg border border-[#E9E4D4] bg-white text-[#1C2C22] font-medium hover:bg-gray-50 flex items-center justify-center">
-                2
-              </button>
-              <button className="w-8 h-8 rounded-lg border border-[#E9E4D4] bg-white text-[#1C2C22] font-medium hover:bg-gray-50 flex items-center justify-center">
-                3
-              </button>
-              <button className="w-8 h-8 rounded-lg border border-[#E9E4D4] bg-white flex items-center justify-center text-[#1C2C22] hover:bg-gray-50">
-                &rsaquo;
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span>Itens por página:</span>
-              <select className="bg-white border border-[#E9E4D4] rounded-lg px-2 py-1 text-xs text-[#1C2C22] focus:outline-none cursor-pointer">
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-              </select>
+            <div className="flex justify-center items-center gap-1.5">
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                    currentPage === i + 1 
+                      ? "bg-[#CB5A3C] text-white shadow-sm" 
+                      : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -994,8 +846,10 @@ export default function OrdersClient() {
             </div>
 
             <button
+              type="button"
               onClick={() => setSelectedOrderId(null)}
-              className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors"
+              aria-label="Fechar"
+              className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
