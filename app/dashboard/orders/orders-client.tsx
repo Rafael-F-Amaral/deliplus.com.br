@@ -336,6 +336,14 @@ const INITIAL_ORDERS: Order[] = [
   }
 ]
 
+const STATUS_OPTIONS: { label: string; value: 'Todos' | 'Novo' | 'Em preparo' | 'Pronto' | 'Em entrega' }[] = [
+  { label: 'Todos', value: 'Todos' },
+  { label: 'Novos', value: 'Novo' },
+  { label: 'Em preparo', value: 'Em preparo' },
+  { label: 'Prontos', value: 'Pronto' },
+  { label: 'Em entrega', value: 'Em entrega' },
+]
+
 export default function OrdersClient() {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>('#1247')
@@ -570,87 +578,94 @@ export default function OrdersClient() {
           </div>
         </div>
 
-        {/* Filter Controls Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-3 shrink-0">
-          {/* Date Selector */}
-          <div className="relative inline-block">
-            <select
-              value={dateFilter}
-              onChange={(e) => {
-                setDateFilter(e.target.value)
-                setCurrentPage(1)
-              }}
-              className="appearance-none bg-white border border-[#E9E4D4] rounded-xl pl-9 pr-8 py-2.5 text-xs font-semibold text-[#1C2C22] hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-sm cursor-pointer"
-            >
-              <option value="Hoje">Hoje</option>
-              <option value="Ontem">Ontem</option>
-              <option value="Últimos 7 dias">Últimos 7 dias</option>
-              <option value="Este mês">Este mês</option>
-            </select>
-            <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
-
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value)
-                setCurrentPage(1)
-              }}
-              placeholder="Buscar pedido, cliente ou telefone..."
-              className="w-full bg-white border border-[#E9E4D4] rounded-xl pl-10 pr-9 py-2.5 text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 focus:border-[#1E3A2B] transition-all shadow-sm"
-            />
-            {searchQuery && (
+        {/* Filter Controls: Status Pills (Cardápio pattern) + Context Bar */}
+        <div className="flex flex-col gap-2.5 mb-3 shrink-0 z-30 relative">
+          {/* Row 1: Status Pill Filters (Cardápio / Estoque pattern) */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 shrink-0">
+            {STATUS_OPTIONS.map((option) => (
               <button
+                key={option.value}
+                type="button"
                 onClick={() => {
-                  setSearchQuery('')
+                  setStatusFilter(option.value)
                   setCurrentPage(1)
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className={cn(
+                  "px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer",
+                  statusFilter === option.value
+                    ? "bg-[#2E4233] text-white"
+                    : "bg-white border border-[#E9E4D4] text-gray-500 hover:bg-[#F8F6EF]"
+                )}
               >
-                <X className="w-3.5 h-3.5" />
+                {option.label}
               </button>
-            )}
+            ))}
           </div>
 
-          {/* Status Filter */}
-          <div className="relative inline-block">
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as 'Todos' | 'Novo' | 'Em preparo' | 'Pronto' | 'Em entrega')
-                setCurrentPage(1)
-              }}
-              className="appearance-none bg-white border border-[#E9E4D4] rounded-xl pl-4 pr-8 py-2.5 text-xs font-semibold text-[#1C2C22] hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-sm cursor-pointer"
-            >
-              <option value="Todos">Todos os status</option>
-              <option value="Novo">Novos</option>
-              <option value="Em preparo">Em preparo</option>
-              <option value="Pronto">Prontos</option>
-              <option value="Em entrega">Em entrega</option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+          {/* Row 2: Date Selector, Search Input & Delivery Type Filter */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            {/* Date Selector */}
+            <div className="relative inline-block shrink-0">
+              <select
+                value={dateFilter}
+                onChange={(e) => {
+                  setDateFilter(e.target.value)
+                  setCurrentPage(1)
+                }}
+                className="appearance-none bg-white border border-[#E9E4D4] rounded-xl pl-9 pr-8 py-2 text-xs font-semibold text-[#1C2C22] hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-sm cursor-pointer"
+              >
+                <option value="Hoje">Hoje</option>
+                <option value="Ontem">Ontem</option>
+                <option value="Últimos 7 dias">Últimos 7 dias</option>
+                <option value="Este mês">Este mês</option>
+              </select>
+              <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
 
-          {/* Type Filter */}
-          <div className="relative inline-block">
-            <select
-              value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value as 'Todos' | 'Delivery' | 'Retirada')
-                setCurrentPage(1)
-              }}
-              className="appearance-none bg-white border border-[#E9E4D4] rounded-xl pl-4 pr-8 py-2.5 text-xs font-semibold text-[#1C2C22] hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-sm cursor-pointer"
-            >
-              <option value="Todos">Todos os tipos de entrega</option>
-              <option value="Delivery">Delivery (Entrega)</option>
-              <option value="Retirada">Retirada no Balcão</option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-0">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setCurrentPage(1)
+                }}
+                placeholder="Buscar pedido, cliente ou telefone..."
+                className="w-full bg-white border border-[#E9E4D4] rounded-xl pl-10 pr-9 py-2 text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 focus:border-[#1E3A2B] transition-all shadow-sm"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('')
+                    setCurrentPage(1)
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Type Filter (kept as options dropdown) */}
+            <div className="relative inline-block shrink-0">
+              <select
+                value={typeFilter}
+                onChange={(e) => {
+                  setTypeFilter(e.target.value as 'Todos' | 'Delivery' | 'Retirada')
+                  setCurrentPage(1)
+                }}
+                className="appearance-none bg-white border border-[#E9E4D4] rounded-xl pl-4 pr-8 py-2 text-xs font-semibold text-[#1C2C22] hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-sm cursor-pointer"
+              >
+                <option value="Todos">Todos os tipos de entrega</option>
+                <option value="Delivery">Delivery (Entrega)</option>
+                <option value="Retirada">Retirada no Balcão</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
         </div>
 
