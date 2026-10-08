@@ -4,14 +4,9 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
-  ShoppingBag,
   CircleCheck,
   Bike,
   Printer,
-  User,
-  CreditCard,
-  ReceiptText,
-  FileText,
   X,
   Check,
   Search,
@@ -21,7 +16,6 @@ import {
   ArrowUp,
   ArrowDown,
   MapPin,
-  Clock,
   ExternalLink
 } from 'lucide-react'
 
@@ -1013,8 +1007,7 @@ export default function OrdersClient() {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-1 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-gray-400" />
+              <p className="text-xs text-[#1C2C22] font-semibold mt-1">
                 Recebido às {activeOrder.time} • {activeOrder.date}
               </p>
             </div>
@@ -1033,8 +1026,7 @@ export default function OrdersClient() {
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Section: Cliente */}
             <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5" />
+              <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2.5">
                 Cliente
               </h3>
               <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-3.5 flex items-center justify-between">
@@ -1056,16 +1048,14 @@ export default function OrdersClient() {
 
             {/* Section: Entrega */}
             <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2.5">
                 {activeOrder.type === 'Delivery' ? (
                   <>
-                    <Bike className="w-3.5 h-3.5" />
-                    Entrega (Delivery)
+                    ENTREGA <span className="text-[#CB5A3C]">(DELIVERY)</span>
                   </>
                 ) : (
                   <>
-                    <ShoppingBag className="w-3.5 h-3.5" />
-                    Retirada no Balcão
+                    RETIRADA <span className="text-[#CB5A3C]">(RETIRADA)</span>
                   </>
                 )}
               </h3>
@@ -1091,8 +1081,7 @@ export default function OrdersClient() {
 
             {/* Section: Itens do pedido */}
             <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                <ReceiptText className="w-3.5 h-3.5" />
+              <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2.5">
                 Itens do pedido ({activeOrder.itemsDetail.length})
               </h3>
               <div className="space-y-2.5">
@@ -1125,8 +1114,7 @@ export default function OrdersClient() {
             {/* Section: Observações */}
             {activeOrder.obs && (
               <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5" />
+                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2.5">
                   Observações do Cliente
                 </h3>
                 <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5 text-xs text-amber-900 leading-relaxed font-medium">
@@ -1137,8 +1125,7 @@ export default function OrdersClient() {
 
             {/* Section: Pagamento */}
             <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5" />
+              <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2.5">
                 Pagamento
               </h3>
               <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-3.5 flex items-center justify-between text-xs">

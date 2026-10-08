@@ -485,7 +485,7 @@ export default function InventoryClient({
   };
 
   return (
-    <div className="flex flex-col w-full h-full max-h-full max-w-[1400px] mx-auto p-3 md:px-6 pt-3 md:pt-5 pb-3 overflow-hidden justify-between">
+    <div className="flex flex-col w-full h-full max-h-full px-4 sm:px-6 pt-3 md:pt-4 pb-3 max-lg:pb-[84px] overflow-hidden justify-between font-sans transition-all min-w-0">
       
       {/* Header Area (Unstuck from top, orange title) */}
       <div className="flex flex-col mb-3 shrink-0">
