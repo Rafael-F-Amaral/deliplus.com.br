@@ -370,8 +370,6 @@ export default function OrdersClient() {
       if (w < 640) {
         // Mobile screens: filters stack vertically and bottom nav takes 72px
         if (h < 750) {
-          setItemsPerPage(3)
-        } else if (h < 900) {
           setItemsPerPage(4)
         } else {
           setItemsPerPage(5)
@@ -379,8 +377,6 @@ export default function OrdersClient() {
       } else if (w < 1024) {
         // Tablets / small laptops
         if (h < 800) {
-          setItemsPerPage(5)
-        } else if (h < 950) {
           setItemsPerPage(6)
         } else {
           setItemsPerPage(7)
@@ -388,13 +384,13 @@ export default function OrdersClient() {
       } else {
         // Desktop / large screens
         if (h < 750) {
-          setItemsPerPage(5)
-        } else if (h < 850) {
-          setItemsPerPage(6)
-        } else if (h < 1000) {
           setItemsPerPage(7)
-        } else {
+        } else if (h < 850) {
           setItemsPerPage(8)
+        } else if (h < 1050) {
+          setItemsPerPage(10)
+        } else {
+          setItemsPerPage(12)
         }
       }
     }
@@ -541,8 +537,8 @@ export default function OrdersClient() {
       {/* Main Content Area */}
       <div
         className={cn(
-          "flex-1 flex flex-col w-full h-full max-h-full max-w-[1400px] mx-auto p-3 md:px-6 pt-3 md:pt-4 pb-3 max-lg:pb-[84px] overflow-hidden justify-between font-sans transition-all min-w-0",
-          activeOrder ? "lg:pr-[440px]" : ""
+          "flex-1 flex flex-col w-full h-full max-h-full px-4 sm:px-6 pt-3 md:pt-4 pb-3 max-lg:pb-[84px] overflow-hidden justify-between font-sans transition-all min-w-0",
+          activeOrder ? "lg:pr-[436px]" : ""
         )}
       >
         {/* Page Header (Orange title matching DeliPlus logo & Estoque/Cardápio) */}
@@ -829,7 +825,7 @@ export default function OrdersClient() {
                         )}
                       >
                         {/* Order ID with Urgent Stripe */}
-                        <td className="py-2.5 pl-5 pr-2 whitespace-nowrap">
+                        <td className="py-2 pl-5 pr-2 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             {isNovo && (
                               <span className="w-1.5 h-6 rounded-full bg-[#CB5A3C] shrink-0" />
@@ -843,8 +839,8 @@ export default function OrdersClient() {
                         </td>
 
                         {/* Cliente */}
-                        <td className="py-2.5 px-2">
-                          <div className="font-semibold text-sm text-[#1C2C22] leading-tight mb-1.5">
+                        <td className="py-2 px-2">
+                          <div className="font-semibold text-sm text-[#1C2C22] leading-tight mb-1">
                             {order.client}
                           </div>
                           <a
@@ -861,13 +857,13 @@ export default function OrdersClient() {
                         </td>
 
                         {/* Horário */}
-                        <td className="py-2.5 px-2 whitespace-nowrap">
+                        <td className="py-2 px-2 whitespace-nowrap">
                           <div className="text-sm font-medium text-[#1C2C22]">{order.time}</div>
                           <div className="text-[11px] text-gray-400">{order.date}</div>
                         </td>
 
                         {/* Tipo */}
-                        <td className="py-2.5 px-2 whitespace-nowrap">
+                        <td className="py-2 px-2 whitespace-nowrap">
                           {order.type === 'Delivery' ? (
                             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200/60">
                               Delivery
@@ -880,7 +876,7 @@ export default function OrdersClient() {
                         </td>
 
                         {/* Total */}
-                        <td className="py-2.5 px-2 whitespace-nowrap">
+                        <td className="py-2 px-2 whitespace-nowrap">
                           <div className="text-[15px] font-bold text-[#1C2C22] leading-tight">{order.total}</div>
                           <div className="text-xs text-gray-700 font-semibold mt-0.5 leading-tight">
                             {order.paymentMethod}
@@ -893,7 +889,7 @@ export default function OrdersClient() {
                         </td>
 
                         {/* Status */}
-                        <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                        <td className="py-2 px-2 text-center whitespace-nowrap">
                           {isNovo && (
                             <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FEF2EE] text-[#CB5A3C] border border-[#FADCD5]">
                               Novo
@@ -917,7 +913,7 @@ export default function OrdersClient() {
                         </td>
 
                         {/* Ações */}
-                        <td className="py-2.5 pr-5 pl-2 text-right whitespace-nowrap">
+                        <td className="py-2 pr-5 pl-2 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5">
                             {isNovo ? (
                               <button
