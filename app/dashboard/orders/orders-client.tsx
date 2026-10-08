@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
@@ -357,7 +357,52 @@ export default function OrdersClient() {
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 10
+
+  // Dynamic items per page ensuring zero vertical scrollbars on any device size
+  const [itemsPerPage, setItemsPerPage] = useState(7)
+
+  useEffect(() => {
+    const calculateItemsPerPage = () => {
+      if (typeof window === 'undefined') return
+      const w = window.innerWidth
+      const h = window.innerHeight
+
+      if (w < 640) {
+        // Mobile screens: filters stack vertically and bottom nav takes 72px
+        if (h < 750) {
+          setItemsPerPage(3)
+        } else if (h < 900) {
+          setItemsPerPage(4)
+        } else {
+          setItemsPerPage(5)
+        }
+      } else if (w < 1024) {
+        // Tablets / small laptops
+        if (h < 800) {
+          setItemsPerPage(5)
+        } else if (h < 950) {
+          setItemsPerPage(6)
+        } else {
+          setItemsPerPage(7)
+        }
+      } else {
+        // Desktop / large screens
+        if (h < 750) {
+          setItemsPerPage(5)
+        } else if (h < 850) {
+          setItemsPerPage(6)
+        } else if (h < 1000) {
+          setItemsPerPage(7)
+        } else {
+          setItemsPerPage(8)
+        }
+      }
+    }
+
+    calculateItemsPerPage()
+    window.addEventListener('resize', calculateItemsPerPage)
+    return () => window.removeEventListener('resize', calculateItemsPerPage)
+  }, [])
 
   const handleSort = (field: SortField) => {
     setCurrentPage(1)
@@ -456,10 +501,11 @@ export default function OrdersClient() {
   }, [orders, searchQuery, statusFilter, typeFilter, sortField, sortDirection])
 
   // Pagination calculation
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ITEMS_PER_PAGE))
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / itemsPerPage))
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages)
   const paginatedOrders = useMemo(() => {
-    return filteredOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
-  }, [filteredOrders, currentPage, ITEMS_PER_PAGE])
+    return filteredOrders.slice((safeCurrentPage - 1) * itemsPerPage, safeCurrentPage * itemsPerPage)
+  }, [filteredOrders, safeCurrentPage, itemsPerPage])
 
   // Handle Order Accept
   const handleAcceptOrder = (orderId: string, e?: React.MouseEvent) => {
@@ -491,23 +537,51 @@ export default function OrdersClient() {
   }
 
   return (
-    <div className="flex w-full relative min-h-full bg-[#FAF8F0]">
+    <div className="flex w-full h-full max-h-full overflow-hidden relative bg-[#FAF8F0]">
       {/* Main Content Area */}
       <div
         className={cn(
-          "flex-1 flex flex-col p-4 sm:p-6 lg:p-8 transition-all min-w-0",
+          "flex-1 flex flex-col w-full h-full max-h-full max-w-[1400px] mx-auto p-3 md:px-6 pt-3 md:pt-4 pb-3 max-lg:pb-[84px] overflow-hidden justify-between font-sans transition-all min-w-0",
           activeOrder ? "lg:pr-[440px]" : ""
         )}
       >
-        {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-[30px] lg:text-[34px] font-serif font-bold text-[#CB5A3C] tracking-tight leading-none">
-            Pedidos
-          </h1>
+        {/* Page Header (Orange title matching DeliPlus logo & Estoque/Cardápio) */}
+        <div className="flex flex-col mb-3 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] tracking-tight">
+              Pedidos
+            </h1>
+
+            {/* Tooltip Icon & Popover */}
+            <div className="relative group inline-block">
+              <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
+                ?
+              </div>
+              <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                <p className="text-[13px] text-white mb-2 leading-relaxed">
+                  <span className="font-extrabold text-white">Dica:</span> Acompanhe e gerencie todos os pedidos em tempo real da sua operação de delivery e retirada.
+                </p>
+                <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white">
+                  <div className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                    <span>Aceite novos pedidos, altere o status de preparo, saída e entrega com um clique.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                    <span>Acesse os dados do cliente e chame diretamente no WhatsApp oficial.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                    <span>Imprima comandas térmicas padronizadas (80mm) para sua cozinha e entregadores.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-3 shrink-0">
           {/* Date Selector */}
           <div className="relative inline-block">
             <select
@@ -593,15 +667,15 @@ export default function OrdersClient() {
 
 
         {/* Orders Table Container */}
-        <div className="bg-white rounded-2xl border border-[#E9E4D4] shadow-sm overflow-hidden flex-1 flex flex-col justify-between min-h-[600px]">
-          <div className="overflow-x-auto flex-1">
+        <div className="bg-white rounded-2xl border border-[#E9E4D4] shadow-sm overflow-hidden flex-1 min-h-0 flex flex-col justify-between">
+          <div className="overflow-x-auto overflow-y-hidden flex-1">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-[#E9E4D4] bg-[#FAF8F0]/80 text-[11px] font-bold uppercase tracking-wider text-gray-500">
                   <th
                     onClick={() => handleSort('id')}
                     className={cn(
-                      "py-3.5 pl-5 pr-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      "py-2.5 pl-5 pr-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
                       sortField === 'id' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
                     )}
                     title="Organizar por número do pedido"
@@ -622,7 +696,7 @@ export default function OrdersClient() {
                   <th
                     onClick={() => handleSort('client')}
                     className={cn(
-                      "py-3.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      "py-2.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
                       sortField === 'client' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
                     )}
                     title="Organizar por nome do cliente"
@@ -644,7 +718,7 @@ export default function OrdersClient() {
                   <th
                     onClick={() => handleSort('time')}
                     className={cn(
-                      "py-3.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      "py-2.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
                       sortField === 'time' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
                     )}
                     title="Organizar por horário"
@@ -665,7 +739,7 @@ export default function OrdersClient() {
                   <th
                     onClick={() => handleSort('type')}
                     className={cn(
-                      "py-3.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      "py-2.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
                       sortField === 'type' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
                     )}
                     title="Organizar por tipo (Delivery / Retirada)"
@@ -686,7 +760,7 @@ export default function OrdersClient() {
                   <th
                     onClick={() => handleSort('total')}
                     className={cn(
-                      "py-3.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      "py-2.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
                       sortField === 'total' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
                     )}
                     title="Organizar por valor total"
@@ -707,7 +781,7 @@ export default function OrdersClient() {
                   <th
                     onClick={() => handleSort('status')}
                     className={cn(
-                      "py-3.5 px-2 text-center whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      "py-2.5 px-2 text-center whitespace-nowrap cursor-pointer select-none group transition-colors",
                       sortField === 'status' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
                     )}
                     title="Organizar por status (agrupar iguais)"
@@ -725,7 +799,7 @@ export default function OrdersClient() {
                       )}
                     </div>
                   </th>
-                  <th className="py-3.5 pr-5 pl-2 text-right whitespace-nowrap select-none">Ações</th>
+                  <th className="py-2.5 pr-5 pl-2 text-right whitespace-nowrap select-none">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E9E4D4]/60">
@@ -755,7 +829,7 @@ export default function OrdersClient() {
                         )}
                       >
                         {/* Order ID with Urgent Stripe */}
-                        <td className="py-3.5 pl-5 pr-2 whitespace-nowrap">
+                        <td className="py-2.5 pl-5 pr-2 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             {isNovo && (
                               <span className="w-1.5 h-6 rounded-full bg-[#CB5A3C] shrink-0" />
@@ -769,7 +843,7 @@ export default function OrdersClient() {
                         </td>
 
                         {/* Cliente */}
-                        <td className="py-3.5 px-2">
+                        <td className="py-2.5 px-2">
                           <div className="font-semibold text-sm text-[#1C2C22] leading-tight mb-1.5">
                             {order.client}
                           </div>
@@ -787,41 +861,39 @@ export default function OrdersClient() {
                         </td>
 
                         {/* Horário */}
-                        <td className="py-3.5 px-2 whitespace-nowrap">
+                        <td className="py-2.5 px-2 whitespace-nowrap">
                           <div className="text-sm font-medium text-[#1C2C22]">{order.time}</div>
                           <div className="text-[11px] text-gray-400">{order.date}</div>
                         </td>
 
                         {/* Tipo */}
-                        <td className="py-3.5 px-2 whitespace-nowrap">
+                        <td className="py-2.5 px-2 whitespace-nowrap">
                           {order.type === 'Delivery' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-sky-50 text-sky-800 border border-sky-200/60">
-                              <Bike className="w-3.5 h-3.5" />
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200/60">
                               Delivery
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200/60">
-                              <ShoppingBag className="w-3.5 h-3.5" />
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/60">
                               Retirada
                             </span>
                           )}
                         </td>
 
                         {/* Total */}
-                        <td className="py-3.5 px-2 whitespace-nowrap">
-                          <div className="text-sm font-bold text-[#1C2C22]">{order.total}</div>
-                          <div className="text-[11px] text-gray-600 font-medium mt-0.5">
+                        <td className="py-2.5 px-2 whitespace-nowrap">
+                          <div className="text-[15px] font-bold text-[#1C2C22] leading-tight">{order.total}</div>
+                          <div className="text-xs text-gray-700 font-semibold mt-0.5 leading-tight">
                             {order.paymentMethod}
                           </div>
                           {order.paymentMethod === 'Em Dinheiro' && order.changeFor && (
-                            <div className="text-[10px] text-amber-700 font-semibold leading-tight">
+                            <div className="text-xs text-amber-800 font-bold mt-0.5 leading-tight">
                               {order.changeFor}
                             </div>
                           )}
                         </td>
 
                         {/* Status */}
-                        <td className="py-3.5 px-2 text-center whitespace-nowrap">
+                        <td className="py-2.5 px-2 text-center whitespace-nowrap">
                           {isNovo && (
                             <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FEF2EE] text-[#CB5A3C] border border-[#FADCD5]">
                               Novo
@@ -845,7 +917,7 @@ export default function OrdersClient() {
                         </td>
 
                         {/* Ações */}
-                        <td className="py-3.5 pr-5 pl-2 text-right whitespace-nowrap">
+                        <td className="py-2.5 pr-5 pl-2 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5">
                             {isNovo ? (
                               <button
@@ -862,8 +934,8 @@ export default function OrdersClient() {
                               className={cn(
                                 "px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all shrink-0",
                                 isSelected
-                                  ? "bg-[#1E3A2B] text-white border-[#1E3A2B]"
-                                  : "bg-white text-[#1C2C22] border-[#E9E4D4] hover:bg-[#F5F2E9]"
+                                    ? "bg-[#1E3A2B] text-white border-[#1E3A2B]"
+                                    : "bg-white text-[#1C2C22] border-[#E9E4D4] hover:bg-[#F5F2E9]"
                               )}
                             >
                               Ver pedido
@@ -889,7 +961,7 @@ export default function OrdersClient() {
           {/* Pagination Controls pinned at bottom (Centered with item count) */}
           <div className="relative flex justify-center items-center px-6 py-2.5 border-t border-[#E9E4D4] bg-[#FAF8F0]/30 shrink-0 min-h-[44px]">
             <span className="hidden sm:inline-block absolute left-6 text-xs text-gray-500 font-medium">
-              Mostrando {filteredOrders.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredOrders.length)} de {filteredOrders.length} pedidos
+              Mostrando {filteredOrders.length > 0 ? (safeCurrentPage - 1) * itemsPerPage + 1 : 0}–{Math.min(safeCurrentPage * itemsPerPage, filteredOrders.length)} de {filteredOrders.length} pedidos
             </span>
 
             <div className="flex justify-center items-center gap-1.5">
@@ -899,7 +971,7 @@ export default function OrdersClient() {
                   type="button"
                   onClick={() => setCurrentPage(i + 1)}
                   className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
-                    currentPage === i + 1 
+                    safeCurrentPage === i + 1 
                       ? "bg-[#CB5A3C] text-white shadow-sm" 
                       : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
                   }`}
