@@ -9,9 +9,9 @@ import {
   Bike,
   Printer,
   User,
-  MessageSquare,
   CreditCard,
   ReceiptText,
+  FileText,
   X,
   Check,
   Search,
@@ -25,12 +25,30 @@ import {
   ExternalLink
 } from 'lucide-react'
 
+// Official WhatsApp Vector Icon (White / Crisp)
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      fill="currentColor"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
+  )
+}
+
 export interface OrderItem {
   qty: number
   name: string
   price: string
   details?: string
 }
+
+export type PaymentMethod = 'Débito na Entrega' | 'Crédito na Entrega' | 'Em Dinheiro'
 
 export interface Order {
   id: string
@@ -44,8 +62,8 @@ export interface Order {
   type: 'Delivery' | 'Retirada'
   address: string
   total: string
-  payment: string
-  paymentStatus: 'Pago' | 'Pendente'
+  paymentMethod: PaymentMethod
+  changeFor?: string
   status: 'Novo' | 'Em preparo' | 'Pronto' | 'Em entrega' | 'Concluído'
   obs?: string
   isUrgent?: boolean
@@ -68,8 +86,7 @@ const INITIAL_ORDERS: Order[] = [
     type: 'Delivery',
     address: 'Rua das Flores, 123 - Vila Madalena, São Paulo - SP, 05433-000',
     total: 'R$ 89,90',
-    payment: 'Pagamento online',
-    paymentStatus: 'Pago',
+    paymentMethod: 'Crédito na Entrega',
     status: 'Novo',
     obs: 'Sem cebola, por favor.\nBater na portaria.',
     isUrgent: true
@@ -89,8 +106,7 @@ const INITIAL_ORDERS: Order[] = [
     type: 'Delivery',
     address: 'Av. Paulista, 1000, Apto 42 - Bela Vista, São Paulo - SP',
     total: 'R$ 64,90',
-    payment: 'Pagamento online',
-    paymentStatus: 'Pago',
+    paymentMethod: 'Débito na Entrega',
     status: 'Em preparo',
     obs: 'Deixar na portaria com o zelador Silva.'
   },
@@ -110,8 +126,8 @@ const INITIAL_ORDERS: Order[] = [
     type: 'Retirada',
     address: 'Retirada no Balcão Casa Noma',
     total: 'R$ 112,40',
-    payment: 'Pagamento online',
-    paymentStatus: 'Pago',
+    paymentMethod: 'Em Dinheiro',
+    changeFor: 'Troco para R$ 150,00',
     status: 'Pronto',
     obs: 'Caprichar no molho tarê, por favor!'
   },
@@ -130,8 +146,7 @@ const INITIAL_ORDERS: Order[] = [
     type: 'Delivery',
     address: 'Rua Mourato Coelho, 780 - Pinheiros, São Paulo - SP',
     total: 'R$ 58,90',
-    payment: 'Cartão na entrega',
-    paymentStatus: 'Pendente',
+    paymentMethod: 'Crédito na Entrega',
     status: 'Em entrega',
     obs: 'Levar maquininha de cartão Stone.'
   },
@@ -149,8 +164,7 @@ const INITIAL_ORDERS: Order[] = [
     type: 'Retirada',
     address: 'Retirada no Balcão Casa Noma',
     total: 'R$ 39,90',
-    payment: 'Pagamento online',
-    paymentStatus: 'Pago',
+    paymentMethod: 'Débito na Entrega',
     status: 'Pronto'
   },
   {
@@ -169,8 +183,8 @@ const INITIAL_ORDERS: Order[] = [
     type: 'Delivery',
     address: 'Rua Harmonia, 345 - Vila Madalena, São Paulo - SP',
     total: 'R$ 87,30',
-    payment: 'Pagamento online',
-    paymentStatus: 'Pago',
+    paymentMethod: 'Em Dinheiro',
+    changeFor: 'Troco para R$ 100,00',
     status: 'Em entrega'
   },
   {
@@ -188,8 +202,7 @@ const INITIAL_ORDERS: Order[] = [
     type: 'Retirada',
     address: 'Retirada no Balcão Casa Noma',
     total: 'R$ 67,80',
-    payment: 'Cartão na entrega',
-    paymentStatus: 'Pendente',
+    paymentMethod: 'Crédito na Entrega',
     status: 'Em preparo',
     obs: 'Cliente vai retirar às 12h15 em ponto.'
   },
@@ -207,10 +220,125 @@ const INITIAL_ORDERS: Order[] = [
     type: 'Delivery',
     address: 'Rua Fradique Coutinho, 510 - Pinheiros, São Paulo - SP',
     total: 'R$ 18,90',
-    payment: 'Pagamento online',
-    paymentStatus: 'Pago',
+    paymentMethod: 'Em Dinheiro',
+    changeFor: 'Troco para R$ 50,00',
     status: 'Novo',
     isUrgent: false
+  },
+  {
+    id: '#1239',
+    client: 'Fernanda Dias',
+    phone: '(11) 90987-6543',
+    itemsCount: 2,
+    itemsDesc: '2 pratos',
+    itemsDetail: [
+      { qty: 1, name: 'Risoto de Cogumelos Frescos', price: 'R$ 52,50', details: 'Arroz arbóreo, shimeji e parmesão' },
+      { qty: 1, name: 'Torta de Limão Siciliano', price: 'R$ 22,00', details: 'Merengue tostado' }
+    ],
+    time: '11:15',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Rua Purpurina, 210 - Vila Madalena, São Paulo - SP',
+    total: 'R$ 74,50',
+    paymentMethod: 'Débito na Entrega',
+    status: 'Em preparo',
+    obs: 'Interfone 32, Bloco B.'
+  },
+  {
+    id: '#1238',
+    client: 'Rodrigo Silveira',
+    phone: '(11) 99876-5432',
+    itemsCount: 3,
+    itemsDesc: '2 pratos, 1 bebida',
+    itemsDetail: [
+      { qty: 2, name: 'Hambúrguer Artesanal Noma', price: 'R$ 98,00', details: 'Blend 180g, queijo cheddar inglês, bacon' },
+      { qty: 1, name: 'Batata Rústica com Alecrim', price: 'R$ 19,00', details: 'Maionese da casa de ervas' },
+      { qty: 1, name: 'Refrigerante Orgânico 350ml', price: 'R$ 12,00', details: 'Guaraná natural' }
+    ],
+    time: '11:05',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Rua Girassol, 480 - Vila Madalena, São Paulo - SP',
+    total: 'R$ 129,00',
+    paymentMethod: 'Crédito na Entrega',
+    status: 'Em entrega',
+    obs: 'Ponto da carne: ao ponto para bem.'
+  },
+  {
+    id: '#1237',
+    client: 'Patrícia Gomes',
+    phone: '(11) 98765-1234',
+    itemsCount: 1,
+    itemsDesc: '1 prato',
+    itemsDetail: [
+      { qty: 1, name: 'Salmão com Crosta de Gergelim', price: 'R$ 45,90', details: 'Purê de mandioquinha e aspargos' }
+    ],
+    time: '10:55',
+    date: 'Hoje',
+    type: 'Retirada',
+    address: 'Retirada no Balcão Casa Noma',
+    total: 'R$ 45,90',
+    paymentMethod: 'Em Dinheiro',
+    changeFor: 'Não precisa de troco',
+    status: 'Pronto'
+  },
+  {
+    id: '#1236',
+    client: 'Gabriel Ramos',
+    phone: '(11) 97654-2345',
+    itemsCount: 2,
+    itemsDesc: '2 pratos',
+    itemsDetail: [
+      { qty: 1, name: 'Pizza Margherita Especial', price: 'R$ 68,30', details: 'Massa fermentação natural, búfala e manjericão' },
+      { qty: 1, name: 'Tiramisù Clássico', price: 'R$ 29,90', details: 'Mascarpone artesanal e café especial' }
+    ],
+    time: '10:40',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Rua Aspicuelta, 320 - Vila Madalena, São Paulo - SP',
+    total: 'R$ 98,20',
+    paymentMethod: 'Crédito na Entrega',
+    status: 'Novo',
+    obs: 'Caprichar no manjericão fresco.'
+  },
+  {
+    id: '#1235',
+    client: 'Larissa Azevedo',
+    phone: '(11) 96543-3456',
+    itemsCount: 2,
+    itemsDesc: '1 prato, 1 bebida',
+    itemsDetail: [
+      { qty: 1, name: 'Bowl Quinoa e Cogumelos', price: 'R$ 38,00', details: 'Mix de cogumelos, tomate confit e pesto' },
+      { qty: 1, name: 'Água de Coco Integral 300ml', price: 'R$ 14,00', details: 'Natural da fruta' }
+    ],
+    time: '10:30',
+    date: 'Hoje',
+    type: 'Retirada',
+    address: 'Retirada no Balcão Casa Noma',
+    total: 'R$ 52,00',
+    paymentMethod: 'Débito na Entrega',
+    status: 'Em preparo'
+  },
+  {
+    id: '#1234',
+    client: 'Eduardo Moreira',
+    phone: '(11) 95432-4567',
+    itemsCount: 3,
+    itemsDesc: '2 pratos, 1 bebida',
+    itemsDetail: [
+      { qty: 1, name: 'Filé Mignon ao Molho Mostarda', price: 'R$ 69,90', details: 'Batatas rústicas e salada verde' },
+      { qty: 1, name: 'Mousse de Maracujá com Calda', price: 'R$ 24,00', details: 'Chocolate meio amargo e maracujá' },
+      { qty: 1, name: 'Suco Natural Abacaxi com Hortelã', price: 'R$ 21,90', details: '500ml gelado' }
+    ],
+    time: '10:15',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Rua Simão Álvares, 650 - Pinheiros, São Paulo - SP',
+    total: 'R$ 115,80',
+    paymentMethod: 'Em Dinheiro',
+    changeFor: 'Troco para R$ 150,00',
+    status: 'Pronto',
+    obs: 'Deixar na recepção do condomínio.'
   }
 ]
 
@@ -221,7 +349,6 @@ export default function OrdersClient() {
   const [statusFilter, setStatusFilter] = useState<'Todos' | 'Novo' | 'Em preparo' | 'Pronto' | 'Em entrega'>('Todos')
   const [typeFilter, setTypeFilter] = useState<'Todos' | 'Delivery' | 'Retirada'>('Todos')
   const [dateFilter, setDateFilter] = useState('Hoje')
-  const [isSoundActive, setIsSoundActive] = useState(true)
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false)
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null)
   type SortField = 'id' | 'client' | 'time' | 'type' | 'total' | 'status'
@@ -334,32 +461,9 @@ export default function OrdersClient() {
     return filteredOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
   }, [filteredOrders, currentPage, ITEMS_PER_PAGE])
 
-  // Play audio chime
-  const playSound = () => {
-    if (!isSoundActive || typeof window === 'undefined') return
-    try {
-      const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-      const audioCtx = new AudioCtxClass()
-      const osc = audioCtx.createOscillator()
-      const gain = audioCtx.createGain()
-      osc.type = 'sine'
-      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime) // D5
-      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.12) // A5
-      gain.gain.setValueAtTime(0.2, audioCtx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3)
-      osc.connect(gain)
-      gain.connect(audioCtx.destination)
-      osc.start()
-      osc.stop(audioCtx.currentTime + 0.3)
-    } catch {
-      // AudioContext unavailable
-    }
-  }
-
   // Handle Order Accept
   const handleAcceptOrder = (orderId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
-    playSound()
     setOrders(prev =>
       prev.map(o => (o.id === orderId ? { ...o, status: 'Em preparo', isUrgent: false } : o))
     )
@@ -367,7 +471,6 @@ export default function OrdersClient() {
 
   // Handle Advance Status
   const handleAdvanceStatus = (orderId: string) => {
-    playSound()
     setOrders(prev =>
       prev.map(o => {
         if (o.id !== orderId) return o
@@ -490,8 +593,8 @@ export default function OrdersClient() {
 
 
         {/* Orders Table Container */}
-        <div className="bg-white rounded-2xl border border-[#E9E4D4] shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="bg-white rounded-2xl border border-[#E9E4D4] shadow-sm overflow-hidden flex-1 flex flex-col justify-between min-h-[600px]">
+          <div className="overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-[#E9E4D4] bg-[#FAF8F0]/80 text-[11px] font-bold uppercase tracking-wider text-gray-500">
@@ -667,22 +770,20 @@ export default function OrdersClient() {
 
                         {/* Cliente */}
                         <td className="py-3.5 px-2">
-                          <div className="font-semibold text-sm text-[#1C2C22] leading-tight">
+                          <div className="font-semibold text-sm text-[#1C2C22] leading-tight mb-1.5">
                             {order.client}
                           </div>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-xs text-gray-500">{order.phone}</span>
-                            <a
-                              href={`https://wa.me/55${order.phone.replace(/\D/g, '')}?text=Ol%C3%A1%20${encodeURIComponent(order.client)}%2C%20tudo%20bem%3F%20Aqui%20%C3%A9%20da%20Casa%20Noma%20sobre%20seu%20pedido%20${order.id}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-emerald-600 hover:text-emerald-700 p-0.5 rounded transition-colors"
-                              title="Abrir WhatsApp"
-                            >
-                              <MessageSquare className="w-3.5 h-3.5" />
-                            </a>
-                          </div>
+                          <a
+                            href={`https://wa.me/55${order.phone.replace(/\D/g, '')}?text=Ol%C3%A1%20${encodeURIComponent(order.client)}%2C%20tudo%20bem%3F%20Aqui%20%C3%A9%20da%20Casa%20Noma%20sobre%20seu%20pedido%20${order.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-2.5 py-1 rounded-lg shadow-sm transition-all cursor-pointer shrink-0"
+                            title={`Conversar com ${order.client} no WhatsApp (${order.phone})`}
+                          >
+                            <WhatsAppIcon className="w-3.5 h-3.5 fill-white text-white shrink-0" />
+                            <span>WhatsApp</span>
+                          </a>
                         </td>
 
                         {/* Horário */}
@@ -709,9 +810,14 @@ export default function OrdersClient() {
                         {/* Total */}
                         <td className="py-3.5 px-2 whitespace-nowrap">
                           <div className="text-sm font-bold text-[#1C2C22]">{order.total}</div>
-                          <div className="text-[11px] text-emerald-600 font-medium">
-                            {order.payment === 'Pagamento online' ? 'Pago online' : 'Cartão na entrega'}
+                          <div className="text-[11px] text-gray-600 font-medium mt-0.5">
+                            {order.paymentMethod}
                           </div>
+                          {order.paymentMethod === 'Em Dinheiro' && order.changeFor && (
+                            <div className="text-[10px] text-amber-700 font-semibold leading-tight">
+                              {order.changeFor}
+                            </div>
+                          )}
                         </td>
 
                         {/* Status */}
@@ -872,9 +978,9 @@ export default function OrdersClient() {
                   href={`https://wa.me/55${activeOrder.phone.replace(/\D/g, '')}?text=Ol%C3%A1%20${encodeURIComponent(activeOrder.client)}%2C%20aqui%20%C3%A9%20da%20Casa%20Noma.%20Sobre%20seu%20pedido%20${activeOrder.id}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-all"
+                  className="inline-flex items-center gap-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer"
                 >
-                  <MessageSquare className="w-3.5 h-3.5" />
+                  <WhatsAppIcon className="w-4 h-4 fill-white text-white shrink-0" />
                   <span>WhatsApp</span>
                 </a>
               </div>
@@ -952,7 +1058,7 @@ export default function OrdersClient() {
             {activeOrder.obs && (
               <div>
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                  <MessageSquare className="w-3.5 h-3.5" />
+                  <FileText className="w-3.5 h-3.5" />
                   Observações do Cliente
                 </h3>
                 <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5 text-xs text-amber-900 leading-relaxed font-medium">
@@ -969,18 +1075,15 @@ export default function OrdersClient() {
               </h3>
               <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-3.5 flex items-center justify-between text-xs">
                 <div>
-                  <span className="font-semibold text-[#1C2C22]">{activeOrder.payment}</span>
-                  <div className="text-[11px] text-gray-500">Transação aprovada</div>
+                  <span className="font-semibold text-[#1C2C22]">{activeOrder.paymentMethod}</span>
+                  <div className="text-[11px] text-gray-600 mt-0.5">
+                    {activeOrder.paymentMethod === 'Em Dinheiro' && activeOrder.changeFor
+                      ? activeOrder.changeFor
+                      : 'Cobrar na entrega / retirada'}
+                  </div>
                 </div>
-                <span
-                  className={cn(
-                    "px-2.5 py-1 rounded-full font-bold text-[11px]",
-                    activeOrder.paymentStatus === 'Pago'
-                      ? "bg-emerald-100 text-emerald-800"
-                      : "bg-amber-100 text-amber-800"
-                  )}
-                >
-                  {activeOrder.paymentStatus}
+                <span className="px-2.5 py-1 rounded-full font-bold text-[11px] bg-amber-50 text-amber-800 border border-amber-200">
+                  {activeOrder.type === 'Delivery' ? 'Na entrega' : 'No balcão'}
                 </span>
               </div>
             </div>
@@ -1112,6 +1215,16 @@ export default function OrdersClient() {
                     <div>{printingOrder.obs}</div>
                   </div>
                 )}
+
+                <div className="border-b border-dashed border-gray-400 pb-2">
+                  <div className="flex justify-between">
+                    <span>FORMA PGTO:</span>
+                    <span className="font-bold">{printingOrder.paymentMethod}</span>
+                  </div>
+                  {printingOrder.paymentMethod === 'Em Dinheiro' && printingOrder.changeFor && (
+                    <div className="text-[10px] text-gray-700">↳ {printingOrder.changeFor}</div>
+                  )}
+                </div>
 
                 <div className="pt-1 flex justify-between font-bold text-xs">
                   <span>TOTAL A PAGAR:</span>
