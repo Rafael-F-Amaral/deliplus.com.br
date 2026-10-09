@@ -12,6 +12,8 @@ import {
   Search,
   Calendar,
   ChevronDown,
+  ChevronRight,
+  ClipboardList,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -333,22 +335,311 @@ const INITIAL_ORDERS: Order[] = [
     changeFor: 'Troco para R$ 150,00',
     status: 'Pronto',
     obs: 'Deixar na recepção do condomínio.'
+  },
+  {
+    id: '#1233',
+    client: 'Marcos Vinícius',
+    phone: '(11) 94321-8765',
+    itemsCount: 2,
+    itemsDesc: '1 prato, 1 sobremesa',
+    itemsDetail: [
+      { qty: 1, name: 'Risoto de Cogumelos Selvagens', price: 'R$ 58,00', details: 'Com azeite trufado' },
+      { qty: 1, name: 'Panna Cotta com Frutas Vermelhas', price: 'R$ 22,00' }
+    ],
+    time: '10:05',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Rua Fradique Coutinho, 980 - Vila Madalena, São Paulo - SP',
+    total: 'R$ 80,00',
+    paymentMethod: 'Crédito na Entrega',
+    status: 'Concluído'
+  },
+  {
+    id: '#1232',
+    client: 'Carolina Mendes',
+    phone: '(11) 93210-9876',
+    itemsCount: 1,
+    itemsDesc: '1 prato',
+    itemsDetail: [
+      { qty: 1, name: 'Salmão Grelhado com Alcaparras', price: 'R$ 72,00', details: 'Purê de mandioquinha' }
+    ],
+    time: '09:55',
+    date: 'Hoje',
+    type: 'Retirada',
+    address: 'Balcão da Loja Principal',
+    total: 'R$ 72,00',
+    paymentMethod: 'Débito na Entrega',
+    status: 'Novo'
+  },
+  {
+    id: '#1231',
+    client: 'Felipe Santana',
+    phone: '(11) 92109-8765',
+    itemsCount: 3,
+    itemsDesc: '2 pratos, 1 bebida',
+    itemsDetail: [
+      { qty: 2, name: 'Hambúrguer Artesanal Trufado', price: 'R$ 84,00', details: 'Pão brioche, blend 180g, queijo brie' },
+      { qty: 1, name: 'Refrigerante Orgânico 350ml', price: 'R$ 11,00' }
+    ],
+    time: '09:40',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Alameda Santos, 1400, Conj 51 - Cerqueira César, São Paulo - SP',
+    total: 'R$ 95,00',
+    paymentMethod: 'Em Dinheiro',
+    changeFor: 'Troco para R$ 100,00',
+    status: 'Em preparo',
+    obs: 'Interfone não funciona, chamar no WhatsApp ao chegar.'
+  },
+  {
+    id: '#1230',
+    client: 'Aline Barros',
+    phone: '(11) 91098-7654',
+    itemsCount: 2,
+    itemsDesc: '1 prato, 1 bebida',
+    itemsDetail: [
+      { qty: 1, name: 'Gnocchi ao Pesto Genovês', price: 'R$ 49,00' },
+      { qty: 1, name: 'Água com Gás e Limão', price: 'R$ 8,00' }
+    ],
+    time: '09:30',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Rua Bela Cintra, 890, Apto 12 - Consolação, São Paulo - SP',
+    total: 'R$ 57,00',
+    paymentMethod: 'Crédito na Entrega',
+    status: 'Pronto'
+  },
+  {
+    id: '#1229',
+    client: 'Renato Faria',
+    phone: '(11) 90987-6543',
+    itemsCount: 4,
+    itemsDesc: '3 pratos, 1 sobremesa',
+    itemsDetail: [
+      { qty: 2, name: 'Escondidinho de Carne Seca', price: 'R$ 78,00' },
+      { qty: 1, name: 'Salada Verde Tropical', price: 'R$ 26,00' },
+      { qty: 1, name: 'Pudim de Leite Ninho', price: 'R$ 18,00' }
+    ],
+    time: '09:15',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Rua Mourato Coelho, 450 - Pinheiros, São Paulo - SP',
+    total: 'R$ 122,00',
+    paymentMethod: 'Débito na Entrega',
+    status: 'Em entrega'
+  },
+  {
+    id: '#1228',
+    client: 'Camila Peixoto',
+    phone: '(11) 98712-3456',
+    itemsCount: 2,
+    itemsDesc: '2 pratos',
+    itemsDetail: [
+      { qty: 1, name: 'Bowl Proteico de Frango', price: 'R$ 38,90' },
+      { qty: 1, name: 'Wrap de Atum com Ricota', price: 'R$ 29,90' }
+    ],
+    time: '09:00',
+    date: 'Hoje',
+    type: 'Retirada',
+    address: 'Balcão da Loja Principal',
+    total: 'R$ 68,80',
+    paymentMethod: 'Em Dinheiro',
+    status: 'Concluído'
+  },
+  {
+    id: '#1227',
+    client: 'Lucas Nogueira',
+    phone: '(11) 97623-4567',
+    itemsCount: 1,
+    itemsDesc: '1 prato executivo',
+    itemsDetail: [
+      { qty: 1, name: 'Feijoada Individual Completa', price: 'R$ 54,00', details: 'Arroz, couve, farofa e torresmo' }
+    ],
+    time: '08:45',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Rua Augusta, 2100, Apto 84 - Jardins, São Paulo - SP',
+    total: 'R$ 54,00',
+    paymentMethod: 'Crédito na Entrega',
+    status: 'Novo',
+    isUrgent: true
+  },
+  {
+    id: '#1226',
+    client: 'Tatiane Ribeiro',
+    phone: '(11) 96534-5678',
+    itemsCount: 3,
+    itemsDesc: '2 lanches, 1 suco',
+    itemsDetail: [
+      { qty: 2, name: 'Sanduíche Natural de Frango', price: 'R$ 36,00' },
+      { qty: 1, name: 'Suco Verde Detox 500ml', price: 'R$ 16,00' }
+    ],
+    time: '08:30',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Av. Rebouças, 1800 - Pinheiros, São Paulo - SP',
+    total: 'R$ 52,00',
+    paymentMethod: 'Débito na Entrega',
+    status: 'Em preparo'
+  },
+  {
+    id: '#1225',
+    client: 'Henrique Vasconcelos',
+    phone: '(11) 95445-6789',
+    itemsCount: 2,
+    itemsDesc: '1 pizza, 1 refrigerante',
+    itemsDetail: [
+      { qty: 1, name: 'Pizza Margherita Especial', price: 'R$ 68,00', details: 'Massa fermentação natural' },
+      { qty: 1, name: 'Coca-Cola Zero 2L', price: 'R$ 14,00' }
+    ],
+    time: '08:15',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Rua Teodoro Sampaio, 1200 - Pinheiros, São Paulo - SP',
+    total: 'R$ 82,00',
+    paymentMethod: 'Em Dinheiro',
+    changeFor: 'Troco para R$ 100,00',
+    status: 'Pronto'
+  },
+  {
+    id: '#1224',
+    client: 'Débora Silveira',
+    phone: '(11) 94356-7890',
+    itemsCount: 1,
+    itemsDesc: '1 prato',
+    itemsDetail: [
+      { qty: 1, name: 'Poke Havaiano de Salmão', price: 'R$ 52,00', details: 'Sem cebola roxa' }
+    ],
+    time: '08:00',
+    date: 'Hoje',
+    type: 'Retirada',
+    address: 'Balcão da Loja Principal',
+    total: 'R$ 52,00',
+    paymentMethod: 'Crédito na Entrega',
+    status: 'Em preparo'
+  },
+  {
+    id: '#1223',
+    client: 'Thiago Guimarães',
+    phone: '(11) 93267-8901',
+    itemsCount: 3,
+    itemsDesc: '2 pratos, 1 sobremesa',
+    itemsDetail: [
+      { qty: 1, name: 'Costelinha Barbecue com Batatas', price: 'R$ 69,90' },
+      { qty: 1, name: 'Porção de Onion Rings', price: 'R$ 24,00' },
+      { qty: 1, name: 'Brownie com Sorvete', price: 'R$ 21,00' }
+    ],
+    time: '07:45',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Rua Cardeal Arcoverde, 1500 - Pinheiros, São Paulo - SP',
+    total: 'R$ 114,90',
+    paymentMethod: 'Débito na Entrega',
+    status: 'Em entrega'
+  },
+  {
+    id: '#1222',
+    client: 'Vanessa Paiva',
+    phone: '(11) 92178-9012',
+    itemsCount: 2,
+    itemsDesc: '1 lanche, 1 bebida',
+    itemsDetail: [
+      { qty: 1, name: 'Torta de Frango com Requeijão', price: 'R$ 26,00' },
+      { qty: 1, name: 'Cappuccino Gelado 300ml', price: 'R$ 15,00' }
+    ],
+    time: '07:30',
+    date: 'Hoje',
+    type: 'Retirada',
+    address: 'Balcão da Loja Principal',
+    total: 'R$ 41,00',
+    paymentMethod: 'Em Dinheiro',
+    status: 'Novo'
+  },
+  {
+    id: '#1221',
+    client: 'Leandro Castro',
+    phone: '(11) 91089-0123',
+    itemsCount: 4,
+    itemsDesc: '4 pastéis',
+    itemsDetail: [
+      { qty: 2, name: 'Pastel Especial de Carne e Queijo', price: 'R$ 32,00' },
+      { qty: 2, name: 'Pastel de Palmito com Catupiry', price: 'R$ 30,00' }
+    ],
+    time: '07:15',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Rua Oscar Freire, 900 - Jardins, São Paulo - SP',
+    total: 'R$ 62,00',
+    paymentMethod: 'Crédito na Entrega',
+    status: 'Concluído'
+  },
+  {
+    id: '#1220',
+    client: 'Priscila Prado',
+    phone: '(11) 99890-1234',
+    itemsCount: 1,
+    itemsDesc: '1 combo café da manhã',
+    itemsDetail: [
+      { qty: 1, name: 'Combo Ovos Mexidos + Croissant + Café', price: 'R$ 35,00' }
+    ],
+    time: '07:00',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Rua Haddock Lobo, 1100 - Cerqueira César, São Paulo - SP',
+    total: 'R$ 35,00',
+    paymentMethod: 'Débito na Entrega',
+    status: 'Concluído'
+  },
+  {
+    id: '#1219',
+    client: 'Gustavo Mendonça',
+    phone: '(11) 98701-2345',
+    itemsCount: 2,
+    itemsDesc: '2 pratos',
+    itemsDetail: [
+      { qty: 1, name: 'Lasanha à Bolonhesa Clássica', price: 'R$ 56,00' },
+      { qty: 1, name: 'Petit Gâteau de Chocolate', price: 'R$ 24,00' }
+    ],
+    time: '06:45',
+    date: 'Hoje',
+    type: 'Delivery',
+    address: 'Rua Pamplona, 700 - Jardim Paulista, São Paulo - SP',
+    total: 'R$ 80,00',
+    paymentMethod: 'Crédito na Entrega',
+    status: 'Concluído'
+  },
+  {
+    id: '#1218',
+    client: 'Isabela Fontes',
+    phone: '(11) 97612-3456',
+    itemsCount: 3,
+    itemsDesc: '2 bebidas, 1 snack',
+    itemsDetail: [
+      { qty: 2, name: 'Smoothie de Frutas Amarelas', price: 'R$ 34,00' },
+      { qty: 1, name: 'Cookie Artesanal Gotas de Chocolate', price: 'R$ 14,00' }
+    ],
+    time: '06:30',
+    date: 'Hoje',
+    type: 'Retirada',
+    address: 'Balcão da Loja Principal',
+    total: 'R$ 48,00',
+    paymentMethod: 'Débito na Entrega',
+    status: 'Concluído'
   }
 ]
 
-const STATUS_OPTIONS: { label: string; value: 'Todos' | 'Novo' | 'Em preparo' | 'Pronto' | 'Em entrega' }[] = [
+const KITCHEN_STATUS_OPTIONS: { label: string; value: 'Todos' | 'Novo' | 'Em preparo' | 'Pronto' }[] = [
   { label: 'Todos', value: 'Todos' },
   { label: 'Novos', value: 'Novo' },
   { label: 'Em preparo', value: 'Em preparo' },
   { label: 'Prontos', value: 'Pronto' },
-  { label: 'Em entrega', value: 'Em entrega' },
 ]
 
 export default function OrdersClient() {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS)
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>('#1247')
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'Todos' | 'Novo' | 'Em preparo' | 'Pronto' | 'Em entrega'>('Todos')
+  const [statusFilter, setStatusFilter] = useState<'Todos' | 'Novo' | 'Em preparo' | 'Pronto'>('Todos')
   const [typeFilter, setTypeFilter] = useState<'Todos' | 'Delivery' | 'Retirada'>('Todos')
   const [dateFilter, setDateFilter] = useState('Hoje')
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false)
@@ -360,8 +651,8 @@ export default function OrdersClient() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [currentPage, setCurrentPage] = useState(1)
 
-  // Dynamic items per page ensuring zero vertical scrollbars on any device size
-  const [itemsPerPage, setItemsPerPage] = useState(7)
+  // Dynamic items per page ensuring zero vertical scrollbars and filling table down to pagination
+  const [itemsPerPage, setItemsPerPage] = useState(14)
 
   useEffect(() => {
     const calculateItemsPerPage = () => {
@@ -381,19 +672,13 @@ export default function OrdersClient() {
         if (h < 800) {
           setItemsPerPage(6)
         } else {
-          setItemsPerPage(7)
+          setItemsPerPage(8)
         }
       } else {
-        // Desktop / large screens
-        if (h < 750) {
-          setItemsPerPage(7)
-        } else if (h < 850) {
-          setItemsPerPage(8)
-        } else if (h < 1050) {
-          setItemsPerPage(10)
-        } else {
-          setItemsPerPage(12)
-        }
+        // Desktop / large screens: dynamic calculation based on container height and row size (~59px)
+        const availableHeight = h - 195
+        const calculatedRows = Math.floor((availableHeight - 37) / 59)
+        setItemsPerPage(Math.max(6, Math.min(20, calculatedRows)))
       }
     }
 
@@ -439,14 +724,57 @@ export default function OrdersClient() {
       return true
     })
 
-    if (!sortField) return list
+    const LIFECYCLE_ORDER: Record<string, number> = {
+      'Novo': 1,        // Botão "Aceitar" - sempre primeiro no topo
+      'Em preparo': 2,   // Botão "Pronto" - fila da cozinha ordenada por chegada
+      'Pronto': 3,       // Retirada: "Concluir" / Delivery: "Despachar"
+      'Em entrega': 4,   // Delivery: "Concluir"
+      'Concluído': 5,    // Finalizado - vai direto pro final da lista
+    }
 
-    const STATUS_PRIORITY: Record<string, number> = {
-      'Novo': 1,
-      'Em preparo': 2,
-      'Pronto': 3,
-      'Em entrega': 4,
-      'Concluído': 5,
+    if (!sortField) {
+      return [...list].sort((a, b) => {
+        const priorityA = LIFECYCLE_ORDER[a.status] || 99
+        const priorityB = LIFECYCLE_ORDER[b.status] || 99
+
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB
+        }
+
+        // 1. Pedidos Novos: mais recentes no topo (por ID decrescente)
+        if (a.status === 'Novo') {
+          const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0
+          const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0
+          return numB - numA
+        }
+
+        // 2. Em preparo: ordenados por chegada do pedido (FIFO - mais antigo primeiro na fila de preparo)
+        if (a.status === 'Em preparo') {
+          const [hA, mA] = a.time.split(':').map(Number)
+          const [hB, mB] = b.time.split(':').map(Number)
+          const timeComp = (hA * 60 + mA) - (hB * 60 + mB)
+          if (timeComp !== 0) return timeComp
+          const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0
+          const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0
+          return numA - numB
+        }
+
+        // 3. Pronto / Em entrega: pedidos aguardando retirada ou entrega
+        if (a.status === 'Pronto' || a.status === 'Em entrega') {
+          const [hA, mA] = a.time.split(':').map(Number)
+          const [hB, mB] = b.time.split(':').map(Number)
+          const timeComp = (hA * 60 + mA) - (hB * 60 + mB)
+          if (timeComp !== 0) return timeComp
+          const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0
+          const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0
+          return numA - numB
+        }
+
+        // 4. Concluído: finalizados no final da lista
+        const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0
+        const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0
+        return numB - numA
+      })
     }
 
     return [...list].sort((a, b) => {
@@ -482,8 +810,8 @@ export default function OrdersClient() {
           break
         }
         case 'status': {
-          const priorityA = STATUS_PRIORITY[a.status] || 99
-          const priorityB = STATUS_PRIORITY[b.status] || 99
+          const priorityA = LIFECYCLE_ORDER[a.status] || 99
+          const priorityB = LIFECYCLE_ORDER[b.status] || 99
           comparison = priorityA - priorityB
           if (comparison === 0) {
             const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0
@@ -514,13 +842,16 @@ export default function OrdersClient() {
   }
 
   // Handle Advance Status
-  const handleAdvanceStatus = (orderId: string) => {
+  const handleAdvanceStatus = (orderId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
     setOrders(prev =>
       prev.map(o => {
         if (o.id !== orderId) return o
         if (o.status === 'Novo') return { ...o, status: 'Em preparo', isUrgent: false }
         if (o.status === 'Em preparo') return { ...o, status: 'Pronto' }
-        if (o.status === 'Pronto') return { ...o, status: 'Em entrega' }
+        if (o.status === 'Pronto') {
+          return { ...o, status: o.type === 'Retirada' ? 'Concluído' : 'Em entrega' }
+        }
         if (o.status === 'Em entrega') return { ...o, status: 'Concluído' }
         return o
       })
@@ -539,12 +870,11 @@ export default function OrdersClient() {
       {/* Main Content Area */}
       <div
         className={cn(
-          "flex-1 flex flex-col w-full h-full max-h-full px-4 sm:px-6 pt-3 md:pt-4 pb-3 max-lg:pb-[84px] overflow-hidden justify-between font-sans transition-all min-w-0",
-          activeOrder ? "lg:pr-[436px]" : ""
+          "flex-1 flex flex-col w-full h-full max-h-full px-3.5 sm:px-4 md:px-5 pt-3 md:pt-3.5 pb-3 max-lg:pb-[84px] overflow-hidden justify-between font-sans transition-all min-w-0"
         )}
       >
         {/* Page Header (Orange title matching DeliPlus logo & Estoque/Cardápio) */}
-        <div className="flex flex-col mb-3 shrink-0">
+        <div className="flex flex-col mb-2 sm:mb-2.5 shrink-0">
           <div className="flex items-center gap-2.5">
             <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] tracking-tight">
               Pedidos
@@ -576,103 +906,115 @@ export default function OrdersClient() {
               </div>
             </div>
           </div>
+          <p className="text-[#2E4233] text-sm md:text-base font-medium mt-0.5">
+            Acompanhe e gerencie em tempo real os pedidos de delivery e retirada.
+          </p>
         </div>
 
-        {/* Filter Controls: Status Pills (Cardápio pattern) + Context Bar */}
-        <div className="flex flex-col gap-2.5 mb-3 shrink-0 z-30 relative">
-          {/* Row 1: Status Pill Filters (Cardápio / Estoque pattern) */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 shrink-0">
-            {STATUS_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => {
-                  setStatusFilter(option.value)
-                  setCurrentPage(1)
-                }}
-                className={cn(
-                  "px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer",
-                  statusFilter === option.value
-                    ? "bg-[#2E4233] text-white"
-                    : "bg-white border border-[#E9E4D4] text-gray-500 hover:bg-[#F8F6EF]"
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+        {/* Workspace: Table Column + Desktop Order Details Drawer */}
+        <div className="flex-1 min-h-0 flex gap-3.5 md:gap-4 overflow-hidden">
+          {/* Left Column: Controls + Orders Table Container */}
+          <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
+            {/* Controls Row: Filters & Search (Aligned directly above the Table) */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 mb-2.5 shrink-0 z-30 relative bg-white/40 sm:bg-transparent p-1.5 sm:p-0 rounded-2xl">
+              <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar relative flex-nowrap py-0.5 sm:py-0">
+                {/* Grupo 1: Fases de Preparo / Produção (Cozinha) */}
+                <div className="flex items-center gap-1 bg-[#F3EFE3]/80 p-0.5 rounded-full border border-[#E9E4D4] shrink-0 shadow-2xs">
+                  {KITCHEN_STATUS_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter(option.value)
+                        setCurrentPage(1)
+                      }}
+                      className={cn(
+                        "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
+                        statusFilter === option.value
+                          ? "bg-[#2E4233] text-white shadow-xs"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
 
-          {/* Row 2: Date Selector, Search Input & Delivery Type Filter */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-            {/* Date Selector */}
-            <div className="relative inline-block shrink-0">
-              <select
-                value={dateFilter}
-                onChange={(e) => {
-                  setDateFilter(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="appearance-none bg-white border border-[#E9E4D4] rounded-xl pl-9 pr-8 py-2 text-xs font-semibold text-[#1C2C22] hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-sm cursor-pointer"
-              >
-                <option value="Hoje">Hoje</option>
-                <option value="Ontem">Ontem</option>
-                <option value="Últimos 7 dias">Últimos 7 dias</option>
-                <option value="Este mês">Este mês</option>
-              </select>
-              <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                {/* Separador vertical nítido entre os dois grupos */}
+                <div className="h-5 w-px bg-[#D6D0BC] shrink-0 mx-0.5 hidden sm:block" />
+
+                {/* Grupo 2: Modalidade e Data */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Delivery Modality Select */}
+                  <div className="relative inline-block shrink-0">
+                    <select
+                      value={typeFilter}
+                      onChange={(e) => {
+                        setTypeFilter(e.target.value as 'Todos' | 'Delivery' | 'Retirada')
+                        setCurrentPage(1)
+                      }}
+                      className="appearance-none bg-white border border-[#E9E4D4] rounded-full pl-2.5 pr-6 py-1 text-xs font-semibold text-gray-600 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
+                    >
+                      <option value="Todos">Modalidade</option>
+                      <option value="Delivery">Delivery</option>
+                      <option value="Retirada">Retirada</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+
+                  {/* Date Selector */}
+                  <div className="relative inline-block shrink-0">
+                    <select
+                      value={dateFilter}
+                      onChange={(e) => {
+                        setDateFilter(e.target.value)
+                        setCurrentPage(1)
+                      }}
+                      className="appearance-none bg-white border border-[#E9E4D4] rounded-full pl-5.5 pr-5 py-1 text-xs font-semibold text-gray-600 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
+                    >
+                      <option value="Hoje">Hoje</option>
+                      <option value="Ontem">Ontem</option>
+                      <option value="Últimos 7 dias">7 dias</option>
+                      <option value="Este mês">Este mês</option>
+                    </select>
+                    <Calendar className="w-3 h-3 text-gray-400 absolute left-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <ChevronDown className="w-3 h-3 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Search Bar (Cardápio pattern: compact, aligned with right edge of table) */}
+              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                <div className="relative w-full sm:w-[155px]">
+                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                    placeholder="Buscar pedido..."
+                    className="w-full pl-7 pr-6 py-1 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 focus:border-[#1E3A2B] transition-all shadow-xs"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('')
+                        setCurrentPage(1)
+                      }}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Search Input */}
-            <div className="relative flex-1 min-w-0">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setCurrentPage(1)
-                }}
-                placeholder="Buscar pedido, cliente ou telefone..."
-                className="w-full bg-white border border-[#E9E4D4] rounded-xl pl-10 pr-9 py-2 text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 focus:border-[#1E3A2B] transition-all shadow-sm"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery('')
-                    setCurrentPage(1)
-                  }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Type Filter (kept as options dropdown) */}
-            <div className="relative inline-block shrink-0">
-              <select
-                value={typeFilter}
-                onChange={(e) => {
-                  setTypeFilter(e.target.value as 'Todos' | 'Delivery' | 'Retirada')
-                  setCurrentPage(1)
-                }}
-                className="appearance-none bg-white border border-[#E9E4D4] rounded-xl pl-4 pr-8 py-2 text-xs font-semibold text-[#1C2C22] hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-sm cursor-pointer"
-              >
-                <option value="Todos">Todos os tipos de entrega</option>
-                <option value="Delivery">Delivery (Entrega)</option>
-                <option value="Retirada">Retirada no Balcão</option>
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-
-
-
-        {/* Orders Table Container */}
-        <div className="bg-white rounded-2xl border border-[#E9E4D4] shadow-sm overflow-hidden flex-1 min-h-0 flex flex-col justify-between">
+            {/* Orders Table Container */}
+            <div className="bg-white rounded-2xl border border-[#E9E4D4] shadow-sm overflow-hidden flex-1 min-h-0 flex flex-col justify-between">
           <div className="overflow-x-auto overflow-y-hidden flex-1">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -680,12 +1022,12 @@ export default function OrdersClient() {
                   <th
                     onClick={() => handleSort('id')}
                     className={cn(
-                      "py-2.5 pl-5 pr-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      "py-2.5 pl-3.5 sm:pl-4 pr-1 whitespace-nowrap cursor-pointer select-none group transition-colors",
                       sortField === 'id' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
                     )}
                     title="Organizar por número do pedido"
                   >
-                    <div className="inline-flex items-center gap-1.5">
+                    <div className="inline-flex items-center gap-1">
                       <span>Pedido</span>
                       {sortField === 'id' ? (
                         sortDirection === 'asc' ? (
@@ -701,12 +1043,12 @@ export default function OrdersClient() {
                   <th
                     onClick={() => handleSort('client')}
                     className={cn(
-                      "py-2.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      "py-2.5 px-1.5 whitespace-nowrap cursor-pointer select-none group transition-colors",
                       sortField === 'client' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
                     )}
                     title="Organizar por nome do cliente"
                   >
-                    <div className="inline-flex items-center gap-1.5">
+                    <div className="inline-flex items-center gap-1">
                       <span>Cliente</span>
                       {sortField === 'client' ? (
                         sortDirection === 'asc' ? (
@@ -723,12 +1065,12 @@ export default function OrdersClient() {
                   <th
                     onClick={() => handleSort('time')}
                     className={cn(
-                      "py-2.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      "py-2.5 px-1.5 whitespace-nowrap cursor-pointer select-none group transition-colors",
                       sortField === 'time' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
                     )}
                     title="Organizar por horário"
                   >
-                    <div className="inline-flex items-center gap-1.5">
+                    <div className="inline-flex items-center gap-1">
                       <span>Horário</span>
                       {sortField === 'time' ? (
                         sortDirection === 'asc' ? (
@@ -744,12 +1086,12 @@ export default function OrdersClient() {
                   <th
                     onClick={() => handleSort('type')}
                     className={cn(
-                      "py-2.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      "py-2.5 px-1.5 whitespace-nowrap cursor-pointer select-none group transition-colors",
                       sortField === 'type' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
                     )}
                     title="Organizar por tipo (Delivery / Retirada)"
                   >
-                    <div className="inline-flex items-center gap-1.5">
+                    <div className="inline-flex items-center gap-1">
                       <span>Tipo</span>
                       {sortField === 'type' ? (
                         sortDirection === 'asc' ? (
@@ -765,12 +1107,12 @@ export default function OrdersClient() {
                   <th
                     onClick={() => handleSort('total')}
                     className={cn(
-                      "py-2.5 px-2 whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      "py-2.5 px-1.5 whitespace-nowrap cursor-pointer select-none group transition-colors",
                       sortField === 'total' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
                     )}
                     title="Organizar por valor total"
                   >
-                    <div className="inline-flex items-center gap-1.5">
+                    <div className="inline-flex items-center gap-1">
                       <span>Total</span>
                       {sortField === 'total' ? (
                         sortDirection === 'asc' ? (
@@ -786,12 +1128,12 @@ export default function OrdersClient() {
                   <th
                     onClick={() => handleSort('status')}
                     className={cn(
-                      "py-2.5 px-2 text-center whitespace-nowrap cursor-pointer select-none group transition-colors",
+                      "py-2.5 px-1 text-center whitespace-nowrap cursor-pointer select-none group transition-colors",
                       sortField === 'status' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
                     )}
                     title="Organizar por status (agrupar iguais)"
                   >
-                    <div className="inline-flex items-center justify-center gap-1.5">
+                    <div className="inline-flex items-center justify-center gap-1">
                       <span>Status</span>
                       {sortField === 'status' ? (
                         sortDirection === 'asc' ? (
@@ -804,13 +1146,19 @@ export default function OrdersClient() {
                       )}
                     </div>
                   </th>
-                  <th className="py-2.5 pr-5 pl-2 text-right whitespace-nowrap select-none">Ações</th>
+                  <th className="py-2.5 px-1.5 text-center whitespace-nowrap select-none font-bold">
+                    Ação rápida
+                  </th>
+                  <th className="py-2.5 px-1.5 text-center whitespace-nowrap select-none font-bold">
+                    Imprimir
+                  </th>
+                  <th className="py-2.5 pr-3 pl-1 w-6 select-none"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E9E4D4]/60">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-gray-500 text-sm">
+                    <td colSpan={9} className="py-12 text-center text-gray-500 text-sm">
                       Nenhum pedido encontrado para os filtros selecionados.
                     </td>
                   </tr>
@@ -826,21 +1174,27 @@ export default function OrdersClient() {
                       <tr
                         key={order.id}
                         onClick={() => setSelectedOrderId(order.id)}
+                        title="Clique para ver os detalhes deste pedido"
                         className={cn(
-                          "cursor-pointer transition-colors relative group",
+                          "cursor-pointer transition-colors relative group select-none",
                           isSelected
-                            ? "bg-[#FAF8F0]"
-                            : "hover:bg-[#FAF8F0]/40"
+                            ? "bg-[#FAF5E9] shadow-[inset_3px_0_0_0_#CB5A3C]"
+                            : "hover:bg-[#FAF8F0]/70"
                         )}
                       >
                         {/* Order ID with Urgent Stripe */}
-                        <td className="py-2 pl-5 pr-2 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
+                        <td className="py-2 pl-3.5 sm:pl-4 pr-1 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
                             {isNovo && (
-                              <span className="w-1.5 h-6 rounded-full bg-[#CB5A3C] shrink-0" />
+                              <span className="w-1.5 h-5 rounded-full bg-[#CB5A3C] shrink-0" />
                             )}
                             <div>
-                              <span className="font-bold text-sm text-[#1C2C22] group-hover:text-[#CB5A3C] transition-colors">
+                              <span
+                                className={cn(
+                                  "font-bold text-[13px] transition-colors",
+                                  isSelected ? "text-[#CB5A3C]" : "text-[#1C2C22] group-hover:text-[#CB5A3C]"
+                                )}
+                              >
                                 {order.id}
                               </span>
                             </div>
@@ -848,8 +1202,8 @@ export default function OrdersClient() {
                         </td>
 
                         {/* Cliente */}
-                        <td className="py-2 px-2">
-                          <div className="font-semibold text-sm text-[#1C2C22] leading-tight mb-1">
+                        <td className="py-2 px-1.5 whitespace-nowrap">
+                          <div className="font-semibold text-xs text-[#1C2C22] leading-tight mb-1">
                             {order.client}
                           </div>
                           <a
@@ -857,108 +1211,191 @@ export default function OrdersClient() {
                             target="_blank"
                             rel="noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-2.5 py-1 rounded-lg shadow-sm transition-all cursor-pointer shrink-0"
+                            className="inline-flex items-center gap-1 bg-[#25D366] hover:bg-[#20bd5a] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded shadow-2xs transition-all cursor-pointer shrink-0"
                             title={`Conversar com ${order.client} no WhatsApp (${order.phone})`}
                           >
-                            <WhatsAppIcon className="w-3.5 h-3.5 fill-white text-white shrink-0" />
+                            <WhatsAppIcon className="w-3 h-3 fill-white text-white shrink-0" />
                             <span>WhatsApp</span>
                           </a>
                         </td>
 
                         {/* Horário */}
-                        <td className="py-2 px-2 whitespace-nowrap">
-                          <div className="text-sm font-medium text-[#1C2C22]">{order.time}</div>
-                          <div className="text-[11px] text-gray-400">{order.date}</div>
+                        <td className="py-2 px-1.5 whitespace-nowrap">
+                          <div className="text-xs font-medium text-[#1C2C22]">{order.time}</div>
+                          <div className="text-[10px] text-gray-400">{order.date}</div>
                         </td>
 
                         {/* Tipo */}
-                        <td className="py-2 px-2 whitespace-nowrap">
+                        <td className="py-2 px-1.5 whitespace-nowrap">
                           {order.type === 'Delivery' ? (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200/60">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-800 border border-sky-200/60">
                               Delivery
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/60">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/60">
                               Retirada
                             </span>
                           )}
                         </td>
 
                         {/* Total */}
-                        <td className="py-2 px-2 whitespace-nowrap">
-                          <div className="text-[15px] font-bold text-[#1C2C22] leading-tight">{order.total}</div>
-                          <div className="text-xs text-gray-700 font-semibold mt-0.5 leading-tight">
+                        <td className="py-2 px-1.5 whitespace-nowrap">
+                          <div className="text-sm font-bold text-[#1C2C22] leading-tight">{order.total}</div>
+                          <div className="text-[10px] text-gray-600 font-medium mt-0.5 leading-tight truncate max-w-[110px]" title={order.paymentMethod}>
                             {order.paymentMethod}
                           </div>
                           {order.paymentMethod === 'Em Dinheiro' && order.changeFor && (
-                            <div className="text-xs text-amber-800 font-bold mt-0.5 leading-tight">
+                            <div className="text-[10px] text-amber-800 font-semibold mt-0.5 leading-tight">
                               {order.changeFor}
                             </div>
                           )}
                         </td>
 
                         {/* Status */}
-                        <td className="py-2 px-2 text-center whitespace-nowrap">
+                        <td className="py-2 px-1 text-center whitespace-nowrap">
                           {isNovo && (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FEF2EE] text-[#CB5A3C] border border-[#FADCD5]">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2EE] text-[#CB5A3C] border border-[#FADCD5]">
                               Novo
                             </span>
                           )}
                           {isPreparo && (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]">
                               Em preparo
                             </span>
                           )}
                           {isPronto && (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]">
-                              Pronto
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]">
+                              {order.type === 'Retirada' ? 'Pronto p/ retirar' : 'Pronto'}
                             </span>
                           )}
                           {isEntrega && (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#F0F9FF] text-[#0284C7] border border-[#BAE6FD]">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F0F9FF] text-[#0284C7] border border-[#BAE6FD]">
                               Em entrega
+                            </span>
+                          )}
+                          {order.status === 'Concluído' && (
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-stone-100 text-stone-600 border border-stone-200">
+                              Concluído
                             </span>
                           )}
                         </td>
 
-                        {/* Ações */}
-                        <td className="py-2 pr-5 pl-2 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {isNovo ? (
+                        {/* Ação rápida */}
+                        <td className="py-2 px-1.5 text-center whitespace-nowrap">
+                          {isNovo && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleAcceptOrder(order.id, e)}
+                              className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#CB5A3C] hover:bg-[#B34B30] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                              title="Aceitar pedido e iniciar preparo"
+                            >
+                              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                              <span>Aceitar</span>
+                            </button>
+                          )}
+                          {isPreparo && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleAdvanceStatus(order.id, e)}
+                              className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#1E3A2B] hover:bg-[#162B20] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                              title={order.type === 'Retirada' ? "Marcar como pronto para retirada no balcão" : "Marcar como pronto para entrega"}
+                            >
+                              <CircleCheck className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5]" />
+                              <span>Pronto</span>
+                            </button>
+                          )}
+                          {isPronto && (
+                            order.type === 'Retirada' ? (
                               <button
-                                onClick={(e) => handleAcceptOrder(order.id, e)}
-                                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#CB5A3C] hover:bg-[#B34B30] text-white shadow-sm transition-all flex items-center gap-1 shrink-0"
+                                type="button"
+                                onClick={(e) => handleAdvanceStatus(order.id, e)}
+                                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-800 hover:bg-black text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                                title="Concluir retirada do cliente"
                               >
-                                <Check className="w-3.5 h-3.5" />
-                                Aceitar
+                                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>Concluir</span>
                               </button>
-                            ) : null}
-
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => handleAdvanceStatus(order.id, e)}
+                                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#0284C7] hover:bg-[#0369A1] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                                title="Despachar com o entregador"
+                              >
+                                <Bike className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>Despachar</span>
+                              </button>
+                            )
+                          )}
+                          {isEntrega && (
                             <button
-                              onClick={() => setSelectedOrderId(order.id)}
-                              className={cn(
-                                "px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all shrink-0",
-                                isSelected
-                                    ? "bg-[#1E3A2B] text-white border-[#1E3A2B]"
-                                    : "bg-white text-[#1C2C22] border-[#E9E4D4] hover:bg-[#F5F2E9]"
-                              )}
+                              type="button"
+                              onClick={(e) => handleAdvanceStatus(order.id, e)}
+                              className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-800 hover:bg-black text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                              title="Confirmar entrega e concluir pedido"
                             >
-                              Ver pedido
+                              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                              <span>Concluir</span>
                             </button>
+                          )}
+                          {order.status === 'Concluído' && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/50">
+                              <Check className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                              <span>Finalizado</span>
+                            </span>
+                          )}
+                        </td>
 
-                            <button
-                              onClick={(e) => handleOpenPrint(order, e)}
-                              className="p-1.5 rounded-xl text-gray-500 hover:text-[#1C2C22] border border-[#E9E4D4] hover:bg-white transition-all shrink-0"
-                              title="Imprimir comanda"
-                            >
-                              <Printer className="w-4 h-4" />
-                            </button>
+                        {/* Imprimir */}
+                        <td className="py-2 px-1.5 text-center whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={(e) => handleOpenPrint(order, e)}
+                            className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-[#1C2C22] bg-[#FAF8F0] hover:bg-[#F3EEDD] border border-[#E9E4D4] hover:border-[#2E4233]/40 shadow-2xs hover:shadow-xs transition-all cursor-pointer group/print active:scale-95"
+                            title="Imprimir comanda térmica 80mm"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-[#2E4233] group-hover/print:scale-110 transition-transform shrink-0" />
+                            <span className="font-semibold text-[11px]">Imprimir</span>
+                          </button>
+                        </td>
+
+                        {/* Indicador de linha selecionada */}
+                        <td className="py-2 pr-3 pl-1 text-right whitespace-nowrap">
+                          <div
+                            className={cn(
+                              "w-5 h-5 rounded-md flex items-center justify-center transition-all ml-auto",
+                              isSelected
+                                ? "bg-[#CB5A3C] text-white shadow-xs"
+                                : "text-gray-300 group-hover:text-gray-600 group-hover:translate-x-0.5"
+                            )}
+                            title={isSelected ? "Pedido aberto" : "Clique para ver detalhes"}
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
                           </div>
                         </td>
                       </tr>
                     )
                   })
                 )}
+
+                {/* Linhas vazias para manter a grade alinhada perfeitamente até a paginação */}
+                {filteredOrders.length > 0 &&
+                  Array.from({ length: Math.max(0, itemsPerPage - paginatedOrders.length) }).map((_, idx) => (
+                    <tr
+                      key={`empty-slot-${idx}`}
+                      className="border-b border-[#E9E4D4]/40 h-[46px] select-none pointer-events-none"
+                    >
+                      <td className="py-2.5 pl-3.5 sm:pl-4 pr-1"><span className="text-xs text-gray-200 font-medium">—</span></td>
+                      <td className="py-2.5 px-1.5"><span className="text-xs text-gray-200 font-medium">—</span></td>
+                      <td className="py-2.5 px-1.5"><span className="text-xs text-gray-200 font-medium">—</span></td>
+                      <td className="py-2.5 px-1.5"><span className="text-xs text-gray-200 font-medium">—</span></td>
+                      <td className="py-2.5 px-1.5"><span className="text-xs text-gray-200 font-medium">—</span></td>
+                      <td className="py-2.5 px-1 text-center"><span className="text-xs text-gray-200 font-medium">—</span></td>
+                      <td className="py-2.5 px-1.5 text-center"><span className="text-xs text-gray-200 font-medium">—</span></td>
+                      <td className="py-2.5 px-1.5 text-center"><span className="text-xs text-gray-200 font-medium">—</span></td>
+                      <td className="py-2.5 pr-3 pl-1 w-6"></td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -989,233 +1426,225 @@ export default function OrdersClient() {
         </div>
       </div>
 
-      {/* Right Drawer / Order Details Panel */}
-      {activeOrder && (
+      {/* Right Drawer / Order Details Panel Column */}
+      <div
+        className={cn(
+          "flex-col shrink-0 lg:w-[340px] xl:w-[370px] lg:h-full",
+          selectedOrderId ? "flex" : "hidden lg:flex"
+        )}
+      >
+        {/* Desktop Top Spacer to align Drawer card top edge exactly with Table card top edge */}
+        <div className="h-[30px] mb-2.5 shrink-0 hidden lg:block" aria-hidden="true" />
+
         <aside
-          className="fixed lg:fixed top-0 lg:top-0 right-0 bottom-0 w-full sm:w-[420px] bg-white border-l border-[#E9E4D4] shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-200"
+          className={cn(
+            "bg-white rounded-2xl border border-[#E9E4D4] shadow-sm flex flex-col overflow-hidden flex-1 min-h-0",
+            // Mobile / Tablet: modal drawer overlay when an order is selected
+            selectedOrderId && "max-lg:fixed max-lg:inset-y-0 max-lg:right-0 max-lg:w-full sm:max-lg:w-[420px] max-lg:z-50 max-lg:shadow-2xl max-lg:flex max-lg:rounded-none max-lg:animate-in max-lg:slide-in-from-right max-lg:duration-200"
+          )}
         >
-          {/* Drawer Header */}
-          <div className="p-6 border-b border-[#E9E4D4] bg-[#FAF8F0]/80 flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h2 className="text-2xl font-serif font-bold text-[#1C2C22] leading-tight">
-                  Pedido {activeOrder.id}
-                </h2>
-                {activeOrder.status === 'Novo' && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FEF2EE] text-[#CB5A3C] border border-[#FADCD5]">
-                    Novo
-                  </span>
-                )}
-                {activeOrder.status === 'Em preparo' && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]">
-                    Em preparo
-                  </span>
-                )}
-                {activeOrder.status === 'Pronto' && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]">
-                    Pronto
-                  </span>
-                )}
-                {activeOrder.status === 'Em entrega' && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#F0F9FF] text-[#0284C7] border border-[#BAE6FD]">
-                    Em entrega
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-[#1C2C22] font-semibold mt-1">
-                Recebido às {activeOrder.time} • {activeOrder.date}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setSelectedOrderId(null)}
-              aria-label="Fechar"
-              className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Drawer Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Section: Cliente */}
-            <div>
-              <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2.5">
-                Cliente
-              </h3>
-              <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-3.5 flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-sm text-[#1C2C22]">{activeOrder.client}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{activeOrder.phone}</div>
+          {activeOrder ? (
+            <>
+              {/* Drawer Header (Aligned with Table Container header) */}
+              <div className="px-4 py-2.5 sm:px-5 sm:py-3 border-b border-[#E9E4D4] bg-[#FAF8F0]/80 flex items-center justify-between shrink-0 min-h-[48px]">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-lg sm:text-xl font-serif font-bold text-[#1C2C22] leading-none">
+                      Pedido {activeOrder.id}
+                    </h2>
+                    {activeOrder.status === 'Novo' && (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2EE] text-[#CB5A3C] border border-[#FADCD5]">
+                        Novo
+                      </span>
+                    )}
+                    {activeOrder.status === 'Em preparo' && (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]">
+                        Em preparo
+                      </span>
+                    )}
+                    {activeOrder.status === 'Pronto' && (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]">
+                        {activeOrder.type === 'Retirada' ? 'Pronto p/ retirar' : 'Pronto'}
+                      </span>
+                    )}
+                    {activeOrder.status === 'Em entrega' && (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F0F9FF] text-[#0284C7] border border-[#BAE6FD]">
+                        Em entrega
+                      </span>
+                    )}
+                    {activeOrder.status === 'Concluído' && (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F3F4F6] text-gray-700 border border-gray-300">
+                        Concluído
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-500 font-medium mt-1">
+                    Recebido às {activeOrder.time} • {activeOrder.date}
+                  </p>
                 </div>
-                <a
-                  href={`https://wa.me/55${activeOrder.phone.replace(/\D/g, '')}?text=Ol%C3%A1%20${encodeURIComponent(activeOrder.client)}%2C%20aqui%20%C3%A9%20da%20Casa%20Noma.%20Sobre%20seu%20pedido%20${activeOrder.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer"
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrderId(null)}
+                  aria-label="Fechar"
+                  title="Fechar detalhes"
+                  className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer shrink-0 ml-2"
                 >
-                  <WhatsAppIcon className="w-4 h-4 fill-white text-white shrink-0" />
-                  <span>WhatsApp</span>
-                </a>
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            </div>
 
-            {/* Section: Entrega */}
-            <div>
-              <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2.5">
-                {activeOrder.type === 'Delivery' ? (
-                  <>
-                    ENTREGA <span className="text-[#CB5A3C]">(DELIVERY)</span>
-                  </>
-                ) : (
-                  <>
-                    RETIRADA <span className="text-[#CB5A3C]">(RETIRADA)</span>
-                  </>
-                )}
-              </h3>
-              <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-3.5">
-                <div className="font-semibold text-xs text-[#1C2C22] mb-1">
-                  {activeOrder.type === 'Delivery' ? 'Endereço de entrega' : 'Local de Retirada'}
-                </div>
-                <p className="text-xs text-gray-600 leading-relaxed">{activeOrder.address}</p>
-                {activeOrder.type === 'Delivery' && (
+            {/* Drawer Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
+              {/* Section: Cliente */}
+              <div>
+                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2">
+                  Cliente
+                </h3>
+                <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-3 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-sm text-[#1C2C22]">{activeOrder.client}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{activeOrder.phone}</div>
+                  </div>
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeOrder.address)}`}
+                    href={`https://wa.me/55${activeOrder.phone.replace(/\D/g, '')}?text=Ol%C3%A1%20${encodeURIComponent(activeOrder.client)}%2C%20aqui%20%C3%A9%20da%20Casa%20Noma.%20Sobre%20seu%20pedido%20${activeOrder.id}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#CB5A3C] hover:underline mt-2.5"
+                    className="inline-flex items-center gap-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer"
                   >
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>Ver rota no Google Maps</span>
-                    <ExternalLink className="w-3 h-3 ml-0.5" />
+                    <WhatsAppIcon className="w-4 h-4 fill-white text-white shrink-0" />
+                    <span>WhatsApp</span>
                   </a>
-                )}
+                </div>
               </div>
-            </div>
 
-            {/* Section: Itens do pedido */}
-            <div>
-              <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2.5">
-                Itens do pedido ({activeOrder.itemsDetail.length})
-              </h3>
-              <div className="space-y-2.5">
-                {activeOrder.itemsDetail.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-xl border border-[#E9E4D4] bg-white flex items-start gap-3 shadow-xs"
-                  >
-                    <div className="w-7 h-7 rounded-lg bg-[#FAF8F0] border border-[#E9E4D4] text-[#1C2C22] font-bold text-xs flex items-center justify-center shrink-0">
-                      {item.qty}x
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-xs text-[#1C2C22] truncate">
-                          {item.name}
-                        </span>
-                        <span className="font-bold text-xs text-[#1C2C22] shrink-0">
-                          {item.price}
-                        </span>
-                      </div>
-                      {item.details && (
-                        <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{item.details}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Section: Observações */}
-            {activeOrder.obs && (
+              {/* Section: Modalidade de Entrega */}
               <div>
-                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2.5">
-                  Observações do Cliente
+                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2">
+                  {activeOrder.type === 'Delivery' ? (
+                    <>
+                      ENTREGA <span className="text-[#CB5A3C]">(DELIVERY)</span>
+                    </>
+                  ) : (
+                    <>
+                      RETIRADA <span className="text-[#CB5A3C]">(NO BALCÃO)</span>
+                    </>
+                  )}
                 </h3>
-                <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5 text-xs text-amber-900 leading-relaxed font-medium">
-                  {activeOrder.obs}
+                <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-3">
+                  <div className="font-semibold text-xs text-[#1C2C22] mb-1">
+                    {activeOrder.type === 'Delivery' ? 'Endereço de entrega' : 'Local de retirada'}
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">{activeOrder.address}</p>
+                  {activeOrder.type === 'Delivery' && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeOrder.address)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#CB5A3C] hover:underline mt-2.5"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>Ver rota no Google Maps</span>
+                      <ExternalLink className="w-3 h-3 ml-0.5" />
+                    </a>
+                  )}
                 </div>
               </div>
-            )}
 
-            {/* Section: Pagamento */}
-            <div>
-              <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2.5">
-                Pagamento
-              </h3>
-              <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-3.5 flex items-center justify-between text-xs">
+              {/* Section: Itens do pedido */}
+              <div>
+                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2">
+                  Itens do pedido ({activeOrder.itemsDetail.length})
+                </h3>
+                <div className="space-y-2">
+                  {activeOrder.itemsDetail.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2.5 rounded-xl border border-[#E9E4D4] bg-white flex items-start gap-2.5 shadow-xs"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-[#FAF8F0] border border-[#E9E4D4] text-[#1C2C22] font-bold text-xs flex items-center justify-center shrink-0">
+                        {item.qty}x
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-xs text-[#1C2C22] truncate">
+                            {item.name}
+                          </span>
+                          <span className="font-bold text-xs text-[#1C2C22] shrink-0">
+                            {item.price}
+                          </span>
+                        </div>
+                        {item.details && (
+                          <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{item.details}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Section: Observações */}
+              {activeOrder.obs && (
                 <div>
-                  <span className="font-semibold text-[#1C2C22]">{activeOrder.paymentMethod}</span>
-                  <div className="text-[11px] text-gray-600 mt-0.5">
-                    {activeOrder.paymentMethod === 'Em Dinheiro' && activeOrder.changeFor
-                      ? activeOrder.changeFor
-                      : 'Cobrar na entrega / retirada'}
+                  <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2">
+                    Observações do Cliente
+                  </h3>
+                  <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 text-xs text-amber-900 leading-relaxed font-medium">
+                    {activeOrder.obs}
                   </div>
                 </div>
-                <span className="px-2.5 py-1 rounded-full font-bold text-[11px] bg-amber-50 text-amber-800 border border-amber-200">
-                  {activeOrder.type === 'Delivery' ? 'Na entrega' : 'No balcão'}
-                </span>
+              )}
+
+              {/* Section: Pagamento */}
+              <div>
+                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2">
+                  Pagamento
+                </h3>
+                <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-3 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-semibold text-[#1C2C22]">{activeOrder.paymentMethod}</span>
+                    <div className="text-[11px] text-gray-600 mt-0.5">
+                      {activeOrder.paymentMethod === 'Em Dinheiro' && activeOrder.changeFor
+                        ? activeOrder.changeFor
+                        : 'Cobrar na entrega / retirada'}
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full font-bold text-[11px] bg-amber-50 text-amber-800 border border-amber-200">
+                    {activeOrder.type === 'Delivery' ? 'Na entrega' : 'No balcão'}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* Drawer Footer Actions */}
-          <div className="p-6 border-t border-[#E9E4D4] bg-[#FAF8F0]/90 space-y-3">
-            <div className="flex items-center justify-between pb-1">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                Total do pedido
-              </span>
-              <span className="text-2xl font-serif font-bold text-[#1C2C22]">
-                {activeOrder.total}
-              </span>
+          </>
+        ) : (
+          /* Centered Empty State when no order is selected */
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none bg-white">
+            <div className="w-16 h-16 rounded-2xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-center text-[#2E4233] mb-4 shadow-xs">
+              <ClipboardList className="w-8 h-8 text-[#CB5A3C]" />
             </div>
-
-            {/* Primary Action Button (State dependent) */}
-            {activeOrder.status === 'Novo' ? (
-              <button
-                onClick={() => handleAcceptOrder(activeOrder.id)}
-                className="w-full py-3.5 rounded-xl bg-[#CB5A3C] hover:bg-[#B34B30] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                <span>Aceitar pedido</span>
-              </button>
-            ) : activeOrder.status === 'Em preparo' ? (
-              <button
-                onClick={() => handleAdvanceStatus(activeOrder.id)}
-                className="w-full py-3.5 rounded-xl bg-[#1E3A2B] hover:bg-[#162B20] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-              >
-                <CircleCheck className="w-4 h-4 text-emerald-400" />
-                <span>Marcar como Pronto</span>
-              </button>
-            ) : activeOrder.status === 'Pronto' ? (
-              <button
-                onClick={() => handleAdvanceStatus(activeOrder.id)}
-                className="w-full py-3.5 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-              >
-                <Bike className="w-4 h-4" />
-                <span>Despachar pedido</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => handleAdvanceStatus(activeOrder.id)}
-                className="w-full py-3.5 rounded-xl bg-gray-800 hover:bg-black text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                <span>Concluir pedido</span>
-              </button>
-            )}
-
-            {/* Print Button */}
-            <button
-              onClick={() => handleOpenPrint(activeOrder)}
-              className="w-full py-3 rounded-xl bg-white border border-[#E9E4D4] hover:bg-[#F5F2E9] text-[#1C2C22] font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-xs"
-            >
-              <Printer className="w-4 h-4 text-gray-600" />
-              <span>Imprimir comanda térmica (80mm)</span>
-            </button>
+            <h3 className="font-serif text-lg font-bold text-[#1C2C22] mb-1.5">
+              Nenhum pedido selecionado
+            </h3>
+            <p className="text-xs text-gray-500 max-w-[240px] leading-relaxed mb-4">
+              Selecione um pedido na tabela ao lado para visualizar os itens, endereço, observações e dados do cliente.
+            </p>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] text-[11px] font-semibold text-gray-600">
+              <span>Dica: clique em qualquer linha</span>
+            </div>
           </div>
-        </aside>
-      )}
+        )}
+      </aside>
+    </div>
+  </div>
+</div>
+
+  {/* Mobile Drawer Backdrop */}
+  {selectedOrderId && (
+    <div
+      onClick={() => setSelectedOrderId(null)}
+      className="fixed inset-0 bg-black/40 z-40 lg:hidden animate-in fade-in duration-200"
+    />
+  )}
 
       {/* Thermal Receipt Preview Modal (80mm Cupom) */}
       {isPrintModalOpen && printingOrder && (
