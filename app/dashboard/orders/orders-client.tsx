@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useOrganization } from '@clerk/nextjs'
 import {
   CircleCheck,
   Bike,
@@ -18,7 +19,11 @@ import {
   ArrowUp,
   ArrowDown,
   MapPin,
-  ExternalLink
+  ExternalLink,
+  Pencil,
+  Trash2,
+  Plus,
+  Minus
 } from 'lucide-react'
 
 // Official WhatsApp Vector Icon (White / Crisp)
@@ -35,6 +40,36 @@ function WhatsAppIcon({ className }: { className?: string }) {
       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
     </svg>
   )
+}
+
+// Helper to generate contextual WhatsApp message with store name and sanitized phone
+function getWhatsAppUrl(order: Order, storeName: string): string {
+  const rawDigits = order.phone.replace(/\D/g, '')
+  const phoneFormatted = rawDigits.startsWith('55') ? rawDigits : `55${rawDigits}`
+
+  const clientName = order.client.trim()
+  const orderId = order.id
+  let msg = ''
+
+  if (order.status === 'Novo') {
+    msg = `Olá ${clientName}! Aqui é da *${storeName}*. Recebemos seu pedido *${orderId}* e já estamos conferindo para iniciar o preparo! 👨‍🍳`
+  } else if (order.status === 'Em preparo') {
+    msg = `Olá ${clientName}! Aqui é da *${storeName}*. Seu pedido *${orderId}* já está sendo preparado com muito capricho pela nossa cozinha! 🍕`
+  } else if (order.status === 'Pronto') {
+    if (order.type === 'Retirada') {
+      msg = `Olá ${clientName}! Aqui é da *${storeName}*. Seu pedido *${orderId}* já está pronto e quentinho no balcão aguardando sua retirada! 🎉`
+    } else {
+      msg = `Olá ${clientName}! Aqui é da *${storeName}*. Seu pedido *${orderId}* já está pronto e embalado, aguardando saída com o entregador! 🛵`
+    }
+  } else if (order.status === 'Em entrega') {
+    msg = `Olá ${clientName}! Aqui é da *${storeName}*. Seu pedido *${orderId}* acabou de sair com nosso entregador! Fique de olho na campainha/portaria 🛵💨`
+  } else if (order.status === 'Concluído') {
+    msg = `Olá ${clientName}! Aqui é da *${storeName}*. Seu pedido *${orderId}* foi finalizado. Esperamos que tenha uma ótima refeição e agradecemos pela preferência! ❤️`
+  } else {
+    msg = `Olá ${clientName}! Aqui é da *${storeName}* sobre o seu pedido *${orderId}*.`
+  }
+
+  return `https://wa.me/${phoneFormatted}?text=${encodeURIComponent(msg)}`
 }
 
 export interface OrderItem {
@@ -70,18 +105,22 @@ const INITIAL_ORDERS: Order[] = [
     id: '#1247',
     client: 'Marina Souza',
     phone: '(11) 98765-4321',
-    itemsCount: 3,
-    itemsDesc: '2 pratos, 1 bebida',
+    itemsCount: 7,
+    itemsDesc: '3 pratos, 2 bebidas, 2 adicionais',
     itemsDetail: [
       { qty: 1, name: 'Frango Grelhado com Ervas', price: 'R$ 34,90', details: 'Arroz integral, legumes grelhados' },
       { qty: 1, name: 'Salada Noma', price: 'R$ 28,90', details: 'Folhas, tomate cereja, queijo de cabra, nozes, molho balsâmico' },
-      { qty: 1, name: 'Suco Natural Laranja 300ml', price: 'R$ 12,90', details: '300ml gelado, sem açúcar' }
+      { qty: 1, name: 'Suco Natural Laranja 300ml', price: 'R$ 12,90', details: '300ml gelado, sem açúcar' },
+      { qty: 1, name: 'Porção de Batatas Rústicas', price: 'R$ 18,00', details: 'Com alecrim e sal grosso' },
+      { qty: 1, name: 'Pudim de Leite Condensado', price: 'R$ 14,00', details: 'Fatia artesanal' },
+      { qty: 1, name: 'Refrigerante Guaraná Lata', price: 'R$ 7,00', details: '350ml gelado' },
+      { qty: 1, name: 'Molho Especial de Alho', price: 'R$ 4,50', details: 'Pote 50ml' }
     ],
     time: '12:30',
     date: 'Hoje',
     type: 'Delivery',
     address: 'Rua das Flores, 123 - Vila Madalena, São Paulo - SP, 05433-000',
-    total: 'R$ 89,90',
+    total: 'R$ 120,20',
     paymentMethod: 'Crédito na Entrega',
     status: 'Novo',
     obs: 'Sem cebola, por favor.\nBater na portaria.',
@@ -644,6 +683,104 @@ export default function OrdersClient() {
   const [dateFilter, setDateFilter] = useState('Hoje')
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false)
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null)
+  const { organization } = useOrganization()
+  const storeName = organization?.name || 'Sabor & Cia Centro'
+
+  // Drawer items pagination (5 items per page)
+  const [drawerItemPage, setDrawerItemPage] = useState(1)
+
+  useEffect(() => {
+    setDrawerItemPage(1)
+  }, [selectedOrderId])
+
+  // Edit Order Items Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null)
+  const [editableItems, setEditableItems] = useState<OrderItem[]>([])
+  const [newItemName, setNewItemName] = useState('')
+  const [newItemQty, setNewItemQty] = useState(1)
+  const [newItemPrice, setNewItemPrice] = useState('')
+  const [newItemDetails, setNewItemDetails] = useState('')
+
+  const handleOpenEditModal = (order: Order) => {
+    setEditingOrder(order)
+    setEditableItems(order.itemsDetail.map(it => ({ ...it })))
+    setNewItemName('')
+    setNewItemQty(1)
+    setNewItemPrice('')
+    setNewItemDetails('')
+    setIsEditModalOpen(true)
+  }
+
+  const handleRemoveItem = (index: number) => {
+    setEditableItems(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleUpdateItemQty = (index: number, delta: number) => {
+    setEditableItems(prev => prev.map((item, i) => {
+      if (i === index) {
+        const newQty = Math.max(1, item.qty + delta)
+        return { ...item, qty: newQty }
+      }
+      return item
+    }))
+  }
+
+  const handleAddNewItem = () => {
+    if (!newItemName.trim()) return
+    const priceNum = parseFloat(newItemPrice.replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) || 0
+    const formattedPrice = `R$ ${priceNum.toFixed(2).replace('.', ',')}`
+    
+    setEditableItems(prev => [
+      ...prev,
+      {
+        qty: Math.max(1, newItemQty),
+        name: newItemName.trim(),
+        price: formattedPrice,
+        details: newItemDetails.trim() || undefined
+      }
+    ])
+    setNewItemName('')
+    setNewItemQty(1)
+    setNewItemPrice('')
+    setNewItemDetails('')
+  }
+
+  const calculatedTotal = useMemo(() => {
+    const sum = editableItems.reduce((acc, item) => {
+      const priceNum = parseFloat(item.price.replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) || 0
+      return acc + (priceNum * item.qty)
+    }, 0)
+    return `R$ ${sum.toFixed(2).replace('.', ',')}`
+  }, [editableItems])
+
+  const handleSaveEditedOrder = () => {
+    if (!editingOrder) return
+    if (editableItems.length === 0) {
+      alert('O pedido deve conter pelo menos um item.')
+      return
+    }
+
+    const totalQty = editableItems.reduce((acc, it) => acc + it.qty, 0)
+    const newItemsDesc = `${editableItems.length} ${editableItems.length === 1 ? 'item' : 'itens'}`
+
+    setOrders(prev => prev.map(o => {
+      if (o.id === editingOrder.id) {
+        return {
+          ...o,
+          itemsDetail: editableItems,
+          itemsCount: totalQty,
+          itemsDesc: newItemsDesc,
+          total: calculatedTotal
+        }
+      }
+      return o
+    }))
+
+    setIsEditModalOpen(false)
+    setEditingOrder(null)
+  }
+
   type SortField = 'id' | 'client' | 'time' | 'type' | 'total' | 'status'
   type SortDirection = 'asc' | 'desc'
 
@@ -724,57 +861,21 @@ export default function OrdersClient() {
       return true
     })
 
-    const LIFECYCLE_ORDER: Record<string, number> = {
-      'Novo': 1,        // Botão "Aceitar" - sempre primeiro no topo
-      'Em preparo': 2,   // Botão "Pronto" - fila da cozinha ordenada por chegada
-      'Pronto': 3,       // Retirada: "Concluir" / Delivery: "Despachar"
-      'Em entrega': 4,   // Delivery: "Concluir"
-      'Concluído': 5,    // Finalizado - vai direto pro final da lista
-    }
-
     if (!sortField) {
+      // Ordem de chegada estável (mais recentes primeiro por número do pedido)
       return [...list].sort((a, b) => {
-        const priorityA = LIFECYCLE_ORDER[a.status] || 99
-        const priorityB = LIFECYCLE_ORDER[b.status] || 99
-
-        if (priorityA !== priorityB) {
-          return priorityA - priorityB
-        }
-
-        // 1. Pedidos Novos: mais recentes no topo (por ID decrescente)
-        if (a.status === 'Novo') {
-          const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0
-          const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0
-          return numB - numA
-        }
-
-        // 2. Em preparo: ordenados por chegada do pedido (FIFO - mais antigo primeiro na fila de preparo)
-        if (a.status === 'Em preparo') {
-          const [hA, mA] = a.time.split(':').map(Number)
-          const [hB, mB] = b.time.split(':').map(Number)
-          const timeComp = (hA * 60 + mA) - (hB * 60 + mB)
-          if (timeComp !== 0) return timeComp
-          const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0
-          const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0
-          return numA - numB
-        }
-
-        // 3. Pronto / Em entrega: pedidos aguardando retirada ou entrega
-        if (a.status === 'Pronto' || a.status === 'Em entrega') {
-          const [hA, mA] = a.time.split(':').map(Number)
-          const [hB, mB] = b.time.split(':').map(Number)
-          const timeComp = (hA * 60 + mA) - (hB * 60 + mB)
-          if (timeComp !== 0) return timeComp
-          const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0
-          const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0
-          return numA - numB
-        }
-
-        // 4. Concluído: finalizados no final da lista
         const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0
         const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0
         return numB - numA
       })
+    }
+
+    const STATUS_PRIORITY: Record<string, number> = {
+      'Novo': 1,
+      'Em preparo': 2,
+      'Pronto': 3,
+      'Em entrega': 4,
+      'Concluído': 5,
     }
 
     return [...list].sort((a, b) => {
@@ -810,8 +911,8 @@ export default function OrdersClient() {
           break
         }
         case 'status': {
-          const priorityA = LIFECYCLE_ORDER[a.status] || 99
-          const priorityB = LIFECYCLE_ORDER[b.status] || 99
+          const priorityA = STATUS_PRIORITY[a.status] || 99
+          const priorityB = STATUS_PRIORITY[b.status] || 99
           comparison = priorityA - priorityB
           if (comparison === 0) {
             const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0
@@ -1207,7 +1308,7 @@ export default function OrdersClient() {
                             {order.client}
                           </div>
                           <a
-                            href={`https://wa.me/55${order.phone.replace(/\D/g, '')}?text=Ol%C3%A1%20${encodeURIComponent(order.client)}%2C%20tudo%20bem%3F%20Aqui%20%C3%A9%20da%20Casa%20Noma%20sobre%20seu%20pedido%20${order.id}`}
+                            href={getWhatsAppUrl(order, storeName)}
                             target="_blank"
                             rel="noreferrer"
                             onClick={(e) => e.stopPropagation()}
@@ -1507,7 +1608,7 @@ export default function OrdersClient() {
                     <div className="text-xs text-gray-500 mt-0.5">{activeOrder.phone}</div>
                   </div>
                   <a
-                    href={`https://wa.me/55${activeOrder.phone.replace(/\D/g, '')}?text=Ol%C3%A1%20${encodeURIComponent(activeOrder.client)}%2C%20aqui%20%C3%A9%20da%20Casa%20Noma.%20Sobre%20seu%20pedido%20${activeOrder.id}`}
+                    href={getWhatsAppUrl(activeOrder, storeName)}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer"
@@ -1536,51 +1637,93 @@ export default function OrdersClient() {
                     {activeOrder.type === 'Delivery' ? 'Endereço de entrega' : 'Local de retirada'}
                   </div>
                   <p className="text-xs text-gray-600 leading-relaxed">{activeOrder.address}</p>
-                  {activeOrder.type === 'Delivery' && (
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeOrder.address)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#CB5A3C] hover:underline mt-2.5"
-                    >
-                      <MapPin className="w-3.5 h-3.5" />
-                      <span>Ver rota no Google Maps</span>
-                      <ExternalLink className="w-3 h-3 ml-0.5" />
-                    </a>
-                  )}
                 </div>
               </div>
 
               {/* Section: Itens do pedido */}
               <div>
-                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2">
-                  Itens do pedido ({activeOrder.itemsDetail.length})
-                </h3>
-                <div className="space-y-2">
-                  {activeOrder.itemsDetail.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="p-2.5 rounded-xl border border-[#E9E4D4] bg-white flex items-start gap-2.5 shadow-xs"
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider">
+                    Itens do pedido ({activeOrder.itemsDetail.length})
+                  </h3>
+                  {activeOrder.status !== 'Concluído' && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(activeOrder)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#1C2C22] bg-[#FAF8F0] hover:bg-[#F3EFE3] border border-[#E9E4D4] transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
+                      title="Adicionar ou excluir itens deste pedido"
                     >
-                      <div className="w-7 h-7 rounded-lg bg-[#FAF8F0] border border-[#E9E4D4] text-[#1C2C22] font-bold text-xs flex items-center justify-center shrink-0">
-                        {item.qty}x
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-xs text-[#1C2C22] truncate">
-                            {item.name}
-                          </span>
-                          <span className="font-bold text-xs text-[#1C2C22] shrink-0">
-                            {item.price}
-                          </span>
-                        </div>
-                        {item.details && (
-                          <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{item.details}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                      <Pencil className="w-3 h-3 text-[#CB5A3C]" />
+                      <span>Editar pedido</span>
+                    </button>
+                  )}
                 </div>
+
+                {(() => {
+                  const DRAWER_ITEMS_PER_PAGE = 5
+                  const totalDrawerPages = Math.max(1, Math.ceil(activeOrder.itemsDetail.length / DRAWER_ITEMS_PER_PAGE))
+                  const safeDrawerPage = Math.min(Math.max(1, drawerItemPage), totalDrawerPages)
+                  const visibleItems = activeOrder.itemsDetail.slice(
+                    (safeDrawerPage - 1) * DRAWER_ITEMS_PER_PAGE,
+                    safeDrawerPage * DRAWER_ITEMS_PER_PAGE
+                  )
+
+                  return (
+                    <>
+                      <div className="space-y-2">
+                        {visibleItems.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="p-2.5 rounded-xl border border-[#E9E4D4] bg-white flex items-start gap-2.5 shadow-xs"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-[#FAF8F0] border border-[#E9E4D4] text-[#1C2C22] font-bold text-xs flex items-center justify-center shrink-0">
+                              {item.qty}x
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-semibold text-xs text-[#1C2C22] truncate">
+                                  {item.name}
+                                </span>
+                                <span className="font-bold text-xs text-[#1C2C22] shrink-0">
+                                  {item.price}
+                                </span>
+                              </div>
+                              {item.details && (
+                                <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{item.details}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Pagination (5 em 5 itens, só se tiver mais de 5 itens) */}
+                      {activeOrder.itemsDetail.length > 5 && (
+                        <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-[#E9E4D4]/60">
+                          <span className="text-[11px] text-gray-500 font-medium">
+                            Pág. {safeDrawerPage} de {totalDrawerPages} ({activeOrder.itemsDetail.length} itens)
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: totalDrawerPages }).map((_, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setDrawerItemPage(idx + 1)}
+                                className={cn(
+                                  "w-6 h-6 rounded-md text-xs font-bold flex items-center justify-center transition-colors cursor-pointer",
+                                  safeDrawerPage === idx + 1
+                                    ? "bg-[#CB5A3C] text-white shadow-2xs"
+                                    : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                                )}
+                              >
+                                {idx + 1}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
               </div>
 
               {/* Section: Observações */}
@@ -1755,6 +1898,170 @@ export default function OrdersClient() {
               >
                 <Printer className="w-3.5 h-3.5" />
                 Imprimir Cupom
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Order Items Modal */}
+      {isEditModalOpen && editingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] border border-[#E9E4D4]">
+            {/* Modal Header */}
+            <div className="px-5 py-3.5 bg-[#FAF8F0] border-b border-[#E9E4D4] flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="font-serif text-lg font-bold text-[#1C2C22] leading-none">
+                  Editar Itens do Pedido {editingOrder.id}
+                </h3>
+                <p className="text-xs text-gray-500 font-medium mt-1">
+                  Adicione novos produtos ou exclua itens existentes do pedido.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="w-7 h-7 rounded-lg hover:bg-gray-200/60 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="p-5 overflow-y-auto flex-1 space-y-4">
+              {/* List of current items */}
+              <div>
+                <label className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider block mb-2">
+                  Itens no Pedido ({editableItems.length})
+                </label>
+                {editableItems.length === 0 ? (
+                  <div className="p-4 rounded-xl border border-dashed border-gray-300 text-center text-xs text-gray-500 bg-[#FAF8F0]/40">
+                    Nenhum item restante no pedido. Adicione itens abaixo antes de salvar.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {editableItems.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 flex items-center justify-between gap-3 shadow-2xs"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-xs text-[#1C2C22] truncate">
+                            {item.name}
+                          </div>
+                          <div className="text-[11px] text-gray-500 font-medium">
+                            {item.price} cada
+                          </div>
+                        </div>
+
+                        {/* Quantity Stepper */}
+                        <div className="flex items-center gap-1 bg-white border border-[#E9E4D4] rounded-lg p-0.5 shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateItemQty(idx, -1)}
+                            className="w-6 h-6 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 hover:text-black cursor-pointer text-xs"
+                            title="Diminuir quantidade"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="w-6 text-center text-xs font-bold text-[#1C2C22]">
+                            {item.qty}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateItemQty(idx, 1)}
+                            className="w-6 h-6 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 hover:text-black cursor-pointer text-xs"
+                            title="Aumentar quantidade"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        {/* Remove / Excluir Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(idx)}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer shrink-0"
+                          title="Excluir este item do pedido"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add New Item Section */}
+              <div className="p-4 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-3">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#1C2C22] uppercase tracking-wider">
+                  <Plus className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                  <span>Adicionar Novo Produto</span>
+                </div>
+
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    placeholder="Nome do produto (ex: Pizza Calabresa, Refrigerante 2L)"
+                    className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                  />
+                  <div className="flex gap-2">
+                    <div className="w-24 shrink-0">
+                      <input
+                        type="number"
+                        min="1"
+                        value={newItemQty}
+                        onChange={(e) => setNewItemQty(Math.max(1, parseInt(e.target.value) || 1))}
+                        placeholder="Qtd"
+                        className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={newItemPrice}
+                        onChange={(e) => setNewItemPrice(e.target.value)}
+                        placeholder="Preço unitário (ex: 28,00)"
+                        className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleAddNewItem}
+                      disabled={!newItemName.trim()}
+                      className="bg-[#2E4233] hover:bg-[#1E3A2B] text-white text-xs font-bold px-3 shrink-0 rounded-xl disabled:opacity-50"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      Adicionar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recalculated Total Banner */}
+              <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 flex items-center justify-between text-xs">
+                <span className="font-medium text-amber-900">Total recalculado do pedido:</span>
+                <span className="font-bold text-sm text-[#1C2C22]">{calculatedTotal}</span>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-4 bg-white border-t border-[#E9E4D4] flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsEditModalOpen(false)}
+                className="flex-1 text-xs"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSaveEditedOrder}
+                className="flex-1 bg-[#1E3A2B] hover:bg-[#162B20] text-white text-xs font-semibold gap-1.5"
+              >
+                <Check className="w-3.5 h-3.5" />
+                Salvar Alterações
               </Button>
             </div>
           </div>
