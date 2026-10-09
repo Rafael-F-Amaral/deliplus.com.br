@@ -1602,24 +1602,22 @@ export default function MenuClient({
             Mostrando {filteredItems.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)} de {filteredItems.length} itens
           </span>
 
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-1.5">
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
-                    currentPage === i + 1 
-                      ? "bg-[#CB5A3C] text-white shadow-sm" 
-                      : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex justify-center items-center gap-1.5">
+            {Array.from({ length: Math.max(1, totalPages) }).map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setCurrentPage(i + 1)}
+                className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                  currentPage === i + 1 
+                    ? "bg-[#CB5A3C] text-white shadow-sm" 
+                    : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -1887,24 +1885,22 @@ export default function MenuClient({
         </div>
 
         {/* Mobile Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 p-2.5 border-t border-[#E9E4D4] bg-[#FAF8F0]/30 shrink-0">
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setCurrentPage(i + 1)}
-                className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors ${
-                  currentPage === i + 1 
-                    ? "bg-[#CB5A3C] text-white shadow-sm" 
-                    : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex justify-center items-center gap-2 p-2.5 border-t border-[#E9E4D4] bg-[#FAF8F0]/30 shrink-0">
+          {Array.from({ length: Math.max(1, totalPages) }).map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setCurrentPage(i + 1)}
+              className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors ${
+                currentPage === i + 1 
+                  ? "bg-[#CB5A3C] text-white shadow-sm" 
+                  : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ==================== MODAL: EDITOR DE ITEM ==================== */}

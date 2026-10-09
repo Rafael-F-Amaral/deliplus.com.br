@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils'
 import { useOrganization } from '@clerk/nextjs'
 import {
   CircleCheck,
-  Bike,
   Printer,
   X,
   Check,
@@ -20,7 +19,6 @@ import {
   ArrowDown,
   MapPin,
   ExternalLink,
-  Pencil,
   Trash2,
   Plus,
   Minus
@@ -1420,11 +1418,10 @@ export default function OrdersClient() {
                               <button
                                 type="button"
                                 onClick={(e) => handleAdvanceStatus(order.id, e)}
-                                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#0284C7] hover:bg-[#0369A1] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
-                                title="Despachar com o entregador"
+                                className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold bg-[#0284C7] hover:bg-[#0369A1] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                                title="Marcar como em rota de entrega"
                               >
-                                <Bike className="w-3.5 h-3.5 stroke-[2.5]" />
-                                <span>Despachar</span>
+                                <span>Em rota</span>
                               </button>
                             )
                           )}
@@ -1596,13 +1593,13 @@ export default function OrdersClient() {
               </div>
 
             {/* Drawer Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
               {/* Section: Cliente */}
               <div>
-                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2">
+                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-1.5">
                   Cliente
                 </h3>
-                <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-3 flex items-center justify-between">
+                <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-2.5 flex items-center justify-between">
                   <div>
                     <div className="font-bold text-sm text-[#1C2C22]">{activeOrder.client}</div>
                     <div className="text-xs text-gray-500 mt-0.5">{activeOrder.phone}</div>
@@ -1621,7 +1618,7 @@ export default function OrdersClient() {
 
               {/* Section: Modalidade de Entrega */}
               <div>
-                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2">
+                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-1.5">
                   {activeOrder.type === 'Delivery' ? (
                     <>
                       ENTREGA <span className="text-[#CB5A3C]">(DELIVERY)</span>
@@ -1632,8 +1629,8 @@ export default function OrdersClient() {
                     </>
                   )}
                 </h3>
-                <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-3">
-                  <div className="font-semibold text-xs text-[#1C2C22] mb-1">
+                <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-2.5">
+                  <div className="font-semibold text-xs text-[#1C2C22] mb-0.5">
                     {activeOrder.type === 'Delivery' ? 'Endereço de entrega' : 'Local de retirada'}
                   </div>
                   <p className="text-xs text-gray-600 leading-relaxed">{activeOrder.address}</p>
@@ -1642,7 +1639,7 @@ export default function OrdersClient() {
 
               {/* Section: Itens do pedido */}
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-1.5">
                   <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider">
                     Itens do pedido ({activeOrder.itemsDetail.length})
                   </h3>
@@ -1650,17 +1647,16 @@ export default function OrdersClient() {
                     <button
                       type="button"
                       onClick={() => handleOpenEditModal(activeOrder)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#1C2C22] bg-[#FAF8F0] hover:bg-[#F3EFE3] border border-[#E9E4D4] transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
+                      className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-[11px] font-bold text-white bg-[#CB5A3C] hover:bg-[#B34B30] transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
                       title="Adicionar ou excluir itens deste pedido"
                     >
-                      <Pencil className="w-3 h-3 text-[#CB5A3C]" />
                       <span>Editar pedido</span>
                     </button>
                   )}
                 </div>
 
                 {(() => {
-                  const DRAWER_ITEMS_PER_PAGE = 5
+                  const DRAWER_ITEMS_PER_PAGE = 3
                   const totalDrawerPages = Math.max(1, Math.ceil(activeOrder.itemsDetail.length / DRAWER_ITEMS_PER_PAGE))
                   const safeDrawerPage = Math.min(Math.max(1, drawerItemPage), totalDrawerPages)
                   const visibleItems = activeOrder.itemsDetail.slice(
@@ -1696,8 +1692,8 @@ export default function OrdersClient() {
                         ))}
                       </div>
 
-                      {/* Pagination (5 em 5 itens, só se tiver mais de 5 itens) */}
-                      {activeOrder.itemsDetail.length > 5 && (
+                      {/* Pagination (3 em 3 itens, só se tiver mais de 3 itens) */}
+                      {activeOrder.itemsDetail.length > 3 && (
                         <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-[#E9E4D4]/60">
                           <span className="text-[11px] text-gray-500 font-medium">
                             Pág. {safeDrawerPage} de {totalDrawerPages} ({activeOrder.itemsDetail.length} itens)
@@ -1729,10 +1725,10 @@ export default function OrdersClient() {
               {/* Section: Observações */}
               {activeOrder.obs && (
                 <div>
-                  <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2">
+                  <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-1.5">
                     Observações do Cliente
                   </h3>
-                  <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 text-xs text-amber-900 leading-relaxed font-medium">
+                  <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 text-xs text-amber-900 leading-relaxed font-medium">
                     {activeOrder.obs}
                   </div>
                 </div>
@@ -1740,10 +1736,10 @@ export default function OrdersClient() {
 
               {/* Section: Pagamento */}
               <div>
-                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-2">
+                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-1.5">
                   Pagamento
                 </h3>
-                <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-3 flex items-center justify-between text-xs">
+                <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-2.5 flex items-center justify-between text-xs">
                   <div>
                     <span className="font-semibold text-[#1C2C22]">{activeOrder.paymentMethod}</span>
                     <div className="text-[11px] text-gray-600 mt-0.5">
