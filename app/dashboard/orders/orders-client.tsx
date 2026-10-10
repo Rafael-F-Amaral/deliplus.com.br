@@ -1,9 +1,11 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useOrganization } from '@clerk/nextjs'
+import { updateOrderStatusAction, updateOrderItemsAction, cancelOrderAction, OrderStatus } from './actions'
+import { createBrowserSupabaseClient } from '@/lib/supabase/browser'
 import {
   Printer,
   X,
@@ -79,6 +81,7 @@ export interface OrderItem {
 export type PaymentMethod = 'Débito na Entrega' | 'Crédito na Entrega' | 'Em Dinheiro'
 
 export interface Order {
+  dbId?: string
   id: string
   client: string
   phone: string
@@ -92,9 +95,66 @@ export interface Order {
   total: string
   paymentMethod: PaymentMethod
   changeFor?: string
-  status: 'Novo' | 'Em preparo' | 'Pronto' | 'Em entrega' | 'Concluído'
+  status: 'Novo' | 'Em preparo' | 'Pronto' | 'Em entrega' | 'Concluído' | 'Cancelado'
   obs?: string
   isUrgent?: boolean
+}
+
+function formatBRL(cents: number | null | undefined): string {
+  if (typeof cents !== 'number' || isNaN(cents)) return 'R$ 0,00'
+  return (cents / 100).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  })
+}
+
+function formatTime(dateStr: string): { time: string; date: string } {
+  try {
+    const d = new Date(dateStr)
+    const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    const today = new Date()
+    const isToday = d.toDateString() === today.toDateString()
+    const date = isToday ? 'Hoje' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+    return { time, date }
+  } catch {
+    return { time: '12:00', date: 'Hoje' }
+  }
+}
+
+function mapRowToOrder(row: any): Order {
+  const { time, date } = formatTime(row.created_at)
+  return {
+    dbId: row.id,
+    id: row.display_id || `#${String(row.order_number).padStart(4, '0')}`,
+    client: row.customer_name || 'Cliente',
+    phone: row.customer_phone || '',
+    itemsCount: row.items_count || 0,
+    itemsDesc: `${row.items_count || 0} ${row.items_count === 1 ? 'item' : 'itens'}`,
+    itemsDetail: (row.items_detail || []).map((it: any) => ({
+      id: it.id,
+      qty: it.qty,
+      name: it.name,
+      price: formatBRL(it.unit_price_cents),
+      details: it.details || undefined
+    })),
+    time,
+    date,
+    type: row.delivery_type === 'Retirada' ? 'Retirada' : 'Delivery',
+    address: row.delivery_address || (row.delivery_type === 'Retirada' ? 'Balcão da Loja Principal' : 'Endereço não informado'),
+    total: formatBRL(row.total_amount_cents),
+    paymentMethod: row.payment_method || 'Em Dinheiro',
+    changeFor: row.change_for_cents ? `Troco p/ ${formatBRL(row.change_for_cents)}` : undefined,
+    status: row.status as any,
+    obs: row.notes || undefined,
+    isUrgent: !!row.is_urgent
+  }
+}
+
+export interface OrdersClientProps {
+  initialOrders?: Order[]
+  storeId?: string
+  storeName?: string
+  storeSlug?: string
 }
 
 const INITIAL_ORDERS: Order[] = [
@@ -671,8 +731,13 @@ const KITCHEN_STATUS_OPTIONS: { label: string; value: 'Todos' | 'Novo' | 'Em pre
   { label: 'Prontos', value: 'Pronto' },
 ]
 
-export default function OrdersClient() {
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS)
+export default function OrdersClient({
+  initialOrders = [],
+  storeId,
+  storeName: propStoreName,
+  storeSlug: _storeSlug
+}: OrdersClientProps = {}) {
+  const [orders, setOrders] = useState<Order[]>(initialOrders.length > 0 ? initialOrders : INITIAL_ORDERS)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'Todos' | 'Novo' | 'Em preparo' | 'Pronto'>('Todos')
@@ -681,7 +746,47 @@ export default function OrdersClient() {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false)
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null)
   const { organization } = useOrganization()
-  const storeName = organization?.name || 'Sabor & Cia Centro'
+  const storeName = propStoreName || organization?.name || 'RafaelTeste'
+
+  useEffect(() => {
+    if (initialOrders && initialOrders.length > 0) {
+      setOrders(initialOrders)
+    }
+  }, [initialOrders])
+
+  // Realtime subscription to reflect orders changes across storefront, webhook or other sessions
+  useEffect(() => {
+    if (!storeId) return
+
+    const supabase = createBrowserSupabaseClient()
+    const channel = supabase
+      .channel(`orders_realtime_${storeId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `store_id=eq.${storeId}`
+        },
+        async () => {
+          const { data } = await supabase
+            .from('vw_orders_live')
+            .select('*')
+            .eq('store_id', storeId)
+            .order('order_number', { ascending: false })
+
+          if (data) {
+            setOrders(data.map(mapRowToOrder))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [storeId])
 
   // Drawer items pagination (5 items per page)
   const [drawerItemPage, setDrawerItemPage] = useState(1)
@@ -689,6 +794,10 @@ export default function OrdersClient() {
   useEffect(() => {
     setDrawerItemPage(1)
   }, [selectedOrderId])
+
+  // Cancel Order Modal State
+  const [orderToCancel, setOrderToCancel] = useState<Order | null>(null)
+  const [isCanceling, setIsCanceling] = useState(false)
 
   // Edit Order Items Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -751,7 +860,7 @@ export default function OrdersClient() {
     return `R$ ${sum.toFixed(2).replace('.', ',')}`
   }, [editableItems])
 
-  const handleSaveEditedOrder = () => {
+  const handleSaveEditedOrder = async () => {
     if (!editingOrder) return
     if (editableItems.length === 0) {
       alert('O pedido deve conter pelo menos um item.')
@@ -761,6 +870,7 @@ export default function OrdersClient() {
     const totalQty = editableItems.reduce((acc, it) => acc + it.qty, 0)
     const newItemsDesc = `${editableItems.length} ${editableItems.length === 1 ? 'item' : 'itens'}`
 
+    // Optimistic UI update
     setOrders(prev => prev.map(o => {
       if (o.id === editingOrder.id) {
         return {
@@ -775,7 +885,29 @@ export default function OrdersClient() {
     }))
 
     setIsEditModalOpen(false)
+
+    // Map items to database payload
+    const mappedItems = editableItems.map(it => {
+      const priceNum = parseFloat(
+        it.price.replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')
+      ) || 0
+      return {
+        name: it.name,
+        qty: it.qty,
+        unitPriceCents: Math.round(priceNum * 100),
+        details: it.details
+      }
+    })
+
+    const targetDbId = editingOrder.dbId || editingOrder.id
     setEditingOrder(null)
+
+    try {
+      await updateOrderItemsAction(targetDbId, mappedItems)
+    } catch (err) {
+      console.error('Falha ao salvar itens no Supabase:', err)
+      alert('Erro ao salvar as alterações no banco de dados.')
+    }
   }
 
   type SortField = 'id' | 'client' | 'time' | 'type' | 'total' | 'status'
@@ -790,6 +922,7 @@ export default function OrdersClient() {
 
   // Mobile filter scroll state to render visible indicator bar
   const filterScrollRef = React.useRef<HTMLDivElement>(null)
+  const tableAreaRef = React.useRef<HTMLDivElement>(null)
   const [filterScroll, setFilterScroll] = useState({ scrollLeft: 0, clientWidth: 0, scrollWidth: 0 })
 
   const updateFilterScroll = () => {
@@ -811,10 +944,12 @@ export default function OrdersClient() {
       const h = window.innerHeight
 
       if (w < 640) {
-        // Mobile screens: dynamically calculate rows to fill table down to pagination
-        const availableHeight = h - 330
-        const calculatedRows = Math.floor(availableHeight / 48)
-        setItemsPerPage(Math.max(6, Math.min(15, calculatedRows)))
+        // Mobile screens: use actual rendered container height if mounted, otherwise fallback to window height
+        const containerH = tableAreaRef.current?.clientHeight || (h - 330)
+        // Each mobile row with padding and metadata is ~63px; thead is ~37px
+        const availableForRows = containerH - 37
+        const calculatedRows = Math.floor(availableForRows / 63)
+        setItemsPerPage(Math.max(4, Math.min(10, calculatedRows)))
       } else if (w < 1024) {
         // Tablets / small laptops
         if (h < 800) {
@@ -946,28 +1081,77 @@ export default function OrdersClient() {
   }, [filteredOrders, safeCurrentPage, itemsPerPage])
 
   // Handle Order Accept
-  const handleAcceptOrder = (orderId: string, e?: React.MouseEvent) => {
+  const handleAcceptOrder = async (orderId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
+    const target = orders.find(o => o.id === orderId || o.dbId === orderId)
+    if (!target) return
+
     setOrders(prev =>
-      prev.map(o => (o.id === orderId ? { ...o, status: 'Em preparo', isUrgent: false } : o))
+      prev.map(o => (o.id === target.id ? { ...o, status: 'Em preparo', isUrgent: false } : o))
     )
+
+    try {
+      await updateOrderStatusAction(target.dbId || target.id, 'Em preparo')
+    } catch (err) {
+      console.error('Falha ao aceitar pedido no Supabase:', err)
+    }
   }
 
   // Handle Advance Status
-  const handleAdvanceStatus = (orderId: string, e?: React.MouseEvent) => {
+  const handleAdvanceStatus = async (orderId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
+    const target = orders.find(o => o.id === orderId || o.dbId === orderId)
+    if (!target) return
+
+    let nextStatus: OrderStatus = 'Em preparo'
+    if (target.status === 'Novo') nextStatus = 'Em preparo'
+    else if (target.status === 'Em preparo') nextStatus = 'Pronto'
+    else if (target.status === 'Pronto') {
+      nextStatus = target.type === 'Retirada' ? 'Concluído' : 'Em entrega'
+    } else if (target.status === 'Em entrega') {
+      nextStatus = 'Concluído'
+    } else {
+      return
+    }
+
     setOrders(prev =>
-      prev.map(o => {
-        if (o.id !== orderId) return o
-        if (o.status === 'Novo') return { ...o, status: 'Em preparo', isUrgent: false }
-        if (o.status === 'Em preparo') return { ...o, status: 'Pronto' }
-        if (o.status === 'Pronto') {
-          return { ...o, status: o.type === 'Retirada' ? 'Concluído' : 'Em entrega' }
-        }
-        if (o.status === 'Em entrega') return { ...o, status: 'Concluído' }
-        return o
-      })
+      prev.map(o => (o.id === target.id ? { ...o, status: nextStatus, isUrgent: false } : o))
     )
+
+    try {
+      await updateOrderStatusAction(target.dbId || target.id, nextStatus)
+    } catch (err) {
+      console.error('Falha ao avançar status no Supabase:', err)
+    }
+  }
+
+  // Handle Cancel Order (Abre modal estilizado DeliPlus)
+  const handleCancelOrder = (orderId: string) => {
+    const target = orders.find(o => o.id === orderId || o.dbId === orderId)
+    if (!target) return
+    setOrderToCancel(target)
+  }
+
+  // Confirmar cancelamento no Modal DeliPlus e persistir no Supabase
+  const handleConfirmCancelOrder = async () => {
+    if (!orderToCancel) return
+    setIsCanceling(true)
+    const target = orderToCancel
+    const targetDbId = target.dbId || target.id
+
+    // Atualização otimista na interface
+    setOrders(prev =>
+      prev.map(o => (o.id === target.id || o.dbId === target.id ? { ...o, status: 'Cancelado' } : o))
+    )
+
+    try {
+      await cancelOrderAction(targetDbId)
+    } catch (err) {
+      console.error('Falha ao cancelar pedido no Supabase:', err)
+    } finally {
+      setIsCanceling(false)
+      setOrderToCancel(null)
+    }
   }
 
   // Handle Print Action
@@ -1033,7 +1217,7 @@ export default function OrdersClient() {
                 <div 
                   ref={filterScrollRef}
                   onScroll={updateFilterScroll}
-                  className="flex items-center gap-2 w-full sm:w-auto filter-scrollbar pb-1 sm:pb-0 relative flex-nowrap"
+                  className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-1 sm:pb-0 relative flex-nowrap"
                 >
                   {/* Grupo 1: Fases de Preparo / Produção (Cozinha) */}
                   <div className="flex items-center gap-1 bg-[#F3EFE3]/80 p-0.5 rounded-full border border-[#E9E4D4] shrink-0 shadow-2xs">
@@ -1153,8 +1337,8 @@ export default function OrdersClient() {
 
             {/* Orders Table Container */}
             <div className="bg-white rounded-2xl border border-[#E9E4D4] shadow-sm overflow-hidden flex-1 min-h-0 flex flex-col justify-between">
-          <div className="overflow-x-auto overflow-y-hidden flex-1">
-            <table className="w-full text-left border-collapse">
+          <div ref={tableAreaRef} className="overflow-x-auto overflow-y-hidden flex-1">
+            <table className="w-full h-full min-h-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-[#E9E4D4] bg-[#FAF8F0]/80 text-[11px] font-bold uppercase tracking-wider text-gray-500">
                   <th
@@ -1483,10 +1667,9 @@ export default function OrdersClient() {
                           <button
                             type="button"
                             onClick={(e) => handleOpenPrint(order, e)}
-                            className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-[#1C2C22] bg-[#FAF8F0] hover:bg-[#F3EEDD] border border-[#E9E4D4] hover:border-[#2E4233]/40 shadow-2xs hover:shadow-xs transition-all cursor-pointer group/print active:scale-95"
+                            className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold text-[#1C2C22] bg-[#FAF8F0] hover:bg-[#F3EEDD] border border-[#E9E4D4] hover:border-[#2E4233]/40 shadow-2xs hover:shadow-xs transition-all cursor-pointer group/print active:scale-95"
                             title="Imprimir comanda térmica 80mm"
                           >
-                            <Printer className="w-3.5 h-3.5 text-[#2E4233] group-hover/print:scale-110 transition-transform shrink-0" />
                             <span className="font-semibold text-[11px]">Imprimir</span>
                           </button>
                         </td>
@@ -1788,6 +1971,19 @@ export default function OrdersClient() {
                 </div>
               </div>
             </div>
+
+            {/* Drawer Bottom Actions: Apenas Cancelar Pedido conforme solicitado */}
+            {activeOrder.status !== 'Concluído' && activeOrder.status !== 'Cancelado' && (
+              <div className="p-3 bg-[#FAF8F0]/80 border-t border-[#E9E4D4] shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleCancelOrder(activeOrder.id)}
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 shadow-2xs hover:shadow-xs transition-all cursor-pointer text-center active:scale-95"
+                >
+                  Cancelar pedido
+                </button>
+              </div>
+            )}
           </>
         ) : (
           /* Centered Empty State when no order is selected */
@@ -1816,7 +2012,73 @@ export default function OrdersClient() {
     />
   )}
 
-      {/* Thermal Receipt Preview Modal (80mm Cupom) */}
+  {/* Modal de Cancelamento de Pedido estilizado no padrão DeliPlus */}
+  {orderToCancel && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150">
+        {/* Modal Header */}
+        <div className="p-4 bg-[#FAF8F0] border-b border-[#E9E4D4] flex items-center justify-between">
+          <h3 className="font-serif text-lg font-bold text-[#1C2C22]">
+            Cancelar Pedido {orderToCancel.id}
+          </h3>
+          <button
+            type="button"
+            onClick={() => setOrderToCancel(null)}
+            className="w-7 h-7 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-[#E9E4D4]/60 flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-4 flex flex-col gap-3 bg-white">
+          <p className="text-sm font-semibold text-[#1C2C22]">
+            Tem certeza que deseja cancelar este pedido?
+          </p>
+          <p className="text-xs text-gray-500 leading-relaxed">
+            Esta ação alterará o status do pedido para <strong className="text-red-600 font-bold">Cancelado</strong> no sistema e no banco de dados. Esta alteração não pode ser desfeita.
+          </p>
+
+          <div className="bg-[#FAF8F0] border border-[#E9E4D4] rounded-xl p-3 flex flex-col gap-1.5 text-xs">
+            <div className="flex justify-between text-gray-600">
+              <span>Cliente:</span>
+              <span className="font-semibold text-[#1C2C22]">{orderToCancel.client}</span>
+            </div>
+            <div className="flex justify-between text-gray-600">
+              <span>Modalidade:</span>
+              <span className="font-semibold text-[#1C2C22]">{orderToCancel.type}</span>
+            </div>
+            <div className="flex justify-between text-gray-600">
+              <span>Valor Total:</span>
+              <span className="font-bold text-[#CB5A3C]">{orderToCancel.total}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="p-3 bg-[#FAF8F0] border-t border-[#E9E4D4] flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setOrderToCancel(null)}
+            disabled={isCanceling}
+            className="py-2 px-3.5 rounded-xl text-xs font-bold text-[#1C2C22] bg-white border border-[#E9E4D4] hover:bg-[#F3EEDD] shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+          >
+            Voltar
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmCancelOrder}
+            disabled={isCanceling}
+            className="py-2 px-3.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+          >
+            {isCanceling ? 'Cancelando...' : 'Confirmar cancelamento'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* Thermal Receipt Preview Modal (80mm Cupom) */}
       {isPrintModalOpen && printingOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[92vh]">

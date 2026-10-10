@@ -228,21 +228,15 @@
   color: white;
 }
 
-/* Custom visible horizontal scrollbar for filter containers */
+/* Custom filter container: browser scrollbars completely hidden, relying on custom indicator bar */
 .filter-scrollbar {
   overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #CB5A3C #E9E4D4;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 .filter-scrollbar::-webkit-scrollbar {
-  height: 4px;
-}
-.filter-scrollbar::-webkit-scrollbar-track {
-  background: #FAF8F0;
-  border-radius: 9999px;
-}
-.filter-scrollbar::-webkit-scrollbar-thumb {
-  background: #CB5A3C;
-  border-radius: 9999px;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
