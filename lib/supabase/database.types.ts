@@ -555,6 +555,7 @@ export type Database = {
       }
       order_items: {
         Row: {
+          complements: Json
           details: string | null
           id: string
           name: string
@@ -565,6 +566,7 @@ export type Database = {
           unit_price_cents: number
         }
         Insert: {
+          complements?: Json
           details?: string | null
           id?: string
           name?: string
@@ -575,6 +577,7 @@ export type Database = {
           unit_price_cents?: number
         }
         Update: {
+          complements?: Json
           details?: string | null
           id?: string
           name?: string
@@ -809,6 +812,63 @@ export type Database = {
           },
           {
             foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_complements: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price_cents: number
+          product_id: string
+          sort_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price_cents?: number
+          product_id: string
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          product_id?: string
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_complements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_complements_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -1056,6 +1116,8 @@ export type Database = {
       }
       vw_menu_items: {
         Row: {
+          adicionais: Json | null
+          adicionais_count: number | null
           category_id: string | null
           category_name: string | null
           category_sort_order: number | null

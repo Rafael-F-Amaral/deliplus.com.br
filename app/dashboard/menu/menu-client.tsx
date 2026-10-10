@@ -17,7 +17,8 @@ import {
   Maximize2,
   Camera,
   Sparkles,
-  Play
+  Play,
+  Plus
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -30,8 +31,20 @@ import {
   applyPromoDiscount,
   removePromoDiscount,
   recordTourProgress,
-  uploadMenuProductImage
+  uploadMenuProductImage,
+  saveProductComplements
 } from "./actions"
+
+export interface ProductAdicional {
+  id: string
+  name: string
+  description?: string
+  price: string
+  priceCents: number
+  image?: string
+  isActive: boolean
+  sortOrder?: number
+}
 
 export interface MenuItem {
   id: string
@@ -55,6 +68,7 @@ export interface MenuItem {
   promoEndDate?: string
   campaignId?: string
   campaignName?: string
+  adicionais?: ProductAdicional[]
 }
 
 export interface TourStep {
@@ -334,6 +348,16 @@ export default function MenuClient({
   const [prodModalDesc, setProdModalDesc] = useState("")
   const [prodModalCategories, setProdModalCategories] = useState<string[]>([])
   const [prodModalNewCat, setProdModalNewCat] = useState("")
+
+  // Modal Adicionais (Gerenciar complementos e adicionais do prato)
+  const [adicionaisModalItem, setAdicionaisModalItem] = useState<MenuItem | null>(null)
+  const [adicionaisList, setAdicionaisList] = useState<ProductAdicional[]>([])
+  const [editingAdicionalId, setEditingAdicionalId] = useState<string | null>(null)
+  const [adicionalName, setAdicionalName] = useState("")
+  const [adicionalPrice, setAdicionalPrice] = useState("")
+  const [adicionalDesc, setAdicionalDesc] = useState("")
+  const [adicionalImage, setAdicionalImage] = useState("")
+  const [isSavingAdicionais, setIsSavingAdicionais] = useState(false)
 
   // Toast notification
   const [notification, setNotification] = useState<string | null>(null)
@@ -1097,6 +1121,126 @@ export default function MenuClient({
     setTimeout(() => setNotification(null), 3000)
   }
 
+  // Abrir Modal de Adicionais
+  const handleOpenAdicionaisModal = (item: MenuItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setAdicionaisModalItem(item)
+    setAdicionaisList(item.adicionais ? [...item.adicionais] : [])
+    setEditingAdicionalId(null)
+    setAdicionalName("")
+    setAdicionalPrice("")
+    setAdicionalDesc("")
+    setAdicionalImage("")
+  }
+
+  // Adicionar ou Atualizar Adicional na Lista
+  const handleAddOrUpdateAdicional = () => {
+    if (!adicionalName.trim()) return
+
+    const priceNum = Math.round(parseCurrency(adicionalPrice) * 100)
+    const priceFormatted = formatCurrency(priceNum / 100)
+
+    if (editingAdicionalId) {
+      setAdicionaisList((prev) =>
+        prev.map((a) => {
+          if (a.id === editingAdicionalId) {
+            return {
+              ...a,
+              name: adicionalName.trim(),
+              description: adicionalDesc.trim() || undefined,
+              price: priceFormatted,
+              priceCents: priceNum,
+              image: adicionalImage.trim() || undefined
+            }
+          }
+          return a
+        })
+      )
+      setEditingAdicionalId(null)
+    } else {
+      const newAd: ProductAdicional = {
+        id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        name: adicionalName.trim(),
+        description: adicionalDesc.trim() || undefined,
+        price: priceFormatted,
+        priceCents: priceNum,
+        image: adicionalImage.trim() || undefined,
+        isActive: true,
+        sortOrder: adicionaisList.length + 1
+      }
+      setAdicionaisList((prev) => [...prev, newAd])
+    }
+
+    setAdicionalName("")
+    setAdicionalPrice("")
+    setAdicionalDesc("")
+    setAdicionalImage("")
+  }
+
+  // Preencher formulário para editar adicional
+  const handleEditAdicional = (ad: ProductAdicional) => {
+    setEditingAdicionalId(ad.id)
+    setAdicionalName(ad.name)
+    setAdicionalPrice(ad.price || "R$ 0,00")
+    setAdicionalDesc(ad.description || "")
+    setAdicionalImage(ad.image || "")
+  }
+
+  // Deletar adicional da lista
+  const handleDeleteAdicional = (id: string) => {
+    setAdicionaisList((prev) => prev.filter((a) => a.id !== id))
+    if (editingAdicionalId === id) {
+      setEditingAdicionalId(null)
+      setAdicionalName("")
+      setAdicionalPrice("")
+      setAdicionalDesc("")
+      setAdicionalImage("")
+    }
+  }
+
+  // Salvar alterações de adicionais no Supabase
+  const handleSaveAllAdicionais = async () => {
+    if (!adicionaisModalItem) return
+    setIsSavingAdicionais(true)
+
+    try {
+      const complementsToSave = adicionaisList.map((a, idx) => ({
+        id: a.id.startsWith("temp-") ? undefined : a.id,
+        name: a.name,
+        description: a.description,
+        priceCents: a.priceCents || Math.round(parseCurrency(a.price) * 100),
+        imageUrl: a.image,
+        isActive: a.isActive,
+        sortOrder: idx + 1
+      }))
+
+      const res = await saveProductComplements(adicionaisModalItem.id, complementsToSave)
+      if (res.success) {
+        setItems((prev) =>
+          prev.map((it) => {
+            if (it.id === adicionaisModalItem.id) {
+              return {
+                ...it,
+                adicionais: [...adicionaisList]
+              }
+            }
+            return it
+          })
+        )
+        setNotification("Adicionais salvos com sucesso!")
+        setTimeout(() => setNotification(null), 3000)
+        setAdicionaisModalItem(null)
+      } else {
+        alert("Erro ao salvar adicionais: " + (res.error || "Tente novamente."))
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Tente novamente."
+      alert("Falha ao salvar adicionais: " + msg)
+    } finally {
+      setIsSavingAdicionais(false)
+    }
+  }
+
   return (
     <div className="flex flex-col w-full h-full max-h-full px-4 sm:px-6 pt-3 md:pt-4 pb-3 max-lg:pb-[84px] overflow-hidden justify-between font-sans transition-all min-w-0">
       
@@ -1278,11 +1422,12 @@ export default function MenuClient({
             <thead className="bg-[#FAF8F0] border-b border-[#E9E4D4]">
               <tr className="text-[14px] font-semibold text-[#2E4233]">
                 <th className="px-4 py-2.5 w-[76px]">Foto</th>
-                <th className="px-4 py-2.5 w-[26%]">Produto</th>
-                <th className="px-4 py-2.5 text-left w-[16%] whitespace-nowrap">Preço original</th>
-                <th className="px-4 py-2.5 text-left w-[20%] whitespace-nowrap">Preço promocional</th>
-                <th className="px-3 py-2.5 text-center w-[17%] whitespace-nowrap">Disponibilidade</th>
-                <th className="px-4 py-2.5 text-center w-[17%] whitespace-nowrap">Quantidade</th>
+                <th className="px-4 py-2.5 w-[24%]">Produto</th>
+                <th className="px-3 py-2.5 text-center w-[14%] whitespace-nowrap">Adicionais</th>
+                <th className="px-4 py-2.5 text-left w-[13%] whitespace-nowrap">Preço original</th>
+                <th className="px-4 py-2.5 text-left w-[17%] whitespace-nowrap">Preço promocional</th>
+                <th className="px-3 py-2.5 text-center w-[14%] whitespace-nowrap">Disponibilidade</th>
+                <th className="px-4 py-2.5 text-center w-[14%] whitespace-nowrap">Quantidade</th>
                 <th className="px-4 py-2.5 text-right w-[4%] min-w-[56px]">Ações</th>
               </tr>
             </thead>
@@ -1386,6 +1531,32 @@ export default function MenuClient({
                           {item.description}
                         </span>
                       </div>
+                    </td>
+
+                    {/* Adicionais do Produto */}
+                    <td className={`px-3 py-2 align-middle text-center transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
+                      {item.adicionais && item.adicionais.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenAdicionaisModal(item, e)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] hover:border-[#CB5A3C] hover:bg-white text-[#2E4233] text-xs font-semibold shadow-2xs transition-all cursor-pointer group"
+                          title="Clique para gerenciar os adicionais deste prato"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0"></span>
+                          <span>{item.adicionais.length} {item.adicionais.length === 1 ? "adicional" : "adicionais"}</span>
+                          <ChevronDown className="w-3.5 h-3.5 text-[#CB5A3C] group-hover:translate-y-0.5 transition-transform shrink-0" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenAdicionaisModal(item, e)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-dashed border-[#E9E4D4] hover:border-[#CB5A3C] hover:text-[#CB5A3C] text-gray-400 text-xs font-medium transition-all cursor-pointer group"
+                          title="Clique para cadastrar adicionais para este prato"
+                        >
+                          <Plus className="w-3 h-3 text-[#CB5A3C]" />
+                          <span>Adicionar</span>
+                        </button>
+                      )}
                     </td>
 
                     {/* Preço original com edição inline automática */}
@@ -1558,6 +1729,11 @@ export default function MenuClient({
                       <span className="text-[14px] text-gray-300 font-medium">—</span>
                     </td>
 
+                    {/* Adicionais */}
+                    <td className="px-3 py-2 align-middle text-center">
+                      <span className="text-[14px] text-gray-300 font-medium">—</span>
+                    </td>
+
                     {/* Preço original */}
                     <td className="px-4 py-2 align-middle text-left whitespace-nowrap">
                       <span className="text-[14px] text-gray-300 font-medium">—</span>
@@ -1587,7 +1763,7 @@ export default function MenuClient({
 
               {filteredItems.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500 text-sm">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500 text-sm">
                     Nenhum item encontrado no cardápio.
                   </td>
                 </tr>
@@ -2524,8 +2700,8 @@ export default function MenuClient({
             {/* Header */}
             <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
               <div>
-                <h3 className="font-bold text-[#2E4233] text-base">Editar Produto</h3>
-                <p className="text-xs text-gray-500 font-medium">Nome, descrição e categorias (mín. 1, máx. 3)</p>
+                <h3 className="font-serif font-bold text-[#CB5A3C] text-lg">Editar Produto</h3>
+                <p className="text-xs text-black font-medium">Nome, descrição e categorias (mín. 1, máx. 3)</p>
               </div>
               <button
                 type="button"
@@ -2540,7 +2716,7 @@ export default function MenuClient({
             <form onSubmit={handleSaveProductModal} className="p-5 flex flex-col gap-4 overflow-y-auto">
               {/* Nome do Produto */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-gray-700">
+                <label className="text-xs font-bold text-[#CB5A3C]">
                   Nome do Produto <span className="text-[#CB5A3C]">*</span>
                 </label>
                 <input
@@ -2549,13 +2725,13 @@ export default function MenuClient({
                   value={prodModalName}
                   onChange={(e) => setProdModalName(e.target.value)}
                   placeholder="Ex: Bowl Salmão Grelhado"
-                  className="w-full px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-sm font-semibold text-[#2E4233] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all"
+                  className="w-full px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-sm font-semibold text-[#2E4233] focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all"
                 />
               </div>
 
               {/* Descrição */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-gray-700">
+                <label className="text-xs font-bold text-[#CB5A3C]">
                   Descrição
                 </label>
                 <textarea
@@ -2563,14 +2739,14 @@ export default function MenuClient({
                   value={prodModalDesc}
                   onChange={(e) => setProdModalDesc(e.target.value)}
                   placeholder="Descreva os ingredientes, modo de preparo ou especificações..."
-                  className="w-full px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all resize-none"
+                  className="w-full px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all resize-none"
                 />
               </div>
 
               {/* Categorias (Travadas em mínimo 1 e máximo 3) */}
               <div className="flex flex-col gap-2 pt-2 border-t border-[#E9E4D4]/60">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-gray-700">
+                  <label className="text-xs font-bold text-[#CB5A3C]">
                     Categorias ({prodModalCategories.length}/3)
                   </label>
                   <span className="text-[11px] font-medium text-gray-400">
@@ -2623,18 +2799,18 @@ export default function MenuClient({
                           }
                         }}
                         placeholder="Digitar nova tag ou escolher abaixo..."
-                        className="flex-1 px-3 py-1.5 border border-[#E9E4D4] rounded-xl text-xs focus:outline-none focus:border-[#2E4233]"
+                        className="flex-1 px-3 py-1.5 border border-[#E9E4D4] rounded-xl text-xs focus:outline-none focus:border-[#CB5A3C]"
                       />
                       <button
                         type="button"
                         onClick={() => handleAddCatToProdModal(prodModalNewCat)}
-                        className="px-3 py-1.5 bg-[#2E4233] text-white text-xs font-semibold rounded-xl hover:bg-[#233327] transition-colors cursor-pointer"
+                        className="px-3 py-1.5 bg-[#CB5A3C] text-white text-xs font-bold rounded-xl hover:bg-[#b0482e] transition-colors cursor-pointer"
                       >
                         + Adicionar
                       </button>
                     </div>
 
-                    {/* Sugestões rápidas de categoria */}
+                    {/* Sugestões rápidas de categoria com + em laranja e fundo verde suave */}
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[11px] text-gray-400 font-medium">Sugestões:</span>
                       {["Bowls", "Bebidas", "Sobremesas", "Entradas", "Mais pedido", "Vegano", "Orgânico", "Destaque"].map((sug) => {
@@ -2645,9 +2821,10 @@ export default function MenuClient({
                             key={sug}
                             type="button"
                             onClick={() => handleAddCatToProdModal(sug)}
-                            className="px-2 py-0.5 bg-white border border-[#E9E4D4] hover:border-[#2E4233] text-gray-600 hover:text-[#2E4233] rounded-md text-[11px] font-medium transition-colors cursor-pointer"
+                            className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-800 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer inline-flex items-center"
                           >
-                            + {sug}
+                            <span className="text-[#CB5A3C] font-bold mr-1">+</span>
+                            <span>{sug}</span>
                           </button>
                         )
                       })}
@@ -2671,12 +2848,226 @@ export default function MenuClient({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#b0482e] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
                 >
                   Salvar Alterações
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL: GERENCIAR ADICIONAIS DO PRODUTO ==================== */}
+      {adicionaisModalItem && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setAdicionaisModalItem(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150 max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
+              <div>
+                <h3 className="font-serif font-bold text-[#CB5A3C] text-lg">
+                  Adicionais: {adicionaisModalItem.name}
+                </h3>
+                <p className="text-xs text-black font-medium mt-0.5">
+                  Cadastre e gerencie os adicionais e complementos deste prato
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdicionaisModalItem(null)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 flex flex-col gap-4 overflow-y-auto">
+              {/* Lista de Adicionais Atuais */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#CB5A3C]">
+                    Adicionais Cadastrados ({adicionaisList.length})
+                  </span>
+                  <span className="text-[11px] text-gray-400 font-medium">
+                    O cliente poderá selecionar no storefront
+                  </span>
+                </div>
+
+                {adicionaisList.length === 0 ? (
+                  <div className="p-4 bg-[#FAF8F0]/60 rounded-xl border border-dashed border-[#E9E4D4] text-center text-xs text-gray-500">
+                    Nenhum adicional cadastrado ainda. Use o formulário abaixo para adicionar opções.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {adicionaisList.map((ad, idx) => (
+                      <div
+                        key={ad.id || idx}
+                        className="flex items-center justify-between p-2.5 rounded-xl border border-[#E9E4D4] bg-white hover:border-[#CB5A3C]/40 transition-colors shadow-2xs gap-3"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {/* Foto do Adicional */}
+                          <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#E9E4D4] bg-[#FAF8F0] shrink-0 flex items-center justify-center">
+                            {ad.image ? (
+                              <img src={ad.image} alt={ad.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <Camera className="w-4 h-4 text-gray-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-xs text-[#2E4233] truncate">
+                                {ad.name}
+                              </span>
+                              <span className="text-xs font-bold text-[#CB5A3C] shrink-0">
+                                {ad.price}
+                              </span>
+                            </div>
+                            {ad.description && (
+                              <p className="text-[11px] text-gray-500 truncate">{ad.description}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Ações: Editar e Excluir */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleEditAdicional(ad)}
+                            className="p-1.5 text-gray-500 hover:text-[#2E4233] hover:bg-[#FAF8F0] rounded-lg transition-colors cursor-pointer"
+                            title="Editar adicional"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAdicional(ad.id)}
+                            className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-colors cursor-pointer"
+                            title="Excluir adicional"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Formulário: Adicionar / Editar Adicional */}
+              <div className="p-3.5 bg-[#FAF8F0]/70 rounded-xl border border-[#E9E4D4] flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#CB5A3C]">
+                    {editingAdicionalId ? "Editar Adicional" : "Novo Adicional"}
+                  </span>
+                  {editingAdicionalId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingAdicionalId(null)
+                        setAdicionalName("")
+                        setAdicionalPrice("")
+                        setAdicionalDesc("")
+                        setAdicionalImage("")
+                      }}
+                      className="text-[11px] text-gray-500 hover:underline cursor-pointer"
+                    >
+                      Cancelar edição
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="sm:col-span-2 flex flex-col gap-1">
+                    <label className="text-[11px] font-semibold text-gray-700">
+                      Nome do Adicional <span className="text-[#CB5A3C]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={adicionalName}
+                      onChange={(e) => setAdicionalName(e.target.value)}
+                      placeholder="Ex: Queijo Extra, Molho Especial..."
+                      className="w-full px-3 py-1.5 border border-[#E9E4D4] rounded-lg text-xs font-medium focus:outline-none focus:border-[#CB5A3C]"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-semibold text-gray-700">
+                      Valor adicional
+                    </label>
+                    <input
+                      type="text"
+                      value={adicionalPrice}
+                      onChange={(e) => setAdicionalPrice(formatCurrencyInput(e.target.value))}
+                      placeholder="R$ 0,00"
+                      className="w-full px-3 py-1.5 border border-[#E9E4D4] rounded-lg text-xs font-bold text-[#CB5A3C] focus:outline-none focus:border-[#CB5A3C]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-gray-700">
+                    Descrição do adicional
+                  </label>
+                  <input
+                    type="text"
+                    value={adicionalDesc}
+                    onChange={(e) => setAdicionalDesc(e.target.value)}
+                    placeholder="Ex: Porção de 50g artesanal feita na casa"
+                    className="w-full px-3 py-1.5 border border-[#E9E4D4] rounded-lg text-xs text-gray-700 focus:outline-none focus:border-[#CB5A3C]"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex flex-col gap-1">
+                    <label className="text-[11px] font-semibold text-gray-700">
+                      URL da Foto (opcional)
+                    </label>
+                    <input
+                      type="text"
+                      value={adicionalImage}
+                      onChange={(e) => setAdicionalImage(e.target.value)}
+                      placeholder="https://exemplo.com/foto.jpg"
+                      className="w-full px-3 py-1.5 border border-[#E9E4D4] rounded-lg text-xs text-gray-700 focus:outline-none focus:border-[#CB5A3C]"
+                    />
+                  </div>
+                  <div className="pt-5">
+                    <button
+                      type="button"
+                      onClick={handleAddOrUpdateAdicional}
+                      disabled={!adicionalName.trim()}
+                      className="px-3.5 py-1.5 bg-[#CB5A3C] hover:bg-[#b0482e] disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs"
+                    >
+                      {editingAdicionalId ? "Salvar item" : "+ Incluir"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3.5 border-t border-[#E9E4D4] flex items-center justify-end gap-2 bg-[#FAF8F0]/40">
+              <button
+                type="button"
+                onClick={() => setAdicionaisModalItem(null)}
+                className="px-4 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveAllAdicionais}
+                disabled={isSavingAdicionais}
+                className="px-5 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#b0482e] disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+              >
+                {isSavingAdicionais ? "Salvando..." : "Salvar Alterações"}
+              </button>
+            </div>
           </div>
         </div>
       )}

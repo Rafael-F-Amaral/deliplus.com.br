@@ -19,7 +19,6 @@ import {
   ArrowUp,
   ArrowDown,
   MapPin,
-  ExternalLink,
   Trash2,
   Plus,
   Minus
@@ -72,10 +71,12 @@ function getWhatsAppUrl(order: Order, storeName: string): string {
 }
 
 export interface OrderItem {
+  id?: string
   qty: number
   name: string
   price: string
   details?: string
+  complements?: { name: string; price: string; priceCents?: number }[]
 }
 
 export type PaymentMethod = 'Débito na Entrega' | 'Crédito na Entrega' | 'Em Dinheiro'
@@ -121,32 +122,40 @@ function formatTime(dateStr: string): { time: string; date: string } {
   }
 }
 
-function mapRowToOrder(row: any): Order {
-  const { time, date } = formatTime(row.created_at)
+function mapRowToOrder(row: Record<string, unknown>): Order {
+  const { time, date } = formatTime(String(row.created_at || ''))
+  const rawItems = Array.isArray(row.items_detail) ? (row.items_detail as Array<Record<string, unknown>>) : []
   return {
-    dbId: row.id,
-    id: row.display_id || `#${String(row.order_number).padStart(4, '0')}`,
-    client: row.customer_name || 'Cliente',
-    phone: row.customer_phone || '',
-    itemsCount: row.items_count || 0,
-    itemsDesc: `${row.items_count || 0} ${row.items_count === 1 ? 'item' : 'itens'}`,
-    itemsDetail: (row.items_detail || []).map((it: any) => ({
-      id: it.id,
-      qty: it.qty,
-      name: it.name,
-      price: formatBRL(it.unit_price_cents),
-      details: it.details || undefined
+    dbId: typeof row.id === 'string' ? row.id : undefined,
+    id: typeof row.display_id === 'string' ? row.display_id : `#${String(row.order_number || 1).padStart(4, '0')}`,
+    client: typeof row.customer_name === 'string' ? row.customer_name : 'Cliente',
+    phone: typeof row.customer_phone === 'string' ? row.customer_phone : '',
+    itemsCount: typeof row.items_count === 'number' ? row.items_count : 0,
+    itemsDesc: `${typeof row.items_count === 'number' ? row.items_count : 0} ${row.items_count === 1 ? 'item' : 'itens'}`,
+    itemsDetail: rawItems.map((it) => ({
+      id: typeof it.id === 'string' ? it.id : undefined,
+      qty: typeof it.qty === 'number' ? it.qty : 1,
+      name: typeof it.name === 'string' ? it.name : 'Item',
+      price: formatBRL(typeof it.unit_price_cents === 'number' ? it.unit_price_cents : 0),
+      details: typeof it.details === 'string' ? it.details : undefined,
+      complements: Array.isArray(it.complements)
+        ? (it.complements as Array<Record<string, unknown>>).map((c) => ({
+            name: String(c.name || ''),
+            price: formatBRL(typeof c.price_cents === 'number' ? c.price_cents : 0),
+            priceCents: typeof c.price_cents === 'number' ? c.price_cents : 0
+          }))
+        : undefined
     })),
     time,
     date,
     type: row.delivery_type === 'Retirada' ? 'Retirada' : 'Delivery',
-    address: row.delivery_address || (row.delivery_type === 'Retirada' ? 'Balcão da Loja Principal' : 'Endereço não informado'),
-    total: formatBRL(row.total_amount_cents),
-    paymentMethod: row.payment_method || 'Em Dinheiro',
-    changeFor: row.change_for_cents ? `Troco p/ ${formatBRL(row.change_for_cents)}` : undefined,
-    status: row.status as any,
-    obs: row.notes || undefined,
-    isUrgent: !!row.is_urgent
+    address: typeof row.delivery_address === 'string' ? row.delivery_address : (row.delivery_type === 'Retirada' ? 'Balcão da Loja Principal' : 'Endereço não informado'),
+    total: formatBRL(typeof row.total_amount_cents === 'number' ? row.total_amount_cents : 0),
+    paymentMethod: (typeof row.payment_method === 'string' ? row.payment_method : 'Em Dinheiro') as PaymentMethod,
+    changeFor: typeof row.change_for_cents === 'number' ? `Troco p/ ${formatBRL(row.change_for_cents)}` : undefined,
+    status: (typeof row.status === 'string' ? row.status : 'Novo') as Order['status'],
+    obs: typeof row.notes === 'string' ? row.notes : undefined,
+    isUrgent: Boolean(row.is_urgent)
   }
 }
 
@@ -734,8 +743,7 @@ const KITCHEN_STATUS_OPTIONS: { label: string; value: 'Todos' | 'Novo' | 'Em pre
 export default function OrdersClient({
   initialOrders = [],
   storeId,
-  storeName: propStoreName,
-  storeSlug: _storeSlug
+  storeName: propStoreName
 }: OrdersClientProps = {}) {
   const [orders, setOrders] = useState<Order[]>(initialOrders.length > 0 ? initialOrders : INITIAL_ORDERS)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
@@ -750,6 +758,7 @@ export default function OrdersClient({
 
   useEffect(() => {
     if (initialOrders && initialOrders.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOrders(initialOrders)
     }
   }, [initialOrders])
@@ -792,6 +801,7 @@ export default function OrdersClient({
   const [drawerItemPage, setDrawerItemPage] = useState(1)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDrawerItemPage(1)
   }, [selectedOrderId])
 
@@ -1904,6 +1914,29 @@ export default function OrdersClient({
                               {item.details && (
                                 <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{item.details}</p>
                               )}
+                              {/* Adicionais integrados ao prato, visualmente separados */}
+                              {item.complements && item.complements.length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-[#E9E4D4]/70 flex flex-col gap-1">
+                                  <span className="text-[10px] font-bold text-[#CB5A3C] uppercase tracking-wider flex items-center gap-1">
+                                    <span>+ Adicionais ({item.complements.length}):</span>
+                                  </span>
+                                  <div className="flex flex-col gap-1">
+                                    {item.complements.map((comp, cIdx) => (
+                                      <div
+                                        key={cIdx}
+                                        className="flex items-center justify-between text-[11px] bg-[#FAF8F0] px-2.5 py-1 rounded-lg border border-[#E9E4D4]/60"
+                                      >
+                                        <span className="font-semibold text-[#1C2C22]">
+                                          + {comp.name}
+                                        </span>
+                                        <span className="font-bold text-[#CB5A3C]">
+                                          {comp.price}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -2136,6 +2169,12 @@ export default function OrdersClient({
                       {it.details && (
                         <div className="text-[10px] text-gray-600 pl-2">↳ {it.details}</div>
                       )}
+                      {it.complements && it.complements.map((c, ci) => (
+                        <div key={ci} className="text-[10px] text-gray-700 pl-2 font-medium flex justify-between">
+                          <span>+ {c.name}</span>
+                          <span>{c.price}</span>
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>

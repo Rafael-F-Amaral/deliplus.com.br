@@ -110,7 +110,19 @@ export default async function CardapioPage() {
             promoSchedule: promoScheduleText,
             promoIndefinite: Boolean(row.promo_indefinite),
             promoStartDate: row.promo_start_date || undefined,
-            promoEndDate: row.promo_end_date || undefined
+            promoEndDate: row.promo_end_date || undefined,
+            adicionais: Array.isArray(row.adicionais)
+              ? (row.adicionais as Array<Record<string, unknown>>).map((ad) => ({
+                  id: String(ad.id || ""),
+                  name: String(ad.name || ""),
+                  description: String(ad.description || ""),
+                  price: formatBRL(typeof ad.price_cents === "number" ? ad.price_cents : 0),
+                  priceCents: typeof ad.price_cents === "number" ? ad.price_cents : 0,
+                  image: String(ad.image_url || ""),
+                  isActive: ad.is_active !== false,
+                  sortOrder: typeof ad.sort_order === "number" ? ad.sort_order : 0
+                }))
+              : []
           } as MenuItem
         })
       }

@@ -33,6 +33,7 @@ interface LiveOrderItem {
   name: string
   unit_price_cents: number
   details?: string
+  complements?: { name: string; price_cents: number }[]
 }
 
 interface LiveOrderRow {
@@ -114,7 +115,14 @@ export default async function OrdersPage() {
               qty: it.qty,
               name: it.name,
               price: formatBRL(it.unit_price_cents),
-              details: it.details || undefined
+              details: it.details || undefined,
+              complements: Array.isArray(it.complements)
+                ? it.complements.map((c) => ({
+                    name: c.name || "",
+                    price: formatBRL(c.price_cents),
+                    priceCents: c.price_cents || 0
+                  }))
+                : []
             })),
             time,
             date,
