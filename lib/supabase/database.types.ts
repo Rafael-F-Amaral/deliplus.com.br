@@ -555,25 +555,31 @@ export type Database = {
       }
       order_items: {
         Row: {
+          details: string | null
           id: string
+          name: string
           order_id: string
-          product_id: string
+          product_id: string | null
           quantity: number
           total_price_cents: number
           unit_price_cents: number
         }
         Insert: {
+          details?: string | null
           id?: string
+          name?: string
           order_id: string
-          product_id: string
+          product_id?: string | null
           quantity?: number
           total_price_cents?: number
           unit_price_cents?: number
         }
         Update: {
+          details?: string | null
           id?: string
+          name?: string
           order_id?: string
-          product_id?: string
+          product_id?: string | null
           quantity?: number
           total_price_cents?: number
           unit_price_cents?: number
@@ -584,6 +590,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "vw_orders_live"
             referencedColumns: ["id"]
           },
           {
@@ -604,32 +617,86 @@ export type Database = {
       }
       orders: {
         Row: {
+          accepted_at: string | null
+          canceled_at: string | null
+          change_for_cents: number | null
           channel: string
+          completed_at: string | null
           created_at: string
           customer_id: string | null
+          customer_name: string
+          customer_phone: string
+          delivery_address: string | null
+          delivery_fee_cents: number
+          delivery_type: string
+          discount_cents: number
+          dispatched_at: string | null
+          display_id: string | null
           id: string
+          is_urgent: boolean
+          notes: string | null
+          order_number: number | null
+          payment_method: string
+          ready_at: string | null
           status: string
           store_id: string
+          subtotal_cents: number
           total_amount_cents: number
           updated_at: string
         }
         Insert: {
+          accepted_at?: string | null
+          canceled_at?: string | null
+          change_for_cents?: number | null
           channel?: string
+          completed_at?: string | null
           created_at?: string
           customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string
+          delivery_address?: string | null
+          delivery_fee_cents?: number
+          delivery_type?: string
+          discount_cents?: number
+          dispatched_at?: string | null
+          display_id?: string | null
           id?: string
+          is_urgent?: boolean
+          notes?: string | null
+          order_number?: number | null
+          payment_method?: string
+          ready_at?: string | null
           status?: string
           store_id: string
+          subtotal_cents?: number
           total_amount_cents?: number
           updated_at?: string
         }
         Update: {
+          accepted_at?: string | null
+          canceled_at?: string | null
+          change_for_cents?: number | null
           channel?: string
+          completed_at?: string | null
           created_at?: string
           customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string
+          delivery_address?: string | null
+          delivery_fee_cents?: number
+          delivery_type?: string
+          discount_cents?: number
+          dispatched_at?: string | null
+          display_id?: string | null
           id?: string
+          is_urgent?: boolean
+          notes?: string | null
+          order_number?: number | null
+          payment_method?: string
+          ready_at?: string | null
           status?: string
           store_id?: string
+          subtotal_cents?: number
           total_amount_cents?: number
           updated_at?: string
         }
@@ -744,6 +811,56 @@ export type Database = {
             foreignKeyName: "products_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_delivery_settings: {
+        Row: {
+          accepts_delivery: boolean
+          accepts_pickup: boolean
+          created_at: string
+          default_prep_max: number
+          default_prep_min: number
+          delivery_fee_cents: number
+          free_delivery_above_cents: number | null
+          is_open_override: boolean | null
+          min_order_cents: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          accepts_delivery?: boolean
+          accepts_pickup?: boolean
+          created_at?: string
+          default_prep_max?: number
+          default_prep_min?: number
+          delivery_fee_cents?: number
+          free_delivery_above_cents?: number | null
+          is_open_override?: boolean | null
+          min_order_cents?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          accepts_delivery?: boolean
+          accepts_pickup?: boolean
+          created_at?: string
+          default_prep_max?: number
+          default_prep_min?: number
+          delivery_fee_cents?: number
+          free_delivery_above_cents?: number | null
+          is_open_override?: boolean | null
+          min_order_cents?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_delivery_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -998,6 +1115,69 @@ export type Database = {
           },
         ]
       }
+      vw_orders_live: {
+        Row: {
+          accepted_at: string | null
+          canceled_at: string | null
+          change_for_cents: number | null
+          completed_at: string | null
+          created_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          delivery_address: string | null
+          delivery_fee_cents: number | null
+          delivery_type: string | null
+          discount_cents: number | null
+          dispatched_at: string | null
+          display_id: string | null
+          id: string | null
+          is_urgent: boolean | null
+          items_count: number | null
+          items_detail: Json | null
+          notes: string | null
+          order_number: number | null
+          payment_method: string | null
+          ready_at: string | null
+          status: string | null
+          store_id: string | null
+          subtotal_cents: number | null
+          total_amount_cents: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_orders_summary: {
+        Row: {
+          avg_ticket_today_cents: number | null
+          orders_canceled: number | null
+          orders_completed: number | null
+          orders_dispatched: number | null
+          orders_new: number | null
+          orders_preparing: number | null
+          orders_ready: number | null
+          orders_today: number | null
+          store_id: string | null
+          total_orders: number | null
+          total_sales_today_cents: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       activate_first_store_with_initial_trial: {
@@ -1117,6 +1297,20 @@ export type Database = {
           attempt: Json
           outcome: string
         }[]
+      }
+      create_public_order: {
+        Args: {
+          p_change_for_cents?: number
+          p_customer_name: string
+          p_customer_phone: string
+          p_delivery_address?: string
+          p_delivery_type?: string
+          p_items?: Json
+          p_notes?: string
+          p_payment_method?: string
+          p_store_slug: string
+        }
+        Returns: Json
       }
       create_store_draft: {
         Args: { p_name: string; p_organization_id: string; p_slug: string }
