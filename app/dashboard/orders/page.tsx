@@ -64,6 +64,8 @@ export default async function OrdersPage() {
   let storeName = "RafaelTeste"
   let initialOrders: Order[] = []
 
+  let catalogProducts: import("./orders-client").CatalogProduct[] = []
+
   let supabase: ReturnType<typeof createServerSupabaseClient> | ReturnType<typeof createAdminSupabaseClient> = createServerSupabaseClient()
 
   if (!storeId && process.env.NODE_ENV === "development") {
@@ -87,17 +89,41 @@ export default async function OrdersPage() {
 
   if (storeId) {
     try {
-      const [storeRes, ordersRes] = await Promise.all([
+      const [storeRes, ordersRes, menuProductsRes] = await Promise.all([
         supabase.from("stores").select("id, name, slug").eq("id", storeId).maybeSingle(),
         supabase
           .from("vw_orders_live")
           .select("*")
           .eq("store_id", storeId)
-          .order("order_number", { ascending: false })
+          .order("order_number", { ascending: false }),
+        supabase
+          .from("vw_menu_items")
+          .select("id, name, price_cents, promo_price_cents, in_promo, adicionais")
+          .eq("store_id", storeId)
+          .order("name", { ascending: true })
       ])
 
       if (storeRes.data?.slug) storeSlug = storeRes.data.slug
       if (storeRes.data?.name) storeName = storeRes.data.name
+
+      if (menuProductsRes.data) {
+        catalogProducts = menuProductsRes.data.map((p) => {
+          const effectivePriceCents = p.in_promo && p.promo_price_cents ? p.promo_price_cents : (p.price_cents || 0)
+          const complementsRaw = Array.isArray(p.adicionais) ? (p.adicionais as Array<Record<string, unknown>>) : []
+          return {
+            id: String(p.id || ""),
+            name: String(p.name || ""),
+            priceCents: effectivePriceCents,
+            price: formatBRL(effectivePriceCents),
+            complements: complementsRaw.map(c => ({
+              id: String(c.id || ""),
+              name: String(c.name || ""),
+              priceCents: typeof c.price_cents === "number" ? c.price_cents : 0,
+              price: formatBRL(typeof c.price_cents === "number" ? c.price_cents : 0)
+            }))
+          }
+        })
+      }
 
       if (ordersRes.data) {
         const rows = ordersRes.data as unknown as LiveOrderRow[]
@@ -148,6 +174,7 @@ export default async function OrdersPage() {
       storeId={storeId || undefined}
       storeName={storeName}
       storeSlug={storeSlug}
+      catalogProducts={catalogProducts}
     />
   )
 }

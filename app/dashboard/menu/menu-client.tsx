@@ -358,6 +358,9 @@ export default function MenuClient({
   const [adicionalDesc, setAdicionalDesc] = useState("")
   const [adicionalImage, setAdicionalImage] = useState("")
   const [isSavingAdicionais, setIsSavingAdicionais] = useState(false)
+  const [isUploadingAdicionalPhoto, setIsUploadingAdicionalPhoto] = useState(false)
+  const [isDraggingAdicionalPhoto, setIsDraggingAdicionalPhoto] = useState(false)
+  const adicionalFileInputRef = useRef<HTMLInputElement | null>(null)
 
   // Toast notification
   const [notification, setNotification] = useState<string | null>(null)
@@ -1121,6 +1124,34 @@ export default function MenuClient({
     setTimeout(() => setNotification(null), 3000)
   }
 
+  // Helper para capitalizar primeira letra do nome/descrição
+  const autoCapitalizeFirstLetter = (str: string): string => {
+    if (!str) return ""
+    const trimmed = str.trimStart()
+    const leading = str.slice(0, str.length - trimmed.length)
+    if (!trimmed) return str
+    return leading + trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
+  }
+
+  // Upload de foto do adicional para o Supabase Storage
+  const handleAdicionalPhotoFile = async (file: File) => {
+    if (!file) return
+    try {
+      setIsUploadingAdicionalPhoto(true)
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await uploadMenuProductImage(fd)
+      if (res?.publicUrl) {
+        setAdicionalImage(res.publicUrl)
+      }
+    } catch (err) {
+      console.error("Erro ao enviar foto do adicional:", err)
+      alert("Falha ao enviar imagem. Verifique o arquivo e tente novamente.")
+    } finally {
+      setIsUploadingAdicionalPhoto(false)
+    }
+  }
+
   // Abrir Modal de Adicionais
   const handleOpenAdicionaisModal = (item: MenuItem, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
@@ -1135,7 +1166,9 @@ export default function MenuClient({
 
   // Adicionar ou Atualizar Adicional na Lista
   const handleAddOrUpdateAdicional = () => {
-    if (!adicionalName.trim()) return
+    const formattedName = autoCapitalizeFirstLetter(adicionalName.trim())
+    const formattedDesc = autoCapitalizeFirstLetter(adicionalDesc.trim())
+    if (!formattedName) return
 
     const priceNum = Math.round(parseCurrency(adicionalPrice) * 100)
     const priceFormatted = formatCurrency(priceNum / 100)
@@ -1146,8 +1179,8 @@ export default function MenuClient({
           if (a.id === editingAdicionalId) {
             return {
               ...a,
-              name: adicionalName.trim(),
-              description: adicionalDesc.trim() || undefined,
+              name: formattedName,
+              description: formattedDesc || undefined,
               price: priceFormatted,
               priceCents: priceNum,
               image: adicionalImage.trim() || undefined
@@ -1160,8 +1193,8 @@ export default function MenuClient({
     } else {
       const newAd: ProductAdicional = {
         id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        name: adicionalName.trim(),
-        description: adicionalDesc.trim() || undefined,
+        name: formattedName,
+        description: formattedDesc || undefined,
         price: priceFormatted,
         priceCents: priceNum,
         image: adicionalImage.trim() || undefined,
@@ -1550,11 +1583,11 @@ export default function MenuClient({
                         <button
                           type="button"
                           onClick={(e) => handleOpenAdicionaisModal(item, e)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-dashed border-[#E9E4D4] hover:border-[#CB5A3C] hover:text-[#CB5A3C] text-gray-400 text-xs font-medium transition-all cursor-pointer group"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#FAF8F0] border-2 border-[#CB5A3C]/70 hover:border-[#CB5A3C] hover:bg-[#CB5A3C] text-[#CB5A3C] hover:text-white text-xs font-bold transition-all cursor-pointer shadow-2xs group"
                           title="Clique para cadastrar adicionais para este prato"
                         >
-                          <Plus className="w-3 h-3 text-[#CB5A3C]" />
-                          <span>Adicionar</span>
+                          <Plus className="w-3.5 h-3.5 text-[#CB5A3C] group-hover:text-white transition-colors stroke-[2.5]" />
+                          <span className="font-bold">Adicionar</span>
                         </button>
                       )}
                     </td>
@@ -2991,7 +3024,8 @@ export default function MenuClient({
                     <input
                       type="text"
                       value={adicionalName}
-                      onChange={(e) => setAdicionalName(e.target.value)}
+                      onChange={(e) => setAdicionalName(autoCapitalizeFirstLetter(e.target.value))}
+                      onBlur={() => setAdicionalName(autoCapitalizeFirstLetter(adicionalName))}
                       placeholder="Ex: Queijo Extra, Molho Especial..."
                       className="w-full px-3 py-1.5 border border-[#E9E4D4] rounded-lg text-xs font-medium focus:outline-none focus:border-[#CB5A3C]"
                     />
@@ -3017,31 +3051,102 @@ export default function MenuClient({
                   <input
                     type="text"
                     value={adicionalDesc}
-                    onChange={(e) => setAdicionalDesc(e.target.value)}
+                    onChange={(e) => setAdicionalDesc(autoCapitalizeFirstLetter(e.target.value))}
+                    onBlur={() => setAdicionalDesc(autoCapitalizeFirstLetter(adicionalDesc))}
                     placeholder="Ex: Porção de 50g artesanal feita na casa"
                     className="w-full px-3 py-1.5 border border-[#E9E4D4] rounded-lg text-xs text-gray-700 focus:outline-none focus:border-[#CB5A3C]"
                   />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-gray-700">
-                      URL da Foto (opcional)
-                    </label>
+                {/* Foto do Adicional: Drag & Drop + Buscar no Computador + URL */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-semibold text-gray-700 flex items-center justify-between">
+                    <span>Foto do adicional (opcional)</span>
+                    {adicionalImage && (
+                      <button
+                        type="button"
+                        onClick={() => setAdicionalImage("")}
+                        className="text-[10px] text-red-600 hover:underline cursor-pointer"
+                      >
+                        Remover foto
+                      </button>
+                    )}
+                  </label>
+
+                  <input
+                    type="file"
+                    ref={adicionalFileInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleAdicionalPhotoFile(e.target.files[0])
+                      }
+                    }}
+                  />
+
+                  {adicionalImage ? (
+                    <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-[#E9E4D4]">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#E9E4D4] bg-[#FAF8F0] shrink-0">
+                        <img src={adicionalImage} alt="Foto selecionada" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-[#2E4233] truncate">Foto adicionada</p>
+                        <p className="text-[10px] text-gray-400 truncate">{adicionalImage}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => adicionalFileInputRef.current?.click()}
+                        className="text-xs font-bold text-[#CB5A3C] hover:underline cursor-pointer shrink-0"
+                      >
+                        Trocar
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        setIsDraggingAdicionalPhoto(true)
+                      }}
+                      onDragLeave={() => setIsDraggingAdicionalPhoto(false)}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        setIsDraggingAdicionalPhoto(false)
+                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                          handleAdicionalPhotoFile(e.dataTransfer.files[0])
+                        }
+                      }}
+                      onClick={() => adicionalFileInputRef.current?.click()}
+                      className={`p-3 rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center text-center bg-white ${
+                        isDraggingAdicionalPhoto
+                          ? "border-[#CB5A3C] bg-[#FEF2EE]"
+                          : "border-[#E9E4D4] hover:border-[#CB5A3C]/70 hover:bg-[#FAF8F0]/40"
+                      }`}
+                    >
+                      <Upload className={`w-5 h-5 mb-1 ${isDraggingAdicionalPhoto ? "text-[#CB5A3C]" : "text-gray-400"}`} />
+                      <p className="text-xs font-semibold text-gray-700">
+                        {isUploadingAdicionalPhoto
+                          ? "Enviando imagem..."
+                          : "Arraste uma foto aqui ou clique para buscar no computador"}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">PNG, JPG ou WEBP (até 5MB)</p>
+                    </div>
+                  )}
+
+                  {/* Input alternativo para URL direta */}
+                  <div className="flex items-center gap-2 mt-1">
                     <input
                       type="text"
                       value={adicionalImage}
                       onChange={(e) => setAdicionalImage(e.target.value)}
-                      placeholder="https://exemplo.com/foto.jpg"
-                      className="w-full px-3 py-1.5 border border-[#E9E4D4] rounded-lg text-xs text-gray-700 focus:outline-none focus:border-[#CB5A3C]"
+                      placeholder="Ou cole a URL da imagem (https://...)"
+                      className="flex-1 px-3 py-1.5 border border-[#E9E4D4] rounded-lg text-xs text-gray-700 focus:outline-none focus:border-[#CB5A3C]"
                     />
-                  </div>
-                  <div className="pt-5">
                     <button
                       type="button"
                       onClick={handleAddOrUpdateAdicional}
-                      disabled={!adicionalName.trim()}
-                      className="px-3.5 py-1.5 bg-[#CB5A3C] hover:bg-[#b0482e] disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs"
+                      disabled={!adicionalName.trim() || isUploadingAdicionalPhoto}
+                      className="px-4 py-1.5 bg-[#CB5A3C] hover:bg-[#b0482e] disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs"
                     >
                       {editingAdicionalId ? "Salvar item" : "+ Incluir"}
                     </button>

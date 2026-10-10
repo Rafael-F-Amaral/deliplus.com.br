@@ -94,6 +94,7 @@ export interface EditableOrderItemInput {
   qty: number
   unitPriceCents: number
   details?: string
+  complements?: { name: string; price_cents: number }[]
 }
 
 /**
@@ -147,8 +148,10 @@ export async function updateOrderItemsAction(orderId: string, items: EditableOrd
   const itemsToInsert = items.map(it => {
     const qty = Math.max(1, it.qty)
     const unitPrice = Math.max(0, it.unitPriceCents)
-    const totalPrice = qty * unitPrice
-    subtotalCents += totalPrice
+    const complementsList = Array.isArray(it.complements) ? it.complements : []
+    const complementsTotalCents = complementsList.reduce((acc, c) => acc + (c.price_cents || 0), 0)
+    const itemTotalCents = qty * (unitPrice + complementsTotalCents)
+    subtotalCents += itemTotalCents
 
     const matchedId = productMap.get(it.name.toLowerCase().trim()) || null
 
@@ -158,8 +161,9 @@ export async function updateOrderItemsAction(orderId: string, items: EditableOrd
       name: it.name.trim(),
       quantity: qty,
       unit_price_cents: unitPrice,
-      total_price_cents: totalPrice,
-      details: it.details ? it.details.trim() : null
+      total_price_cents: itemTotalCents,
+      details: it.details ? it.details.trim() : null,
+      complements: complementsList
     }
   })
 

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useOrganization } from '@clerk/nextjs'
@@ -18,7 +18,6 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  MapPin,
   Trash2,
   Plus,
   Minus
@@ -159,11 +158,27 @@ function mapRowToOrder(row: Record<string, unknown>): Order {
   }
 }
 
+export interface CatalogComplement {
+  id: string
+  name: string
+  price: string
+  priceCents: number
+}
+
+export interface CatalogProduct {
+  id: string
+  name: string
+  price: string
+  priceCents: number
+  complements: CatalogComplement[]
+}
+
 export interface OrdersClientProps {
   initialOrders?: Order[]
   storeId?: string
   storeName?: string
   storeSlug?: string
+  catalogProducts?: CatalogProduct[]
 }
 
 const INITIAL_ORDERS: Order[] = [
@@ -743,7 +758,8 @@ const KITCHEN_STATUS_OPTIONS: { label: string; value: 'Todos' | 'Novo' | 'Em pre
 export default function OrdersClient({
   initialOrders = [],
   storeId,
-  storeName: propStoreName
+  storeName: propStoreName,
+  catalogProducts = []
 }: OrdersClientProps = {}) {
   const [orders, setOrders] = useState<Order[]>(initialOrders.length > 0 ? initialOrders : INITIAL_ORDERS)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
@@ -755,6 +771,21 @@ export default function OrdersClient({
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null)
   const { organization } = useOrganization()
   const storeName = propStoreName || organization?.name || 'RafaelTeste'
+
+  // Todos os adicionais únicos cadastrados na loja
+  const allDistinctComplements = useMemo(() => {
+    const map = new Map<string, { name: string; price: string; priceCents: number }>()
+    for (const p of catalogProducts) {
+      if (Array.isArray(p.complements)) {
+        for (const c of p.complements) {
+          if (!map.has(c.name)) {
+            map.set(c.name, { name: c.name, price: c.price, priceCents: c.priceCents })
+          }
+        }
+      }
+    }
+    return Array.from(map.values())
+  }, [catalogProducts])
 
   useEffect(() => {
     if (initialOrders && initialOrders.length > 0) {
@@ -813,23 +844,69 @@ export default function OrdersClient({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingOrder, setEditingOrder] = useState<Order | null>(null)
   const [editableItems, setEditableItems] = useState<OrderItem[]>([])
+  
+  // Form de adicionar produto
+  const [selectedCatalogProdId, setSelectedCatalogProdId] = useState('')
   const [newItemName, setNewItemName] = useState('')
   const [newItemQty, setNewItemQty] = useState(1)
   const [newItemPrice, setNewItemPrice] = useState('')
   const [newItemDetails, setNewItemDetails] = useState('')
 
+  // Form de adicionar adicional ao item
+  const [targetItemIndex, setTargetItemIndex] = useState(0)
+  const [selectedCatalogCompName, setSelectedCatalogCompName] = useState('')
+  const [newCompName, setNewCompName] = useState('')
+  const [newCompPrice, setNewCompPrice] = useState('')
+
   const handleOpenEditModal = (order: Order) => {
     setEditingOrder(order)
-    setEditableItems(order.itemsDetail.map(it => ({ ...it })))
+    setEditableItems(order.itemsDetail.map(it => ({
+      ...it,
+      complements: it.complements ? it.complements.map(c => ({ ...c })) : []
+    })))
+    setSelectedCatalogProdId('')
     setNewItemName('')
     setNewItemQty(1)
     setNewItemPrice('')
     setNewItemDetails('')
+    setTargetItemIndex(0)
+    setSelectedCatalogCompName('')
+    setNewCompName('')
+    setNewCompPrice('')
     setIsEditModalOpen(true)
+  }
+
+  const handleSelectCatalogProduct = (prodId: string) => {
+    setSelectedCatalogProdId(prodId)
+    if (!prodId || prodId === 'custom') {
+      setNewItemName('')
+      setNewItemPrice('')
+      return
+    }
+    const found = catalogProducts.find(p => p.id === prodId)
+    if (found) {
+      setNewItemName(found.name)
+      setNewItemPrice((found.priceCents / 100).toFixed(2).replace('.', ','))
+    }
+  }
+
+  const handleSelectCatalogComplement = (compName: string) => {
+    setSelectedCatalogCompName(compName)
+    if (!compName || compName === 'custom') {
+      setNewCompName('')
+      setNewCompPrice('')
+      return
+    }
+    const found = allDistinctComplements.find(c => c.name === compName)
+    if (found) {
+      setNewCompName(found.name)
+      setNewCompPrice((found.priceCents / 100).toFixed(2).replace('.', ','))
+    }
   }
 
   const handleRemoveItem = (index: number) => {
     setEditableItems(prev => prev.filter((_, i) => i !== index))
+    setTargetItemIndex(prev => Math.max(0, Math.min(prev, editableItems.length - 2)))
   }
 
   const handleUpdateItemQty = (index: number, delta: number) => {
@@ -853,19 +930,58 @@ export default function OrdersClient({
         qty: Math.max(1, newItemQty),
         name: newItemName.trim(),
         price: formattedPrice,
-        details: newItemDetails.trim() || undefined
+        details: newItemDetails.trim() || undefined,
+        complements: []
       }
     ])
+    setSelectedCatalogProdId('')
     setNewItemName('')
     setNewItemQty(1)
     setNewItemPrice('')
     setNewItemDetails('')
   }
 
+  const handleAddComplementToItem = () => {
+    if (!newCompName.trim() || targetItemIndex < 0 || targetItemIndex >= editableItems.length) return
+    const priceNum = parseFloat(newCompPrice.replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) || 0
+    const formattedPrice = `R$ ${priceNum.toFixed(2).replace('.', ',')}`
+    const priceCents = Math.round(priceNum * 100)
+
+    setEditableItems(prev => prev.map((item, idx) => {
+      if (idx !== targetItemIndex) return item
+      const prevComps = item.complements || []
+      return {
+        ...item,
+        complements: [
+          ...prevComps,
+          { name: newCompName.trim(), price: formattedPrice, priceCents }
+        ]
+      }
+    }))
+
+    setSelectedCatalogCompName('')
+    setNewCompName('')
+    setNewCompPrice('')
+  }
+
+  const handleRemoveComplementFromItem = (itemIdx: number, compIdx: number) => {
+    setEditableItems(prev => prev.map((item, idx) => {
+      if (idx !== itemIdx) return item
+      return {
+        ...item,
+        complements: (item.complements || []).filter((_, ci) => ci !== compIdx)
+      }
+    }))
+  }
+
   const calculatedTotal = useMemo(() => {
     const sum = editableItems.reduce((acc, item) => {
-      const priceNum = parseFloat(item.price.replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) || 0
-      return acc + (priceNum * item.qty)
+      const itemPriceNum = parseFloat(item.price.replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) || 0
+      const compsSum = (item.complements || []).reduce((cAcc, c) => {
+        const cPrice = parseFloat(c.price.replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) || 0
+        return cAcc + cPrice
+      }, 0)
+      return acc + ((itemPriceNum + compsSum) * item.qty)
     }, 0)
     return `R$ ${sum.toFixed(2).replace('.', ',')}`
   }, [editableItems])
@@ -896,7 +1012,7 @@ export default function OrdersClient({
 
     setIsEditModalOpen(false)
 
-    // Map items to database payload
+    // Map items to database payload with complements
     const mappedItems = editableItems.map(it => {
       const priceNum = parseFloat(
         it.price.replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')
@@ -905,7 +1021,16 @@ export default function OrdersClient({
         name: it.name,
         qty: it.qty,
         unitPriceCents: Math.round(priceNum * 100),
-        details: it.details
+        details: it.details,
+        complements: (it.complements || []).map(c => {
+          const cPrice = parseFloat(
+            c.price.replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')
+          ) || 0
+          return {
+            name: c.name,
+            price_cents: Math.round(cPrice * 100)
+          }
+        })
       }
     })
 
@@ -1610,6 +1735,11 @@ export default function OrdersClient({
                               Concluído
                             </span>
                           )}
+                          {order.status === 'Cancelado' && (
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FCA5A5]">
+                              Cancelado
+                            </span>
+                          )}
                         </td>
 
                         {/* Ação rápida */}
@@ -1668,6 +1798,11 @@ export default function OrdersClient({
                           {order.status === 'Concluído' && (
                             <span className="inline-flex items-center justify-center text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/50">
                               <span>Finalizado</span>
+                            </span>
+                          )}
+                          {order.status === 'Cancelado' && (
+                            <span className="inline-flex items-center justify-center text-[11px] font-semibold text-[#DC2626] bg-[#FEF2F2] px-2 py-0.5 rounded-md border border-[#FCA5A5]/60">
+                              <span>Cancelado</span>
                             </span>
                           )}
                         </td>
@@ -1800,6 +1935,11 @@ export default function OrdersClient({
                     {activeOrder.status === 'Concluído' && (
                       <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F3F4F6] text-gray-700 border border-gray-300">
                         Concluído
+                      </span>
+                    )}
+                    {activeOrder.status === 'Cancelado' && (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FCA5A5]">
+                        Cancelado
                       </span>
                     )}
                   </div>
@@ -2015,6 +2155,11 @@ export default function OrdersClient({
                 >
                   Cancelar pedido
                 </button>
+              </div>
+            )}
+            {activeOrder.status === 'Cancelado' && (
+              <div className="p-3 bg-[#FEF2F2] border-t border-[#FCA5A5]/60 shrink-0 text-center">
+                <span className="text-xs font-bold text-[#DC2626]">Pedido Cancelado</span>
               </div>
             )}
           </>
@@ -2271,49 +2416,76 @@ export default function OrdersClient({
                     {editableItems.map((item, idx) => (
                       <div
                         key={idx}
-                        className="p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 flex items-center justify-between gap-3 shadow-2xs"
+                        className="p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 flex flex-col gap-2 shadow-2xs"
                       >
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-xs text-[#1C2C22] truncate">
-                            {item.name}
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-xs text-[#1C2C22] truncate">
+                              {item.name}
+                            </div>
+                            <div className="text-[11px] text-gray-500 font-medium">
+                              {item.price} cada
+                            </div>
                           </div>
-                          <div className="text-[11px] text-gray-500 font-medium">
-                            {item.price} cada
-                          </div>
-                        </div>
 
-                        {/* Quantity Stepper */}
-                        <div className="flex items-center gap-1 bg-white border border-[#E9E4D4] rounded-lg p-0.5 shadow-2xs">
+                          {/* Quantity Stepper */}
+                          <div className="flex items-center gap-1 bg-white border border-[#E9E4D4] rounded-lg p-0.5 shadow-2xs">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateItemQty(idx, -1)}
+                              className="w-6 h-6 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 hover:text-black cursor-pointer text-xs"
+                              title="Diminuir quantidade"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="w-6 text-center text-xs font-bold text-[#1C2C22]">
+                              {item.qty}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateItemQty(idx, 1)}
+                              className="w-6 h-6 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 hover:text-black cursor-pointer text-xs"
+                              title="Aumentar quantidade"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+
+                          {/* Remove / Excluir Button */}
                           <button
                             type="button"
-                            onClick={() => handleUpdateItemQty(idx, -1)}
-                            className="w-6 h-6 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 hover:text-black cursor-pointer text-xs"
-                            title="Diminuir quantidade"
+                            onClick={() => handleRemoveItem(idx)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer shrink-0"
+                            title="Excluir este item do pedido"
                           >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="w-6 text-center text-xs font-bold text-[#1C2C22]">
-                            {item.qty}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateItemQty(idx, 1)}
-                            className="w-6 h-6 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 hover:text-black cursor-pointer text-xs"
-                            title="Aumentar quantidade"
-                          >
-                            <Plus className="w-3 h-3" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
 
-                        {/* Remove / Excluir Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(idx)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer shrink-0"
-                          title="Excluir este item do pedido"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {/* Complements of this item */}
+                        {item.complements && item.complements.length > 0 && (
+                          <div className="pt-2 border-t border-[#E9E4D4]/60 flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mr-1">
+                              Adicionais:
+                            </span>
+                            {item.complements.map((comp, cIdx) => (
+                              <span
+                                key={cIdx}
+                                className="inline-flex items-center gap-1.5 text-[11px] font-medium bg-amber-50 text-amber-900 border border-amber-200/80 px-2 py-0.5 rounded-md"
+                              >
+                                <span>+ {comp.name} ({comp.price})</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveComplementFromItem(idx, cIdx)}
+                                  className="text-amber-700 hover:text-red-600 transition-colors cursor-pointer"
+                                  title="Remover adicional"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -2321,22 +2493,37 @@ export default function OrdersClient({
               </div>
 
               {/* Add New Item Section */}
-              <div className="p-4 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-3">
+              <div className="p-3.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-2.5">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-[#1C2C22] uppercase tracking-wider">
                   <Plus className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                  <span>Adicionar Novo Produto</span>
+                  <span>Adicionar Produto ao Pedido</span>
                 </div>
 
                 <div className="space-y-2">
+                  <select
+                    value={selectedCatalogProdId}
+                    onChange={(e) => handleSelectCatalogProduct(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                  >
+                    <option value="">Selecione um produto do cardápio...</option>
+                    {catalogProducts.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} — {p.price}
+                      </option>
+                    ))}
+                    <option value="custom">Outro produto (digitar manualmente)</option>
+                  </select>
+
                   <input
                     type="text"
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
-                    placeholder="Nome do produto (ex: Pizza Calabresa, Refrigerante 2L)"
+                    placeholder="Nome do produto"
                     className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
                   />
+
                   <div className="flex gap-2">
-                    <div className="w-24 shrink-0">
+                    <div className="w-20 shrink-0">
                       <input
                         type="number"
                         min="1"
@@ -2351,7 +2538,7 @@ export default function OrdersClient({
                         type="text"
                         value={newItemPrice}
                         onChange={(e) => setNewItemPrice(e.target.value)}
-                        placeholder="Preço unitário (ex: 28,00)"
+                        placeholder="Preço (ex: 28,00)"
                         className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
                       />
                     </div>
@@ -2367,6 +2554,86 @@ export default function OrdersClient({
                   </div>
                 </div>
               </div>
+
+              {/* Add Complement Section */}
+              {editableItems.length > 0 && (
+                <div className="p-3.5 rounded-xl border border-amber-200/80 bg-amber-50/40 space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 uppercase tracking-wider">
+                    <Plus className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                    <span>Adicionar Adicional a um Item</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                          Item do pedido:
+                        </label>
+                        <select
+                          value={targetItemIndex}
+                          onChange={(e) => setTargetItemIndex(Number(e.target.value))}
+                          className="w-full px-2.5 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                        >
+                          {editableItems.map((it, idx) => (
+                            <option key={idx} value={idx}>
+                              {it.qty}x {it.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                          Adicional do cardápio:
+                        </label>
+                        <select
+                          value={selectedCatalogCompName}
+                          onChange={(e) => handleSelectCatalogComplement(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                        >
+                          <option value="">Selecione um adicional...</option>
+                          {allDistinctComplements.map(c => (
+                            <option key={c.name} value={c.name}>
+                              {c.name} — {c.price}
+                            </option>
+                          ))}
+                          <option value="custom">Outro (digitar manualmente)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={newCompName}
+                          onChange={(e) => setNewCompName(e.target.value)}
+                          placeholder="Nome do adicional (ex: Bacon extra)"
+                          className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                        />
+                      </div>
+                      <div className="w-24 shrink-0">
+                        <input
+                          type="text"
+                          value={newCompPrice}
+                          onChange={(e) => setNewCompPrice(e.target.value)}
+                          placeholder="Preço (ex: 5,00)"
+                          className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={handleAddComplementToItem}
+                        disabled={!newCompName.trim()}
+                        className="bg-[#CB5A3C] hover:bg-[#B34B30] text-white text-xs font-bold px-3 shrink-0 rounded-xl disabled:opacity-50"
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" />
+                        Incluir
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Recalculated Total Banner */}
               <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 flex items-center justify-between text-xs">
