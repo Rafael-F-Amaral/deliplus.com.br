@@ -1277,13 +1277,13 @@ export default function MenuClient({
           <table className="w-full text-left text-[14px]">
             <thead className="bg-[#FAF8F0] border-b border-[#E9E4D4]">
               <tr className="text-[14px] font-semibold text-[#2E4233]">
-                <th className="px-4 py-2.5 w-[80px]">Foto</th>
-                <th className="px-4 py-2.5">Produto</th>
-                <th className="px-4 py-2.5 text-left w-[120px] whitespace-nowrap">Preço original</th>
-                <th className="px-4 py-2.5 text-left w-[140px] whitespace-nowrap">Preço promocional</th>
-                <th className="px-3 py-2.5 text-center w-[110px] whitespace-nowrap">Disponibilidade</th>
-                <th className="px-4 py-2.5 text-center w-[130px] whitespace-nowrap">Quantidade</th>
-                <th className="px-4 py-2.5 text-right w-[60px]">Ações</th>
+                <th className="px-4 py-2.5 w-[76px]">Foto</th>
+                <th className="px-4 py-2.5 w-[26%]">Produto</th>
+                <th className="px-4 py-2.5 text-left w-[16%] whitespace-nowrap">Preço original</th>
+                <th className="px-4 py-2.5 text-left w-[20%] whitespace-nowrap">Preço promocional</th>
+                <th className="px-3 py-2.5 text-center w-[17%] whitespace-nowrap">Disponibilidade</th>
+                <th className="px-4 py-2.5 text-center w-[17%] whitespace-nowrap">Quantidade</th>
+                <th className="px-4 py-2.5 text-right w-[4%] min-w-[56px]">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E9E4D4] border-b border-[#E9E4D4]">
@@ -1382,7 +1382,7 @@ export default function MenuClient({
                             )
                           })}
                         </div>
-                        <span className="text-[12px] text-gray-500 leading-relaxed line-clamp-1 mt-1 max-w-[360px]">
+                        <span className="text-[12px] text-gray-500 leading-relaxed line-clamp-1 mt-1">
                           {item.description}
                         </span>
                       </div>
