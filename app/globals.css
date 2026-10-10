@@ -227,3 +227,22 @@
   background-color: #CB5A3C;
   color: white;
 }
+
+/* Custom visible horizontal scrollbar for filter containers */
+.filter-scrollbar {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #CB5A3C #E9E4D4;
+}
+.filter-scrollbar::-webkit-scrollbar {
+  height: 4px;
+}
+.filter-scrollbar::-webkit-scrollbar-track {
+  background: #FAF8F0;
+  border-radius: 9999px;
+}
+.filter-scrollbar::-webkit-scrollbar-thumb {
+  background: #CB5A3C;
+  border-radius: 9999px;
+}
+

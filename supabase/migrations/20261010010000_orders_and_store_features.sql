@@ -83,20 +83,20 @@ create trigger on_store_created_seed_delivery_settings
 after insert on public.stores
 for each row execute function public.seed_default_store_delivery_settings();
 
--- 4. Order numbering trigger (Sequential per store, starts at 1201)
+-- 4. Order numbering trigger (Sequential per store, starts at 1, formatted as 0001)
 create or replace function public.assign_order_number()
 returns trigger
 language plpgsql
 as $$
 begin
   if new.order_number is null or new.order_number = 0 then
-    select coalesce(max(order_number), 1200) + 1
+    select coalesce(max(order_number), 0) + 1
     into new.order_number
     from public.orders
     where store_id = new.store_id;
   end if;
   if new.display_id is null or new.display_id = '' then
-    new.display_id := '#' || new.order_number::text;
+    new.display_id := '#' || lpad(new.order_number::text, 4, '0');
   end if;
   return new;
 end;

@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useOrganization } from '@clerk/nextjs'
 import {
-  CircleCheck,
   Printer,
   X,
   Check,
@@ -100,7 +99,7 @@ export interface Order {
 
 const INITIAL_ORDERS: Order[] = [
   {
-    id: '#1247',
+    id: '#0001',
     client: 'Marina Souza',
     phone: '(11) 98765-4321',
     itemsCount: 7,
@@ -125,7 +124,7 @@ const INITIAL_ORDERS: Order[] = [
     isUrgent: true
   },
   {
-    id: '#1246',
+    id: '#0002',
     client: 'Rafael Lima',
     phone: '(11) 97654-3210',
     itemsCount: 2,
@@ -144,7 +143,7 @@ const INITIAL_ORDERS: Order[] = [
     obs: 'Deixar na portaria com o zelador Silva.'
   },
   {
-    id: '#1245',
+    id: '#0003',
     client: 'Juliana Martins',
     phone: '(11) 96543-2109',
     itemsCount: 4,
@@ -165,7 +164,7 @@ const INITIAL_ORDERS: Order[] = [
     obs: 'Caprichar no molho tarê, por favor!'
   },
   {
-    id: '#1244',
+    id: '#0004',
     client: 'Lucas Ferreira',
     phone: '(11) 95432-1098',
     itemsCount: 2,
@@ -184,7 +183,7 @@ const INITIAL_ORDERS: Order[] = [
     obs: 'Levar maquininha de cartão Stone.'
   },
   {
-    id: '#1243',
+    id: '#0005',
     client: 'Beatriz Costa',
     phone: '(11) 94321-0987',
     itemsCount: 1,
@@ -201,7 +200,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Pronto'
   },
   {
-    id: '#1242',
+    id: '#0006',
     client: 'Thiago Almeida',
     phone: '(11) 93210-9876',
     itemsCount: 3,
@@ -221,7 +220,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Em entrega'
   },
   {
-    id: '#1241',
+    id: '#0007',
     client: 'Camila Rocha',
     phone: '(11) 92109-8765',
     itemsCount: 2,
@@ -240,7 +239,7 @@ const INITIAL_ORDERS: Order[] = [
     obs: 'Cliente vai retirar às 12h15 em ponto.'
   },
   {
-    id: '#1240',
+    id: '#0008',
     client: 'Bruno Santos',
     phone: '(11) 91098-7654',
     itemsCount: 1,
@@ -259,7 +258,7 @@ const INITIAL_ORDERS: Order[] = [
     isUrgent: false
   },
   {
-    id: '#1239',
+    id: '#0009',
     client: 'Fernanda Dias',
     phone: '(11) 90987-6543',
     itemsCount: 2,
@@ -278,7 +277,7 @@ const INITIAL_ORDERS: Order[] = [
     obs: 'Interfone 32, Bloco B.'
   },
   {
-    id: '#1238',
+    id: '#0010',
     client: 'Rodrigo Silveira',
     phone: '(11) 99876-5432',
     itemsCount: 3,
@@ -298,7 +297,7 @@ const INITIAL_ORDERS: Order[] = [
     obs: 'Ponto da carne: ao ponto para bem.'
   },
   {
-    id: '#1237',
+    id: '#0011',
     client: 'Patrícia Gomes',
     phone: '(11) 98765-1234',
     itemsCount: 1,
@@ -316,7 +315,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Pronto'
   },
   {
-    id: '#1236',
+    id: '#0012',
     client: 'Gabriel Ramos',
     phone: '(11) 97654-2345',
     itemsCount: 2,
@@ -335,7 +334,7 @@ const INITIAL_ORDERS: Order[] = [
     obs: 'Caprichar no manjericão fresco.'
   },
   {
-    id: '#1235',
+    id: '#0013',
     client: 'Larissa Azevedo',
     phone: '(11) 96543-3456',
     itemsCount: 2,
@@ -353,7 +352,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Em preparo'
   },
   {
-    id: '#1234',
+    id: '#0014',
     client: 'Eduardo Moreira',
     phone: '(11) 95432-4567',
     itemsCount: 3,
@@ -374,7 +373,7 @@ const INITIAL_ORDERS: Order[] = [
     obs: 'Deixar na recepção do condomínio.'
   },
   {
-    id: '#1233',
+    id: '#0015',
     client: 'Marcos Vinícius',
     phone: '(11) 94321-8765',
     itemsCount: 2,
@@ -392,7 +391,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Concluído'
   },
   {
-    id: '#1232',
+    id: '#0016',
     client: 'Carolina Mendes',
     phone: '(11) 93210-9876',
     itemsCount: 1,
@@ -409,7 +408,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Novo'
   },
   {
-    id: '#1231',
+    id: '#0017',
     client: 'Felipe Santana',
     phone: '(11) 92109-8765',
     itemsCount: 3,
@@ -429,7 +428,7 @@ const INITIAL_ORDERS: Order[] = [
     obs: 'Interfone não funciona, chamar no WhatsApp ao chegar.'
   },
   {
-    id: '#1230',
+    id: '#0018',
     client: 'Aline Barros',
     phone: '(11) 91098-7654',
     itemsCount: 2,
@@ -447,7 +446,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Pronto'
   },
   {
-    id: '#1229',
+    id: '#0019',
     client: 'Renato Faria',
     phone: '(11) 90987-6543',
     itemsCount: 4,
@@ -466,7 +465,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Em entrega'
   },
   {
-    id: '#1228',
+    id: '#0020',
     client: 'Camila Peixoto',
     phone: '(11) 98712-3456',
     itemsCount: 2,
@@ -484,7 +483,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Concluído'
   },
   {
-    id: '#1227',
+    id: '#0021',
     client: 'Lucas Nogueira',
     phone: '(11) 97623-4567',
     itemsCount: 1,
@@ -502,7 +501,7 @@ const INITIAL_ORDERS: Order[] = [
     isUrgent: true
   },
   {
-    id: '#1226',
+    id: '#0022',
     client: 'Tatiane Ribeiro',
     phone: '(11) 96534-5678',
     itemsCount: 3,
@@ -520,7 +519,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Em preparo'
   },
   {
-    id: '#1225',
+    id: '#0023',
     client: 'Henrique Vasconcelos',
     phone: '(11) 95445-6789',
     itemsCount: 2,
@@ -539,7 +538,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Pronto'
   },
   {
-    id: '#1224',
+    id: '#0024',
     client: 'Débora Silveira',
     phone: '(11) 94356-7890',
     itemsCount: 1,
@@ -556,7 +555,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Em preparo'
   },
   {
-    id: '#1223',
+    id: '#0025',
     client: 'Thiago Guimarães',
     phone: '(11) 93267-8901',
     itemsCount: 3,
@@ -575,7 +574,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Em entrega'
   },
   {
-    id: '#1222',
+    id: '#0026',
     client: 'Vanessa Paiva',
     phone: '(11) 92178-9012',
     itemsCount: 2,
@@ -593,7 +592,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Novo'
   },
   {
-    id: '#1221',
+    id: '#0027',
     client: 'Leandro Castro',
     phone: '(11) 91089-0123',
     itemsCount: 4,
@@ -611,7 +610,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Concluído'
   },
   {
-    id: '#1220',
+    id: '#0028',
     client: 'Priscila Prado',
     phone: '(11) 99890-1234',
     itemsCount: 1,
@@ -628,7 +627,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Concluído'
   },
   {
-    id: '#1219',
+    id: '#0029',
     client: 'Gustavo Mendonça',
     phone: '(11) 98701-2345',
     itemsCount: 2,
@@ -646,7 +645,7 @@ const INITIAL_ORDERS: Order[] = [
     status: 'Concluído'
   },
   {
-    id: '#1218',
+    id: '#0030',
     client: 'Isabela Fontes',
     phone: '(11) 97612-3456',
     itemsCount: 3,
@@ -789,6 +788,22 @@ export default function OrdersClient() {
   // Dynamic items per page ensuring zero vertical scrollbars and filling table down to pagination
   const [itemsPerPage, setItemsPerPage] = useState(14)
 
+  // Mobile filter scroll state to render visible indicator bar
+  const filterScrollRef = React.useRef<HTMLDivElement>(null)
+  const [filterScroll, setFilterScroll] = useState({ scrollLeft: 0, clientWidth: 0, scrollWidth: 0 })
+
+  const updateFilterScroll = () => {
+    if (!filterScrollRef.current) return
+    const { scrollLeft, clientWidth, scrollWidth } = filterScrollRef.current
+    setFilterScroll({ scrollLeft, clientWidth, scrollWidth })
+  }
+
+  useEffect(() => {
+    updateFilterScroll()
+    window.addEventListener('resize', updateFilterScroll)
+    return () => window.removeEventListener('resize', updateFilterScroll)
+  }, [])
+
   useEffect(() => {
     const calculateItemsPerPage = () => {
       if (typeof window === 'undefined') return
@@ -796,12 +811,10 @@ export default function OrdersClient() {
       const h = window.innerHeight
 
       if (w < 640) {
-        // Mobile screens: filters stack vertically and bottom nav takes 72px
-        if (h < 750) {
-          setItemsPerPage(4)
-        } else {
-          setItemsPerPage(5)
-        }
+        // Mobile screens: dynamically calculate rows to fill table down to pagination
+        const availableHeight = h - 330
+        const calculatedRows = Math.floor(availableHeight / 48)
+        setItemsPerPage(Math.max(6, Math.min(15, calculatedRows)))
       } else if (w < 1024) {
         // Tablets / small laptops
         if (h < 800) {
@@ -1016,69 +1029,95 @@ export default function OrdersClient() {
           <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
             {/* Controls Row: Filters & Search (Aligned directly above the Table) */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 mb-2.5 shrink-0 z-30 relative bg-white/40 sm:bg-transparent p-1.5 sm:p-0 rounded-2xl">
-              <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar relative flex-nowrap py-0.5 sm:py-0">
-                {/* Grupo 1: Fases de Preparo / Produção (Cozinha) */}
-                <div className="flex items-center gap-1 bg-[#F3EFE3]/80 p-0.5 rounded-full border border-[#E9E4D4] shrink-0 shadow-2xs">
-                  {KITCHEN_STATUS_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => {
-                        setStatusFilter(option.value)
-                        setCurrentPage(1)
-                      }}
-                      className={cn(
-                        "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
-                        statusFilter === option.value
-                          ? "bg-[#2E4233] text-white shadow-xs"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
-                      )}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+              <div className="w-full sm:w-auto flex flex-col">
+                <div 
+                  ref={filterScrollRef}
+                  onScroll={updateFilterScroll}
+                  className="flex items-center gap-2 w-full sm:w-auto filter-scrollbar pb-1 sm:pb-0 relative flex-nowrap"
+                >
+                  {/* Grupo 1: Fases de Preparo / Produção (Cozinha) */}
+                  <div className="flex items-center gap-1 bg-[#F3EFE3]/80 p-0.5 rounded-full border border-[#E9E4D4] shrink-0 shadow-2xs">
+                    {KITCHEN_STATUS_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setStatusFilter(option.value)
+                          setCurrentPage(1)
+                        }}
+                        className={cn(
+                          "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
+                          statusFilter === option.value
+                            ? "bg-[#2E4233] text-white shadow-xs"
+                            : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Separador vertical nítido entre os dois grupos */}
+                  <div className="h-5 w-px bg-[#D6D0BC] shrink-0 mx-0.5 hidden sm:block" />
+
+                  {/* Grupo 2: Modalidade e Data */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Delivery Modality Select */}
+                    <div className="relative inline-block shrink-0">
+                      <select
+                        value={typeFilter}
+                        onChange={(e) => {
+                          setTypeFilter(e.target.value as 'Todos' | 'Delivery' | 'Retirada')
+                          setCurrentPage(1)
+                        }}
+                        className="appearance-none bg-white border border-[#E9E4D4] rounded-full pl-2.5 pr-6 py-1 text-xs font-semibold text-gray-600 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
+                      >
+                        <option value="Todos">Modalidade</option>
+                        <option value="Delivery">Delivery</option>
+                        <option value="Retirada">Retirada</option>
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+
+                    {/* Date Selector */}
+                    <div className="relative inline-block shrink-0">
+                      <select
+                        value={dateFilter}
+                        onChange={(e) => {
+                          setDateFilter(e.target.value)
+                          setCurrentPage(1)
+                        }}
+                        className="appearance-none bg-white border border-[#E9E4D4] rounded-full pl-5.5 pr-5 py-1 text-xs font-semibold text-gray-600 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
+                      >
+                        <option value="Hoje">Hoje</option>
+                        <option value="Ontem">Ontem</option>
+                        <option value="Últimos 7 dias">7 dias</option>
+                        <option value="Este mês">Este mês</option>
+                      </select>
+                      <Calendar className="w-3 h-3 text-gray-400 absolute left-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <ChevronDown className="w-3 h-3 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
                 </div>
 
-                {/* Separador vertical nítido entre os dois grupos */}
-                <div className="h-5 w-px bg-[#D6D0BC] shrink-0 mx-0.5 hidden sm:block" />
-
-                {/* Grupo 2: Modalidade e Data */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {/* Delivery Modality Select */}
-                  <div className="relative inline-block shrink-0">
-                    <select
-                      value={typeFilter}
-                      onChange={(e) => {
-                        setTypeFilter(e.target.value as 'Todos' | 'Delivery' | 'Retirada')
-                        setCurrentPage(1)
-                      }}
-                      className="appearance-none bg-white border border-[#E9E4D4] rounded-full pl-2.5 pr-6 py-1 text-xs font-semibold text-gray-600 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
-                    >
-                      <option value="Todos">Modalidade</option>
-                      <option value="Delivery">Delivery</option>
-                      <option value="Retirada">Retirada</option>
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-
-                  {/* Date Selector */}
-                  <div className="relative inline-block shrink-0">
-                    <select
-                      value={dateFilter}
-                      onChange={(e) => {
-                        setDateFilter(e.target.value)
-                        setCurrentPage(1)
-                      }}
-                      className="appearance-none bg-white border border-[#E9E4D4] rounded-full pl-5.5 pr-5 py-1 text-xs font-semibold text-gray-600 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
-                    >
-                      <option value="Hoje">Hoje</option>
-                      <option value="Ontem">Ontem</option>
-                      <option value="Últimos 7 dias">7 dias</option>
-                      <option value="Este mês">Este mês</option>
-                    </select>
-                    <Calendar className="w-3 h-3 text-gray-400 absolute left-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <ChevronDown className="w-3 h-3 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+                {/* Barra de rolagem visível no mobile para sinalizar opções ocultas */}
+                <div className="w-full h-1 bg-[#FAF8F0] border border-[#E9E4D4]/80 rounded-full overflow-hidden sm:hidden mt-1">
+                  {(() => {
+                    const hasOverflow = filterScroll.scrollWidth > filterScroll.clientWidth && filterScroll.clientWidth > 0
+                    const thumbWidth = hasOverflow ? Math.max(25, (filterScroll.clientWidth / filterScroll.scrollWidth) * 100) : 40
+                    const maxScroll = filterScroll.scrollWidth - filterScroll.clientWidth
+                    const fraction = maxScroll > 0 ? Math.min(1, Math.max(0, filterScroll.scrollLeft / maxScroll)) : 0
+                    const offsetLeft = fraction * (100 - thumbWidth)
+                    return (
+                      <div
+                        className="h-full bg-[#CB5A3C] rounded-full transition-all duration-75"
+                        style={{
+                          width: `${thumbWidth}%`,
+                          marginLeft: `${offsetLeft}%`
+                        }}
+                      />
+                    )
+                  })()}
                 </div>
               </div>
 
@@ -1385,10 +1424,9 @@ export default function OrdersClient() {
                             <button
                               type="button"
                               onClick={(e) => handleAcceptOrder(order.id, e)}
-                              className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#CB5A3C] hover:bg-[#B34B30] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                              className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold bg-[#CB5A3C] hover:bg-[#B34B30] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
                               title="Aceitar pedido e iniciar preparo"
                             >
-                              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                               <span>Aceitar</span>
                             </button>
                           )}
@@ -1396,10 +1434,9 @@ export default function OrdersClient() {
                             <button
                               type="button"
                               onClick={(e) => handleAdvanceStatus(order.id, e)}
-                              className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#1E3A2B] hover:bg-[#162B20] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                              className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold bg-[#1E3A2B] hover:bg-[#162B20] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
                               title={order.type === 'Retirada' ? "Marcar como pronto para retirada no balcão" : "Marcar como pronto para entrega"}
                             >
-                              <CircleCheck className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5]" />
                               <span>Pronto</span>
                             </button>
                           )}
@@ -1408,10 +1445,9 @@ export default function OrdersClient() {
                               <button
                                 type="button"
                                 onClick={(e) => handleAdvanceStatus(order.id, e)}
-                                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-800 hover:bg-black text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                                className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-800 hover:bg-black text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
                                 title="Concluir retirada do cliente"
                               >
-                                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                                 <span>Concluir</span>
                               </button>
                             ) : (
@@ -1429,16 +1465,14 @@ export default function OrdersClient() {
                             <button
                               type="button"
                               onClick={(e) => handleAdvanceStatus(order.id, e)}
-                              className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-800 hover:bg-black text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                              className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-800 hover:bg-black text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
                               title="Confirmar entrega e concluir pedido"
                             >
-                              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                               <span>Concluir</span>
                             </button>
                           )}
                           {order.status === 'Concluído' && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/50">
-                              <Check className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                            <span className="inline-flex items-center justify-center text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/50">
                               <span>Finalizado</span>
                             </span>
                           )}
@@ -1764,12 +1798,9 @@ export default function OrdersClient() {
             <h3 className="font-serif text-lg font-bold text-[#1C2C22] mb-1.5">
               Nenhum pedido selecionado
             </h3>
-            <p className="text-xs text-gray-500 max-w-[240px] leading-relaxed mb-4">
+            <p className="text-xs text-gray-500 max-w-[240px] leading-relaxed">
               Selecione um pedido na tabela ao lado para visualizar os itens, endereço, observações e dados do cliente.
             </p>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] text-[11px] font-semibold text-gray-600">
-              <span>Dica: clique em qualquer linha</span>
-            </div>
           </div>
         )}
       </aside>
