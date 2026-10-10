@@ -1210,14 +1210,6 @@ export default function MenuClient({
     setAdicionalImage("")
   }
 
-  // Preencher formulário para editar adicional
-  const handleEditAdicional = (ad: ProductAdicional) => {
-    setEditingAdicionalId(ad.id)
-    setAdicionalName(ad.name)
-    setAdicionalPrice(ad.price || "R$ 0,00")
-    setAdicionalDesc(ad.description || "")
-    setAdicionalImage(ad.image || "")
-  }
 
   // Deletar adicional da lista
   const handleDeleteAdicional = (id: string) => {
@@ -2904,9 +2896,18 @@ export default function MenuClient({
             {/* Header */}
             <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
               <div>
-                <h3 className="font-serif font-bold text-[#CB5A3C] text-lg">
-                  Adicionais: {adicionaisModalItem.name}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-serif font-bold text-[#CB5A3C] text-lg">
+                    Adicionais: {adicionaisModalItem.name}
+                  </h3>
+                  <button
+                    type="button"
+                    className="w-4 h-4 rounded-full bg-[#1C2C22] text-[#FAF8F0] text-[10px] font-bold flex items-center justify-center hover:bg-[#CB5A3C] transition-colors cursor-help shrink-0 shadow-2xs"
+                    title="Cadastre e gerencie os adicionais e complementos disponíveis para este prato. Os itens adicionados poderão ser selecionados pelo cliente durante o pedido."
+                  >
+                    ?
+                  </button>
+                </div>
                 <p className="text-xs text-black font-medium mt-0.5">
                   Cadastre e gerencie os adicionais e complementos deste prato
                 </p>
@@ -2928,13 +2929,10 @@ export default function MenuClient({
                   <span className="text-xs font-bold text-[#CB5A3C]">
                     Adicionais Cadastrados ({adicionaisList.length})
                   </span>
-                  <span className="text-[11px] text-gray-400 font-medium">
-                    O cliente poderá selecionar no storefront
-                  </span>
                 </div>
 
                 {adicionaisList.length === 0 ? (
-                  <div className="p-4 bg-[#FAF8F0]/60 rounded-xl border border-dashed border-[#E9E4D4] text-center text-xs text-gray-500">
+                  <div className="p-4 bg-[#FEF6F3] rounded-xl border-2 border-dashed border-[#FADCD5] text-center text-xs text-[#8A3822] font-medium">
                     Nenhum adicional cadastrado ainda. Use o formulário abaixo para adicionar opções.
                   </div>
                 ) : (
@@ -2942,7 +2940,7 @@ export default function MenuClient({
                     {adicionaisList.map((ad, idx) => (
                       <div
                         key={ad.id || idx}
-                        className="flex items-center justify-between p-2.5 rounded-xl border border-[#E9E4D4] bg-white hover:border-[#CB5A3C]/40 transition-colors shadow-2xs gap-3"
+                        className="flex items-center justify-between p-2.5 rounded-xl border-2 border-[#CB5A3C]/40 bg-white hover:border-[#CB5A3C] transition-all shadow-2xs gap-3"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           {/* Foto do Adicional */}
@@ -2968,23 +2966,15 @@ export default function MenuClient({
                           </div>
                         </div>
 
-                        {/* Ações: Editar e Excluir */}
+                        {/* Ação: Excluir */}
                         <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleEditAdicional(ad)}
-                            className="p-1.5 text-gray-500 hover:text-[#2E4233] hover:bg-[#FAF8F0] rounded-lg transition-colors cursor-pointer"
-                            title="Editar adicional"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteAdicional(ad.id)}
                             className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-colors cursor-pointer"
                             title="Excluir adicional"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -2993,27 +2983,12 @@ export default function MenuClient({
                 )}
               </div>
 
-              {/* Formulário: Adicionar / Editar Adicional */}
+              {/* Formulário: Adicionar Adicional */}
               <div className="p-3.5 bg-[#FAF8F0]/70 rounded-xl border border-[#E9E4D4] flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-[#CB5A3C]">
-                    {editingAdicionalId ? "Editar Adicional" : "Novo Adicional"}
+                    Novo Adicional
                   </span>
-                  {editingAdicionalId && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingAdicionalId(null)
-                        setAdicionalName("")
-                        setAdicionalPrice("")
-                        setAdicionalDesc("")
-                        setAdicionalImage("")
-                      }}
-                      className="text-[11px] text-gray-500 hover:underline cursor-pointer"
-                    >
-                      Cancelar edição
-                    </button>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -3117,13 +3092,13 @@ export default function MenuClient({
                         }
                       }}
                       onClick={() => adicionalFileInputRef.current?.click()}
-                      className={`p-3 rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center text-center bg-white ${
+                      className={`p-3.5 rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center text-center ${
                         isDraggingAdicionalPhoto
-                          ? "border-[#CB5A3C] bg-[#FEF2EE]"
-                          : "border-[#E9E4D4] hover:border-[#CB5A3C]/70 hover:bg-[#FAF8F0]/40"
+                          ? "border-[#CB5A3C] bg-[#FDF2F0]"
+                          : "border-[#FADCD5] bg-[#FEF6F3] hover:border-[#CB5A3C] hover:bg-[#FDF2F0]"
                       }`}
                     >
-                      <Upload className={`w-5 h-5 mb-1 ${isDraggingAdicionalPhoto ? "text-[#CB5A3C]" : "text-gray-400"}`} />
+                      <Upload className={`w-5 h-5 mb-1 ${isDraggingAdicionalPhoto ? "text-[#CB5A3C]" : "text-[#CB5A3C]/70"}`} />
                       <p className="text-xs font-semibold text-gray-700">
                         {isUploadingAdicionalPhoto
                           ? "Enviando imagem..."
@@ -3148,7 +3123,7 @@ export default function MenuClient({
                       disabled={!adicionalName.trim() || isUploadingAdicionalPhoto}
                       className="px-4 py-1.5 bg-[#CB5A3C] hover:bg-[#b0482e] disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs"
                     >
-                      {editingAdicionalId ? "Salvar item" : "+ Incluir"}
+                      + Incluir
                     </button>
                   </div>
                 </div>

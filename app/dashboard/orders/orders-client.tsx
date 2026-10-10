@@ -1626,6 +1626,8 @@ export default function OrdersClient({
                     const isPreparo = order.status === 'Em preparo'
                     const isPronto = order.status === 'Pronto'
                     const isEntrega = order.status === 'Em entrega'
+                    const isConcluido = order.status === 'Concluído'
+                    const isCancelado = order.status === 'Cancelado'
 
                     return (
                       <tr
@@ -1635,8 +1637,16 @@ export default function OrdersClient({
                         className={cn(
                           "cursor-pointer transition-colors relative group select-none",
                           isSelected
-                            ? "bg-[#FAF5E9] shadow-[inset_3px_0_0_0_#CB5A3C]"
-                            : "hover:bg-[#FAF8F0]/70"
+                            ? isCancelado
+                              ? "bg-red-100/80 shadow-[inset_3px_0_0_0_#DC2626]"
+                              : isConcluido
+                                ? "bg-emerald-100/80 shadow-[inset_3px_0_0_0_#059669]"
+                                : "bg-[#FAF5E9] shadow-[inset_3px_0_0_0_#CB5A3C]"
+                            : isCancelado
+                              ? "bg-red-50/70 hover:bg-red-100/60"
+                              : isConcluido
+                                ? "bg-emerald-50/70 hover:bg-emerald-100/60"
+                                : "hover:bg-[#FAF8F0]/70"
                         )}
                       >
                         {/* Order ID with Urgent Stripe */}
