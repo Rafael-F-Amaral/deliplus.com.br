@@ -7,7 +7,10 @@ import {
   Check,
   Edit3,
   X,
-  Layers
+  Layers,
+  Calendar,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toggleProductPromo, updateProductPromoFull } from "../actions";
@@ -94,6 +97,218 @@ function formatPromoPeriod(
   return { periodText: "Prazo indeterminado", totalDays: Infinity };
 }
 
+interface DeliPlusDatePickerProps {
+  value: string;
+  onChange: (val: string) => void;
+  min?: string;
+  disabled?: boolean;
+  placeholder?: string;
+}
+
+function DeliPlusDatePicker({
+  value,
+  onChange,
+  min,
+  disabled = false,
+  placeholder = "dd/mm/aaaa"
+}: DeliPlusDatePickerProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const parseDate = (dStr: string) => {
+    if (!dStr) return null;
+    const parts = dStr.split("-").map(Number);
+    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+    return null;
+  };
+
+  const selectedDate = parseDate(value);
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  const [viewYear, setViewYear] = useState<number>(() => selectedDate ? selectedDate.getFullYear() : today.getFullYear());
+  const [viewMonth, setViewMonth] = useState<number>(() => selectedDate ? selectedDate.getMonth() : today.getMonth());
+
+  const handleToggle = () => {
+    if (disabled) return;
+    if (!isOpen) {
+      if (selectedDate) {
+        setViewYear(selectedDate.getFullYear());
+        setViewMonth(selectedDate.getMonth());
+      } else {
+        setViewYear(today.getFullYear());
+        setViewMonth(today.getMonth());
+      }
+    }
+    setIsOpen(prev => !prev);
+  };
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [isOpen]);
+
+  const handlePrevMonth = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear(y => y - 1);
+    } else {
+      setViewMonth(m => m - 1);
+    }
+  };
+
+  const handleNextMonth = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear(y => y + 1);
+    } else {
+      setViewMonth(m => m + 1);
+    }
+  };
+
+  const monthNames = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
+
+  const daysOfWeek = ["D", "S", "T", "Q", "Q", "S", "S"];
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const firstDayWeekIndex = new Date(viewYear, viewMonth, 1).getDay();
+
+  const handleSelectDay = (day: number) => {
+    const dStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    if (min && dStr < min) return;
+    onChange(dStr);
+    setIsOpen(false);
+  };
+
+  const displayFormatted = selectedDate
+    ? `${String(selectedDate.getDate()).padStart(2, "0")}/${String(selectedDate.getMonth() + 1).padStart(2, "0")}/${selectedDate.getFullYear()}`
+    : "";
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={handleToggle}
+        className={`w-full flex items-center justify-between border border-[#E9E4D4] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 bg-white transition-all cursor-pointer ${
+          disabled
+            ? "opacity-40 cursor-not-allowed bg-gray-50"
+            : "hover:border-[#CB5A3C] focus:outline-none focus:ring-1 focus:ring-[#2E4233]"
+        }`}
+      >
+        <span className={displayFormatted ? "font-semibold text-gray-800" : "text-gray-400"}>
+          {displayFormatted || placeholder}
+        </span>
+        <Calendar className="w-3.5 h-3.5 text-gray-400" />
+      </button>
+
+      {isOpen && !disabled && (
+        <div className="absolute top-full left-0 mt-1.5 z-[180] w-[250px] bg-white border border-[#E9E4D4] rounded-2xl shadow-2xl p-3 select-none animate-in fade-in zoom-in-95">
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#ECEAE2]">
+            <button
+              type="button"
+              onClick={handlePrevMonth}
+              className="p-1 rounded-lg text-gray-600 hover:bg-[#FAF8F0] hover:text-[#CB5A3C] transition-colors cursor-pointer"
+            >
+              <ChevronLeft size={15} />
+            </button>
+            <span className="text-xs font-bold text-[#1A241E]">
+              {monthNames[viewMonth]} {viewYear}
+            </span>
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              className="p-1 rounded-lg text-gray-600 hover:bg-[#FAF8F0] hover:text-[#CB5A3C] transition-colors cursor-pointer"
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 text-center mb-1">
+            {daysOfWeek.map((dow, idx) => (
+              <span key={idx} className="text-[10px] font-bold text-gray-400">
+                {dow}
+              </span>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {Array.from({ length: firstDayWeekIndex }).map((_, i) => (
+              <div key={`empty-${i}`} className="h-7 w-7" />
+            ))}
+
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+              const isSelected = value === dateStr;
+              const isToday = todayStr === dateStr;
+              const isPastMin = min ? dateStr < min : false;
+
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  disabled={isPastMin}
+                  onClick={() => handleSelectDay(day)}
+                  className={`h-7 w-7 mx-auto rounded-lg text-xs flex items-center justify-center transition-colors cursor-pointer ${
+                    isSelected
+                      ? "bg-[#CB5A3C] text-white font-bold shadow-xs"
+                      : isToday
+                      ? "border border-[#CB5A3C] text-[#CB5A3C] font-bold hover:bg-[#FAF8F0]"
+                      : isPastMin
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "text-gray-700 hover:bg-[#FAF8F0] hover:text-[#CB5A3C] font-medium"
+                  }`}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center justify-between pt-2 mt-2 border-t border-[#ECEAE2] text-[11px]">
+            <button
+              type="button"
+              onClick={() => {
+                onChange("");
+                setIsOpen(false);
+              }}
+              className="text-gray-500 hover:text-red-600 font-medium cursor-pointer"
+            >
+              Limpar
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!min || todayStr >= min) {
+                  onChange(todayStr);
+                  setIsOpen(false);
+                }
+              }}
+              className="text-[#2E4233] hover:text-[#CB5A3C] font-bold cursor-pointer"
+            >
+              Hoje
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PromotionsClient({
   initialPromoProducts = []
 }: PromotionsClientProps) {
@@ -102,6 +317,8 @@ export default function PromotionsClient({
 
   // Table filter: "todos" | "em_promocao"
   const [tableFilter, setTableFilter] = useState<"todos" | "em_promocao">("todos");
+  const TABLE_ITEMS_PER_PAGE = 8;
+  const [tablePage, setTablePage] = useState(1);
 
   // Pagination for top / slow performers (2 items per box)
   const ITEMS_PER_BOX = 2;
@@ -260,6 +477,12 @@ export default function PromotionsClient({
     return promoProducts;
   }, [promoProducts, tableFilter]);
 
+  const tableTotalPages = Math.max(1, Math.ceil(filteredTableProducts.length / TABLE_ITEMS_PER_PAGE));
+  const paginatedTableProducts = useMemo(() => {
+    const start = (tablePage - 1) * TABLE_ITEMS_PER_PAGE;
+    return filteredTableProducts.slice(start, start + TABLE_ITEMS_PER_PAGE);
+  }, [filteredTableProducts, tablePage]);
+
   return (
     <div className="flex-1 bg-[#F7F6F2] min-h-screen text-[#1A241E] p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
@@ -276,7 +499,7 @@ export default function PromotionsClient({
         {/* ============================================================ */}
         <div className="mb-8">
           <div className="flex items-center gap-2.5 mb-2">
-            <h1 className="font-serif text-[32px] sm:text-[38px] lg:text-[42px] font-semibold text-[#1A241E] tracking-tight leading-none">
+            <h1 className="font-serif text-[32px] sm:text-[38px] lg:text-[42px] font-semibold text-[#CB5A3C] tracking-tight leading-none">
               Métricas Promocionais
             </h1>
 
@@ -324,15 +547,33 @@ export default function PromotionsClient({
                   <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-[#1A241E]">
                     Promoções com Maior Saída
                   </h2>
-                  {/* Tooltip */}
+                  {/* Tooltip padronizado com bullet points */}
                   <div className="relative group inline-block">
                     <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                       ?
                     </div>
-                    <div className="absolute top-full left-0 mt-2 w-72 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                      <p className="text-[12px] text-white leading-relaxed">
-                        <span className="font-bold text-white">Top Vendas:</span> Mostra os itens em promoção com melhor aceitação pelos clientes. Vincule adicionais a esses pratos para aumentar o ticket médio por pedido.
+                    <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                      <p className="text-[13px] text-white mb-2 leading-relaxed font-bold">
+                        Como potencializar seus pratos campeões:
                       </p>
+                      <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white/90">
+                        <div className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                          <span><strong>Venda Cruzada (Cross-sell):</strong> Vincule complementos e bebidas a esses pratos para elevar o ticket médio dos pedidos.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                          <span><strong>Posição de Destaque:</strong> Mantenha os itens mais vendidos no topo do cardápio para guiar a decisão dos indecisos.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                          <span><strong>Ajuste Fino de Margem:</strong> Com alta demanda comprovada, teste reduzir o desconto em 2% a 5% para capturar mais lucro líquido.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                          <span><strong>Giro de Estoque:</strong> Assegure insumos suficientes para estes itens nunca esgotarem no horário de pico.</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -402,23 +643,28 @@ export default function PromotionsClient({
               </div>
             </div>
 
-            {/* Pagination Controls no padrão DeliPlus */}
+            {/* Pagination Controls no padrão DeliPlus (Contador de um lado, botões do outro) */}
             {topTotalPages > 1 && (
-              <div className="flex justify-center items-center gap-1.5 pt-3 mt-3 border-t border-[#ECEAE2]">
-                {Array.from({ length: topTotalPages }).map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setTopPage(i + 1)}
-                    className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
-                      topPage === i + 1
-                        ? "bg-[#CB5A3C] text-white shadow-sm"
-                        : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#ECEAE2] text-[12px] text-[#637267]">
+                <span className="font-medium text-[#637267]">
+                  {(topPage - 1) * ITEMS_PER_BOX + 1}–{Math.min(topPage * ITEMS_PER_BOX, allTopPerformers.length)} de {allTopPerformers.length} pratos
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {Array.from({ length: topTotalPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setTopPage(i + 1)}
+                      className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                        topPage === i + 1
+                          ? "bg-[#CB5A3C] text-white shadow-sm"
+                          : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -521,23 +767,28 @@ export default function PromotionsClient({
               </div>
             </div>
 
-            {/* Pagination Controls no padrão DeliPlus */}
+            {/* Pagination Controls no padrão DeliPlus (Contador de um lado, botões do outro) */}
             {slowTotalPages > 1 && (
-              <div className="flex justify-center items-center gap-1.5 pt-3 mt-3 border-t border-[#ECEAE2]">
-                {Array.from({ length: slowTotalPages }).map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setSlowPage(i + 1)}
-                    className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
-                      slowPage === i + 1
-                        ? "bg-[#CB5A3C] text-white shadow-sm"
-                        : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#ECEAE2] text-[12px] text-[#637267]">
+                <span className="font-medium text-[#637267]">
+                  {(slowPage - 1) * ITEMS_PER_BOX + 1}–{Math.min(slowPage * ITEMS_PER_BOX, allSlowPerformers.length)} de {allSlowPerformers.length} pratos
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {Array.from({ length: slowTotalPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setSlowPage(i + 1)}
+                      className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                        slowPage === i + 1
+                          ? "bg-[#CB5A3C] text-white shadow-sm"
+                          : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -550,7 +801,7 @@ export default function PromotionsClient({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="font-serif text-[22px] font-semibold text-[#1A241E]">
+                <h2 className="font-serif text-[22px] font-semibold text-[#CB5A3C]">
                   Gestão de Promoções
                 </h2>
                 {/* Tooltip */}
@@ -588,7 +839,10 @@ export default function PromotionsClient({
             <div className="flex items-center gap-2 bg-[#F4F3EE] p-1 rounded-xl self-start sm:self-auto border border-[#EAE8E0]">
               <button
                 type="button"
-                onClick={() => setTableFilter("todos")}
+                onClick={() => {
+                  setTableFilter("todos");
+                  setTablePage(1);
+                }}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   tableFilter === "todos"
                     ? "bg-white text-[#2E4233] shadow-xs"
@@ -599,7 +853,10 @@ export default function PromotionsClient({
               </button>
               <button
                 type="button"
-                onClick={() => setTableFilter("em_promocao")}
+                onClick={() => {
+                  setTableFilter("em_promocao");
+                  setTablePage(1);
+                }}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   tableFilter === "em_promocao"
                     ? "bg-white text-[#2E4233] shadow-xs"
@@ -634,7 +891,7 @@ export default function PromotionsClient({
                     </td>
                   </tr>
                 ) : (
-                  filteredTableProducts.map((product) => (
+                  paginatedTableProducts.map((product) => (
                     <tr
                       key={product.id}
                       className="hover:bg-[#FAF8F0]/70 transition-colors"
@@ -762,6 +1019,32 @@ export default function PromotionsClient({
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls no padrão DeliPlus (8 em 8 produtos) */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 mt-4 border-t border-[#ECEAE2] text-[12px] text-[#637267]">
+            <span className="font-medium text-[#637267]">
+              Mostrando {filteredTableProducts.length > 0 ? (tablePage - 1) * TABLE_ITEMS_PER_PAGE + 1 : 0}–{Math.min(tablePage * TABLE_ITEMS_PER_PAGE, filteredTableProducts.length)} de {filteredTableProducts.length} produtos
+            </span>
+
+            {tableTotalPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                {Array.from({ length: tableTotalPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setTablePage(i + 1)}
+                    className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                      tablePage === i + 1
+                        ? "bg-[#CB5A3C] text-white shadow-sm"
+                        : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -780,11 +1063,11 @@ export default function PromotionsClient({
             onClick={() => setEditingPromoProduct(null)}
           >
             <div
-              className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150"
+              className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150 relative"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
+              <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0] rounded-t-2xl">
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-[#CB5A3C] text-base">Preço Promocional</h3>
@@ -793,7 +1076,7 @@ export default function PromotionsClient({
                       <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
                         ?
                       </div>
-                      <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[130] pointer-events-none">
+                      <div className="absolute top-full left-0 sm:left-[-30px] mt-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[160] pointer-events-none">
                         <p className="text-[12px] text-white leading-relaxed">
                           <span className="font-extrabold text-white">Estratégia de Preço Promocional:</span>
                         </p>
@@ -914,7 +1197,7 @@ export default function PromotionsClient({
                           <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
                             ?
                           </div>
-                          <div className="absolute bottom-full left-0 mb-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[130] pointer-events-none">
+                          <div className="absolute bottom-full left-0 sm:left-[-40px] mb-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[160] pointer-events-none">
                             <p className="text-[12px] text-white leading-relaxed">
                               <span className="font-extrabold text-white">Como funciona o agendamento:</span>
                             </p>
@@ -947,27 +1230,25 @@ export default function PromotionsClient({
                       </div>
                     </div>
 
-                    {/* Campos de Data de Início e Data de Término */}
+                    {/* Campos de Data de Início e Data de Término com Calendário DeliPlus */}
                     <div className={`grid grid-cols-2 gap-2.5 transition-all duration-200 ${promoIndefinite ? "opacity-35 pointer-events-none select-none grayscale-[0.3]" : ""}`}>
                       <div className="flex flex-col gap-1">
                         <label className="text-[11px] font-medium text-gray-600">Data de início</label>
-                        <input
-                          type="date"
+                        <DeliPlusDatePicker
                           value={promoStartDate}
-                          onChange={(e) => setPromoStartDate(e.target.value)}
+                          onChange={setPromoStartDate}
                           disabled={promoIndefinite}
-                          className="w-full border border-[#E9E4D4] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-[#2E4233]"
+                          placeholder="dd/mm/aaaa"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
                         <label className="text-[11px] font-medium text-gray-600">Data de término</label>
-                        <input
-                          type="date"
+                        <DeliPlusDatePicker
                           value={promoEndDate}
                           min={promoStartDate}
-                          onChange={(e) => setPromoEndDate(e.target.value)}
+                          onChange={setPromoEndDate}
                           disabled={promoIndefinite}
-                          className="w-full border border-[#E9E4D4] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-[#2E4233]"
+                          placeholder="dd/mm/aaaa"
                         />
                       </div>
                     </div>
@@ -993,7 +1274,7 @@ export default function PromotionsClient({
                 </div>
 
                 {/* Footer / Ações */}
-                <div className="pt-3 border-t border-[#E9E4D4] flex items-center justify-between gap-2 bg-[#FAF8F0] px-5 py-3.5">
+                <div className="pt-3 border-t border-[#E9E4D4] flex items-center justify-between gap-2 bg-[#FAF8F0] px-5 py-3.5 rounded-b-2xl">
                   {/* Switch para ligar/desligar promoção */}
                   <div className="flex items-center gap-2 select-none p-1 rounded-lg">
                     <Switch
