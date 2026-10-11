@@ -1,13 +1,28 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useOrganization } from '@clerk/nextjs'
 import { cn } from '@/lib/utils'
 
-import { Home, ShoppingBag, ChefHat, BookOpen, Package, User, Megaphone, CircleDollarSign, BarChart3, Users, Settings, LogOut, CreditCard } from 'lucide-react'
+import {
+  Home,
+  ShoppingBag,
+  ChefHat,
+  BookOpen,
+  Package,
+  Megaphone,
+  CircleDollarSign,
+  BarChart3,
+  Settings,
+  LogOut,
+  CreditCard,
+  ChevronDown,
+  TrendingUp,
+  Ticket,
+  GraduationCap
+} from 'lucide-react'
 
 function SvgIcon({ path, className }: { path: string, className?: string }) {
   return (
@@ -17,12 +32,37 @@ function SvgIcon({ path, className }: { path: string, className?: string }) {
   )
 }
 
-const menuItems = [
+export interface SubMenuItem {
+  name: string
+  short: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+}
+
+export interface MenuItem {
+  name: string
+  short: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  subItems?: SubMenuItem[]
+}
+
+const menuItems: MenuItem[] = [
   { name: 'Visão geral', short: 'Visão geral', href: '/dashboard', icon: Home },
   { name: 'Pedidos', short: 'Pedidos', href: '/dashboard/orders', icon: ShoppingBag },
   { name: 'Cardápio', short: 'Cardápio', href: '/dashboard/menu', icon: BookOpen },
   { name: 'Estoque', short: 'Estoque', href: '/dashboard/inventory', icon: Package },
-  { name: 'Marketing', short: 'Marketing', href: '/dashboard/marketing', icon: Megaphone },
+  {
+    name: 'Marketing',
+    short: 'Marketing',
+    href: '/dashboard/marketing',
+    icon: Megaphone,
+    subItems: [
+      { name: 'Promoções', short: 'Promoções', href: '/dashboard/marketing/promotions', icon: TrendingUp },
+      { name: 'Cupons de Desconto', short: 'Cupons', href: '/dashboard/marketing/coupons', icon: Ticket },
+      { name: 'Academia Deli', short: 'Academia', href: '/dashboard/marketing/academy', icon: GraduationCap },
+    ]
+  },
   { name: 'Financeiro', short: 'Financeiro', href: '/dashboard/finance', icon: CircleDollarSign },
   { name: 'Relatórios', short: 'Relatórios', href: '/dashboard/reports', icon: BarChart3 },
   { name: 'Assinatura', short: 'Assinatura', href: '/dashboard/billing', icon: CreditCard },
@@ -32,9 +72,21 @@ const menuItems = [
 export function DashboardSidebar() {
   const pathname = usePathname()
   const { organization } = useOrganization()
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({})
 
-  // For the mobile bottom bar, we only show the first 4 items, and a "Mais" button
-  const mobileNavItems = menuItems.slice(0, 4)
+  const isSubmenuOpen = (href: string) => {
+    if (openSubmenus[href] !== undefined) {
+      return openSubmenus[href]
+    }
+    return pathname.startsWith(href)
+  }
+
+  const toggleSubmenu = (href: string) => {
+    setOpenSubmenus((prev) => ({
+      ...prev,
+      [href]: !isSubmenuOpen(href),
+    }))
+  }
 
   return (
     <>
@@ -44,6 +96,7 @@ export function DashboardSidebar() {
           <Link href="/dashboard" className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center overflow-hidden shrink-0">
               {organization?.imageUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={organization.imageUrl} alt={organization.name} className="w-full h-full object-cover" />
               ) : (
                 <ChefHat className="w-6 h-6 text-white" />
@@ -71,15 +124,77 @@ export function DashboardSidebar() {
 
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
+            if (item.subItems) {
+              const isParentActive = pathname.startsWith(item.href)
+              const expanded = isSubmenuOpen(item.href)
+
+              return (
+                <div key={item.href} className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleSubmenu(item.href)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm transition-colors cursor-pointer text-left",
+                      isParentActive
+                        ? "bg-[#213125] text-white relative after:absolute after:left-0 after:top-2 after:bottom-2 after:w-1 after:bg-[#E76F41] after:rounded-r-md"
+                        : "text-gray-300 hover:text-white hover:bg-white/5"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon className={cn("w-5 h-5", isParentActive ? "text-white" : "text-gray-400")} />
+                      <span>{item.name}</span>
+                    </div>
+                    <ChevronDown
+                      className={cn(
+                        "w-4 h-4 text-gray-400 transition-transform duration-200",
+                        expanded && "rotate-180 text-white"
+                      )}
+                    />
+                  </button>
+
+                  {expanded && (
+                    <div className="pl-4 pr-1 py-1 space-y-1 ml-3 border-l border-white/10">
+                      {item.subItems.map((sub) => {
+                        const isSubActive =
+                          pathname === sub.href ||
+                          (sub.href === '/dashboard/marketing/promotions' && pathname === '/dashboard/marketing')
+
+                        return (
+                          <Link
+                            key={sub.href}
+                            href={sub.href}
+                            className={cn(
+                              "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors",
+                              isSubActive
+                                ? "bg-white/15 text-white font-medium shadow-sm"
+                                : "text-gray-300 hover:text-white hover:bg-white/5"
+                            )}
+                          >
+                            <sub.icon
+                              className={cn(
+                                "w-4 h-4 shrink-0",
+                                isSubActive ? "text-[#E76F41]" : "text-gray-400"
+                              )}
+                            />
+                            <span className="truncate">{sub.name}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
             const isActive = pathname === item.href
             return (
-              <Link 
-                key={item.href} 
+              <Link
+                key={item.href}
                 href={item.href}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors",
-                  isActive 
-                    ? "bg-[#213125] text-white relative after:absolute after:left-0 after:top-2 after:bottom-2 after:w-1 after:bg-[#E76F41] after:rounded-r-md" 
+                  isActive
+                    ? "bg-[#213125] text-white relative after:absolute after:left-0 after:top-2 after:bottom-2 after:w-1 after:bg-[#E76F41] after:rounded-r-md"
                     : "text-gray-300 hover:text-white hover:bg-white/5"
                 )}
               >
@@ -104,7 +219,7 @@ export function DashboardSidebar() {
   )
 }
 
-function MobileNav({ menuItems }: { menuItems: any[] }) {
+function MobileNav({ menuItems }: { menuItems: MenuItem[] }) {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
 
@@ -113,14 +228,38 @@ function MobileNav({ menuItems }: { menuItems: any[] }) {
   // Remaining items for the "Mais" menu
   const moreItems = menuItems.slice(4)
 
+  const flattenedMoreItems: Array<{
+    short: string
+    href: string
+    icon: React.ComponentType<{ className?: string }>
+  }> = []
+
+  moreItems.forEach((item) => {
+    if (item.subItems) {
+      item.subItems.forEach((sub) => {
+        flattenedMoreItems.push({
+          short: sub.short,
+          href: sub.href,
+          icon: sub.icon,
+        })
+      })
+    } else {
+      flattenedMoreItems.push({
+        short: item.short,
+        href: item.href,
+        icon: item.icon,
+      })
+    }
+  })
+
   return (
     <>
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-[72px] bg-white border-t border-gray-100 flex items-center justify-around px-2 z-50 pb-safe">
         {mainItems.map((item) => {
           const isActive = pathname === item.href
           return (
-            <Link 
-              key={item.href} 
+            <Link
+              key={item.href}
               href={item.href}
               className="flex flex-col items-center justify-center gap-1.5 w-16"
               onClick={() => setIsOpen(false)}
@@ -138,7 +277,7 @@ function MobileNav({ menuItems }: { menuItems: any[] }) {
           )
         })}
         {/* 'Mais' Menu Item */}
-        <button 
+        <button
           onClick={() => setIsOpen(!isOpen)}
           className="flex flex-col items-center justify-center gap-1.5 w-16"
         >
@@ -157,17 +296,17 @@ function MobileNav({ menuItems }: { menuItems: any[] }) {
       {/* 'Mais' Menu Overlay */}
       {isOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setIsOpen(false)}>
-          <div 
+          <div
             className="absolute bottom-[72px] left-0 right-0 bg-white rounded-t-2xl p-4 shadow-xl animate-in slide-in-from-bottom-4 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
             <div className="grid grid-cols-4 gap-y-6 gap-x-2">
-              {moreItems.map((item) => {
+              {flattenedMoreItems.map((item) => {
                 const isActive = pathname === item.href
                 return (
-                  <Link 
-                    key={item.href} 
+                  <Link
+                    key={item.href}
                     href={item.href}
                     onClick={() => setIsOpen(false)}
                     className="flex flex-col items-center gap-2"
@@ -184,7 +323,7 @@ function MobileNav({ menuItems }: { menuItems: any[] }) {
                   </Link>
                 )
               })}
-              
+
               {/* Logout Option */}
               <button className="flex flex-col items-center gap-2">
                 <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-50 text-red-500">
@@ -201,3 +340,4 @@ function MobileNav({ menuItems }: { menuItems: any[] }) {
     </>
   )
 }
+

@@ -71,6 +71,8 @@ export async function createCoupon(data: {
   }
 
   revalidatePath("/dashboard/marketing");
+  revalidatePath("/dashboard/marketing/promotions");
+  revalidatePath("/dashboard/marketing/coupons");
   return { success: true, coupon };
 }
 
@@ -90,6 +92,8 @@ export async function toggleCouponStatus(couponId: string, currentStatus: string
   }
 
   revalidatePath("/dashboard/marketing");
+  revalidatePath("/dashboard/marketing/promotions");
+  revalidatePath("/dashboard/marketing/coupons");
   return { success: true, status: nextStatus };
 }
 
@@ -108,6 +112,8 @@ export async function deleteCoupon(couponId: string) {
   }
 
   revalidatePath("/dashboard/marketing");
+  revalidatePath("/dashboard/marketing/promotions");
+  revalidatePath("/dashboard/marketing/coupons");
   return { success: true };
 }
 
@@ -131,6 +137,8 @@ export async function toggleProductPromo(productId: string, currentInPromo: bool
   }
 
   revalidatePath("/dashboard/marketing");
+  revalidatePath("/dashboard/marketing/promotions");
+  revalidatePath("/dashboard/marketing/coupons");
   revalidatePath("/dashboard/menu");
   return { success: true, inPromo: nextInPromo };
 }
@@ -157,6 +165,8 @@ export async function updateProductPromoPrice(
   }
 
   revalidatePath("/dashboard/marketing");
+  revalidatePath("/dashboard/marketing/promotions");
+  revalidatePath("/dashboard/marketing/coupons");
   revalidatePath("/dashboard/menu");
   return { success: true };
 }
