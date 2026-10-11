@@ -1,30 +1,51 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import React, { useState, useTransition } from "react";
 import {
-  Megaphone,
+  TrendingUp,
+  TrendingDown,
   Ticket,
-  QrCode,
-  Share2,
-  Gift,
-  Copy,
-  Check,
+  GraduationCap,
+  Sparkles,
   Plus,
   Trash2,
-  ExternalLink,
-  MessageCircle,
-  Percent,
-  DollarSign,
+  Copy,
+  Check,
   X,
-  Sparkles
+  Camera,
+  BookOpen,
+  DollarSign,
+  ShoppingBag,
+  MousePointerClick,
+  Utensils,
+  Clock,
+  Layers,
+  Edit3
 } from "lucide-react";
 import {
   createCoupon,
   toggleCouponStatus,
   deleteCoupon,
-  updateBannerSettings,
-  updateLoyaltySettings
+  toggleProductPromo,
+  updateProductPromoPrice
 } from "./actions";
+
+export interface PromoProduct {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  categoryName: string;
+  priceCents: number;
+  promoPriceCents: number | null;
+  discountPercentage: number;
+  inPromo: boolean;
+  complementsCount: number;
+  totalSold: number;
+  totalRevenueCents: number;
+  clicksCount: number;
+  conversionRate: number;
+}
 
 export interface CouponItem {
   id: string;
@@ -39,38 +60,29 @@ export interface CouponItem {
   expires_at: string | null;
 }
 
-export interface MarketingSettings {
-  banner_enabled: boolean;
-  banner_text: string;
-  banner_color: "terracotta" | "forest" | "amber";
-  loyalty_enabled: boolean;
-  loyalty_goal_orders: number;
-  loyalty_reward_cents: number;
-  loyalty_reward_text: string;
-}
-
 interface MarketingClientProps {
   storeSlug: string;
   storeName: string;
+  initialPromoProducts: PromoProduct[];
   initialCoupons: CouponItem[];
-  initialSettings: MarketingSettings;
 }
 
 export default function MarketingClient({
-  storeSlug = "rafaelteste",
+  storeSlug = "loja",
   storeName = "Minha Loja",
-  initialCoupons = [],
-  initialSettings
+  initialPromoProducts = [],
+  initialCoupons = []
 }: MarketingClientProps) {
+  const [promoProducts, setPromoProducts] = useState<PromoProduct[]>(initialPromoProducts);
   const [coupons, setCoupons] = useState<CouponItem[]>(initialCoupons);
-  const [settings, setSettings] = useState<MarketingSettings>(initialSettings);
-  const [activeTab, setActiveTab] = useState<"coupons" | "share" | "loyalty" | "banner">("coupons");
-  const [couponSearch, setCouponSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<"promos" | "coupons" | "academy">("promos");
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
   // Modal States
-  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createCouponModalOpen, setCreateCouponModalOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [editingPromoProduct, setEditingPromoProduct] = useState<PromoProduct | null>(null);
+  const [editPromoPrice, setEditPromoPrice] = useState<number>(0);
 
   // New Coupon Form
   const [newCode, setNewCode] = useState("");
@@ -81,32 +93,66 @@ export default function MarketingClient({
   const [newMaxUses, setNewMaxUses] = useState<number | "">("");
   const [newExpiresInDays, setNewExpiresInDays] = useState(30);
 
-  // Banner Local State
-  const [bannerEnabled, setBannerEnabled] = useState(settings.banner_enabled);
-  const [bannerText, setBannerText] = useState(settings.banner_text);
-  const [bannerColor, setBannerColor] = useState<"terracotta" | "forest" | "amber">(settings.banner_color);
+  const [, startTransition] = useTransition();
 
-  // Loyalty Local State
-  const [loyaltyEnabled, setLoyaltyEnabled] = useState(settings.loyalty_enabled);
-  const [loyaltyGoal, setLoyaltyGoal] = useState(settings.loyalty_goal_orders);
-  const [loyaltyRewardCents, setLoyaltyRewardCents] = useState(settings.loyalty_reward_cents);
-  const [loyaltyRewardText, setLoyaltyRewardText] = useState(settings.loyalty_reward_text);
-
-  const [isPending, startTransition] = useTransition();
-  const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
-
-  const storefrontUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/${storeSlug}`
-    : `https://deliplus.com.br/${storeSlug}`;
+  // Helper format BRL
+  const formatBRL = (cents: number | null | undefined): string => {
+    if (typeof cents !== "number" || isNaN(cents)) return "R$ 0,00";
+    return (cents / 100).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL"
+    }).replace(/\s+/, " ");
+  };
 
   // Copy helper
-  const handleCopy = (text: string, identifier: string) => {
+  const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
-    setCopiedText(identifier);
+    setCopiedText(id);
     setTimeout(() => setCopiedText(null), 2500);
   };
 
-  // Toggle Coupon
+  // Toggle Promo Status directly from marketing
+  const handleTogglePromo = (product: PromoProduct) => {
+    const nextInPromo = !product.inPromo;
+    setPromoProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, inPromo: nextInPromo } : p))
+    );
+
+    startTransition(async () => {
+      await toggleProductPromo(product.id, product.inPromo);
+    });
+  };
+
+  // Save Promo Price Modal
+  const handleSavePromoPrice = () => {
+    if (!editingPromoProduct) return;
+    const promoCents = Math.round(editPromoPrice * 100);
+    const discount = Math.round(
+      ((editingPromoProduct.priceCents - promoCents) / editingPromoProduct.priceCents) * 100
+    );
+
+    setPromoProducts((prev) =>
+      prev.map((p) =>
+        p.id === editingPromoProduct.id
+          ? {
+              ...p,
+              promoPriceCents: promoCents,
+              discountPercentage: discount,
+              inPromo: true
+            }
+          : p
+      )
+    );
+
+    const targetId = editingPromoProduct.id;
+    setEditingPromoProduct(null);
+
+    startTransition(async () => {
+      await updateProductPromoPrice(targetId, promoCents, true);
+    });
+  };
+
+  // Toggle Coupon Status
   const handleToggleCoupon = (coupon: CouponItem) => {
     const nextStatus = coupon.status === "active" ? "paused" : "active";
     setCoupons((prev) =>
@@ -150,9 +196,8 @@ export default function MarketingClient({
     };
 
     setCoupons((prev) => [tempCoupon, ...prev]);
-    setCreateModalOpen(false);
+    setCreateCouponModalOpen(false);
 
-    // Reset Form
     setNewCode("");
     setNewDescription("");
     setNewDiscountType("percentage");
@@ -178,60 +223,24 @@ export default function MarketingClient({
     });
   };
 
-  // Save Banner
-  const handleSaveBanner = () => {
-    startTransition(async () => {
-      await updateBannerSettings({
-        banner_enabled: bannerEnabled,
-        banner_text: bannerText,
-        banner_color: bannerColor
-      });
-      setSettings((prev) => ({
-        ...prev,
-        banner_enabled: bannerEnabled,
-        banner_text: bannerText,
-        banner_color: bannerColor
-      }));
-      setSaveSuccessMessage("Banner promocional atualizado com sucesso!");
-      setTimeout(() => setSaveSuccessMessage(null), 3000);
-    });
-  };
+  // Top performers & Slow performers
+  const topPerformers = [...promoProducts]
+    .sort((a, b) => b.totalSold - a.totalSold)
+    .slice(0, 2);
 
-  // Save Loyalty
-  const handleSaveLoyalty = () => {
-    startTransition(async () => {
-      await updateLoyaltySettings({
-        loyalty_enabled: loyaltyEnabled,
-        loyalty_goal_orders: Number(loyaltyGoal),
-        loyalty_reward_cents: Number(loyaltyRewardCents),
-        loyalty_reward_text: loyaltyRewardText
-      });
-      setSettings((prev) => ({
-        ...prev,
-        loyalty_enabled: loyaltyEnabled,
-        loyalty_goal_orders: Number(loyaltyGoal),
-        loyalty_reward_cents: Number(loyaltyRewardCents),
-        loyalty_reward_text: loyaltyRewardText
-      }));
-      setSaveSuccessMessage("Programa de fidelidade atualizado com sucesso!");
-      setTimeout(() => setSaveSuccessMessage(null), 3000);
-    });
-  };
+  const slowPerformers = [...promoProducts]
+    .filter((p) => p.inPromo)
+    .sort((a, b) => a.totalSold - b.totalSold)
+    .slice(0, 2);
 
-  // Filtered coupons
-  const filteredCoupons = coupons.filter((c) => {
-    const q = couponSearch.toLowerCase();
-    return (
-      c.code.toLowerCase().includes(q) ||
-      (c.description && c.description.toLowerCase().includes(q))
-    );
-  });
+  // Overall metrics
+  const activePromoCount = promoProducts.filter((p) => p.inPromo).length;
+  const totalPromoSold = promoProducts.reduce((acc, p) => acc + p.totalSold, 0);
+  const totalPromoRevenue = promoProducts.reduce((acc, p) => acc + p.totalRevenueCents, 0);
+  const totalPromoClicks = promoProducts.reduce((acc, p) => acc + p.clicksCount, 0);
 
   return (
     <div className="min-h-full bg-[#FAF8F0] pb-24 md:pb-12 text-[#1F2923]">
-      {/* ============================================================== */}
-      {/* MAIN CONTAINER                                                 */}
-      {/* ============================================================== */}
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 pt-6 lg:pt-8">
         {/* ============================================================ */}
         {/* HEADER SECTION                                               */}
@@ -241,21 +250,32 @@ export default function MarketingClient({
             <div className="flex items-center gap-2 mb-1">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-[#2E4233]/10 text-[#2E4233]">
                 <Sparkles size={13} />
-                Motor de Crescimento
+                Inteligência de Vendas
               </span>
             </div>
             <h2 className="font-serif text-[32px] sm:text-[38px] lg:text-[42px] font-semibold text-[#1A241E] tracking-tight leading-none mb-1.5">
-              Marketing & Vendas
+              Marketing & Promoções
             </h2>
             <p className="text-[14px] sm:text-[15px] text-[#5D6B60]">
-              Ferramentas comprovadas para divulgar seu cardápio, atrair pedidos e fidelizar clientes da {storeName}.
+              Acompanhe a saída dos pratos em promoção, crie cupons e aprenda a apresentar produtos que vendem.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setCreateModalOpen(true)}
+              onClick={() => {
+                const url = typeof window !== "undefined" ? `${window.location.origin}/${storeSlug}` : `https://deliplus.com.br/${storeSlug}`;
+                handleCopy(url, "store-link");
+              }}
+              className="flex items-center gap-2 bg-white border border-[#E3E1D9] hover:bg-[#F4F3ED] text-[#2E4233] font-medium text-[14px] rounded-xl px-4 py-2.5 shadow-sm transition-all cursor-pointer"
+            >
+              {copiedText === "store-link" ? <Check size={18} className="text-[#2E7D32]" /> : <Copy size={18} />}
+              <span>{copiedText === "store-link" ? "Link Copiado!" : "Copiar Link da Loja"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreateCouponModalOpen(true)}
               className="flex items-center gap-2 bg-[#253629] hover:bg-[#1E2C21] text-white font-medium text-[14px] rounded-xl px-5 py-2.5 shadow-sm transition-all cursor-pointer"
             >
               <Plus size={18} />
@@ -264,120 +284,121 @@ export default function MarketingClient({
           </div>
         </div>
 
-        {/* Feedback Alert */}
-        {saveSuccessMessage && (
-          <div className="mb-6 bg-[#E8F5E9] border border-[#C8E6C9] text-[#2E7D32] px-4 py-3 rounded-xl flex items-center justify-between text-[14px] font-medium animate-in fade-in">
-            <div className="flex items-center gap-2">
-              <Check size={18} />
-              <span>{saveSuccessMessage}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSaveSuccessMessage(null)}
-              className="text-[#2E7D32]/70 hover:text-[#2E7D32]"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        )}
-
         {/* ============================================================ */}
-        {/* 4 KPI METRIC CARDS                                           */}
+        {/* 4 SUMMARY METRIC CARDS                                       */}
         {/* ============================================================ */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 mb-6 lg:mb-8">
-          {/* Card 1: Faturamento com Cupons */}
+          {/* Card 1: Promoções Ativas */}
+          <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#F4F3EE] border border-[#ECEAE2] flex items-center justify-center text-[#2E4233] shrink-0">
+                <Utensils size={19} strokeWidth={2} />
+              </div>
+              <span className="text-[13px] sm:text-[14px] font-medium text-[#5D6B60] leading-tight">
+                Pratos em Promoção
+              </span>
+            </div>
+            <div>
+              <div className="text-[26px] sm:text-[32px] font-bold text-[#1A241E] tracking-tight leading-none mb-1.5">
+                {activePromoCount} ativos
+              </div>
+              <div className="text-[12px] sm:text-[13px] font-medium text-[#2E7D32] flex items-center gap-1">
+                <span>●</span>
+                <span>Configurados no cardápio</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Pedidos c/ Itens Promocionais */}
+          <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#F4F3EE] border border-[#ECEAE2] flex items-center justify-center text-[#CB5A3C] shrink-0">
+                <ShoppingBag size={19} strokeWidth={2} />
+              </div>
+              <span className="text-[13px] sm:text-[14px] font-medium text-[#5D6B60] leading-tight">
+                Pratos Promocionais Vendidos
+              </span>
+            </div>
+            <div>
+              <div className="text-[26px] sm:text-[32px] font-bold text-[#1A241E] tracking-tight leading-none mb-1.5">
+                {totalPromoSold} saídas
+              </div>
+              <div className="text-[12px] sm:text-[13px] font-medium text-[#2E7D32] flex items-center gap-1">
+                <span>▲</span>
+                <span>Alta aceitação no balcão</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Faturamento Gerado */}
           <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#F4F3EE] border border-[#ECEAE2] flex items-center justify-center text-[#2E4233] shrink-0">
                 <DollarSign size={19} strokeWidth={2} />
               </div>
               <span className="text-[13px] sm:text-[14px] font-medium text-[#5D6B60] leading-tight">
-                Vendas com Cupons
+                Faturamento das Promoções
               </span>
             </div>
             <div>
-              <div className="text-[24px] sm:text-[30px] font-bold text-[#1A241E] tracking-tight leading-none mb-1.5">
-                R$ 3.840,00
+              <div className="text-[24px] sm:text-[32px] font-bold text-[#1A241E] tracking-tight leading-none mb-1.5">
+                {formatBRL(totalPromoRevenue)}
               </div>
               <div className="text-[12px] sm:text-[13px] font-medium text-[#2E7D32] flex items-center gap-1">
                 <span>▲</span>
-                <span>24% vs mês anterior</span>
+                <span>Inclui adicionais vendidos</span>
               </div>
             </div>
           </div>
 
-          {/* Card 2: Cupons Utilizados */}
-          <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#F4F3EE] border border-[#ECEAE2] flex items-center justify-center text-[#CB5A3C] shrink-0">
-                <Ticket size={19} strokeWidth={2} />
-              </div>
-              <span className="text-[13px] sm:text-[14px] font-medium text-[#5D6B60] leading-tight">
-                Cupons Resgatados
-              </span>
-            </div>
-            <div>
-              <div className="text-[26px] sm:text-[30px] font-bold text-[#1A241E] tracking-tight leading-none mb-1.5">
-                74 usos
-              </div>
-              <div className="text-[12px] sm:text-[13px] font-medium text-[#2E7D32] flex items-center gap-1">
-                <span>▲</span>
-                <span>15% vs mês anterior</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Ticket Médio Promocional */}
+          {/* Card 4: Cliques / Visualizações */}
           <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#F4F3EE] border border-[#ECEAE2] flex items-center justify-center text-[#556358] shrink-0">
-                <Percent size={19} strokeWidth={2} />
+                <MousePointerClick size={19} strokeWidth={2} />
               </div>
               <span className="text-[13px] sm:text-[14px] font-medium text-[#5D6B60] leading-tight">
-                Ticket c/ Cupom
+                Cliques em Pratos Promocionais
               </span>
             </div>
             <div>
-              <div className="text-[24px] sm:text-[30px] font-bold text-[#1A241E] tracking-tight leading-none mb-1.5">
-                R$ 62,50
+              <div className="text-[26px] sm:text-[32px] font-bold text-[#1A241E] tracking-tight leading-none mb-1.5">
+                {totalPromoClicks} cliques
               </div>
               <div className="text-[12px] sm:text-[13px] font-medium text-[#2E7D32] flex items-center gap-1">
                 <span>▲</span>
-                <span>+18% que pedidos sem cupom</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Cliques no Cardápio */}
-          <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#F4F3EE] border border-[#ECEAE2] flex items-center justify-center text-[#556358] shrink-0">
-                <Share2 size={19} strokeWidth={2} />
-              </div>
-              <span className="text-[13px] sm:text-[14px] font-medium text-[#5D6B60] leading-tight">
-                Acessos ao Link
-              </span>
-            </div>
-            <div>
-              <div className="text-[26px] sm:text-[30px] font-bold text-[#1A241E] tracking-tight leading-none mb-1.5">
-                1.420
-              </div>
-              <div className="text-[12px] sm:text-[13px] font-medium text-[#2E7D32] flex items-center gap-1">
-                <span>▲</span>
-                <span>32% no mês</span>
+                <span>Interesse direto no cardápio</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* ============================================================ */}
-        {/* NAVIGATION TABS                                              */}
+        {/* NAVIGATION TABS (3 Core Pillars)                             */}
         {/* ============================================================ */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-6 scrollbar-none">
           <button
             type="button"
+            onClick={() => setActiveTab("promos")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[14px] font-medium transition-all shadow-sm whitespace-nowrap cursor-pointer ${
+              activeTab === "promos"
+                ? "bg-[#253629] text-white"
+                : "bg-white border border-[#E3E1D9] text-[#334237] hover:bg-[#F4F3ED]"
+            }`}
+          >
+            <TrendingUp size={16} />
+            <span>Desempenho das Promoções do Cardápio</span>
+            <span className={`ml-1 text-[11px] px-2 py-0.5 rounded-full ${
+              activeTab === "promos" ? "bg-white/20 text-white" : "bg-[#ECEAE2] text-[#556358]"
+            }`}>
+              {activePromoCount}
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab("coupons")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[14px] font-medium transition-all shadow-sm whitespace-nowrap ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[14px] font-medium transition-all shadow-sm whitespace-nowrap cursor-pointer ${
               activeTab === "coupons"
                 ? "bg-[#253629] text-white"
                 : "bg-white border border-[#E3E1D9] text-[#334237] hover:bg-[#F4F3ED]"
@@ -394,56 +415,351 @@ export default function MarketingClient({
 
           <button
             type="button"
-            onClick={() => setActiveTab("share")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[14px] font-medium transition-all shadow-sm whitespace-nowrap ${
-              activeTab === "share"
+            onClick={() => setActiveTab("academy")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[14px] font-medium transition-all shadow-sm whitespace-nowrap cursor-pointer ${
+              activeTab === "academy"
                 ? "bg-[#253629] text-white"
                 : "bg-white border border-[#E3E1D9] text-[#334237] hover:bg-[#F4F3ED]"
             }`}
           >
-            <QrCode size={16} />
-            <span>Divulgação & QR Code</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("loyalty")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[14px] font-medium transition-all shadow-sm whitespace-nowrap ${
-              activeTab === "loyalty"
-                ? "bg-[#253629] text-white"
-                : "bg-white border border-[#E3E1D9] text-[#334237] hover:bg-[#F4F3ED]"
-            }`}
-          >
-            <Gift size={16} />
-            <span>Programa de Fidelidade</span>
-            {loyaltyEnabled && (
-              <span className="w-2 h-2 rounded-full bg-[#2E7D32]"></span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("banner")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[14px] font-medium transition-all shadow-sm whitespace-nowrap ${
-              activeTab === "banner"
-                ? "bg-[#253629] text-white"
-                : "bg-white border border-[#E3E1D9] text-[#334237] hover:bg-[#F4F3ED]"
-            }`}
-          >
-            <Megaphone size={16} />
-            <span>Banner no Cardápio</span>
-            {bannerEnabled && (
-              <span className="w-2 h-2 rounded-full bg-[#CB5A3C]"></span>
-            )}
+            <GraduationCap size={16} />
+            <span>Academia Deli — Como Vender Mais</span>
+            <span className="w-2 h-2 rounded-full bg-[#CB5A3C]"></span>
           </button>
         </div>
 
         {/* ============================================================ */}
-        {/* TAB 1: CUPONS DE DESCONTO                                    */}
+        {/* TAB 1: DESEMPENHO DAS PROMOÇÕES DO CARDÁPIO                  */}
+        {/* ============================================================ */}
+        {activeTab === "promos" && (
+          <div className="space-y-6">
+            {/* Split Insights: Mais Vendidos vs Menos Vendidos */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Box 1: Maior Saída (Top Performers) */}
+              <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-[#E8F5E9] text-[#2E7D32] flex items-center justify-center font-bold">
+                      <TrendingUp size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-serif text-[18px] sm:text-[20px] font-semibold text-[#1A241E]">
+                        🔥 Promoções com Maior Saída
+                      </h3>
+                      <p className="text-[12px] text-[#637267]">
+                        Pratos promocionais que os clientes mais pedem
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full bg-[#E8F5E9] text-[#2E7D32]">
+                    Top Vendas
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {topPerformers.map((item, idx) => (
+                    <div
+                      key={item.id}
+                      className="p-3.5 rounded-xl border border-[#ECEAE2] bg-[#FAF8F0] flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 shrink-0 relative">
+                          {item.imageUrl ? (
+                            <img
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
+                              Sem foto
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-semibold text-[14px] text-[#1A241E] truncate flex items-center gap-1.5">
+                            <span className="text-[#2E4233] font-bold">#{idx + 1}</span>
+                            <span>{item.name}</span>
+                          </div>
+                          <div className="text-[12px] text-[#556358]">
+                            De {formatBRL(item.priceCents)} por{" "}
+                            <span className="text-[#2E7D32] font-semibold">
+                              {formatBRL(item.promoPriceCents)}
+                            </span>{" "}
+                            <span className="bg-[#E8F5E9] text-[#2E7D32] text-[10px] px-1 py-0.5 rounded font-bold">
+                              -{item.discountPercentage}%
+                            </span>
+                          </div>
+                          {item.complementsCount > 0 && (
+                            <div className="text-[11px] text-[#CB5A3C] mt-0.5 font-medium">
+                              ★ {item.complementsCount} adicionais vinculados aumentam o ticket!
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="text-[16px] font-bold text-[#1A241E]">
+                          {item.totalSold} vendidos
+                        </div>
+                        <div className="text-[12px] text-[#2E7D32] font-medium">
+                          {formatBRL(item.totalRevenueCents)}
+                        </div>
+                        <div className="text-[11px] text-[#8C988F]">
+                          {item.clicksCount} cliques ({item.conversionRate.toFixed(1)}% conv.)
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Box 2: Menor Saída (Oportunidades de Ajuste) */}
+              <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-[#FFF3E0] text-[#E65100] flex items-center justify-center font-bold">
+                      <TrendingDown size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-serif text-[18px] sm:text-[20px] font-semibold text-[#1A241E]">
+                        ⚠️ Promoções com Menor Saída
+                      </h3>
+                      <p className="text-[12px] text-[#637267]">
+                        Itens em promoção que precisam de ajuste de preço ou foto
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full bg-[#FFF3E0] text-[#E65100]">
+                    Atenção
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {slowPerformers.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3.5 rounded-xl border border-[#ECEAE2] bg-[#FAF8F0] flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 shrink-0 relative">
+                          {item.imageUrl ? (
+                            <img
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
+                              Sem foto
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-semibold text-[14px] text-[#1A241E] truncate">
+                            {item.name}
+                          </div>
+                          <div className="text-[12px] text-[#556358]">
+                            De {formatBRL(item.priceCents)} por{" "}
+                            <span className="text-[#2E7D32] font-semibold">
+                              {formatBRL(item.promoPriceCents)}
+                            </span>{" "}
+                            <span className="bg-[#E8F5E9] text-[#2E7D32] text-[10px] px-1 py-0.5 rounded font-bold">
+                              -{item.discountPercentage}%
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-[#E65100] mt-0.5">
+                            💡 Poucas pessoas pediram. Dica: melhore a foto ou teste combo!
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="text-[15px] font-bold text-[#1A241E]">
+                          {item.totalSold} vendidos
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingPromoProduct(item);
+                            setEditPromoPrice(
+                              item.promoPriceCents ? item.promoPriceCents / 100 : item.priceCents / 100
+                            );
+                          }}
+                          className="mt-1 text-[11px] font-semibold text-[#CB5A3C] hover:underline flex items-center gap-1 ml-auto cursor-pointer"
+                        >
+                          <Edit3 size={12} />
+                          Ajustar Desconto
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Tabela Gerenciadora Completa de Promoções */}
+            <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                <div>
+                  <h3 className="font-serif text-[22px] font-semibold text-[#1A241E]">
+                    Gerenciar Promoções do Cardápio
+                  </h3>
+                  <p className="text-[13px] text-[#637267]">
+                    Ative, pause ou ajuste o valor promocional de cada produto em tempo real.
+                  </p>
+                </div>
+                <div className="text-[12px] text-[#556358] bg-[#FAF8F0] border border-[#ECEAE2] px-3 py-1.5 rounded-lg">
+                  Integrado com o <strong>Cardápio Oficial</strong>
+                </div>
+              </div>
+
+              {/* Tabela de Produtos em Promoção */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#ECEAE2] text-[13px] font-medium text-[#738276]">
+                      <th className="pb-3 pl-1 font-normal">Produto & Categoria</th>
+                      <th className="pb-3 font-normal">Preço Original</th>
+                      <th className="pb-3 font-normal">Preço Promocional</th>
+                      <th className="pb-3 font-normal text-center">Adicionais</th>
+                      <th className="pb-3 font-normal text-center">Cliques</th>
+                      <th className="pb-3 font-normal text-center">Saídas</th>
+                      <th className="pb-3 font-normal">Faturamento</th>
+                      <th className="pb-3 font-normal text-center">Status</th>
+                      <th className="pb-3 text-right font-normal pr-1">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F2F1EA] text-[14px]">
+                    {promoProducts.map((product) => {
+                      return (
+                        <tr
+                          key={product.id}
+                          className="hover:bg-[#FAF8F0]/70 transition-colors"
+                        >
+                          {/* Produto */}
+                          <td className="py-3.5 pl-1">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 shrink-0 relative border border-[#ECEAE2]">
+                                {product.imageUrl ? (
+                                  <img
+                                    src={product.imageUrl}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
+                                    Sem foto
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-semibold text-[#1A241E] text-[14px]">
+                                  {product.name}
+                                </div>
+                                <div className="text-[11px] text-[#637267]">
+                                  {product.categoryName}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Preço Original */}
+                          <td className="py-3.5 text-[#556358] text-[14px]">
+                            {formatBRL(product.priceCents)}
+                          </td>
+
+                          {/* Preço Promocional */}
+                          <td className="py-3.5">
+                            {product.promoPriceCents ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-[#2E4233] text-[15px]">
+                                  {formatBRL(product.promoPriceCents)}
+                                </span>
+                                <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#E8F5E9] text-[#2E7D32]">
+                                  -{product.discountPercentage}%
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 text-[13px]">Sem promoção</span>
+                            )}
+                          </td>
+
+                          {/* Adicionais Vinculados */}
+                          <td className="py-3.5 text-center">
+                            {product.complementsCount > 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-medium bg-[#FFF3E0] text-[#E65100]">
+                                <Layers size={12} />
+                                {product.complementsCount} adicionais
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-[12px]">Nenhum</span>
+                            )}
+                          </td>
+
+                          {/* Cliques */}
+                          <td className="py-3.5 text-center text-[#556358] text-[14px]">
+                            {product.clicksCount}
+                          </td>
+
+                          {/* Saídas */}
+                          <td className="py-3.5 text-center font-bold text-[#1A241E] text-[14px]">
+                            {product.totalSold}
+                          </td>
+
+                          {/* Faturamento */}
+                          <td className="py-3.5 font-semibold text-[#2E4233] text-[14px]">
+                            {formatBRL(product.totalRevenueCents)}
+                          </td>
+
+                          {/* Status Switch */}
+                          <td className="py-3.5 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePromo(product)}
+                              className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-colors cursor-pointer ${
+                                product.inPromo
+                                  ? "bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#C8E6C9]"
+                                  : "bg-[#ECEAE2] text-[#637267] hover:bg-[#DDDCD5]"
+                              }`}
+                            >
+                              {product.inPromo ? "Ativa" : "Pausada"}
+                            </button>
+                          </td>
+
+                          {/* Ação: Editar */}
+                          <td className="py-3.5 text-right pr-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingPromoProduct(product);
+                                setEditPromoPrice(
+                                  product.promoPriceCents
+                                    ? product.promoPriceCents / 100
+                                    : product.priceCents / 100
+                                );
+                              }}
+                              className="text-[#CB5A3C] hover:text-[#B54A2E] text-[13px] font-medium flex items-center gap-1 ml-auto cursor-pointer"
+                            >
+                              <Edit3 size={14} />
+                              <span>Editar</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* TAB 2: CUPONS DE DESCONTO                                    */}
         {/* ============================================================ */}
         {activeTab === "coupons" && (
           <div className="space-y-6">
-            {/* Header with Search */}
             <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
@@ -451,24 +767,23 @@ export default function MarketingClient({
                     Cupons Ativos da Loja
                   </h3>
                   <p className="text-[13px] text-[#637267]">
-                    Cupons criados podem ser inseridos pelos clientes na finalização do pedido.
+                    Cupons que seus clientes inserem no checkout para ganhar desconto e finalizar pedidos.
                   </p>
                 </div>
 
-                <div className="w-full sm:w-64">
-                  <input
-                    type="text"
-                    placeholder="Buscar por código..."
-                    value={couponSearch}
-                    onChange={(e) => setCouponSearch(e.target.value)}
-                    className="w-full bg-[#FAF8F0] border border-[#E3E1D9] rounded-xl py-2 px-3.5 text-[14px] text-[#1A241E] placeholder:text-[#8C988F] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20"
-                  />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setCreateCouponModalOpen(true)}
+                  className="flex items-center gap-2 bg-[#253629] text-white px-4 py-2 rounded-xl text-[13px] font-medium hover:bg-[#1E2C21] transition-colors"
+                >
+                  <Plus size={16} />
+                  <span>Novo Cupom</span>
+                </button>
               </div>
 
               {/* Coupons Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredCoupons.map((coupon) => {
+                {coupons.map((coupon) => {
                   const isPercentage = coupon.discount_type === "percentage";
                   const isFreeShipping = coupon.discount_type === "free_shipping";
                   const discountDisplay = isPercentage
@@ -489,7 +804,7 @@ export default function MarketingClient({
                       }`}
                     >
                       <div>
-                        {/* Top Row: Code + Status Switch */}
+                        {/* Top: Code + Status Switch */}
                         <div className="flex items-center justify-between gap-2 mb-3">
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-[16px] font-bold text-[#1A241E] bg-[#FAF8F0] border border-[#E3E1D9] px-2.5 py-1 rounded-lg tracking-wider">
@@ -498,7 +813,7 @@ export default function MarketingClient({
                             <button
                               type="button"
                               onClick={() => handleCopy(coupon.code, `coupon-${coupon.id}`)}
-                              className="text-[#556358] hover:text-[#1A241E] p-1.5 rounded-lg hover:bg-[#F4F3ED] transition-colors"
+                              className="text-[#556358] hover:text-[#1A241E] p-1.5 rounded-lg hover:bg-[#F4F3ED] transition-colors cursor-pointer"
                               title="Copiar código do cupom"
                             >
                               {copiedText === `coupon-${coupon.id}` ? (
@@ -522,21 +837,21 @@ export default function MarketingClient({
                           </button>
                         </div>
 
-                        {/* Discount Value Highlight */}
+                        {/* Valor de Desconto */}
                         <div className="mb-2">
                           <span className="text-[20px] font-bold text-[#2E4233]">
                             {discountDisplay}
                           </span>
                         </div>
 
-                        {/* Description */}
+                        {/* Descrição */}
                         {coupon.description && (
                           <p className="text-[13px] text-[#556358] mb-3 leading-snug">
                             {coupon.description}
                           </p>
                         )}
 
-                        {/* Rules */}
+                        {/* Regras */}
                         <div className="space-y-1.5 text-[12px] text-[#637267] bg-[#FAF8F0] p-3 rounded-xl border border-[#ECEAE2] mb-4">
                           <div className="flex justify-between">
                             <span>Pedido mínimo:</span>
@@ -566,7 +881,7 @@ export default function MarketingClient({
                       {/* Footer Actions */}
                       <div className="flex items-center justify-between pt-3 border-t border-[#ECEAE2]">
                         <span className="text-[11px] text-[#8C988F]">
-                          {coupon.status === "active" ? "🟢 Pronto para uso" : "⏸️ Pausado"}
+                          {coupon.status === "active" ? "🟢 Disponível no checkout" : "⏸️ Pausado"}
                         </span>
 
                         <div className="flex items-center gap-1">
@@ -575,14 +890,14 @@ export default function MarketingClient({
                               <button
                                 type="button"
                                 onClick={() => handleDeleteCoupon(coupon.id)}
-                                className="text-[11px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-2 py-1 rounded"
+                                className="text-[11px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-2 py-1 rounded cursor-pointer"
                               >
                                 Confirmar exclusão
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setDeleteConfirmId(null)}
-                                className="text-[11px] text-gray-500 hover:text-gray-700 px-1"
+                                className="text-[11px] text-gray-500 hover:text-gray-700 px-1 cursor-pointer"
                               >
                                 Cancelar
                               </button>
@@ -591,7 +906,7 @@ export default function MarketingClient({
                             <button
                               type="button"
                               onClick={() => setDeleteConfirmId(coupon.id)}
-                              className="text-[#8C988F] hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                              className="text-[#8C988F] hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
                               title="Excluir cupom"
                             >
                               <Trash2 size={16} />
@@ -603,572 +918,165 @@ export default function MarketingClient({
                   );
                 })}
               </div>
-
-              {filteredCoupons.length === 0 && (
-                <div className="text-center py-12 text-[#637267]">
-                  <Ticket size={40} className="mx-auto mb-2 text-[#8C988F]" />
-                  <p className="font-medium text-[16px] text-[#1A241E]">Nenhum cupom encontrado</p>
-                  <p className="text-[14px]">Crie seu primeiro cupom para incentivar novos pedidos!</p>
-                </div>
-              )}
             </div>
           </div>
         )}
 
         {/* ============================================================ */}
-        {/* TAB 2: DIVULGAÇÃO & QR CODE                                  */}
+        {/* TAB 3: ACADEMIA DELI — MINI-CURSO PRÁTICO                    */}
         {/* ============================================================ */}
-        {activeTab === "share" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Column: Link Oficial e QR Code */}
-            <div className="lg:col-span-5 space-y-6">
-              {/* Card Link Oficial */}
-              <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
-                <h3 className="font-serif text-[20px] font-semibold text-[#1A241E] mb-1">
-                  Seu Link de Cardápio Oficial
+        {activeTab === "academy" && (
+          <div className="space-y-6">
+            {/* Banner Introdução da Academia */}
+            <div className="bg-gradient-to-r from-[#243427] to-[#364D3A] rounded-[22px] p-6 lg:p-8 text-white shadow-lg">
+              <div className="max-w-2xl">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold bg-white/10 text-white mb-3">
+                  <GraduationCap size={15} />
+                  Guia Rápido de Vendas para Restaurantes
+                </span>
+                <h3 className="font-serif text-[26px] sm:text-[32px] font-semibold tracking-tight mb-2">
+                  Como transformar visitantes em pedidos repetidos
                 </h3>
-                <p className="text-[13px] text-[#637267] mb-4">
-                  Coloque este link no seu Instagram, WhatsApp Business e mensagens.
+                <p className="text-[14px] sm:text-[15px] text-gray-200 leading-relaxed">
+                  No delivery próprio, a foto e o texto são os seus únicos garçons. Aprenda os segredos simples que aumentam o ticket médio em até 40% sem gastar com equipamentos caros.
                 </p>
-
-                <div className="flex items-center gap-2 bg-[#FAF8F0] border border-[#E3E1D9] rounded-xl p-3 mb-4">
-                  <span className="font-mono text-[13px] text-[#1A241E] truncate flex-1 font-medium">
-                    {storefrontUrl}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(storefrontUrl, "store-link")}
-                    className="flex items-center gap-1.5 bg-[#253629] text-white px-3 py-1.5 rounded-lg text-[13px] font-medium hover:bg-[#1E2C21] transition-colors shrink-0"
-                  >
-                    {copiedText === "store-link" ? (
-                      <>
-                        <Check size={14} />
-                        <span>Copiado!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={14} />
-                        <span>Copiar</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <a
-                  href={`/${storeSlug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-[#D5D2C7] text-[#1A241E] font-medium text-[14px] hover:bg-[#FAF8F0] transition-colors"
-                >
-                  <ExternalLink size={16} />
-                  <span>Testar Cardápio como Cliente</span>
-                </a>
-              </div>
-
-              {/* Card QR Code */}
-              <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] text-center">
-                <h3 className="font-serif text-[20px] font-semibold text-[#1A241E] mb-1">
-                  QR Code para Embalagens
-                </h3>
-                <p className="text-[13px] text-[#637267] mb-5">
-                  Imprima em adesivos para colocar na caixa da pizza ou sacolas de entrega.
-                </p>
-
-                {/* Dynamic SVG QR Code mockup */}
-                <div className="inline-block p-4 bg-white border-2 border-[#1A241E] rounded-2xl shadow-sm mb-4">
-                  <svg width="180" height="180" viewBox="0 0 180 180" className="mx-auto">
-                    {/* Background */}
-                    <rect width="180" height="180" fill="#FFFFFF" />
-                    {/* Corner 1 */}
-                    <rect x="15" y="15" width="45" height="45" fill="#1A241E" rx="8" />
-                    <rect x="23" y="23" width="29" height="29" fill="#FFFFFF" rx="4" />
-                    <rect x="30" y="30" width="15" height="15" fill="#1A241E" rx="2" />
-                    {/* Corner 2 */}
-                    <rect x="120" y="15" width="45" height="45" fill="#1A241E" rx="8" />
-                    <rect x="128" y="23" width="29" height="29" fill="#FFFFFF" rx="4" />
-                    <rect x="135" y="30" width="15" height="15" fill="#1A241E" rx="2" />
-                    {/* Corner 3 */}
-                    <rect x="15" y="120" width="45" height="45" fill="#1A241E" rx="8" />
-                    <rect x="23" y="128" width="29" height="29" fill="#FFFFFF" rx="4" />
-                    <rect x="30" y="135" width="15" height="15" fill="#1A241E" rx="2" />
-                    {/* Center decorative food dots */}
-                    <rect x="75" y="25" width="12" height="12" fill="#1A241E" rx="2" />
-                    <rect x="95" y="25" width="12" height="12" fill="#1A241E" rx="2" />
-                    <rect x="75" y="45" width="12" height="12" fill="#1A241E" rx="2" />
-                    <rect x="25" y="75" width="12" height="12" fill="#1A241E" rx="2" />
-                    <rect x="45" y="75" width="12" height="12" fill="#1A241E" rx="2" />
-                    <rect x="75" y="75" width="30" height="30" fill="#2E4233" rx="6" />
-                    <circle cx="90" cy="90" r="8" fill="#FFFFFF" />
-                    <rect x="120" y="75" width="12" height="12" fill="#1A241E" rx="2" />
-                    <rect x="145" y="75" width="12" height="12" fill="#1A241E" rx="2" />
-                    <rect x="75" y="120" width="12" height="12" fill="#1A241E" rx="2" />
-                    <rect x="95" y="120" width="12" height="12" fill="#1A241E" rx="2" />
-                    <rect x="120" y="120" width="12" height="12" fill="#1A241E" rx="2" />
-                    <rect x="140" y="140" width="15" height="15" fill="#CB5A3C" rx="3" />
-                  </svg>
-                </div>
-
-                <div className="flex items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      alert("QR Code pronto para impressão! Você pode copiar e enviar diretamente para sua gráfica.");
-                    }}
-                    className="flex items-center gap-2 bg-[#FAF8F0] border border-[#D5D2C7] hover:bg-[#F4F3ED] text-[#1A241E] px-4 py-2 rounded-xl text-[13px] font-medium transition-colors"
-                  >
-                    <QrCode size={16} />
-                    <span>Baixar QR Code Alta Resolução</span>
-                  </button>
-                </div>
               </div>
             </div>
 
-            {/* Right Column: Templates de Mensagens para WhatsApp */}
-            <div className="lg:col-span-7 bg-white border border-[#E3E1D9] rounded-[22px] p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
-              <div className="flex items-center gap-2 mb-1">
-                <MessageCircle size={20} className="text-[#2E7D32]" />
-                <h3 className="font-serif text-[22px] font-semibold text-[#1A241E]">
-                  Textos Prontos para Divulgação no WhatsApp
-                </h3>
-              </div>
-              <p className="text-[13px] text-[#637267] mb-6">
-                Copie e dispare no status, listas de transmissão ou grupos de clientes para gerar pedidos rápidos.
-              </p>
-
-              <div className="space-y-4">
-                {/* Template 1 */}
-                <div className="p-4 rounded-xl border border-[#ECEAE2] bg-[#FAF8F0] flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-[14px] text-[#1A241E]">
-                      🚀 1. Lançamento do Cardápio Direto
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleCopy(
-                          `Olá! 🍽️ Agora você pode fazer seus pedidos direto no nosso cardápio oficial, com entrega rápida e sem taxas extras!\n\nAcesse agora e confira nossos pratos: ${storefrontUrl}\n\nEsperamos seu pedido! ✨`,
-                          "msg-1"
-                        )
-                      }
-                      className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2E4233] bg-white border border-[#D5D2C7] px-3 py-1.5 rounded-lg hover:bg-gray-50"
-                    >
-                      {copiedText === "msg-1" ? <Check size={14} /> : <Copy size={14} />}
-                      <span>{copiedText === "msg-1" ? "Copiado!" : "Copiar Mensagem"}</span>
-                    </button>
-                  </div>
-                  <p className="text-[13px] text-[#556358] whitespace-pre-line leading-relaxed font-sans">
-                    {`Olá! 🍽️ Agora você pode fazer seus pedidos direto no nosso cardápio oficial, com entrega rápida e sem taxas extras!\n\nAcesse agora e confira nossos pratos: ${storefrontUrl}\n\nEsperamos seu pedido! ✨`}
-                  </p>
-                </div>
-
-                {/* Template 2 */}
-                <div className="p-4 rounded-xl border border-[#ECEAE2] bg-[#FAF8F0] flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-[14px] text-[#1A241E]">
-                      🎉 2. Promoção de Sextou com Cupom
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleCopy(
-                          `Sextou com comida boa! 🍕🍔\n\nHoje tem cupom exclusivo no nosso cardápio próprio!\nUse o código *SEXTOU15* e ganhe R$ 15 OFF no seu pedido.\n\nPeça aqui em 2 minutos: ${storefrontUrl}\n\nPromoção válida enquanto durarem os estoques! 🏃💨`,
-                          "msg-2"
-                        )
-                      }
-                      className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2E4233] bg-white border border-[#D5D2C7] px-3 py-1.5 rounded-lg hover:bg-gray-50"
-                    >
-                      {copiedText === "msg-2" ? <Check size={14} /> : <Copy size={14} />}
-                      <span>{copiedText === "msg-2" ? "Copiado!" : "Copiar Mensagem"}</span>
-                    </button>
-                  </div>
-                  <p className="text-[13px] text-[#556358] whitespace-pre-line leading-relaxed font-sans">
-                    {`Sextou com comida boa! 🍕🍔\n\nHoje tem cupom exclusivo no nosso cardápio próprio!\nUse o código *SEXTOU15* e ganhe R$ 15 OFF no seu pedido.\n\nPeça aqui em 2 minutos: ${storefrontUrl}\n\nPromoção válida enquanto durarem os estoques! 🏃💨`}
-                  </p>
-                </div>
-
-                {/* Template 3 */}
-                <div className="p-4 rounded-xl border border-[#ECEAE2] bg-[#FAF8F0] flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-[14px] text-[#1A241E]">
-                      🛵 3. Alerta de Entrega Grátis
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleCopy(
-                          `Bateu a fome? 🛵\n\nHoje a entrega é por nossa conta em pedidos acima de R$ 50 no nosso link oficial!\n\nConfira nosso cardápio completo: ${storefrontUrl}\n\nAproveite antes que acabe! 🔥`,
-                          "msg-3"
-                        )
-                      }
-                      className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2E4233] bg-white border border-[#D5D2C7] px-3 py-1.5 rounded-lg hover:bg-gray-50"
-                    >
-                      {copiedText === "msg-3" ? <Check size={14} /> : <Copy size={14} />}
-                      <span>{copiedText === "msg-3" ? "Copiado!" : "Copiar Mensagem"}</span>
-                    </button>
-                  </div>
-                  <p className="text-[13px] text-[#556358] whitespace-pre-line leading-relaxed font-sans">
-                    {`Bateu a fome? 🛵\n\nHoje a entrega é por nossa conta em pedidos acima de R$ 50 no nosso link oficial!\n\nConfira nosso cardápio completo: ${storefrontUrl}\n\nAproveite antes que acabe! 🔥`}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* TAB 3: PROGRAMA DE FIDELIDADE                                */}
-        {/* ============================================================ */}
-        {activeTab === "loyalty" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left: Configurações */}
-            <div className="lg:col-span-7 bg-white border border-[#E3E1D9] rounded-[22px] p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
-              <div className="flex items-center justify-between pb-5 border-b border-[#ECEAE2] mb-6">
+            {/* Módulos do Mini-Curso */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Módulo 1: Fotografia Gastronômica */}
+              <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
                 <div>
-                  <h3 className="font-serif text-[22px] font-semibold text-[#1A241E]">
-                    Programa de Fidelidade Digital
-                  </h3>
-                  <p className="text-[13px] text-[#637267]">
-                    Substitua o cartãozinho de carimbo de papel por um sistema automático no WhatsApp.
-                  </p>
-                </div>
-
-                {/* Switch de Ativar */}
-                <button
-                  type="button"
-                  onClick={() => setLoyaltyEnabled(!loyaltyEnabled)}
-                  className={`w-14 h-8 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
-                    loyaltyEnabled ? "bg-[#2E7D32]" : "bg-gray-300"
-                  }`}
-                >
-                  <div
-                    className={`bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${
-                      loyaltyEnabled ? "translate-x-6" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {/* Meta de Pedidos */}
-                <div>
-                  <label className="block text-[14px] font-medium text-[#1A241E] mb-2">
-                    Meta de Pedidos para Ganhar o Prêmio:
-                  </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[5, 8, 10].map((goal) => (
-                      <button
-                        key={goal}
-                        type="button"
-                        onClick={() => setLoyaltyGoal(goal)}
-                        className={`p-3 rounded-xl border text-center transition-all ${
-                          loyaltyGoal === goal
-                            ? "bg-[#253629] text-white border-[#253629] font-semibold"
-                            : "bg-[#FAF8F0] border-[#E3E1D9] text-[#1A241E] hover:bg-gray-100"
-                        }`}
-                      >
-                        <div className="text-[18px] font-bold">{goal} pedidos</div>
-                        <div className={`text-[11px] ${loyaltyGoal === goal ? "text-gray-200" : "text-[#637267]"}`}>
-                          {goal === 5 ? "Fácil alcance" : goal === 10 ? "Mais econômico" : "Equilibrado"}
-                        </div>
-                      </button>
-                    ))}
+                  <div className="w-12 h-12 rounded-2xl bg-[#E8F5E9] text-[#2E7D32] flex items-center justify-center mb-4">
+                    <Camera size={24} />
                   </div>
-                </div>
-
-                {/* Valor da Recompensa */}
-                <div>
-                  <label className="block text-[14px] font-medium text-[#1A241E] mb-2">
-                    Valor do Desconto de Recompensa:
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-48">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 text-[14px]">
-                        R$
-                      </span>
-                      <input
-                        type="number"
-                        min="5"
-                        max="100"
-                        value={loyaltyRewardCents / 100}
-                        onChange={(e) => setLoyaltyRewardCents(Math.round(Number(e.target.value) * 100))}
-                        className="w-full bg-[#FAF8F0] border border-[#E3E1D9] rounded-xl py-2.5 pl-10 pr-4 text-[15px] font-semibold text-[#1A241E] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20"
-                      />
-                    </div>
-                    <span className="text-[13px] text-[#637267]">
-                      Aplicado automaticamente no próximo pedido após bater a meta.
-                    </span>
-                  </div>
-                </div>
-
-                {/* Texto explicativo para o cliente */}
-                <div>
-                  <label className="block text-[14px] font-medium text-[#1A241E] mb-2">
-                    Frase exibida para o cliente no Cardápio:
-                  </label>
-                  <input
-                    type="text"
-                    value={loyaltyRewardText}
-                    onChange={(e) => setLoyaltyRewardText(e.target.value)}
-                    className="w-full bg-[#FAF8F0] border border-[#E3E1D9] rounded-xl py-2.5 px-4 text-[14px] text-[#1A241E] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20"
-                  />
-                </div>
-
-                <div className="pt-4 border-t border-[#ECEAE2]">
-                  <button
-                    type="button"
-                    onClick={handleSaveLoyalty}
-                    disabled={isPending}
-                    className="bg-[#253629] text-white px-6 py-2.5 rounded-xl text-[14px] font-medium hover:bg-[#1E2C21] transition-colors cursor-pointer"
-                  >
-                    {isPending ? "Salvando..." : "Salvar Programa de Fidelidade"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Como Funciona & Pré-visualização */}
-            <div className="lg:col-span-5 space-y-6">
-              <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
-                <h4 className="font-serif text-[18px] font-semibold text-[#1A241E] mb-3">
-                  📱 Como o cliente enxerga no celular:
-                </h4>
-
-                {/* Mock Card do Cartão Fidelidade */}
-                <div className="rounded-2xl border border-[#D5D2C7] bg-[#FAF8F0] p-5 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Gift size={18} className="text-[#2E7D32]" />
-                      <span className="font-semibold text-[14px] text-[#1A241E]">
-                        Fidelidade {storeName}
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#E8F5E9] text-[#2E7D32]">
-                      {loyaltyEnabled ? "Ativo" : "Desativado"}
-                    </span>
-                  </div>
-
-                  <p className="text-[12px] text-[#556358] mb-4">
-                    Complete {loyaltyGoal} pedidos e ganhe R$ {(loyaltyRewardCents / 100).toFixed(2).replace(".", ",")} de desconto!
+                  <h4 className="font-serif text-[20px] font-semibold text-[#1A241E] mb-2">
+                    1. Fotos que Vendem (Usando Apenas o Celular)
+                  </h4>
+                  <p className="text-[14px] text-[#556358] mb-4 leading-relaxed">
+                    Prato bonito no cardápio vende sozinho. O cérebro do cliente decide com os olhos em 3 segundos.
                   </p>
 
-                  {/* Stamp Grid */}
-                  <div className="grid grid-cols-5 gap-2 mb-3">
-                    {Array.from({ length: loyaltyGoal }).map((_, idx) => (
-                      <div
-                        key={idx}
-                        className={`h-9 rounded-lg border flex items-center justify-center text-[12px] font-bold ${
-                          idx < 3
-                            ? "bg-[#2E4233] text-white border-[#2E4233]"
-                            : "bg-white border-dashed border-[#C5C2B7] text-[#8C988F]"
-                        }`}
-                      >
-                        {idx < 3 ? "✓" : idx + 1}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="text-[11px] text-[#637267] text-center">
-                    Exemplo: 3 de {loyaltyGoal} pedidos concluídos
-                  </div>
-                </div>
-
-                <div className="mt-5 text-[13px] text-[#556358] space-y-2 leading-relaxed">
-                  <p>
-                    💡 <strong>Identificação automática:</strong> O DeliPlus reconhece o cliente pelo número de WhatsApp digitado no checkout. Não precisa de cadastro com senha nem aplicativos adicionais!
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* TAB 4: BANNER NO CARDÁPIO                                    */}
-        {/* ============================================================ */}
-        {activeTab === "banner" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left: Editor do Banner */}
-            <div className="lg:col-span-7 bg-white border border-[#E3E1D9] rounded-[22px] p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
-              <div className="flex items-center justify-between pb-5 border-b border-[#ECEAE2] mb-6">
-                <div>
-                  <h3 className="font-serif text-[22px] font-semibold text-[#1A241E]">
-                    Banner de Aviso / Destaque
-                  </h3>
-                  <p className="text-[13px] text-[#637267]">
-                    Aparece no topo do cardápio público para todos os clientes que entrarem no seu link.
-                  </p>
-                </div>
-
-                {/* Switch de Ativar */}
-                <button
-                  type="button"
-                  onClick={() => setBannerEnabled(!bannerEnabled)}
-                  className={`w-14 h-8 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
-                    bannerEnabled ? "bg-[#CB5A3C]" : "bg-gray-300"
-                  }`}
-                >
-                  <div
-                    className={`bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${
-                      bannerEnabled ? "translate-x-6" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {/* Texto do Banner */}
-                <div>
-                  <label className="block text-[14px] font-medium text-[#1A241E] mb-2">
-                    Mensagem do Banner:
-                  </label>
-                  <input
-                    type="text"
-                    value={bannerText}
-                    onChange={(e) => setBannerText(e.target.value)}
-                    placeholder="Ex: 🔥 Entrega grátis hoje em pedidos acima de R$ 50!"
-                    className="w-full bg-[#FAF8F0] border border-[#E3E1D9] rounded-xl py-2.5 px-4 text-[14px] text-[#1A241E] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20"
-                  />
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={() => setBannerText("🔥 Entrega grátis hoje em pedidos acima de R$ 50!")}
-                      className="text-[11px] text-[#556358] hover:text-[#1A241E] bg-[#FAF8F0] border border-[#ECEAE2] px-2.5 py-1 rounded-md"
-                    >
-                      Sugestão: Frete Grátis
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBannerText("🎉 Use o cupom BEMVINDO10 e ganhe 10% OFF no primeiro pedido!")}
-                      className="text-[11px] text-[#556358] hover:text-[#1A241E] bg-[#FAF8F0] border border-[#ECEAE2] px-2.5 py-1 rounded-md"
-                    >
-                      Sugestão: Cupom de Boas-Vindas
-                    </button>
-                  </div>
-                </div>
-
-                {/* Cor do Banner */}
-                <div>
-                  <label className="block text-[14px] font-medium text-[#1A241E] mb-2">
-                    Cor de Destaque:
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setBannerColor("terracotta")}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-[13px] font-medium transition-all ${
-                        bannerColor === "terracotta"
-                          ? "bg-[#CB5A3C] text-white border-[#CB5A3C]"
-                          : "bg-white border-[#E3E1D9] text-[#1A241E]"
-                      }`}
-                    >
-                      <span className="w-3 h-3 rounded-full bg-[#CB5A3C] border border-white"></span>
-                      <span>Laranja Terracota (Padrão)</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setBannerColor("forest")}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-[13px] font-medium transition-all ${
-                        bannerColor === "forest"
-                          ? "bg-[#2E4233] text-white border-[#2E4233]"
-                          : "bg-white border-[#E3E1D9] text-[#1A241E]"
-                      }`}
-                    >
-                      <span className="w-3 h-3 rounded-full bg-[#2E4233] border border-white"></span>
-                      <span>Verde Floresta</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setBannerColor("amber")}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-[13px] font-medium transition-all ${
-                        bannerColor === "amber"
-                          ? "bg-[#D97706] text-white border-[#D97706]"
-                          : "bg-white border-[#E3E1D9] text-[#1A241E]"
-                      }`}
-                    >
-                      <span className="w-3 h-3 rounded-full bg-[#D97706] border border-white"></span>
-                      <span>Âmbar Promocional</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-[#ECEAE2]">
-                  <button
-                    type="button"
-                    onClick={handleSaveBanner}
-                    disabled={isPending}
-                    className="bg-[#253629] text-white px-6 py-2.5 rounded-xl text-[14px] font-medium hover:bg-[#1E2C21] transition-colors cursor-pointer"
-                  >
-                    {isPending ? "Salvando..." : "Salvar Banner Promocional"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Live Preview no Smartphone */}
-            <div className="lg:col-span-5 bg-white border border-[#E3E1D9] rounded-[22px] p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col items-center">
-              <h4 className="font-serif text-[18px] font-semibold text-[#1A241E] mb-4 self-start">
-                📱 Pré-visualização em tempo real:
-              </h4>
-
-              {/* Phone Mockup Frame */}
-              <div className="w-[280px] bg-black rounded-[36px] p-3 shadow-2xl border-4 border-gray-800">
-                <div className="bg-[#FAF8F0] rounded-[28px] overflow-hidden min-h-[460px] flex flex-col">
-                  {/* Phone Notch */}
-                  <div className="h-5 bg-[#FAF8F0] flex items-center justify-center pt-1">
-                    <div className="w-20 h-3 bg-black/10 rounded-full"></div>
-                  </div>
-
-                  {/* Banner no topo (se ativado) */}
-                  {bannerEnabled ? (
-                    <div
-                      className={`py-2 px-3 text-center text-white text-[11px] font-medium tracking-tight animate-in fade-in ${
-                        bannerColor === "forest"
-                          ? "bg-[#2E4233]"
-                          : bannerColor === "amber"
-                          ? "bg-[#D97706]"
-                          : "bg-[#CB5A3C]"
-                      }`}
-                    >
-                      {bannerText || "Sua mensagem aqui"}
-                    </div>
-                  ) : (
-                    <div className="py-1 px-3 bg-gray-200 text-gray-500 text-[10px] text-center">
-                      Banner desativado
-                    </div>
-                  )}
-
-                  {/* Header do Cardápio */}
-                  <div className="p-4 bg-white border-b border-gray-100 flex items-center justify-between">
-                    <div>
-                      <div className="font-serif font-bold text-[16px] text-gray-900 leading-tight">
-                        {storeName}
-                      </div>
-                      <div className="text-[10px] text-emerald-600 font-medium">● Aberto agora</div>
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-[10px] font-bold text-emerald-800">
-                      DP
-                    </div>
-                  </div>
-
-                  {/* Body do Cardápio */}
-                  <div className="p-3 space-y-2 flex-1">
-                    <div className="h-16 rounded-xl bg-white border border-gray-200 p-2 flex gap-2 items-center">
-                      <div className="w-12 h-12 rounded-lg bg-gray-100 shrink-0"></div>
-                      <div className="flex-1 space-y-1">
-                        <div className="w-24 h-2.5 bg-gray-200 rounded"></div>
-                        <div className="w-16 h-2 bg-gray-100 rounded"></div>
+                  <div className="space-y-2.5 text-[13px] bg-[#FAF8F0] p-4 rounded-xl border border-[#ECEAE2] mb-4">
+                    <div className="flex items-start gap-2">
+                      <span className="text-[#2E7D32] font-bold">✓</span>
+                      <div>
+                        <strong>Luz Natural Indireta:</strong> Fotografe de dia, perto de uma janela. Nunca use o flash do celular direto no prato (ele deixa a comida pálida e gordurosa).
                       </div>
                     </div>
-                    <div className="h-16 rounded-xl bg-white border border-gray-200 p-2 flex gap-2 items-center">
-                      <div className="w-12 h-12 rounded-lg bg-gray-100 shrink-0"></div>
-                      <div className="flex-1 space-y-1">
-                        <div className="w-20 h-2.5 bg-gray-200 rounded"></div>
-                        <div className="w-14 h-2 bg-gray-100 rounded"></div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-[#2E7D32] font-bold">✓</span>
+                      <div>
+                        <strong>O Ângulo de 45 Graus:</strong> É a visão natural de quem está sentado prestes a comer. Para pizzas e bowls, use o ângulo de cima (90°).
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-[#2E7D32] font-bold">✓</span>
+                      <div>
+                        <strong>Contraste de Cores:</strong> Um toque verde de cheiro-verde ou molho fresco destaca pratos escuros como carnes e hambúrgueres.
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="text-[12px] text-[#8C988F] italic border-t border-[#ECEAE2] pt-3">
+                  ❌ Evite: fotos com sombras duras, pratos cortados ou bandejas plásticas amassadas.
+                </div>
+              </div>
+
+              {/* Módulo 2: Copywriting e Descrição de Pratos */}
+              <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
+                <div>
+                  <div className="w-12 h-12 rounded-2xl bg-[#FFF3E0] text-[#E65100] flex items-center justify-center mb-4">
+                    <BookOpen size={24} />
+                  </div>
+                  <h4 className="font-serif text-[20px] font-semibold text-[#1A241E] mb-2">
+                    2. Textos que Dão Água na Boca (Copywriting)
+                  </h4>
+                  <p className="text-[14px] text-[#556358] mb-4 leading-relaxed">
+                    A descrição do prato serve para justificar o preço e ativar a salivação do cliente.
+                  </p>
+
+                  {/* Comparativo Antes e Depois */}
+                  <div className="space-y-3 mb-4">
+                    <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-[13px]">
+                      <div className="text-red-700 font-bold mb-1">❌ Como NÃO escrever:</div>
+                      <p className="text-red-900 italic">&ldquo;Hambúrguer com queijo, bacon e batata.&rdquo;</p>
+                    </div>
+
+                    <div className="p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-[13px]">
+                      <div className="text-emerald-700 font-bold mb-1"> Como escrever para vender:</div>
+                      <p className="text-emerald-950 font-medium">
+                        &ldquo;Smash Burger artesanal (160g) na chapa bem tostada, queijo cheddar inglês derretido, bacon crocante em tiras e maionese secreta da casa no pão brioche dourado na manteiga.&rdquo;
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-[12px] text-[#556358] border-t border-[#ECEAE2] pt-3">
+                  💡 <strong>Palavras Magnéticas:</strong> Artesanal, Crocante, Derretido na chapa, Defumado, Feito do zero.
+                </div>
+              </div>
+
+              {/* Módulo 3: A Estratégia dos Adicionais */}
+              <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
+                <div>
+                  <div className="w-12 h-12 rounded-2xl bg-[#EDE7F6] text-[#512DA8] flex items-center justify-center mb-4">
+                    <Layers size={24} />
+                  </div>
+                  <h4 className="font-serif text-[20px] font-semibold text-[#1A241E] mb-2">
+                    3. A Estratégia dos Adicionais Lucrativos
+                  </h4>
+                  <p className="text-[14px] text-[#556358] mb-4 leading-relaxed">
+                    A promoção do prato principal é o chamariz. O lucro real do restaurante mora nos adicionais!
+                  </p>
+
+                  <div className="space-y-2.5 text-[13px] bg-[#FAF8F0] p-4 rounded-xl border border-[#ECEAE2] mb-4">
+                    <p>
+                      <strong>A Regra dos 3 Adicionais:</strong> Todo prato com desconto deve ter pelo menos 2 a 3 adicionais cadastrados no Cardápio (ex: Dobro de Queijo, Bacon Extra, Molho Especial).
+                    </p>
+                    <p>
+                      <strong>A Psicologia do Cliente:</strong> Como ele economizou R$ 6 no prato promocional, ele gasta essa economia alegremente adicionando um refrigerante ou bacon por +R$ 8!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-[12px] text-[#556358] border-t border-[#ECEAE2] pt-3">
+                  📈 No DeliPlus, pedidos com adicionais têm ticket médio <strong>35% maior</strong>.
+                </div>
+              </div>
+
+              {/* Módulo 4: Horários e Gatilhos de Divulgação */}
+              <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
+                <div>
+                  <div className="w-12 h-12 rounded-2xl bg-[#E0F7FA] text-[#00838F] flex items-center justify-center mb-4">
+                    <Clock size={24} />
+                  </div>
+                  <h4 className="font-serif text-[20px] font-semibold text-[#1A241E] mb-2">
+                    4. Horários de Pico da Fome nas Redes Sociais
+                  </h4>
+                  <p className="text-[14px] text-[#556358] mb-4 leading-relaxed">
+                    Não adianta postar no horário em que o cliente acabou de almoçar. Dispare a mensagem quando a fome apertar!
+                  </p>
+
+                  <div className="space-y-2.5 text-[13px] bg-[#FAF8F0] p-4 rounded-xl border border-[#ECEAE2] mb-4">
+                    <div className="flex items-center justify-between pb-1 border-b border-[#ECEAE2]/60">
+                      <span><strong>Almoço:</strong> Entre 11h00 e 11h45</span>
+                      <span className="text-[#2E7D32] font-semibold">Decisão rápida</span>
+                    </div>
+                    <div className="flex items-center justify-between pb-1 border-b border-[#ECEAE2]/60">
+                      <span><strong>Jantar & Fim de Semana:</strong> Entre 18h00 e 19h15</span>
+                      <span className="text-[#2E7D32] font-semibold">Pico de pedidos</span>
+                    </div>
+                    <p className="pt-1 text-[#637267]">
+                      Sempre coloque a chamada direta: <em>&ldquo;Link na bio para entrega rápida sem taxas!&rdquo;</em>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-[12px] text-[#556358] border-t border-[#ECEAE2] pt-3">
+                  💬 O WhatsApp é seu canal de recompra: use listas de transmissão nas sextas-feiras!
                 </div>
               </div>
             </div>
@@ -1177,14 +1085,91 @@ export default function MarketingClient({
       </div>
 
       {/* ============================================================== */}
+      {/* MODAL: AJUSTAR PREÇO PROMOCIONAL DO PRATO                     */}
+      {/* ============================================================== */}
+      {editingPromoProduct && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-[#E3E1D9] max-w-md w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+            <button
+              type="button"
+              onClick={() => setEditingPromoProduct(null)}
+              className="absolute right-4 top-4 text-gray-400 hover:text-gray-700 p-1 rounded-lg"
+            >
+              <X size={18} />
+            </button>
+
+            <h3 className="font-serif text-[20px] font-semibold text-[#1A241E] mb-1">
+              Editar Promoção do Produto
+            </h3>
+            <p className="text-[13px] text-[#637267] mb-4">
+              Ajuste o valor com desconto de <strong>{editingPromoProduct.name}</strong>
+            </p>
+
+            <div className="bg-[#FAF8F0] p-4 rounded-xl border border-[#ECEAE2] mb-4 space-y-2 text-[14px]">
+              <div className="flex justify-between">
+                <span className="text-[#556358]">Preço Original:</span>
+                <span className="font-semibold text-[#1A241E]">
+                  {formatBRL(editingPromoProduct.priceCents)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#556358]">Novo Desconto Calculado:</span>
+                <span className="font-bold text-[#2E7D32]">
+                  {editPromoPrice > 0
+                    ? `-${Math.round(
+                        ((editingPromoProduct.priceCents - editPromoPrice * 100) /
+                          editingPromoProduct.priceCents) *
+                          100
+                      )}%`
+                    : "0%"}
+                </span>
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-[13px] font-medium text-[#1A241E] mb-1">
+                Novo Preço Promocional (R$):
+              </label>
+              <input
+                type="number"
+                step="0.10"
+                min="1"
+                max={editingPromoProduct.priceCents / 100}
+                value={editPromoPrice}
+                onChange={(e) => setEditPromoPrice(Number(e.target.value))}
+                className="w-full bg-[#FAF8F0] border border-[#E3E1D9] rounded-xl py-2.5 px-3 text-[16px] font-bold text-[#1A241E] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingPromoProduct(null)}
+                className="px-4 py-2 border border-[#D5D2C7] text-[#1A241E] text-[13px] font-medium rounded-xl hover:bg-gray-50 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePromoPrice}
+                className="px-5 py-2 bg-[#253629] text-white text-[13px] font-medium rounded-xl hover:bg-[#1E2C21] cursor-pointer"
+              >
+                Salvar Promoção
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
       {/* MODAL: CRIAR NOVO CUPOM                                        */}
       {/* ============================================================== */}
-      {createModalOpen && (
+      {createCouponModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-[#E3E1D9] max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             <button
               type="button"
-              onClick={() => setCreateModalOpen(false)}
+              onClick={() => setCreateCouponModalOpen(false)}
               className="absolute right-4 top-4 text-gray-400 hover:text-gray-700 p-1 rounded-lg"
             >
               <X size={18} />
@@ -1199,13 +1184,12 @@ export default function MarketingClient({
                   Criar Novo Cupom de Desconto
                 </h3>
                 <p className="text-[13px] text-[#637267]">
-                  Defina as regras e benefícios do cupom para a {storeName}
+                  Defina o código e regras para a {storeName}
                 </p>
               </div>
             </div>
 
             <form onSubmit={handleCreateCouponSubmit} className="space-y-4">
-              {/* Código */}
               <div>
                 <label className="block text-[13px] font-medium text-[#1A241E] mb-1">
                   Código do Cupom:
@@ -1214,7 +1198,7 @@ export default function MarketingClient({
                   <input
                     type="text"
                     required
-                    placeholder="Ex: PROMO10, SEXTOU20"
+                    placeholder="Ex: BEMVINDO10, SEXTOU20"
                     value={newCode}
                     onChange={(e) => setNewCode(e.target.value.toUpperCase())}
                     className="flex-1 uppercase font-mono tracking-wider bg-[#FAF8F0] border border-[#E3E1D9] rounded-xl py-2 px-3 text-[14px] text-[#1A241E] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20"
@@ -1226,14 +1210,13 @@ export default function MarketingClient({
                       const rnd = prefixes[Math.floor(Math.random() * prefixes.length)] + Math.floor(Math.random() * 90 + 10);
                       setNewCode(rnd);
                     }}
-                    className="px-3 py-2 bg-[#FAF8F0] border border-[#D5D2C7] rounded-xl text-[12px] font-medium text-[#556358] hover:bg-gray-100"
+                    className="px-3 py-2 bg-[#FAF8F0] border border-[#D5D2C7] rounded-xl text-[12px] font-medium text-[#556358] hover:bg-gray-100 cursor-pointer"
                   >
                     Sugerir
                   </button>
                 </div>
               </div>
 
-              {/* Descrição */}
               <div>
                 <label className="block text-[13px] font-medium text-[#1A241E] mb-1">
                   Descrição (opcional):
@@ -1247,7 +1230,6 @@ export default function MarketingClient({
                 />
               </div>
 
-              {/* Tipo de Desconto */}
               <div>
                 <label className="block text-[13px] font-medium text-[#1A241E] mb-1">
                   Tipo de Desconto:
@@ -1256,7 +1238,7 @@ export default function MarketingClient({
                   <button
                     type="button"
                     onClick={() => setNewDiscountType("percentage")}
-                    className={`py-2 px-3 rounded-xl border text-[13px] font-medium text-center ${
+                    className={`py-2 px-3 rounded-xl border text-[13px] font-medium text-center cursor-pointer ${
                       newDiscountType === "percentage"
                         ? "bg-[#253629] text-white border-[#253629]"
                         : "bg-[#FAF8F0] border-[#E3E1D9] text-[#1A241E]"
@@ -1267,7 +1249,7 @@ export default function MarketingClient({
                   <button
                     type="button"
                     onClick={() => setNewDiscountType("fixed")}
-                    className={`py-2 px-3 rounded-xl border text-[13px] font-medium text-center ${
+                    className={`py-2 px-3 rounded-xl border text-[13px] font-medium text-center cursor-pointer ${
                       newDiscountType === "fixed"
                         ? "bg-[#253629] text-white border-[#253629]"
                         : "bg-[#FAF8F0] border-[#E3E1D9] text-[#1A241E]"
@@ -1278,7 +1260,7 @@ export default function MarketingClient({
                   <button
                     type="button"
                     onClick={() => setNewDiscountType("free_shipping")}
-                    className={`py-2 px-3 rounded-xl border text-[13px] font-medium text-center ${
+                    className={`py-2 px-3 rounded-xl border text-[13px] font-medium text-center cursor-pointer ${
                       newDiscountType === "free_shipping"
                         ? "bg-[#253629] text-white border-[#253629]"
                         : "bg-[#FAF8F0] border-[#E3E1D9] text-[#1A241E]"
@@ -1289,11 +1271,10 @@ export default function MarketingClient({
                 </div>
               </div>
 
-              {/* Valor do Desconto */}
               {newDiscountType !== "free_shipping" && (
                 <div>
                   <label className="block text-[13px] font-medium text-[#1A241E] mb-1">
-                    {newDiscountType === "percentage" ? "Porcentagem de Desconto (%):" : "Valor do Desconto (R$):"}
+                    {newDiscountType === "percentage" ? "Porcentagem (%):" : "Valor do Desconto (R$):"}
                   </label>
                   <input
                     type="number"
@@ -1307,7 +1288,6 @@ export default function MarketingClient({
                 </div>
               )}
 
-              {/* Pedido Mínimo */}
               <div>
                 <label className="block text-[13px] font-medium text-[#1A241E] mb-1">
                   Valor Mínimo do Pedido (R$) - Opcional:
@@ -1322,7 +1302,6 @@ export default function MarketingClient({
                 />
               </div>
 
-              {/* Limite de Usos e Validade */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[13px] font-medium text-[#1A241E] mb-1">
@@ -1354,14 +1333,14 @@ export default function MarketingClient({
               <div className="flex justify-end gap-2 pt-4 border-t border-[#ECEAE2]">
                 <button
                   type="button"
-                  onClick={() => setCreateModalOpen(false)}
-                  className="px-4 py-2 border border-[#D5D2C7] text-[#1A241E] text-[13px] font-medium rounded-xl hover:bg-gray-50"
+                  onClick={() => setCreateCouponModalOpen(false)}
+                  className="px-4 py-2 border border-[#D5D2C7] text-[#1A241E] text-[13px] font-medium rounded-xl hover:bg-gray-50 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#253629] text-white text-[13px] font-medium rounded-xl hover:bg-[#1E2C21]"
+                  className="px-5 py-2 bg-[#253629] text-white text-[13px] font-medium rounded-xl hover:bg-[#1E2C21] cursor-pointer"
                 >
                   Salvar e Ativar Cupom
                 </button>

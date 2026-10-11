@@ -32,6 +32,10 @@ async function resolveActionContext() {
   throw new Error("Loja ativa não encontrada");
 }
 
+/* ============================================================== */
+/* CUPONS                                                         */
+/* ============================================================== */
+
 export async function createCoupon(data: {
   code: string;
   description?: string;
@@ -107,56 +111,52 @@ export async function deleteCoupon(couponId: string) {
   return { success: true };
 }
 
-export async function updateBannerSettings(data: {
-  banner_enabled: boolean;
-  banner_text: string;
-  banner_color: "terracotta" | "forest" | "amber";
-}) {
+/* ============================================================== */
+/* GESTÃO DE PROMOÇÕES DO CARDÁPIO (DIRETO DO MARKETING)          */
+/* ============================================================== */
+
+export async function toggleProductPromo(productId: string, currentInPromo: boolean) {
   const { storeId, supabase } = await resolveActionContext();
+  const nextInPromo = !currentInPromo;
 
   const { error } = await supabase
-    .from("store_marketing_settings")
-    .upsert({
-      store_id: storeId,
-      banner_enabled: data.banner_enabled,
-      banner_text: data.banner_text,
-      banner_color: data.banner_color,
-      updated_at: new Date().toISOString()
-    });
+    .from("products")
+    .update({ in_promo: nextInPromo })
+    .eq("id", productId)
+    .eq("store_id", storeId);
 
   if (error) {
-    console.error("Erro ao atualizar banner promocional:", error);
+    console.error("Erro ao alternar promoção do produto:", error);
     return { success: false, error: error.message };
   }
 
   revalidatePath("/dashboard/marketing");
-  return { success: true };
+  revalidatePath("/dashboard/menu");
+  return { success: true, inPromo: nextInPromo };
 }
 
-export async function updateLoyaltySettings(data: {
-  loyalty_enabled: boolean;
-  loyalty_goal_orders: number;
-  loyalty_reward_cents: number;
-  loyalty_reward_text: string;
-}) {
+export async function updateProductPromoPrice(
+  productId: string,
+  promoPriceCents: number,
+  inPromo: boolean = true
+) {
   const { storeId, supabase } = await resolveActionContext();
 
   const { error } = await supabase
-    .from("store_marketing_settings")
-    .upsert({
-      store_id: storeId,
-      loyalty_enabled: data.loyalty_enabled,
-      loyalty_goal_orders: data.loyalty_goal_orders,
-      loyalty_reward_cents: data.loyalty_reward_cents,
-      loyalty_reward_text: data.loyalty_reward_text,
-      updated_at: new Date().toISOString()
-    });
+    .from("products")
+    .update({
+      promo_price_cents: promoPriceCents,
+      in_promo: inPromo
+    })
+    .eq("id", productId)
+    .eq("store_id", storeId);
 
   if (error) {
-    console.error("Erro ao atualizar programa de fidelidade:", error);
+    console.error("Erro ao atualizar preço promocional:", error);
     return { success: false, error: error.message };
   }
 
   revalidatePath("/dashboard/marketing");
+  revalidatePath("/dashboard/menu");
   return { success: true };
 }
