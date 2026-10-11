@@ -2,19 +2,15 @@
 /* eslint-disable @next/next/no-img-element */
 
 import React, { useState, useTransition, useMemo } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
-  TrendingUp,
-  TrendingDown,
-  Sparkles,
-  Copy,
   Check,
   Edit3,
   X,
-  ExternalLink,
   Layers,
-  Calendar
+  Calendar,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toggleProductPromo, updateProductPromoFull } from "../actions";
@@ -102,15 +98,18 @@ function formatPromoPeriod(
 }
 
 export default function PromotionsClient({
-  storeSlug = "loja",
   initialPromoProducts = []
 }: PromotionsClientProps) {
   const [promoProducts, setPromoProducts] = useState<PromoProduct[]>(initialPromoProducts);
-  const [copiedText, setCopiedText] = useState<string | null>(null);
   const [feedbackNotification, setFeedbackNotification] = useState<string | null>(null);
 
   // Table filter: "todos" | "em_promocao"
   const [tableFilter, setTableFilter] = useState<"todos" | "em_promocao">("todos");
+
+  // Pagination for top / slow performers (2 items per box)
+  const ITEMS_PER_BOX = 2;
+  const [topPage, setTopPage] = useState(1);
+  const [slowPage, setSlowPage] = useState(1);
 
   // Auto-open modal if navigated from Cardápio with ?editProduct=xxx
   const searchParams = useSearchParams();
@@ -159,12 +158,6 @@ export default function PromotionsClient({
     setPromoStartDate(product.promoStartDate || "");
     setPromoEndDate(product.promoEndDate || "");
     setPromoIsActive(product.inPromo);
-  };
-
-  const handleCopy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedText(id);
-    setTimeout(() => setCopiedText(null), 2500);
   };
 
   // Toggle promo status directly from table row
@@ -239,18 +232,28 @@ export default function PromotionsClient({
     () => promoProducts.filter(p => p.inPromo || p.promoPriceCents !== null),
     [promoProducts]
   );
-  const sortedBySales = useMemo(
+
+  // All Top Performers (descending by sales)
+  const allTopPerformers = useMemo(
     () => [...promoOnlyProducts].sort((a, b) => b.totalSold - a.totalSold),
     [promoOnlyProducts]
   );
-  const topPerformers = useMemo(() => sortedBySales.slice(0, 2), [sortedBySales]);
-  const slowPerformers = useMemo(
-    () => [...promoOnlyProducts]
-      .sort((a, b) => a.totalSold - b.totalSold)
-      .filter(p => p.totalSold <= 4)
-      .slice(0, 2),
+  const topTotalPages = Math.ceil(allTopPerformers.length / ITEMS_PER_BOX) || 1;
+  const paginatedTop = useMemo(() => {
+    const start = (topPage - 1) * ITEMS_PER_BOX;
+    return allTopPerformers.slice(start, start + ITEMS_PER_BOX);
+  }, [allTopPerformers, topPage]);
+
+  // All Slow Performers (ascending by sales)
+  const allSlowPerformers = useMemo(
+    () => [...promoOnlyProducts].sort((a, b) => a.totalSold - b.totalSold),
     [promoOnlyProducts]
   );
+  const slowTotalPages = Math.ceil(allSlowPerformers.length / ITEMS_PER_BOX) || 1;
+  const paginatedSlow = useMemo(() => {
+    const start = (slowPage - 1) * ITEMS_PER_BOX;
+    return allSlowPerformers.slice(start, start + ITEMS_PER_BOX);
+  }, [allSlowPerformers, slowPage]);
 
   // Filter table list
   const filteredTableProducts = useMemo(() => {
@@ -272,46 +275,44 @@ export default function PromotionsClient({
         )}
 
         {/* ============================================================ */}
-        {/* HEADER & ACTIONS (SEM KPIS)                                  */}
+        {/* HEADER: MÉTRICAS PROMOCIONAIS COM TOOLTIP                    */}
         {/* ============================================================ */}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-[#2E4233]/10 text-[#2E4233]">
-                <Sparkles size={13} />
-                Inteligência de Vendas
-              </span>
-            </div>
-            <h1 className="font-serif text-[32px] sm:text-[38px] lg:text-[42px] font-semibold text-[#1A241E] tracking-tight leading-none mb-2">
-              Desempenho das Promoções do Cardápio
+        <div className="mb-8">
+          <div className="flex items-center gap-2.5 mb-2">
+            <h1 className="font-serif text-[32px] sm:text-[38px] lg:text-[42px] font-semibold text-[#1A241E] tracking-tight leading-none">
+              Métricas Promocionais
             </h1>
-            <p className="text-[14px] sm:text-[15px] text-[#5D6B60] max-w-2xl">
-              Monitore quais produtos têm maior saída, acompanhe cliques no cardápio público e ajuste preços promocionais em tempo real.
-            </p>
+
+            {/* Tooltip Icon & Popover */}
+            <div className="relative group inline-block">
+              <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
+                ?
+              </div>
+              <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                <p className="text-[13px] text-white mb-2 leading-relaxed">
+                  <span className="font-extrabold text-white">Sobre esta tela:</span> Acompanhe o resultado das suas ofertas e gerencie os descontos aplicados no cardápio da sua loja.
+                </p>
+                <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white/90">
+                  <div className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                    <span>Identifique pratos promocionais com alto e baixo volume de pedidos.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                    <span>Alterne o status de ativação da promoção na hora usando o switch.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                    <span>Configure descontos em %, agende datas de validade ou mantenha por prazo indeterminado.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                const url = typeof window !== "undefined"
-                  ? `${window.location.origin}/${storeSlug}`
-                  : `https://deliplus.com.br/${storeSlug}`;
-                handleCopy(url, "store-link");
-              }}
-              className="flex items-center gap-2 bg-white border border-[#E3E1D9] hover:bg-[#F4F3ED] text-[#2E4233] font-medium text-[14px] rounded-xl px-4 py-2.5 shadow-sm transition-all cursor-pointer"
-            >
-              {copiedText === "store-link" ? <Check size={18} className="text-[#2E7D32]" /> : <Copy size={18} />}
-              <span>{copiedText === "store-link" ? "Link Copiado!" : "Copiar Link do Cardápio"}</span>
-            </button>
-            <Link
-              href="/dashboard/menu"
-              className="flex items-center gap-2 bg-[#253629] hover:bg-[#1E2C21] text-white font-medium text-[14px] rounded-xl px-4 py-2.5 shadow-sm transition-all cursor-pointer"
-            >
-              <span>Gerenciar Cardápio</span>
-              <ExternalLink size={16} />
-            </Link>
-          </div>
+          <p className="text-[14px] sm:text-[15px] text-[#5D6B60] max-w-2xl">
+            Monitore quais produtos têm maior saída, acompanhe cliques no cardápio público e ajuste preços promocionais em tempo real.
+          </p>
         </div>
 
         {/* ============================================================ */}
@@ -319,178 +320,300 @@ export default function PromotionsClient({
         {/* ============================================================ */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
           {/* Box 1: Maior Saída (Top Performers) */}
-          <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-[#E8F5E9] text-[#2E7D32] flex items-center justify-center font-bold">
-                  <TrendingUp size={18} />
-                </div>
-                <div>
+          <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
                   <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-[#1A241E]">
-                    🔥 Promoções com Maior Saída
+                    Promoções com Maior Saída
                   </h2>
-                  <p className="text-[12px] text-[#637267]">
-                    Pratos promocionais que os clientes mais pedem
-                  </p>
-                </div>
-              </div>
-              <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full bg-[#E8F5E9] text-[#2E7D32]">
-                Top Vendas
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {topPerformers.length === 0 ? (
-                <div className="text-center py-6 text-[13px] text-[#637267]">
-                  Nenhum prato em promoção cadastrado ainda.
-                </div>
-              ) : (
-                topPerformers.map((item, idx) => (
-                  <div
-                    key={item.id}
-                    className="p-3.5 rounded-xl border border-[#ECEAE2] bg-[#FAF8F0] flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 shrink-0 relative">
-                        {item.imageUrl ? (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
-                            Sem foto
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-semibold text-[#1A241E] text-[14px] truncate flex items-center gap-1.5">
-                          <span className="text-[#CB5A3C]">#{idx + 1}</span>
-                          <span>{item.name}</span>
-                        </div>
-                        <div className="text-[12px] text-[#637267] flex items-center gap-2">
-                          <span>De {formatBRL(item.priceCents)} por <strong className="text-[#2E7D32]">{formatBRL(item.promoPriceCents)}</strong></span>
-                          {item.discountPercentage > 0 && (
-                            <span className="px-1.5 py-0.2 rounded bg-red-100 text-red-700 font-bold text-[10px]">
-                              -{item.discountPercentage}%
-                            </span>
-                          )}
-                        </div>
-                        {item.complementsCount > 0 && (
-                          <div className="text-[11px] text-[#CB5A3C] font-medium mt-0.5">
-                            ★ {item.complementsCount} adicionais vinculados aumentam o ticket!
-                          </div>
-                        )}
-                      </div>
+                  {/* Tooltip */}
+                  <div className="relative group inline-block">
+                    <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
+                      ?
                     </div>
-
-                    <div className="text-right shrink-0">
-                      <div className="text-[14px] font-bold text-[#1A241E]">
-                        {item.totalSold} vendidos
-                      </div>
-                      <div className="text-[12px] font-semibold text-[#2E7D32]">
-                        {formatBRL(item.totalRevenueCents)}
-                      </div>
-                      <div className="text-[11px] text-[#637267]">
-                        {item.clicksCount} cliques ({item.conversionRate.toFixed(1)}% conv.)
-                      </div>
+                    <div className="absolute top-full left-0 mt-2 w-72 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                      <p className="text-[12px] text-white leading-relaxed">
+                        <span className="font-bold text-white">Top Vendas:</span> Mostra os itens em promoção com melhor aceitação pelos clientes. Vincule adicionais a esses pratos para aumentar o ticket médio por pedido.
+                      </p>
                     </div>
                   </div>
-                ))
-              )}
+                </div>
+              </div>
+              <p className="text-[12px] text-[#637267] mb-4">
+                Pratos promocionais que os clientes mais pedem
+              </p>
+
+              <div className="space-y-3">
+                {allTopPerformers.length === 0 ? (
+                  <div className="text-center py-8 text-[13px] text-[#637267]">
+                    Nenhum prato em promoção cadastrado ainda.
+                  </div>
+                ) : (
+                  paginatedTop.map((item, idx) => {
+                    const itemRank = (topPage - 1) * ITEMS_PER_BOX + idx + 1;
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-3.5 rounded-xl border border-[#ECEAE2] bg-[#FAF8F0] flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 shrink-0 relative">
+                            {item.imageUrl ? (
+                              <img
+                                src={item.imageUrl}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
+                                Sem foto
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-[#1A241E] text-[14px] truncate flex items-center gap-1.5">
+                              <span className="text-[#CB5A3C]">#{itemRank}</span>
+                              <span>{item.name}</span>
+                            </div>
+                            <div className="text-[12px] text-[#637267] flex items-center gap-2">
+                              <span>De {formatBRL(item.priceCents)} por <strong className="text-[#2E7D32]">{formatBRL(item.promoPriceCents)}</strong></span>
+                              {item.discountPercentage > 0 && (
+                                <span className="px-1.5 py-0.2 rounded bg-red-100 text-red-700 font-bold text-[10px]">
+                                  -{item.discountPercentage}%
+                                </span>
+                              )}
+                            </div>
+                            {item.complementsCount > 0 && (
+                              <div className="text-[11px] text-[#CB5A3C] font-medium mt-0.5">
+                                ★ {item.complementsCount} adicionais vinculados aumentam o ticket!
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <div className="text-[14px] font-bold text-[#1A241E]">
+                            {item.totalSold} vendidos
+                          </div>
+                          <div className="text-[12px] font-semibold text-[#2E7D32]">
+                            {formatBRL(item.totalRevenueCents)}
+                          </div>
+                          <div className="text-[11px] text-[#637267]">
+                            {item.clicksCount} cliques ({item.conversionRate.toFixed(1)}% conv.)
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
+
+            {/* Pagination Controls */}
+            {topTotalPages > 1 && (
+              <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#ECEAE2] text-[12px] text-[#637267]">
+                <span>
+                  {(topPage - 1) * ITEMS_PER_BOX + 1}–{Math.min(topPage * ITEMS_PER_BOX, allTopPerformers.length)} de {allTopPerformers.length} pratos
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={topPage <= 1}
+                    onClick={() => setTopPage(p => Math.max(1, p - 1))}
+                    className="p-1.5 rounded-lg border border-[#E3E1D9] bg-white hover:bg-[#F4F3ED] text-[#2E4233] disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    aria-label="Página anterior"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <span className="font-semibold text-[#1A241E] px-1.5">
+                    {topPage} de {topTotalPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={topPage >= topTotalPages}
+                    onClick={() => setTopPage(p => Math.min(topTotalPages, p + 1))}
+                    className="p-1.5 rounded-lg border border-[#E3E1D9] bg-white hover:bg-[#F4F3ED] text-[#2E4233] disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    aria-label="Próxima página"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Box 2: Menor Saída (Precisam de Atenção) */}
-          <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-[#FFF3E0] text-[#E65100] flex items-center justify-center font-bold">
-                  <TrendingDown size={18} />
-                </div>
-                <div>
+          <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
                   <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-[#1A241E]">
-                    ⚠️ Promoções com Menor Saída
+                    Promoções com Menor Saída
                   </h2>
-                  <p className="text-[12px] text-[#637267]">
-                    Itens em promoção que precisam de ajuste de preço ou foto
-                  </p>
-                </div>
-              </div>
-              <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full bg-[#FFF3E0] text-[#E65100]">
-                Atenção
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {slowPerformers.length === 0 ? (
-                <div className="text-center py-6 text-[13px] text-[#637267]">
-                  Todas as suas promoções estão com bom volume de vendas!
-                </div>
-              ) : (
-                slowPerformers.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3.5 rounded-xl border border-[#ECEAE2] bg-[#FAF8F0] flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 shrink-0 relative">
-                        {item.imageUrl ? (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
-                            Sem foto
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-semibold text-[#1A241E] text-[14px] truncate">
-                          {item.name}
-                        </div>
-                        <div className="text-[12px] text-[#637267] flex items-center gap-2">
-                          <span>De {formatBRL(item.priceCents)} por <strong className="text-[#2E7D32]">{formatBRL(item.promoPriceCents)}</strong></span>
-                          {item.discountPercentage > 0 && (
-                            <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                              -{item.discountPercentage}%
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-[#E65100] mt-0.5">
-                          💡 Poucas pessoas pediram. Dica: ajuste o desconto ou melhore a apresentação!
-                        </div>
-                      </div>
+                  {/* Tooltip com dicas de melhoria */}
+                  <div className="relative group inline-block">
+                    <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
+                      ?
                     </div>
-
-                    <div className="text-right shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenPromoModal(item)}
-                        className="text-[12px] font-semibold text-[#2E4233] bg-white border border-[#E3E1D9] hover:bg-[#F4F3ED] px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                      >
-                        Ajustar Oferta
-                      </button>
+                    <div className="absolute top-full right-0 sm:left-0 sm:right-auto mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                      <p className="text-[13px] text-white mb-2 leading-relaxed font-bold">
+                        Como melhorar a saída destes pratos:
+                      </p>
+                      <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white/90">
+                        <div className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                          <span><strong>Foto atraente:</strong> Pratos com foto nítida e bem iluminada recebem até 3x mais cliques.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                          <span><strong>Ajuste de desconto:</strong> Teste aumentar o desconto para 20% ou 25% para gerar interesse inicial.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                          <span><strong>Descrição sensorial:</strong> Destaque ingredientes especiais, crocância ou tempero marcante.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                          <span><strong>Combos e adicionais:</strong> Monte opções de combo com refrigerante ou sobremesa.</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                ))
-              )}
+                </div>
+              </div>
+              <p className="text-[12px] text-[#637267] mb-4">
+                Itens em promoção que precisam de ajuste de preço ou foto
+              </p>
+
+              <div className="space-y-3">
+                {allSlowPerformers.length === 0 ? (
+                  <div className="text-center py-8 text-[13px] text-[#637267]">
+                    Nenhum prato em promoção cadastrado ainda.
+                  </div>
+                ) : (
+                  paginatedSlow.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3.5 rounded-xl border border-[#ECEAE2] bg-[#FAF8F0] flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 shrink-0 relative">
+                          {item.imageUrl ? (
+                            <img
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
+                              Sem foto
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-semibold text-[#1A241E] text-[14px] truncate">
+                            {item.name}
+                          </div>
+                          <div className="text-[12px] text-[#637267] flex items-center gap-2">
+                            <span>De {formatBRL(item.priceCents)} por <strong className="text-[#2E7D32]">{formatBRL(item.promoPriceCents)}</strong></span>
+                            {item.discountPercentage > 0 && (
+                              <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                                -{item.discountPercentage}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-[#E65100] mt-0.5">
+                            💡 Poucas pessoas pediram. Dica: ajuste o desconto ou melhore a apresentação!
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPromoModal(item)}
+                          className="text-[12px] font-semibold text-[#2E4233] bg-white border border-[#E3E1D9] hover:bg-[#F4F3ED] px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                        >
+                          Ajustar Oferta
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
+
+            {/* Pagination Controls */}
+            {slowTotalPages > 1 && (
+              <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#ECEAE2] text-[12px] text-[#637267]">
+                <span>
+                  {(slowPage - 1) * ITEMS_PER_BOX + 1}–{Math.min(slowPage * ITEMS_PER_BOX, allSlowPerformers.length)} de {allSlowPerformers.length} pratos
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={slowPage <= 1}
+                    onClick={() => setSlowPage(p => Math.max(1, p - 1))}
+                    className="p-1.5 rounded-lg border border-[#E3E1D9] bg-white hover:bg-[#F4F3ED] text-[#2E4233] disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    aria-label="Página anterior"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <span className="font-semibold text-[#1A241E] px-1.5">
+                    {slowPage} de {slowTotalPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={slowPage >= slowTotalPages}
+                    onClick={() => setSlowPage(p => Math.min(slowTotalPages, p + 1))}
+                    className="p-1.5 rounded-lg border border-[#E3E1D9] bg-white hover:bg-[#F4F3ED] text-[#2E4233] disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    aria-label="Próxima página"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* ============================================================ */}
-        {/* TABELA DE GESTÃO COMPLETA DE PRATOS E PROMOÇÕES              */}
+        {/* TABELA: GESTÃO DE PROMOÇÕES COM TOOLTIP E SWITCH             */}
         {/* ============================================================ */}
         <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-              <h2 className="font-serif text-[22px] font-semibold text-[#1A241E]">
-                Gestão de Promoções do Cardápio
-              </h2>
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="font-serif text-[22px] font-semibold text-[#1A241E]">
+                  Gestão de Promoções
+                </h2>
+                {/* Tooltip */}
+                <div className="relative group inline-block">
+                  <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
+                    ?
+                  </div>
+                  <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                    <p className="text-[13px] text-white mb-2 leading-relaxed">
+                      <span className="font-extrabold text-white">Gestão Centralizada:</span> Edite qualquer item do cardápio para criar ou ajustar promoções.
+                    </p>
+                    <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white/90">
+                      <div className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                        <span>Ligue ou pause a promoção instantaneamente pelo switch de status.</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                        <span>Clique em <strong>Editar Promoção</strong> para alterar porcentagem e agendar datas.</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
+                        <span>Use as abas para alternar entre todos os pratos ou apenas os que estão em promoção.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <p className="text-[13px] text-[#637267]">
                 Altere regras de desconto, configure prazos e controle o status promocional dos seus pratos.
               </p>
@@ -534,7 +657,7 @@ export default function PromotionsClient({
                   <th className="pb-3 font-semibold">Adicionais</th>
                   <th className="pb-3 font-semibold">Saídas / Cliques</th>
                   <th className="pb-3 font-semibold">Faturamento</th>
-                  <th className="pb-3 font-semibold">Status</th>
+                  <th className="pb-3 text-center font-semibold">Status</th>
                   <th className="pb-3 text-right pr-1 font-semibold">Ações</th>
                 </tr>
               </thead>
@@ -633,20 +756,28 @@ export default function PromotionsClient({
                         {formatBRL(product.totalRevenueCents)}
                       </td>
 
-                      {/* Status */}
-                      <td className="py-3.5">
-                        <button
-                          type="button"
-                          onClick={() => handleTogglePromo(product.id, product.inPromo)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
-                            product.inPromo
-                              ? "bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#C8E6C9]"
-                              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                          }`}
-                        >
-                          <span className={`w-2 h-2 rounded-full ${product.inPromo ? "bg-[#2E7D32]" : "bg-gray-400"}`}></span>
-                          <span>{product.inPromo ? "Ativa" : "Pausada"}</span>
-                        </button>
+                      {/* Status com Switch DeliPlus */}
+                      <td className="py-3.5 align-middle text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex flex-col items-center justify-center">
+                          <Switch
+                            checked={product.inPromo}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTogglePromo(product.id, product.inPromo);
+                            }}
+                            onCheckedChange={() => handleTogglePromo(product.id, product.inPromo)}
+                            activeTrackColor="bg-[#2E4233]"
+                            inactiveTrackColor="bg-[#CB5A3C]"
+                            aria-label={`Alternar promoção de ${product.name}`}
+                          />
+                          <span
+                            className={`text-[10.5px] font-semibold mt-0.5 transition-colors ${
+                              product.inPromo ? "text-[#2E4233]" : "text-[#CB5A3C]"
+                            }`}
+                          >
+                            {product.inPromo ? "Ativa" : "Pausada"}
+                          </span>
+                        </div>
                       </td>
 
                       {/* Ações */}
@@ -666,30 +797,6 @@ export default function PromotionsClient({
               </tbody>
             </table>
           </div>
-        </div>
-
-        {/* ============================================================ */}
-        {/* BANNER ESTRATÉGICO: ADICIONAIS & CARDÁPIO                    */}
-        {/* ============================================================ */}
-        <div className="bg-gradient-to-r from-[#253629] to-[#364D3B] text-white rounded-[22px] p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-5">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-[#CB5A3C] font-semibold text-[13px]">
-              <Sparkles size={16} />
-              <span>Dica de Ouro da Engenharia de Cardápio</span>
-            </div>
-            <h3 className="font-serif text-[20px] font-semibold text-white">
-              O prato em promoção atrai o clique. O adicional gera o lucro real!
-            </h3>
-            <p className="text-[13px] text-white/80 max-w-xl">
-              Clientes que economizam no prato principal tendem a adicionar queijo duplo, bacon ou refrigerante. Certifique-se de que seus pratos em oferta tenham pelo menos 2 adicionais cadastrados no Cardápio.
-            </p>
-          </div>
-          <Link
-            href="/dashboard/menu"
-            className="shrink-0 bg-white text-[#253629] hover:bg-[#FAF8F0] font-semibold text-[14px] px-5 py-2.5 rounded-xl shadow-sm transition-all"
-          >
-            Cadastrar Adicionais
-          </Link>
         </div>
       </div>
 
