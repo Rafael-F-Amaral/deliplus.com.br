@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -404,6 +404,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "categories_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          min_order_cents: number
+          status: string
+          store_id: string
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          min_order_cents?: number
+          status?: string
+          store_id: string
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          min_order_cents?: number
+          status?: string
+          store_id?: string
+          updated_at?: string
+          uses_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -968,6 +1024,53 @@ export type Database = {
           },
         ]
       }
+      store_marketing_settings: {
+        Row: {
+          banner_color: string
+          banner_enabled: boolean
+          banner_text: string
+          created_at: string
+          loyalty_enabled: boolean
+          loyalty_goal_orders: number
+          loyalty_reward_cents: number
+          loyalty_reward_text: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          banner_color?: string
+          banner_enabled?: boolean
+          banner_text?: string
+          created_at?: string
+          loyalty_enabled?: boolean
+          loyalty_goal_orders?: number
+          loyalty_reward_cents?: number
+          loyalty_reward_text?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          banner_color?: string
+          banner_enabled?: boolean
+          banner_text?: string
+          created_at?: string
+          loyalty_enabled?: boolean
+          loyalty_goal_orders?: number
+          loyalty_reward_cents?: number
+          loyalty_reward_text?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_marketing_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stores: {
         Row: {
           activated_at: string | null
@@ -1116,6 +1219,31 @@ export type Database = {
             foreignKeyName: "inventory_items_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_summaries: {
+        Row: {
+          active_coupons_count: number | null
+          banner_color: string | null
+          banner_enabled: boolean | null
+          banner_text: string | null
+          loyalty_enabled: boolean | null
+          loyalty_goal_orders: number | null
+          loyalty_reward_cents: number | null
+          store_id: string | null
+          store_name: string | null
+          store_slug: string | null
+          total_coupon_uses: number | null
+          total_coupons_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },

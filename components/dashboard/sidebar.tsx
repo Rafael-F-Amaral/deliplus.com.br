@@ -22,7 +22,6 @@ const menuItems = [
   { name: 'Pedidos', short: 'Pedidos', href: '/dashboard/orders', icon: ShoppingBag },
   { name: 'Cardápio', short: 'Cardápio', href: '/dashboard/menu', icon: BookOpen },
   { name: 'Estoque', short: 'Estoque', href: '/dashboard/inventory', icon: Package },
-  { name: 'Clientes', short: 'Clientes', href: '/dashboard/customers', icon: User },
   { name: 'Marketing', short: 'Marketing', href: '/dashboard/marketing', icon: Megaphone },
   { name: 'Financeiro', short: 'Financeiro', href: '/dashboard/finance', icon: CircleDollarSign },
   { name: 'Relatórios', short: 'Relatórios', href: '/dashboard/reports', icon: BarChart3 },

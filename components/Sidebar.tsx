@@ -20,7 +20,6 @@ export function Sidebar({ activePath }: { activePath: string }) {
     { label: "Visão geral", icon: Home, href: "/visao-geral" },
     { label: "Pedidos", icon: ShoppingBag, href: "/pedidos" },
     { label: "Cardápio", icon: BookOpen, href: "/cardapio" },
-    { label: "Clientes", icon: Users, href: "/clientes" },
     { label: "Marketing", icon: Megaphone, href: "/marketing" },
     { label: "Financeiro", icon: DollarSign, href: "/financeiro" },
     { label: "Relatórios", icon: BarChart3, href: "/relatorios" },
