@@ -7,10 +7,7 @@ import {
   Check,
   Edit3,
   X,
-  Layers,
-  Calendar,
-  ChevronLeft,
-  ChevronRight
+  Layers
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toggleProductPromo, updateProductPromoFull } from "../actions";
@@ -384,11 +381,6 @@ export default function PromotionsClient({
                                 </span>
                               )}
                             </div>
-                            {item.complementsCount > 0 && (
-                              <div className="text-[11px] text-[#CB5A3C] font-medium mt-0.5">
-                                ★ {item.complementsCount} adicionais vinculados aumentam o ticket!
-                              </div>
-                            )}
                           </div>
                         </div>
 
@@ -410,35 +402,23 @@ export default function PromotionsClient({
               </div>
             </div>
 
-            {/* Pagination Controls */}
+            {/* Pagination Controls no padrão DeliPlus */}
             {topTotalPages > 1 && (
-              <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#ECEAE2] text-[12px] text-[#637267]">
-                <span>
-                  {(topPage - 1) * ITEMS_PER_BOX + 1}–{Math.min(topPage * ITEMS_PER_BOX, allTopPerformers.length)} de {allTopPerformers.length} pratos
-                </span>
-                <div className="flex items-center gap-1.5">
+              <div className="flex justify-center items-center gap-1.5 pt-3 mt-3 border-t border-[#ECEAE2]">
+                {Array.from({ length: topTotalPages }).map((_, i) => (
                   <button
+                    key={i}
                     type="button"
-                    disabled={topPage <= 1}
-                    onClick={() => setTopPage(p => Math.max(1, p - 1))}
-                    className="p-1.5 rounded-lg border border-[#E3E1D9] bg-white hover:bg-[#F4F3ED] text-[#2E4233] disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                    aria-label="Página anterior"
+                    onClick={() => setTopPage(i + 1)}
+                    className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                      topPage === i + 1
+                        ? "bg-[#CB5A3C] text-white shadow-sm"
+                        : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                    }`}
                   >
-                    <ChevronLeft size={14} />
+                    {i + 1}
                   </button>
-                  <span className="font-semibold text-[#1A241E] px-1.5">
-                    {topPage} de {topTotalPages}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={topPage >= topTotalPages}
-                    onClick={() => setTopPage(p => Math.min(topTotalPages, p + 1))}
-                    className="p-1.5 rounded-lg border border-[#E3E1D9] bg-white hover:bg-[#F4F3ED] text-[#2E4233] disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                    aria-label="Próxima página"
-                  >
-                    <ChevronRight size={14} />
-                  </button>
-                </div>
+                ))}
               </div>
             )}
           </div>
@@ -523,9 +503,6 @@ export default function PromotionsClient({
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-[#E65100] mt-0.5">
-                            💡 Poucas pessoas pediram. Dica: ajuste o desconto ou melhore a apresentação!
-                          </div>
                         </div>
                       </div>
 
@@ -544,35 +521,23 @@ export default function PromotionsClient({
               </div>
             </div>
 
-            {/* Pagination Controls */}
+            {/* Pagination Controls no padrão DeliPlus */}
             {slowTotalPages > 1 && (
-              <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#ECEAE2] text-[12px] text-[#637267]">
-                <span>
-                  {(slowPage - 1) * ITEMS_PER_BOX + 1}–{Math.min(slowPage * ITEMS_PER_BOX, allSlowPerformers.length)} de {allSlowPerformers.length} pratos
-                </span>
-                <div className="flex items-center gap-1.5">
+              <div className="flex justify-center items-center gap-1.5 pt-3 mt-3 border-t border-[#ECEAE2]">
+                {Array.from({ length: slowTotalPages }).map((_, i) => (
                   <button
+                    key={i}
                     type="button"
-                    disabled={slowPage <= 1}
-                    onClick={() => setSlowPage(p => Math.max(1, p - 1))}
-                    className="p-1.5 rounded-lg border border-[#E3E1D9] bg-white hover:bg-[#F4F3ED] text-[#2E4233] disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                    aria-label="Página anterior"
+                    onClick={() => setSlowPage(i + 1)}
+                    className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                      slowPage === i + 1
+                        ? "bg-[#CB5A3C] text-white shadow-sm"
+                        : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                    }`}
                   >
-                    <ChevronLeft size={14} />
+                    {i + 1}
                   </button>
-                  <span className="font-semibold text-[#1A241E] px-1.5">
-                    {slowPage} de {slowTotalPages}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={slowPage >= slowTotalPages}
-                    onClick={() => setSlowPage(p => Math.min(slowTotalPages, p + 1))}
-                    className="p-1.5 rounded-lg border border-[#E3E1D9] bg-white hover:bg-[#F4F3ED] text-[#2E4233] disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                    aria-label="Próxima página"
-                  >
-                    <ChevronRight size={14} />
-                  </button>
-                </div>
+                ))}
               </div>
             )}
           </div>
@@ -821,7 +786,34 @@ export default function PromotionsClient({
               {/* Header */}
               <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
                 <div className="flex flex-col">
-                  <h3 className="font-bold text-[#CB5A3C] text-base">Preço Promocional</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-[#CB5A3C] text-base">Preço Promocional</h3>
+                    {/* Tooltip Preço Promocional */}
+                    <div className="relative group inline-block">
+                      <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
+                        ?
+                      </div>
+                      <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[130] pointer-events-none">
+                        <p className="text-[12px] text-white leading-relaxed">
+                          <span className="font-extrabold text-white">Estratégia de Preço Promocional:</span>
+                        </p>
+                        <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-white/10 text-[11px] text-white/90">
+                          <div className="flex items-start gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
+                            <span><strong>Âncora de Valor:</strong> Exibir o valor original riscado ao lado do promocional ativa a percepção imediata de economia no cliente.</span>
+                          </div>
+                          <div className="flex items-start gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
+                            <span><strong>Porta de Entrada:</strong> Ofertas atraem novos compradores para experimentar a loja e que voltam depois pelo cardápio regular.</span>
+                          </div>
+                          <div className="flex items-start gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
+                            <span><strong>Equilíbrio de Margem:</strong> Descontos estratégicos entre 10% e 20% aceleram o giro e a receita bruta sem sacrificar a rentabilidade.</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <span className="text-xs text-gray-500 font-medium truncate max-w-[280px]">
                     {editingPromoProduct.name}
                   </span>
@@ -913,10 +905,32 @@ export default function PromotionsClient({
                   {/* Programação da Promoção */}
                   <div className="flex flex-col gap-2.5 pt-3 border-t border-gray-100 p-1 rounded-xl">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-gray-500" />
-                        Programar promoção
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-gray-700">
+                          Programar promoção
+                        </span>
+                        {/* Tooltip Programar Promoção */}
+                        <div className="relative group inline-block">
+                          <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
+                            ?
+                          </div>
+                          <div className="absolute bottom-full left-0 mb-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[130] pointer-events-none">
+                            <p className="text-[12px] text-white leading-relaxed">
+                              <span className="font-extrabold text-white">Como funciona o agendamento:</span>
+                            </p>
+                            <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-white/10 text-[11px] text-white/90">
+                              <div className="flex items-start gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
+                                <span><strong>Prazo indeterminado:</strong> A promoção permanece ativa continuamente no cardápio online até você desativá-la manualmente.</span>
+                              </div>
+                              <div className="flex items-start gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
+                                <span><strong>Datas programadas:</strong> O desconto entra no ar automaticamente às 00h00 da data inicial e encerra às 23h59 da data final, sem necessidade de alteração manual.</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2 select-none">
                         <span
                           onClick={() => setPromoIndefinite(!promoIndefinite)}

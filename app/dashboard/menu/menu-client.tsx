@@ -2934,67 +2934,7 @@ export default function MenuClient({
 
             {/* Body */}
             <div className="p-5 flex flex-col gap-4 overflow-y-auto">
-              {/* Lista de Adicionais Atuais */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#CB5A3C]">
-                    Adicionais Cadastrados ({adicionaisList.length})
-                  </span>
-                </div>
-
-                {adicionaisList.length === 0 ? (
-                  <div className="p-4 bg-[#FDE7DE] rounded-xl border-2 border-dashed border-[#CB5A3C]/40 text-center text-xs text-[#8A3822] font-semibold">
-                    Nenhum adicional cadastrado ainda. Use o formulário abaixo para adicionar opções.
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                    {adicionaisList.map((ad, idx) => (
-                      <div
-                        key={ad.id || idx}
-                        className="flex items-center justify-between p-2.5 rounded-xl border-2 border-[#CB5A3C]/40 bg-white hover:border-[#CB5A3C] transition-all shadow-2xs gap-3"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          {/* Foto do Adicional */}
-                          <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#E9E4D4] bg-[#FAF8F0] shrink-0 flex items-center justify-center">
-                            {ad.image ? (
-                              <img src={ad.image} alt={ad.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <Camera className="w-4 h-4 text-gray-400" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-xs text-[#2E4233] truncate">
-                                {ad.name}
-                              </span>
-                              <span className="text-xs font-bold text-[#CB5A3C] shrink-0">
-                                {ad.price}
-                              </span>
-                            </div>
-                            {ad.description && (
-                              <p className="text-[11px] text-gray-500 truncate">{ad.description}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Ação: Excluir */}
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => setAdicionalToDelete(ad)}
-                            className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-colors cursor-pointer"
-                            title="Excluir adicional"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Formulário: Adicionar Adicional */}
+              {/* Formulário: Adicionar Adicional (No topo conforme solicitado) */}
               <div className="p-3.5 bg-[#FAF8F0]/70 rounded-xl border border-[#E9E4D4] flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-[#CB5A3C]">
@@ -3138,6 +3078,66 @@ export default function MenuClient({
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Lista de Adicionais Atuais (Embaixo conforme solicitado) */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#CB5A3C]">
+                    Adicionais Cadastrados ({adicionaisList.length})
+                  </span>
+                </div>
+
+                {adicionaisList.length === 0 ? (
+                  <div className="p-4 bg-[#FDE7DE] rounded-xl border-2 border-dashed border-[#CB5A3C]/40 text-center text-xs text-[#8A3822] font-semibold">
+                    Nenhum adicional cadastrado ainda. Use o formulário acima para adicionar opções.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {adicionaisList.map((ad, idx) => (
+                      <div
+                        key={ad.id || idx}
+                        className="flex items-center justify-between p-2.5 rounded-xl border-2 border-[#CB5A3C]/40 bg-white hover:border-[#CB5A3C] transition-all shadow-2xs gap-3"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {/* Foto do Adicional */}
+                          <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#E9E4D4] bg-[#FAF8F0] shrink-0 flex items-center justify-center">
+                            {ad.image ? (
+                              <img src={ad.image} alt={ad.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <Camera className="w-4 h-4 text-gray-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-xs text-[#2E4233] truncate">
+                                {ad.name}
+                              </span>
+                              <span className="text-xs font-bold text-[#CB5A3C] shrink-0">
+                                {ad.price}
+                              </span>
+                            </div>
+                            {ad.description && (
+                              <p className="text-[11px] text-gray-500 truncate">{ad.description}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Ação: Excluir */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setAdicionalToDelete(ad)}
+                            className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-colors cursor-pointer"
+                            title="Excluir adicional"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
