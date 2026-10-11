@@ -170,3 +170,56 @@ export async function updateProductPromoPrice(
   revalidatePath("/dashboard/menu");
   return { success: true };
 }
+
+export async function updateProductPromoFull(
+  productId: string,
+  data: {
+    promoPriceCents: number | null;
+    inPromo: boolean;
+    promoIndefinite: boolean;
+    promoStartDate: string | null;
+    promoEndDate: string | null;
+  }
+) {
+  const { storeId, supabase } = await resolveActionContext();
+
+  let { error } = await supabase
+    .from("products")
+    .update({
+      promo_price_cents: data.inPromo ? data.promoPriceCents : null,
+      in_promo: data.inPromo,
+      promo_indefinite: data.promoIndefinite,
+      promo_start_date: data.promoStartDate || null,
+      promo_end_date: data.promoEndDate || null
+    })
+    .eq("id", productId)
+    .eq("store_id", storeId);
+
+  if (error && process.env.NODE_ENV === "development") {
+    const { createAdminSupabaseClient } = await import("@/lib/supabase/admin");
+    const adminClient = createAdminSupabaseClient();
+    const retry = await adminClient
+      .from("products")
+      .update({
+        promo_price_cents: data.inPromo ? data.promoPriceCents : null,
+        in_promo: data.inPromo,
+        promo_indefinite: data.promoIndefinite,
+        promo_start_date: data.promoStartDate || null,
+        promo_end_date: data.promoEndDate || null
+      })
+      .eq("id", productId)
+      .eq("store_id", storeId);
+    error = retry.error;
+  }
+
+  if (error) {
+    console.error("Erro ao salvar promoção completa:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/dashboard/marketing");
+  revalidatePath("/dashboard/marketing/promotions");
+  revalidatePath("/dashboard/menu");
+  return { success: true };
+}
+

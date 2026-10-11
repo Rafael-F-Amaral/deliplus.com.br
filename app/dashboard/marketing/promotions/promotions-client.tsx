@@ -1,25 +1,23 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useMemo } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   TrendingUp,
   TrendingDown,
   Sparkles,
-  Utensils,
-  ShoppingBag,
-  DollarSign,
-  MousePointerClick,
   Copy,
   Check,
   Edit3,
   X,
   ExternalLink,
   Layers,
-  ArrowRight
+  Calendar
 } from "lucide-react";
-import { toggleProductPromo, updateProductPromoPrice } from "../actions";
+import { Switch } from "@/components/ui/switch";
+import { toggleProductPromo, updateProductPromoFull } from "../actions";
 
 export interface PromoProduct {
   id: string;
@@ -30,6 +28,9 @@ export interface PromoProduct {
   promoPriceCents: number | null;
   discountPercentage: number;
   inPromo: boolean;
+  promoIndefinite?: boolean;
+  promoStartDate?: string | null;
+  promoEndDate?: string | null;
   complementsCount: number;
   totalSold: number;
   totalRevenueCents: number;
@@ -43,16 +44,98 @@ interface PromotionsClientProps {
   initialPromoProducts: PromoProduct[];
 }
 
+function formatPromoPeriod(
+  startDateStr?: string | null,
+  endDateStr?: string | null,
+  isIndefinite?: boolean
+): { periodText: string; totalDays: number } {
+  if (isIndefinite) {
+    return {
+      periodText: "Prazo indeterminado",
+      totalDays: Infinity
+    };
+  }
+
+  if (!startDateStr && !endDateStr) {
+    return {
+      periodText: "Prazo indeterminado",
+      totalDays: Infinity
+    };
+  }
+
+  const parseLocalDate = (dateStr: string) => {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  const start = startDateStr ? parseLocalDate(startDateStr) : null;
+  const end = endDateStr ? parseLocalDate(endDateStr) : null;
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
+  };
+
+  if (start && end) {
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return {
+      periodText: `${formatDate(start)} até ${formatDate(end)} (${totalDays} ${totalDays === 1 ? "dia" : "dias"})`,
+      totalDays
+    };
+  } else if (start) {
+    return {
+      periodText: `A partir de ${formatDate(start)}`,
+      totalDays: Infinity
+    };
+  } else if (end) {
+    return {
+      periodText: `Até ${formatDate(end)}`,
+      totalDays: Infinity
+    };
+  }
+
+  return { periodText: "Prazo indeterminado", totalDays: Infinity };
+}
+
 export default function PromotionsClient({
   storeSlug = "loja",
   initialPromoProducts = []
 }: PromotionsClientProps) {
   const [promoProducts, setPromoProducts] = useState<PromoProduct[]>(initialPromoProducts);
   const [copiedText, setCopiedText] = useState<string | null>(null);
+  const [feedbackNotification, setFeedbackNotification] = useState<string | null>(null);
 
-  // Modal State for Promo Price edit
-  const [editingPromoProduct, setEditingPromoProduct] = useState<PromoProduct | null>(null);
-  const [editPromoPrice, setEditPromoPrice] = useState<number>(0);
+  // Table filter: "todos" | "em_promocao"
+  const [tableFilter, setTableFilter] = useState<"todos" | "em_promocao">("todos");
+
+  // Auto-open modal if navigated from Cardápio with ?editProduct=xxx
+  const searchParams = useSearchParams();
+  const editProductId = searchParams.get("editProduct");
+
+  const initialTarget = useMemo(() => {
+    if (!editProductId) return null;
+    return initialPromoProducts.find(p => p.id === editProductId) || null;
+  }, [editProductId, initialPromoProducts]);
+
+  // Rich Promo Modal State
+  const [editingPromoProduct, setEditingPromoProduct] = useState<PromoProduct | null>(initialTarget);
+  const [discountPercentInput, setDiscountPercentInput] = useState<string>(() => {
+    if (!initialTarget) return "15";
+    return initialTarget.discountPercentage > 0
+      ? initialTarget.discountPercentage.toString()
+      : (initialTarget.promoPriceCents && initialTarget.priceCents > 0
+          ? Math.round(((initialTarget.priceCents - initialTarget.promoPriceCents) / initialTarget.priceCents) * 100).toString()
+          : "15");
+  });
+  const [promoIndefinite, setPromoIndefinite] = useState<boolean>(() => initialTarget?.promoIndefinite ?? true);
+  const [promoStartDate, setPromoStartDate] = useState<string>(() => initialTarget?.promoStartDate || "");
+  const [promoEndDate, setPromoEndDate] = useState<string>(() => initialTarget?.promoEndDate || "");
+  const [promoIsActive, setPromoIsActive] = useState<boolean>(() => initialTarget?.inPromo ?? true);
+
   const [, startTransition] = useTransition();
 
   // Helper format BRL
@@ -64,16 +147,31 @@ export default function PromotionsClient({
     }).replace(/\s+/, " ");
   };
 
+  const handleOpenPromoModal = (product: PromoProduct) => {
+    setEditingPromoProduct(product);
+    const existingDiscount = product.discountPercentage > 0
+      ? product.discountPercentage.toString()
+      : (product.promoPriceCents && product.priceCents > 0
+          ? Math.round(((product.priceCents - product.promoPriceCents) / product.priceCents) * 100).toString()
+          : "15");
+    setDiscountPercentInput(existingDiscount);
+    setPromoIndefinite(product.promoIndefinite ?? true);
+    setPromoStartDate(product.promoStartDate || "");
+    setPromoEndDate(product.promoEndDate || "");
+    setPromoIsActive(product.inPromo);
+  };
+
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedText(id);
     setTimeout(() => setCopiedText(null), 2500);
   };
 
-  // Toggle inPromo status
+  // Toggle promo status directly from table row
   const handleTogglePromo = (productId: string, currentInPromo: boolean) => {
+    const nextInPromo = !currentInPromo;
     setPromoProducts(prev =>
-      prev.map(p => (p.id === productId ? { ...p, inPromo: !currentInPromo } : p))
+      prev.map(p => (p.id === productId ? { ...p, inPromo: nextInPromo } : p))
     );
 
     startTransition(async () => {
@@ -82,21 +180,23 @@ export default function PromotionsClient({
         setPromoProducts(prev =>
           prev.map(p => (p.id === productId ? { ...p, inPromo: currentInPromo } : p))
         );
+      } else {
+        setFeedbackNotification(nextInPromo ? "Promoção ativada!" : "Promoção pausada.");
+        setTimeout(() => setFeedbackNotification(null), 3000);
       }
     });
   };
 
-  // Save Promo Price
-  const handleSavePromoPrice = async (e: React.FormEvent) => {
+  // Save Full Promo Settings from Modal
+  const handleSavePromoFull = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPromoProduct) return;
 
-    const newPriceCents = Math.round(editPromoPrice * 100);
-    if (newPriceCents <= 0) return;
-
-    const discount = editingPromoProduct.priceCents > 0
-      ? Math.round(((editingPromoProduct.priceCents - newPriceCents) / editingPromoProduct.priceCents) * 100)
-      : 0;
+    const origNum = editingPromoProduct.priceCents / 100;
+    const pct = parseFloat(discountPercentInput) || 0;
+    const cappedPct = Math.min(Math.max(pct, 1), 99);
+    const calculatedPromo = origNum * (1 - cappedPct / 100);
+    const calculatedPromoCents = Math.round(calculatedPromo * 100);
 
     const targetId = editingPromoProduct.id;
     setPromoProducts(prev =>
@@ -104,39 +204,77 @@ export default function PromotionsClient({
         p.id === targetId
           ? {
               ...p,
-              promoPriceCents: newPriceCents,
-              discountPercentage: discount,
-              inPromo: true
+              promoPriceCents: promoIsActive ? calculatedPromoCents : null,
+              discountPercentage: promoIsActive ? cappedPct : 0,
+              inPromo: promoIsActive,
+              promoIndefinite,
+              promoStartDate: promoStartDate || null,
+              promoEndDate: promoEndDate || null
             }
           : p
       )
     );
-    setEditingPromoProduct(null);
 
-    await updateProductPromoPrice(targetId, newPriceCents, true);
+    setEditingPromoProduct(null);
+    setFeedbackNotification(
+      promoIsActive
+        ? `Promoção salva! Preço promocional: ${formatBRL(calculatedPromoCents)} (-${cappedPct}%)`
+        : "Promoção desativada com sucesso."
+    );
+    setTimeout(() => setFeedbackNotification(null), 3500);
+
+    startTransition(async () => {
+      await updateProductPromoFull(targetId, {
+        promoPriceCents: promoIsActive ? calculatedPromoCents : null,
+        inPromo: promoIsActive,
+        promoIndefinite,
+        promoStartDate: promoStartDate || null,
+        promoEndDate: promoEndDate || null
+      });
+    });
   };
 
-  // Aggregated Stats
-  const activePromoCount = promoProducts.filter(p => p.inPromo).length;
-  const totalPromoSold = promoProducts.reduce((sum, p) => sum + p.totalSold, 0);
-  const totalPromoRevenue = promoProducts.reduce((sum, p) => sum + p.totalRevenueCents, 0);
-  const totalPromoClicks = promoProducts.reduce((sum, p) => sum + p.clicksCount, 0);
+  // Filter only items in promo for sales ranking insights
+  const promoOnlyProducts = useMemo(
+    () => promoProducts.filter(p => p.inPromo || p.promoPriceCents !== null),
+    [promoProducts]
+  );
+  const sortedBySales = useMemo(
+    () => [...promoOnlyProducts].sort((a, b) => b.totalSold - a.totalSold),
+    [promoOnlyProducts]
+  );
+  const topPerformers = useMemo(() => sortedBySales.slice(0, 2), [sortedBySales]);
+  const slowPerformers = useMemo(
+    () => [...promoOnlyProducts]
+      .sort((a, b) => a.totalSold - b.totalSold)
+      .filter(p => p.totalSold <= 4)
+      .slice(0, 2),
+    [promoOnlyProducts]
+  );
 
-  // Top vs Slow Performers
-  const sortedBySales = [...promoProducts].sort((a, b) => b.totalSold - a.totalSold);
-  const topPerformers = sortedBySales.slice(0, 2);
-  const slowPerformers = [...promoProducts]
-    .sort((a, b) => a.totalSold - b.totalSold)
-    .filter(p => p.totalSold <= 4)
-    .slice(0, 2);
+  // Filter table list
+  const filteredTableProducts = useMemo(() => {
+    if (tableFilter === "em_promocao") {
+      return promoProducts.filter(p => p.inPromo || p.promoPriceCents !== null);
+    }
+    return promoProducts;
+  }, [promoProducts, tableFilter]);
 
   return (
     <div className="flex-1 bg-[#F7F6F2] min-h-screen text-[#1A241E] p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
+        {/* Toast / Notification feedback */}
+        {feedbackNotification && (
+          <div className="fixed bottom-6 right-6 z-[160] bg-[#2E4233] text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 text-sm font-semibold animate-in fade-in slide-in-from-bottom-2">
+            <Check size={16} className="text-[#A4E0A6]" />
+            <span>{feedbackNotification}</span>
+          </div>
+        )}
+
         {/* ============================================================ */}
-        {/* HEADER & ACTIONS                                             */}
+        {/* HEADER & ACTIONS (SEM KPIS)                                  */}
         {/* ============================================================ */}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-[#2E4233]/10 text-[#2E4233]">
@@ -177,95 +315,6 @@ export default function PromotionsClient({
         </div>
 
         {/* ============================================================ */}
-        {/* 4 SUMMARY METRIC CARDS                                       */}
-        {/* ============================================================ */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 mb-6 lg:mb-8">
-          {/* Card 1: Promoções Ativas */}
-          <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#F4F3EE] border border-[#ECEAE2] flex items-center justify-center text-[#2E4233] shrink-0">
-                <Utensils size={19} strokeWidth={2} />
-              </div>
-              <span className="text-[13px] sm:text-[14px] font-medium text-[#5D6B60] leading-tight">
-                Pratos em Promoção
-              </span>
-            </div>
-            <div>
-              <div className="text-[26px] sm:text-[32px] font-bold text-[#1A241E] tracking-tight leading-none mb-1.5">
-                {activePromoCount} ativos
-              </div>
-              <div className="text-[12px] sm:text-[13px] font-medium text-[#2E7D32] flex items-center gap-1">
-                <span>●</span>
-                <span>Configurados no cardápio</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Pedidos c/ Itens Promocionais */}
-          <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#F4F3EE] border border-[#ECEAE2] flex items-center justify-center text-[#CB5A3C] shrink-0">
-                <ShoppingBag size={19} strokeWidth={2} />
-              </div>
-              <span className="text-[13px] sm:text-[14px] font-medium text-[#5D6B60] leading-tight">
-                Pratos Promocionais Vendidos
-              </span>
-            </div>
-            <div>
-              <div className="text-[26px] sm:text-[32px] font-bold text-[#1A241E] tracking-tight leading-none mb-1.5">
-                {totalPromoSold} saídas
-              </div>
-              <div className="text-[12px] sm:text-[13px] font-medium text-[#2E7D32] flex items-center gap-1">
-                <span>▲</span>
-                <span>Alta aceitação no balcão</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Faturamento Gerado */}
-          <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#F4F3EE] border border-[#ECEAE2] flex items-center justify-center text-[#2E4233] shrink-0">
-                <DollarSign size={19} strokeWidth={2} />
-              </div>
-              <span className="text-[13px] sm:text-[14px] font-medium text-[#5D6B60] leading-tight">
-                Faturamento das Promoções
-              </span>
-            </div>
-            <div>
-              <div className="text-[24px] sm:text-[32px] font-bold text-[#1A241E] tracking-tight leading-none mb-1.5">
-                {formatBRL(totalPromoRevenue)}
-              </div>
-              <div className="text-[12px] sm:text-[13px] font-medium text-[#2E7D32] flex items-center gap-1">
-                <span>▲</span>
-                <span>Inclui adicionais vendidos</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Cliques / Visualizações */}
-          <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#F4F3EE] border border-[#ECEAE2] flex items-center justify-center text-[#556358] shrink-0">
-                <MousePointerClick size={19} strokeWidth={2} />
-              </div>
-              <span className="text-[13px] sm:text-[14px] font-medium text-[#5D6B60] leading-tight">
-                Cliques em Pratos Promocionais
-              </span>
-            </div>
-            <div>
-              <div className="text-[26px] sm:text-[32px] font-bold text-[#1A241E] tracking-tight leading-none mb-1.5">
-                {totalPromoClicks} cliques
-              </div>
-              <div className="text-[12px] sm:text-[13px] font-medium text-[#2E7D32] flex items-center gap-1">
-                <span>▲</span>
-                <span>Interesse direto no cardápio</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ============================================================ */}
         {/* SPLIT INSIGHTS: MAIS VENDIDOS VS MENOS VENDIDOS              */}
         {/* ============================================================ */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
@@ -291,57 +340,65 @@ export default function PromotionsClient({
             </div>
 
             <div className="space-y-3">
-              {topPerformers.map((item, idx) => (
-                <div
-                  key={item.id}
-                  className="p-3.5 rounded-xl border border-[#ECEAE2] bg-[#FAF8F0] flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 shrink-0 relative">
-                      {item.imageUrl ? (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
-                          Sem foto
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-[#1A241E] text-[14px] truncate flex items-center gap-1.5">
-                        <span className="text-[#CB5A3C]">#{idx + 1}</span>
-                        <span>{item.name}</span>
-                      </div>
-                      <div className="text-[12px] text-[#637267] flex items-center gap-2">
-                        <span>De {formatBRL(item.priceCents)} por <strong className="text-[#2E7D32]">{formatBRL(item.promoPriceCents)}</strong></span>
-                        <span className="px-1.5 py-0.2 rounded bg-red-100 text-red-700 font-bold text-[10px]">
-                          -{item.discountPercentage}%
-                        </span>
-                      </div>
-                      {item.complementsCount > 0 && (
-                        <div className="text-[11px] text-[#CB5A3C] font-medium mt-0.5">
-                          ★ {item.complementsCount} adicionais vinculados aumentam o ticket!
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <div className="text-[14px] font-bold text-[#1A241E]">
-                      {item.totalSold} vendidos
-                    </div>
-                    <div className="text-[12px] font-semibold text-[#2E7D32]">
-                      {formatBRL(item.totalRevenueCents)}
-                    </div>
-                    <div className="text-[11px] text-[#637267]">
-                      {item.clicksCount} cliques ({item.conversionRate.toFixed(1)}% conv.)
-                    </div>
-                  </div>
+              {topPerformers.length === 0 ? (
+                <div className="text-center py-6 text-[13px] text-[#637267]">
+                  Nenhum prato em promoção cadastrado ainda.
                 </div>
-              ))}
+              ) : (
+                topPerformers.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className="p-3.5 rounded-xl border border-[#ECEAE2] bg-[#FAF8F0] flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 shrink-0 relative">
+                        {item.imageUrl ? (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
+                            Sem foto
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-[#1A241E] text-[14px] truncate flex items-center gap-1.5">
+                          <span className="text-[#CB5A3C]">#{idx + 1}</span>
+                          <span>{item.name}</span>
+                        </div>
+                        <div className="text-[12px] text-[#637267] flex items-center gap-2">
+                          <span>De {formatBRL(item.priceCents)} por <strong className="text-[#2E7D32]">{formatBRL(item.promoPriceCents)}</strong></span>
+                          {item.discountPercentage > 0 && (
+                            <span className="px-1.5 py-0.2 rounded bg-red-100 text-red-700 font-bold text-[10px]">
+                              -{item.discountPercentage}%
+                            </span>
+                          )}
+                        </div>
+                        {item.complementsCount > 0 && (
+                          <div className="text-[11px] text-[#CB5A3C] font-medium mt-0.5">
+                            ★ {item.complementsCount} adicionais vinculados aumentam o ticket!
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <div className="text-[14px] font-bold text-[#1A241E]">
+                        {item.totalSold} vendidos
+                      </div>
+                      <div className="text-[12px] font-semibold text-[#2E7D32]">
+                        {formatBRL(item.totalRevenueCents)}
+                      </div>
+                      <div className="text-[11px] text-[#637267]">
+                        {item.clicksCount} cliques ({item.conversionRate.toFixed(1)}% conv.)
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -397,12 +454,14 @@ export default function PromotionsClient({
                         </div>
                         <div className="text-[12px] text-[#637267] flex items-center gap-2">
                           <span>De {formatBRL(item.priceCents)} por <strong className="text-[#2E7D32]">{formatBRL(item.promoPriceCents)}</strong></span>
-                          <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                            -{item.discountPercentage}%
-                          </span>
+                          {item.discountPercentage > 0 && (
+                            <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                              -{item.discountPercentage}%
+                            </span>
+                          )}
                         </div>
                         <div className="text-[11px] text-[#E65100] mt-0.5">
-                          💡 Poucas pessoas pediram. Dica: melhore a foto ou teste combo!
+                          💡 Poucas pessoas pediram. Dica: ajuste o desconto ou melhore a apresentação!
                         </div>
                       </div>
                     </div>
@@ -410,10 +469,7 @@ export default function PromotionsClient({
                     <div className="text-right shrink-0">
                       <button
                         type="button"
-                        onClick={() => {
-                          setEditingPromoProduct(item);
-                          setEditPromoPrice(item.promoPriceCents ? item.promoPriceCents / 100 : item.priceCents / 100);
-                        }}
+                        onClick={() => handleOpenPromoModal(item)}
                         className="text-[12px] font-semibold text-[#2E4233] bg-white border border-[#E3E1D9] hover:bg-[#F4F3ED] px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                       >
                         Ajustar Oferta
@@ -427,25 +483,44 @@ export default function PromotionsClient({
         </div>
 
         {/* ============================================================ */}
-        {/* TABELA DE GESTÃO COMPLETA DE PRATOS EM PROMOÇÃO              */}
+        {/* TABELA DE GESTÃO COMPLETA DE PRATOS E PROMOÇÕES              */}
         {/* ============================================================ */}
         <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
               <h2 className="font-serif text-[22px] font-semibold text-[#1A241E]">
-                Todos os Pratos Promocionais do Cardápio
+                Gestão de Promoções do Cardápio
               </h2>
               <p className="text-[13px] text-[#637267]">
-                Altere preços promocionais e controle quais pratos estão com desconto ativo na sua loja.
+                Altere regras de desconto, configure prazos e controle o status promocional dos seus pratos.
               </p>
             </div>
-            <Link
-              href="/dashboard/marketing/academy"
-              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#2E7D32] hover:underline"
-            >
-              <span>Ver técnicas de apresentação na Academia Deli</span>
-              <ArrowRight size={14} />
-            </Link>
+
+            {/* Filter Toggle Buttons */}
+            <div className="flex items-center gap-2 bg-[#F4F3EE] p-1 rounded-xl self-start sm:self-auto border border-[#EAE8E0]">
+              <button
+                type="button"
+                onClick={() => setTableFilter("todos")}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  tableFilter === "todos"
+                    ? "bg-white text-[#2E4233] shadow-xs"
+                    : "text-[#637267] hover:text-[#1A241E]"
+                }`}
+              >
+                Todos os Pratos ({promoProducts.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTableFilter("em_promocao")}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  tableFilter === "em_promocao"
+                    ? "bg-white text-[#2E4233] shadow-xs"
+                    : "text-[#637267] hover:text-[#1A241E]"
+                }`}
+              >
+                Em Promoção ({promoOnlyProducts.length})
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -464,14 +539,14 @@ export default function PromotionsClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#ECEAE2]/60">
-                {promoProducts.length === 0 ? (
+                {filteredTableProducts.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-8 text-center text-[#637267]">
-                      Nenhum produto configurado em promoção. Cadastre um preço promocional no seu Cardápio!
+                      Nenhum prato encontrado com o filtro selecionado.
                     </td>
                   </tr>
                 ) : (
-                  promoProducts.map((product) => (
+                  filteredTableProducts.map((product) => (
                     <tr
                       key={product.id}
                       className="hover:bg-[#FAF8F0]/70 transition-colors"
@@ -508,23 +583,29 @@ export default function PromotionsClient({
                         {product.categoryName || "Geral"}
                       </td>
 
-                      {/* Preço Normal */}
+                      {/* Preço Regular */}
                       <td className="py-3.5 text-[#637267] line-through font-medium">
                         {formatBRL(product.priceCents)}
                       </td>
 
-                      {/* Preço Promo */}
+                      {/* Preço Promocional */}
                       <td className="py-3.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-[#2E7D32] text-[14px]">
-                            {formatBRL(product.promoPriceCents)}
-                          </span>
-                          {product.discountPercentage > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                              -{product.discountPercentage}%
+                        {product.promoPriceCents ? (
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-[#CB5A3C] text-[14px]">
+                              {formatBRL(product.promoPriceCents)}
                             </span>
-                          )}
-                        </div>
+                            {product.discountPercentage > 0 && (
+                              <span className="px-1.5 py-0.5 rounded bg-[#FDF2F0] text-[#CB5A3C] border border-[#CB5A3C]/20 font-bold text-[10px]">
+                                -{product.discountPercentage}%
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[13px] text-gray-400 font-medium">
+                            Sem promoção
+                          </span>
+                        )}
                       </td>
 
                       {/* Adicionais Vinculados */}
@@ -572,14 +653,11 @@ export default function PromotionsClient({
                       <td className="py-3.5 text-right pr-1">
                         <button
                           type="button"
-                          onClick={() => {
-                            setEditingPromoProduct(product);
-                            setEditPromoPrice(product.promoPriceCents ? product.promoPriceCents / 100 : product.priceCents / 100);
-                          }}
-                          className="inline-flex items-center gap-1 text-[12px] font-medium text-[#2E4233] bg-[#F4F3EE] hover:bg-[#EAE8E0] px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                          onClick={() => handleOpenPromoModal(product)}
+                          className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#CB5A3C] underline decoration-[#CB5A3C]/60 hover:decoration-[#CB5A3C] hover:text-[#b0482e] transition-all cursor-pointer"
                         >
                           <Edit3 size={13} />
-                          <span>Editar Preço</span>
+                          <span>Editar Promoção</span>
                         </button>
                       </td>
                     </tr>
@@ -591,7 +669,7 @@ export default function PromotionsClient({
         </div>
 
         {/* ============================================================ */}
-        {/* BANNER DESTRATÉGICO: ADICIONAIS & CARDÁPIO                   */}
+        {/* BANNER ESTRATÉGICO: ADICIONAIS & CARDÁPIO                    */}
         {/* ============================================================ */}
         <div className="bg-gradient-to-r from-[#253629] to-[#364D3B] text-white rounded-[22px] p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-5">
           <div className="space-y-1">
@@ -616,73 +694,222 @@ export default function PromotionsClient({
       </div>
 
       {/* ============================================================== */}
-      {/* MODAL: AJUSTAR PREÇO PROMOCIONAL DO PRATO                     */}
+      {/* MODAL COMPLETO DE EDIÇÃO DE PROMOÇÃO (MIGRADO DO CARDÁPIO)      */}
       {/* ============================================================== */}
-      {editingPromoProduct && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-[#E3E1D9] max-w-md w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
-            <button
-              type="button"
-              onClick={() => setEditingPromoProduct(null)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
+      {editingPromoProduct && (() => {
+        const origNum = editingPromoProduct.priceCents / 100;
+        const pct = parseFloat(discountPercentInput) || 0;
+        const calculatedPromo = pct > 0 ? Math.max(0, origNum * (1 - pct / 100)) : origNum;
+        const savings = origNum - calculatedPromo;
+
+        return (
+          <div
+            className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
+            onClick={() => setEditingPromoProduct(null)}
+          >
+            <div
+              className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X size={20} />
-            </button>
-
-            <h3 className="font-serif text-[20px] font-semibold text-[#1A241E] mb-1">
-              Ajustar Preço Promocional
-            </h3>
-            <p className="text-[13px] text-[#637267] mb-4">
-              {editingPromoProduct.name} • Preço Regular: {formatBRL(editingPromoProduct.priceCents)}
-            </p>
-
-            <form onSubmit={handleSavePromoPrice} className="space-y-4">
-              <div>
-                <label className="block text-[13px] font-medium text-[#334237] mb-1">
-                  Novo Preço com Desconto (R$)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-[#637267] text-[14px]">R$</span>
-                  <input
-                    type="number"
-                    step="0.10"
-                    min="0"
-                    max={(editingPromoProduct.priceCents / 100) - 0.10}
-                    value={editPromoPrice}
-                    onChange={(e) => setEditPromoPrice(parseFloat(e.target.value) || 0)}
-                    className="w-full pl-9 pr-4 py-2 border border-[#E3E1D9] rounded-xl text-[15px] font-bold text-[#1A241E] focus:outline-none focus:border-[#253629]"
-                    required
-                  />
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
+                <div className="flex flex-col">
+                  <h3 className="font-bold text-[#CB5A3C] text-base">Preço Promocional</h3>
+                  <span className="text-xs text-gray-500 font-medium truncate max-w-[280px]">
+                    {editingPromoProduct.name}
+                  </span>
                 </div>
-                {editPromoPrice > 0 && editingPromoProduct.priceCents > 0 && (
-                  <div className="text-[12px] text-[#2E7D32] font-semibold mt-1.5 flex items-center gap-1">
-                    <span>Desconto resultante:</span>
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-100">
-                      -{Math.max(0, Math.round(((editingPromoProduct.priceCents - editPromoPrice * 100) / editingPromoProduct.priceCents) * 100))}%
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#ECEAE2]">
                 <button
                   type="button"
                   onClick={() => setEditingPromoProduct(null)}
-                  className="px-4 py-2 text-[14px] text-[#556358] hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                 >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-[14px] font-semibold bg-[#253629] hover:bg-[#1E2C21] text-white rounded-xl shadow-sm transition-all cursor-pointer"
-                >
-                  Salvar Preço
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Form */}
+              <form onSubmit={handleSavePromoFull} className="flex flex-col">
+                {/* Conteúdo configurável (Apagado quando promoção desativada) */}
+                <div className={`p-5 flex flex-col gap-4 transition-all duration-200 ${!promoIsActive ? "opacity-35 pointer-events-none select-none grayscale-[0.3]" : ""}`}>
+                  {/* Comparativo de Preços: Original e Promocional juntos */}
+                  <div className="p-3.5 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-between gap-3 shadow-xs">
+                    <div className="flex flex-col">
+                      <span className="text-[11px] text-gray-500 font-medium">Preço Original</span>
+                      <span className="text-sm font-semibold text-gray-400 line-through">
+                        {formatBRL(editingPromoProduct.priceCents)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FDF2F0] border border-[#CB5A3C]/20">
+                      <span className="text-xs font-bold text-[#CB5A3C]">
+                        -{pct > 0 ? pct : 0}%
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col items-end">
+                      <span className="text-[11px] text-gray-500 font-medium">Preço Promocional</span>
+                      <span className="text-xl font-extrabold text-[#CB5A3C]">
+                        {formatBRL(Math.round(calculatedPromo * 100))}
+                      </span>
+                      {savings > 0 && (
+                        <span className="text-[10.5px] font-semibold text-[#2E4233]">
+                          Economia de {formatBRL(Math.round(savings * 100))}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Campo Porcentagem de Desconto */}
+                  <div className="flex flex-col gap-2 p-1 rounded-xl">
+                    <label className="text-xs font-semibold text-gray-700 flex justify-between">
+                      <span>Porcentagem de Desconto:</span>
+                      <span className="text-[#CB5A3C] font-bold">{pct > 0 ? `${pct}%` : "0%"}</span>
+                    </label>
+
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        max="99"
+                        step="1"
+                        value={discountPercentInput}
+                        onChange={(e) => setDiscountPercentInput(e.target.value)}
+                        placeholder="Ex: 15"
+                        autoFocus={promoIsActive}
+                        className="w-full border border-[#E9E4D4] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#CB5A3C] focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">
+                        %
+                      </span>
+                    </div>
+
+                    {/* Atalhos rápidos de % (Botões na cor verde Deli) */}
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      {[5, 10, 15, 20, 25, 30].map((quickPct) => (
+                        <button
+                          key={quickPct}
+                          type="button"
+                          onClick={() => setDiscountPercentInput(quickPct.toString())}
+                          className={`flex-1 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                            pct === quickPct
+                              ? "bg-[#2E4233] text-white border-[#2E4233]"
+                              : "bg-white text-gray-600 border-[#E9E4D4] hover:bg-[#FAF8F0] hover:text-[#2E4233]"
+                          }`}
+                        >
+                          {quickPct}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Programação da Promoção */}
+                  <div className="flex flex-col gap-2.5 pt-3 border-t border-gray-100 p-1 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                        Programar promoção
+                      </span>
+                      <div className="flex items-center gap-2 select-none">
+                        <span
+                          onClick={() => setPromoIndefinite(!promoIndefinite)}
+                          className="text-[11px] font-medium text-gray-600 cursor-pointer"
+                        >
+                          Prazo indeterminado
+                        </span>
+                        <Switch
+                          checked={promoIndefinite}
+                          onCheckedChange={setPromoIndefinite}
+                          activeTrackColor="bg-[#2E4233]"
+                          inactiveTrackColor="bg-stone-300"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Campos de Data de Início e Data de Término */}
+                    <div className={`grid grid-cols-2 gap-2.5 transition-all duration-200 ${promoIndefinite ? "opacity-35 pointer-events-none select-none grayscale-[0.3]" : ""}`}>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[11px] font-medium text-gray-600">Data de início</label>
+                        <input
+                          type="date"
+                          value={promoStartDate}
+                          onChange={(e) => setPromoStartDate(e.target.value)}
+                          disabled={promoIndefinite}
+                          className="w-full border border-[#E9E4D4] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-[#2E4233]"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[11px] font-medium text-gray-600">Data de término</label>
+                        <input
+                          type="date"
+                          value={promoEndDate}
+                          min={promoStartDate}
+                          onChange={(e) => setPromoEndDate(e.target.value)}
+                          disabled={promoIndefinite}
+                          className="w-full border border-[#E9E4D4] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-[#2E4233]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Resumo do período programado quando NÃO for prazo indeterminado */}
+                    {!promoIndefinite && promoStartDate && promoEndDate && (
+                      <div className="p-2 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-between text-xs text-gray-700 animate-in fade-in">
+                        <span className="text-[11px] text-gray-500 font-medium">Período programado:</span>
+                        <span className="text-[11.5px] font-bold text-[#2E4233]">
+                          {formatPromoPeriod(promoStartDate, promoEndDate, false).periodText}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Aviso quando ativado por prazo indeterminado */}
+                    {promoIndefinite && (
+                      <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/60 flex items-center gap-2 text-xs text-amber-900 animate-in fade-in duration-150">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-600 shrink-0" />
+                        <span className="text-[11.5px] font-medium">A promoção está ativa por prazo indeterminado</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer / Ações */}
+                <div className="pt-3 border-t border-[#E9E4D4] flex items-center justify-between gap-2 bg-[#FAF8F0] px-5 py-3.5">
+                  {/* Switch para ligar/desligar promoção */}
+                  <div className="flex items-center gap-2 select-none p-1 rounded-lg">
+                    <Switch
+                      checked={promoIsActive}
+                      onCheckedChange={setPromoIsActive}
+                      activeTrackColor="bg-[#2E4233]"
+                      inactiveTrackColor="bg-stone-300"
+                    />
+                    <span
+                      onClick={() => setPromoIsActive(!promoIsActive)}
+                      className="text-xs font-semibold text-gray-700 cursor-pointer"
+                    >
+                      {promoIsActive ? "Promoção ativa" : "Promoção desativada"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingPromoProduct(null)}
+                      className="px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

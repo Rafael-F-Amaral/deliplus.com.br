@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import {
   Search,
   PlusCircle,
@@ -281,6 +282,7 @@ export default function MenuClient({
   initialCategories = [],
   tourAlreadyDismissed = false
 }: MenuClientProps) {
+  const router = useRouter()
   const [items, setItems] = useState<MenuItem[]>(initialItems)
 
   // Filters & Search
@@ -1618,7 +1620,7 @@ export default function MenuClient({
                     </td>
 
                     {/* Preço promocional em Laranja da Logo com link sublinhado "Editar Promoção" */}
-                    <td id={itemIdx === 0 ? "tour-promo-action" : undefined} className={`px-4 py-2 align-middle text-left whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
+                    <td id={itemIdx === 0 ? "tour-promo-action" : undefined} className="px-4 py-2 align-middle text-left whitespace-nowrap opacity-100">
                       <div className="flex flex-col items-start gap-0.5">
                         {item.promoPrice ? (
                           <div className="flex items-center gap-1.5">
@@ -1637,11 +1639,8 @@ export default function MenuClient({
                         <button
                           type="button"
                           onClick={(e) => {
-                            handleOpenDiscountModal(item, e)
-                            if (tourStep === 4) {
-                              setModalTourType("promo")
-                              setModalTourStep(0)
-                            }
+                            e.stopPropagation()
+                            router.push(`/dashboard/marketing/promotions?editProduct=${item.id}`)
                           }}
                           className="text-[11.5px] font-semibold text-[#CB5A3C] underline decoration-[#CB5A3C]/60 hover:decoration-[#CB5A3C] hover:text-[#b0482e] transition-all cursor-pointer text-left"
                         >
@@ -1975,11 +1974,8 @@ export default function MenuClient({
                           <button
                             type="button"
                             onClick={(e) => {
-                              handleOpenDiscountModal(item, e)
-                              if (tourStep === 4) {
-                                setModalTourType("promo")
-                                setModalTourStep(0)
-                              }
+                              e.stopPropagation()
+                              router.push(`/dashboard/marketing/promotions?editProduct=${item.id}`)
                             }}
                             className="text-[11px] font-semibold text-[#CB5A3C] underline decoration-[#CB5A3C]/60 hover:decoration-[#CB5A3C] mt-0.5 cursor-pointer text-left"
                           >

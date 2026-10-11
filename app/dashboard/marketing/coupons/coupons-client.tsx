@@ -2,17 +2,13 @@
 
 import React, { useState, useTransition } from "react";
 import {
-  Ticket,
   Plus,
   Trash2,
   Copy,
   Check,
   X,
   Sparkles,
-  ShoppingBag,
-  Percent,
-  Clock,
-  CheckCircle2
+  Clock
 } from "lucide-react";
 import { createCoupon, toggleCouponStatus, deleteCoupon } from "../actions";
 
@@ -171,15 +167,6 @@ export default function CouponsClient({
     });
   };
 
-  // Metric aggregates
-  const activeCouponsCount = coupons.filter(c => c.status === "active").length;
-  const totalUsesCount = coupons.reduce((sum, c) => sum + (c.uses_count || 0), 0);
-  const estimatedSavingsCents = coupons.reduce((sum, c) => {
-    if (c.discount_type === "fixed") return sum + (c.discount_value * c.uses_count);
-    if (c.discount_type === "percentage") return sum + Math.round(4500 * (c.discount_value / 100) * c.uses_count);
-    return sum + (800 * c.uses_count); // free shipping ~ R$ 8
-  }, 0);
-
   return (
     <div className="flex-1 bg-[#F7F6F2] min-h-screen text-[#1A241E] p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
@@ -214,54 +201,7 @@ export default function CouponsClient({
           </div>
         </div>
 
-        {/* ============================================================ */}
-        {/* SUMMARY METRICS                                              */}
-        {/* ============================================================ */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 mb-8">
-          <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
-            <div className="flex items-center gap-2.5 text-[#5D6B60] text-[13px] font-medium mb-3">
-              <Ticket size={18} className="text-[#2E4233]" />
-              <span>Cupons Ativos</span>
-            </div>
-            <div className="text-[28px] font-bold text-[#1A241E] leading-none mb-1">
-              {activeCouponsCount}
-            </div>
-            <div className="text-[12px] text-[#2E7D32] font-medium">Disponíveis no checkout</div>
-          </div>
 
-          <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
-            <div className="flex items-center gap-2.5 text-[#5D6B60] text-[13px] font-medium mb-3">
-              <ShoppingBag size={18} className="text-[#CB5A3C]" />
-              <span>Usos Totais</span>
-            </div>
-            <div className="text-[28px] font-bold text-[#1A241E] leading-none mb-1">
-              {totalUsesCount} pedidos
-            </div>
-            <div className="text-[12px] text-[#2E7D32] font-medium">▲ Recompra estimulada</div>
-          </div>
-
-          <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
-            <div className="flex items-center gap-2.5 text-[#5D6B60] text-[13px] font-medium mb-3">
-              <Percent size={18} className="text-[#2E7D32]" />
-              <span>Economia Concedida</span>
-            </div>
-            <div className="text-[26px] font-bold text-[#1A241E] leading-none mb-1">
-              {formatBRL(estimatedSavingsCents)}
-            </div>
-            <div className="text-[12px] text-[#637267]">Descontos aplicados</div>
-          </div>
-
-          <div className="bg-white border border-[#E3E1D9] rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)]">
-            <div className="flex items-center gap-2.5 text-[#5D6B60] text-[13px] font-medium mb-3">
-              <CheckCircle2 size={18} className="text-[#512DA8]" />
-              <span>Ticket Médio c/ Cupom</span>
-            </div>
-            <div className="text-[26px] font-bold text-[#1A241E] leading-none mb-1">
-              +28%
-            </div>
-            <div className="text-[12px] text-[#2E7D32] font-medium">Supera o pedido mínimo</div>
-          </div>
-        </div>
 
         {/* ============================================================ */}
         {/* VOUCHERS GRID                                                */}

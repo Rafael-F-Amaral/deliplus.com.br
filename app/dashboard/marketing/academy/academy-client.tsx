@@ -9,7 +9,6 @@ import {
   Layers,
   MessageSquare,
   Sparkles,
-  CheckCircle2,
   Copy,
   Check,
   Clock,
@@ -94,26 +93,6 @@ export default function AcademyClient() {
   const [activeModule, setActiveModule] = useState<string>("all");
   const [copiedScriptId, setCopiedScriptId] = useState<string | null>(null);
 
-  // Interactive Checklist
-  const [checklist, setChecklist] = useState<Record<string, boolean>>({
-    c1: true,
-    c2: true,
-    c3: false,
-    c4: false,
-    c5: true,
-    c6: false,
-    c7: false,
-    c8: false
-  });
-
-  const toggleChecklistItem = (id: string) => {
-    setChecklist(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const completedCount = Object.values(checklist).filter(Boolean).length;
-  const totalChecklist = Object.keys(checklist).length;
-  const checklistPercent = Math.round((completedCount / totalChecklist) * 100);
-
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedScriptId(id);
@@ -149,10 +128,6 @@ export default function AcademyClient() {
               <div className="flex items-center gap-2 bg-white/10 px-3.5 py-1.5 rounded-xl backdrop-blur-xs">
                 <MessageSquare size={16} className="text-[#2E7D32]" />
                 <span>4 Scripts Prontos de WhatsApp</span>
-              </div>
-              <div className="flex items-center gap-2 bg-white/10 px-3.5 py-1.5 rounded-xl backdrop-blur-xs">
-                <CheckCircle2 size={16} className="text-[#CB5A3C]" />
-                <span>Checklist Cardápio 5 Estrelas</span>
               </div>
             </div>
           </div>
@@ -608,75 +583,6 @@ export default function AcademyClient() {
           </div>
         )}
 
-        {/* ============================================================ */}
-        {/* CHECKLIST INTERATIVO: CARDÁPIO 5 ESTRELAS                    */}
-        {/* ============================================================ */}
-        <div className="bg-white border border-[#E3E1D9] rounded-[24px] p-6 sm:p-8 shadow-[0_2px_12px_rgba(30,40,30,0.02)] mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <CheckCircle2 size={18} className="text-[#2E7D32]" />
-                <h2 className="font-serif text-[22px] font-semibold text-[#1A241E]">
-                  Checklist Interativo: Cardápio 5 Estrelas
-                </h2>
-              </div>
-              <p className="text-[13px] text-[#637267]">
-                Marque os itens conforme for aplicando no seu restaurante para atingir a pontuação máxima de conversão:
-              </p>
-            </div>
-
-            {/* Score Badge */}
-            <div className="text-right shrink-0">
-              <div className="text-[24px] font-bold text-[#2E7D32] leading-none mb-1">
-                {checklistPercent}%
-              </div>
-              <div className="text-[12px] text-[#637267]">
-                {completedCount} de {totalChecklist} concluídos
-              </div>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden mb-6">
-            <div
-              className="h-full bg-[#2E7D32] rounded-full transition-all duration-300"
-              style={{ width: `${checklistPercent}%` }}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-              { id: "c1", label: "Fotos reais com iluminação natural em pelo menos 80% dos produtos do cardápio." },
-              { id: "c2", label: "Pelo menos 2 palavras magnéticas de sabor usadas na descrição dos pratos principais." },
-              { id: "c3", label: "Adicionais cadastrados nos pratos promocionais (queijo extra, bacon, molhos)." },
-              { id: "c4", label: "Bebidas cadastradas como adicionais rápidos nos pratos e combos." },
-              { id: "c5", label: "Pelo menos 1 cupom de primeira compra ativo configurado (ex: BEMVINDO10)." },
-              { id: "c6", label: "Link do cardápio DeliPlus inserido diretamente na bio do seu perfil do Instagram." },
-              { id: "c7", label: "Mensagem de saudação automática com o link configurada no WhatsApp Business." },
-              { id: "c8", label: "Panfleto físico preparado para ser enviado dentro das sacolas de entrega." }
-            ].map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => toggleChecklistItem(item.id)}
-                className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
-                  checklist[item.id]
-                    ? "bg-[#E8F5E9]/60 border-[#C8E6C9] text-[#1B5E20]"
-                    : "bg-[#FAF8F0] border-[#ECEAE2] text-[#556358] hover:bg-white"
-                }`}
-              >
-                <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                  checklist[item.id] ? "bg-[#2E7D32] border-[#2E7D32] text-white" : "border-gray-300 bg-white"
-                }`}>
-                  {checklist[item.id] && <Check size={14} strokeWidth={3} />}
-                </div>
-                <span className={`text-[13px] leading-relaxed ${checklist[item.id] ? "font-medium" : ""}`}>
-                  {item.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );

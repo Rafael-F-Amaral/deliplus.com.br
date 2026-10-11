@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getActiveStoreId } from "@/lib/stores/get-active-store";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
@@ -87,6 +88,9 @@ interface ProductPromoRow {
   price_cents: number;
   promo_price_cents: number | null;
   in_promo: boolean | null;
+  promo_indefinite: boolean | null;
+  promo_start_date: string | null;
+  promo_end_date: string | null;
   image_url: string | null;
   category_id: string | null;
   tags: string[] | null;
@@ -133,13 +137,12 @@ export default async function PromotionsPage() {
         storeSlug = storeData.slug || storeSlug;
       }
 
-      // 2. Fetch promo products & related data in parallel
+      // 2. Fetch all products & related data in parallel
       const [productsRes, categoriesRes, complementsRes, orderItemsRes] = await Promise.all([
         supabase
           .from("products")
-          .select("id, name, price_cents, promo_price_cents, in_promo, image_url, category_id, tags")
-          .eq("store_id", storeId)
-          .or("promo_price_cents.not.is.null,in_promo.eq.true"),
+          .select("id, name, price_cents, promo_price_cents, in_promo, promo_indefinite, promo_start_date, promo_end_date, image_url, category_id, tags")
+          .eq("store_id", storeId),
         supabase.from("categories").select("id, name").eq("store_id", storeId),
         supabase.from("product_complements").select("id, product_id, name").eq("store_id", storeId),
         supabase.from("order_items").select("name, quantity, total_price_cents")
@@ -188,6 +191,9 @@ export default async function PromotionsPage() {
             promoPriceCents: p.promo_price_cents,
             discountPercentage: discount,
             inPromo: !!p.in_promo,
+            promoIndefinite: p.promo_indefinite ?? true,
+            promoStartDate: p.promo_start_date,
+            promoEndDate: p.promo_end_date,
             complementsCount: complementsCountMap.get(p.id) || 0,
             totalSold: sales.totalSold,
             totalRevenueCents: sales.revenueCents > 0 ? sales.revenueCents : (sales.totalSold * (p.promo_price_cents || p.price_cents)),
@@ -206,10 +212,12 @@ export default async function PromotionsPage() {
   }
 
   return (
-    <PromotionsClient
-      storeSlug={storeSlug}
-      storeName={storeName}
-      initialPromoProducts={promoProducts}
-    />
+    <Suspense fallback={<div className="flex-1 bg-[#F7F6F2] min-h-screen p-8 text-[#556358]">Carregando promoções...</div>}>
+      <PromotionsClient
+        storeSlug={storeSlug}
+        storeName={storeName}
+        initialPromoProducts={promoProducts}
+      />
+    </Suspense>
   );
 }
