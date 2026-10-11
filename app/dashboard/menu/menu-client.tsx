@@ -360,6 +360,7 @@ export default function MenuClient({
   const [isSavingAdicionais, setIsSavingAdicionais] = useState(false)
   const [isUploadingAdicionalPhoto, setIsUploadingAdicionalPhoto] = useState(false)
   const [isDraggingAdicionalPhoto, setIsDraggingAdicionalPhoto] = useState(false)
+  const [adicionalToDelete, setAdicionalToDelete] = useState<ProductAdicional | null>(null)
   const adicionalFileInputRef = useRef<HTMLInputElement | null>(null)
 
   // Toast notification
@@ -2900,13 +2901,27 @@ export default function MenuClient({
                   <h3 className="font-serif font-bold text-[#CB5A3C] text-lg">
                     Adicionais: {adicionaisModalItem.name}
                   </h3>
-                  <button
-                    type="button"
-                    className="w-4 h-4 rounded-full bg-[#1C2C22] text-[#FAF8F0] text-[10px] font-bold flex items-center justify-center hover:bg-[#CB5A3C] transition-colors cursor-help shrink-0 shadow-2xs"
-                    title="Cadastre e gerencie os adicionais e complementos disponíveis para este prato. Os itens adicionados poderão ser selecionados pelo cliente durante o pedido."
-                  >
-                    ?
-                  </button>
+                  {/* Tooltip Icon & Popover no padrão DeliPlus */}
+                  <div className="relative group inline-block">
+                    <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
+                      ?
+                    </div>
+                    <div className="absolute top-full left-0 mt-2 w-72 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                      <p className="text-[12px] text-white leading-relaxed">
+                        <span className="font-extrabold text-white">Dica:</span> Cadastre e gerencie os adicionais e complementos deste prato.
+                      </p>
+                      <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-white/10 text-[11px] text-white/90">
+                        <div className="flex items-start gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
+                          <span>Os adicionais configurados aqui poderão ser escolhidos pelo cliente no pedido.</span>
+                        </div>
+                        <div className="flex items-start gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
+                          <span>Você pode definir valores adicionais ou oferecer itens como cortesia (R$ 0,00).</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <p className="text-xs text-black font-medium mt-0.5">
                   Cadastre e gerencie os adicionais e complementos deste prato
@@ -2932,7 +2947,7 @@ export default function MenuClient({
                 </div>
 
                 {adicionaisList.length === 0 ? (
-                  <div className="p-4 bg-[#FEF6F3] rounded-xl border-2 border-dashed border-[#FADCD5] text-center text-xs text-[#8A3822] font-medium">
+                  <div className="p-4 bg-[#FDE7DE] rounded-xl border-2 border-dashed border-[#CB5A3C]/40 text-center text-xs text-[#8A3822] font-semibold">
                     Nenhum adicional cadastrado ainda. Use o formulário abaixo para adicionar opções.
                   </div>
                 ) : (
@@ -2970,7 +2985,7 @@ export default function MenuClient({
                         <div className="flex items-center gap-1 shrink-0">
                           <button
                             type="button"
-                            onClick={() => handleDeleteAdicional(ad.id)}
+                            onClick={() => setAdicionalToDelete(ad)}
                             className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-colors cursor-pointer"
                             title="Excluir adicional"
                           >
@@ -3094,11 +3109,11 @@ export default function MenuClient({
                       onClick={() => adicionalFileInputRef.current?.click()}
                       className={`p-3.5 rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center text-center ${
                         isDraggingAdicionalPhoto
-                          ? "border-[#CB5A3C] bg-[#FDF2F0]"
-                          : "border-[#FADCD5] bg-[#FEF6F3] hover:border-[#CB5A3C] hover:bg-[#FDF2F0]"
+                          ? "border-[#CB5A3C] bg-[#FCD8CC]"
+                          : "border-[#CB5A3C]/40 bg-[#FDE7DE] hover:border-[#CB5A3C] hover:bg-[#FCD8CC]"
                       }`}
                     >
-                      <Upload className={`w-5 h-5 mb-1 ${isDraggingAdicionalPhoto ? "text-[#CB5A3C]" : "text-[#CB5A3C]/70"}`} />
+                      <Upload className={`w-5 h-5 mb-1 ${isDraggingAdicionalPhoto ? "text-[#CB5A3C]" : "text-[#CB5A3C]"}`} />
                       <p className="text-xs font-semibold text-gray-700">
                         {isUploadingAdicionalPhoto
                           ? "Enviando imagem..."
@@ -3146,6 +3161,56 @@ export default function MenuClient({
                 className="px-5 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#b0482e] disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
               >
                 {isSavingAdicionais ? "Salvando..." : "Salvar Alterações"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação: Excluir Adicional no Padrão DeliPlus */}
+      {adicionalToDelete && (
+        <div 
+          className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setAdicionalToDelete(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col items-center text-center border border-[#E9E4D4] animate-in zoom-in-95 duration-150 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setAdicionalToDelete(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-14 h-14 rounded-full bg-[#FDF2F0] border-2 border-[#F5D8D1] flex items-center justify-center mb-3 shadow-sm">
+              <Trash2 className="w-7 h-7 text-[#CB5A3C]" />
+            </div>
+
+            <h3 className="font-bold text-[#2E4233] text-lg mb-1">Excluir adicional?</h3>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              Tem certeza que deseja excluir o adicional <span className="font-bold text-gray-800">&quot;{adicionalToDelete.name}&quot;</span> deste prato? Esta ação não pode ser desfeita.
+            </p>
+
+            <div className="flex w-full gap-3">
+              <button
+                type="button"
+                onClick={() => setAdicionalToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-[#E9E4D4] text-[14px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleDeleteAdicional(adicionalToDelete.id)
+                  setAdicionalToDelete(null)
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-[14px] font-semibold text-white shadow-sm transition-all cursor-pointer active:scale-95"
+              >
+                Excluir
               </button>
             </div>
           </div>

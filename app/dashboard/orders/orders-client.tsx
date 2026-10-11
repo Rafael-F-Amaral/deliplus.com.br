@@ -844,6 +844,7 @@ export default function OrdersClient({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingOrder, setEditingOrder] = useState<Order | null>(null)
   const [editableItems, setEditableItems] = useState<OrderItem[]>([])
+  const [itemToDeleteFromOrder, setItemToDeleteFromOrder] = useState<{ index: number; name: string } | null>(null)
   
   // Form de adicionar produto
   const [selectedCatalogProdId, setSelectedCatalogProdId] = useState('')
@@ -1638,14 +1639,14 @@ export default function OrdersClient({
                           "cursor-pointer transition-colors relative group select-none",
                           isSelected
                             ? isCancelado
-                              ? "bg-red-100/80 shadow-[inset_3px_0_0_0_#DC2626]"
+                              ? "bg-[#FEE2E2] shadow-[inset_3px_0_0_0_#DC2626]"
                               : isConcluido
-                                ? "bg-emerald-100/80 shadow-[inset_3px_0_0_0_#059669]"
+                                ? "bg-[#D1FAE5] shadow-[inset_3px_0_0_0_#059669]"
                                 : "bg-[#FAF5E9] shadow-[inset_3px_0_0_0_#CB5A3C]"
                             : isCancelado
-                              ? "bg-red-50/70 hover:bg-red-100/60"
+                              ? "bg-[#FEE2E2]/90 hover:bg-[#FECACA]/80"
                               : isConcluido
-                                ? "bg-emerald-50/70 hover:bg-emerald-100/60"
+                                ? "bg-[#D1FAE5]/90 hover:bg-[#A7F3D0]/80"
                                 : "hover:bg-[#FAF8F0]/70"
                         )}
                       >
@@ -2464,7 +2465,7 @@ export default function OrdersClient({
                           {/* Remove / Excluir Button */}
                           <button
                             type="button"
-                            onClick={() => handleRemoveItem(idx)}
+                            onClick={() => setItemToDeleteFromOrder({ index: idx, name: item.name })}
                             className="w-8 h-8 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer shrink-0"
                             title="Excluir este item do pedido"
                           >
@@ -2668,6 +2669,56 @@ export default function OrdersClient({
                 <Check className="w-3.5 h-3.5" />
                 Salvar Alterações
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação: Excluir Item do Pedido no Padrão DeliPlus */}
+      {itemToDeleteFromOrder && (
+        <div 
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setItemToDeleteFromOrder(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col items-center text-center border border-[#E9E4D4] animate-in zoom-in-95 duration-150 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setItemToDeleteFromOrder(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-14 h-14 rounded-full bg-[#FDF2F0] border-2 border-[#F5D8D1] flex items-center justify-center mb-3 shadow-sm">
+              <Trash2 className="w-7 h-7 text-[#CB5A3C]" />
+            </div>
+
+            <h3 className="font-bold text-[#1C2C22] text-lg mb-1">Excluir item do pedido?</h3>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              Tem certeza que deseja remover <span className="font-bold text-[#1C2C22]">&quot;{itemToDeleteFromOrder.name}&quot;</span> deste pedido? O valor total será recalculado automaticamente.
+            </p>
+
+            <div className="flex w-full gap-3">
+              <button
+                type="button"
+                onClick={() => setItemToDeleteFromOrder(null)}
+                className="flex-1 py-2.5 rounded-xl border border-[#E9E4D4] text-[14px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleRemoveItem(itemToDeleteFromOrder.index)
+                  setItemToDeleteFromOrder(null)
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-[14px] font-semibold text-white shadow-sm transition-all cursor-pointer active:scale-95"
+              >
+                Excluir item
+              </button>
             </div>
           </div>
         </div>
