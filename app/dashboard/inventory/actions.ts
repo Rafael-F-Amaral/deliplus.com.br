@@ -1,8 +1,36 @@
-﻿"use server"
+"use server"
 
 import { revalidatePath } from "next/cache"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { getActiveStoreId } from "@/lib/stores/get-active-store"
+
+async function resolveActionContext() {
+  const storeId = await getActiveStoreId().catch(() => null)
+  if (storeId) {
+    return {
+      storeId,
+      supabase: createServerSupabaseClient() as any
+    }
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    const { createAdminSupabaseClient } = await import("@/lib/supabase/admin")
+    const adminClient = createAdminSupabaseClient()
+    const { data: firstStore } = await adminClient
+      .from("stores")
+      .select("id")
+      .limit(1)
+      .maybeSingle()
+    if (firstStore?.id) {
+      return {
+        storeId: firstStore.id,
+        supabase: adminClient as any
+      }
+    }
+  }
+
+  throw new Error("Loja não encontrada")
+}
 
 export async function createInventoryItem(data: {
   name: string
@@ -12,10 +40,7 @@ export async function createInventoryItem(data: {
   unitCostCents: number
   minStock: number
 }) {
-  const storeId = await getActiveStoreId()
-  if (!storeId) throw new Error("Loja n\u00e3o encontrada")
-
-  const supabase = createServerSupabaseClient() as any
+  const { storeId, supabase } = await resolveActionContext()
   
   const { error } = await supabase.from("inventory_items").insert({
     store_id: storeId,
@@ -40,10 +65,7 @@ export async function createInventoryCategory(data: {
   colorBg: string
   colorText: string
 }) {
-  const storeId = await getActiveStoreId()
-  if (!storeId) throw new Error("Loja não encontrada")
-
-  const supabase = createServerSupabaseClient() as any
+  const { storeId, supabase } = await resolveActionContext()
   
   const { data: newCategory, error } = await supabase.from("inventory_categories").insert({
     store_id: storeId,
@@ -69,10 +91,7 @@ export async function updateInventoryItem(id: string, data: {
   unitCostCents: number
   minStock: number
 }) {
-  const storeId = await getActiveStoreId()
-  if (!storeId) throw new Error("Loja não encontrada")
-
-  const supabase = createServerSupabaseClient() as any
+  const { storeId, supabase } = await resolveActionContext()
   
   const { error } = await supabase.from("inventory_items").update({
     name: data.name,
@@ -92,10 +111,7 @@ export async function updateInventoryItem(id: string, data: {
 }
 
 export async function deleteInventoryItem(id: string) {
-  const storeId = await getActiveStoreId()
-  if (!storeId) throw new Error("Loja não encontrada")
-
-  const supabase = createServerSupabaseClient() as any
+  const { storeId, supabase } = await resolveActionContext()
   
   const { error } = await supabase.from("inventory_items").delete().eq('id', id).eq('store_id', storeId)
 
@@ -107,12 +123,8 @@ export async function deleteInventoryItem(id: string) {
   revalidatePath("/dashboard/inventory")
 }
 
-
 export async function deleteInventoryCategory(id: string) {
-  const storeId = await getActiveStoreId()
-  if (!storeId) throw new Error("Loja não encontrada")
-
-  const supabase = createServerSupabaseClient() as any
+  const { storeId, supabase } = await resolveActionContext()
   
   const { error } = await supabase
     .from("inventory_categories")

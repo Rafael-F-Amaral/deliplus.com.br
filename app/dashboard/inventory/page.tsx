@@ -31,11 +31,29 @@ export default async function InventoryPage() {
     return <InventoryClient initialCategories={[]} initialItems={[]} />
   }
   
-  const [categoriesRes, itemsRes, storeRes] = await Promise.all([
+  let [categoriesRes, itemsRes, storeRes] = await Promise.all([
     supabase.from("inventory_categories" as any).select("*").eq("store_id", storeId).order("name"),
     supabase.from("inventory_items" as any).select("*").eq("store_id", storeId).order("name"),
     supabase.from("stores").select("id, name, slug").eq("id", storeId).maybeSingle()
   ])
+
+  if ((!itemsRes.data || itemsRes.data.length === 0) && process.env.NODE_ENV === "development") {
+    try {
+      const adminClient = createAdminSupabaseClient()
+      const [adminCats, adminItems, adminStore] = await Promise.all([
+        adminClient.from("inventory_categories" as any).select("*").eq("store_id", storeId).order("name"),
+        adminClient.from("inventory_items" as any).select("*").eq("store_id", storeId).order("name"),
+        adminClient.from("stores").select("id, name, slug").eq("id", storeId).maybeSingle()
+      ])
+      if (adminItems.data && adminItems.data.length > 0) {
+        categoriesRes = adminCats
+        itemsRes = adminItems
+        if (adminStore.data) storeRes = adminStore
+      }
+    } catch (err) {
+      console.warn("Erro no fallback do estoque:", err)
+    }
+  }
 
   return (
     <InventoryClient 

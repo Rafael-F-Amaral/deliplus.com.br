@@ -89,25 +89,44 @@ export default async function OrdersPage() {
 
   if (storeId) {
     try {
-      const [storeRes, ordersRes, menuProductsRes] = await Promise.all([
+      let [storeRes, ordersRes, menuProductsRes] = await Promise.all([
         supabase.from("stores").select("id, name, slug").eq("id", storeId).maybeSingle(),
         supabase
-          .from("vw_orders_live")
+          .from("orders_live" as any)
           .select("*")
           .eq("store_id", storeId)
           .order("order_number", { ascending: false }),
         supabase
-          .from("vw_menu_items")
+          .from("menu_items" as any)
           .select("id, name, price_cents, promo_price_cents, in_promo, adicionais")
           .eq("store_id", storeId)
           .order("name", { ascending: true })
       ])
 
+      if ((!ordersRes.data || ordersRes.data.length === 0) && process.env.NODE_ENV === "development") {
+        try {
+          const adminClient = createAdminSupabaseClient()
+          const [adminStore, adminOrders, adminMenu] = await Promise.all([
+            adminClient.from("stores").select("id, name, slug").eq("id", storeId).maybeSingle(),
+            adminClient.from("orders_live" as any).select("*").eq("store_id", storeId).order("order_number", { ascending: false }),
+            adminClient.from("menu_items" as any).select("id, name, price_cents, promo_price_cents, in_promo, adicionais").eq("store_id", storeId).order("name", { ascending: true })
+          ])
+          if (adminOrders.data && adminOrders.data.length > 0) {
+            ordersRes = adminOrders
+            menuProductsRes = adminMenu
+            if (adminStore.data) storeRes = adminStore
+          }
+        } catch (err) {
+          console.warn("Erro no fallback de pedidos:", err)
+        }
+      }
+
       if (storeRes.data?.slug) storeSlug = storeRes.data.slug
       if (storeRes.data?.name) storeName = storeRes.data.name
 
       if (menuProductsRes.data) {
-        catalogProducts = menuProductsRes.data.map((p) => {
+        const menuList = (menuProductsRes.data as any[]) || []
+        catalogProducts = menuList.map((p: any) => {
           const effectivePriceCents = p.in_promo && p.promo_price_cents ? p.promo_price_cents : (p.price_cents || 0)
           const complementsRaw = Array.isArray(p.adicionais) ? (p.adicionais as Array<Record<string, unknown>>) : []
           return {

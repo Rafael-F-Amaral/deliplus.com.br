@@ -810,8 +810,8 @@ export default function OrdersClient({
           filter: `store_id=eq.${storeId}`
         },
         async () => {
-          const { data } = await supabase
-            .from('vw_orders_live')
+          const { data } = await (supabase as any)
+            .from('orders_live')
             .select('*')
             .eq('store_id', storeId)
             .order('order_number', { ascending: false })

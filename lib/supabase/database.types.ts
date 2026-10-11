@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -599,7 +599,14 @@ export type Database = {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
-            referencedRelation: "vw_orders_live"
+            referencedRelation: "orders_live"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
             referencedColumns: ["id"]
           },
           {
@@ -607,13 +614,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "vw_menu_items"
             referencedColumns: ["id"]
           },
         ]
@@ -741,6 +741,70 @@ export type Database = {
         }
         Relationships: []
       }
+      product_complements: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price_cents: number
+          product_id: string
+          sort_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price_cents?: number
+          product_id: string
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          product_id?: string
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_complements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_complements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_complements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category_id: string
@@ -812,63 +876,6 @@ export type Database = {
           },
           {
             foreignKeyName: "products_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      product_complements: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          image_url: string | null
-          is_active: boolean
-          name: string
-          price_cents: number
-          product_id: string
-          sort_order: number
-          store_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          name: string
-          price_cents?: number
-          product_id: string
-          sort_order?: number
-          store_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          name?: string
-          price_cents?: number
-          product_id?: string
-          sort_order?: number
-          store_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "product_complements_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_complements_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -1064,7 +1071,7 @@ export type Database = {
       }
     }
     Views: {
-      vw_inventory_alerts: {
+      inventory_alerts: {
         Row: {
           category_color_bg: string | null
           category_color_text: string | null
@@ -1097,7 +1104,7 @@ export type Database = {
           },
         ]
       }
-      vw_inventory_summary: {
+      inventory_summaries: {
         Row: {
           avg_cost_cents: number | null
           store_id: string | null
@@ -1114,7 +1121,7 @@ export type Database = {
           },
         ]
       }
-      vw_menu_items: {
+      menu_items: {
         Row: {
           adicionais: Json | null
           adicionais_count: number | null
@@ -1158,7 +1165,7 @@ export type Database = {
           },
         ]
       }
-      vw_menu_summary: {
+      menu_summaries: {
         Row: {
           active_products: number | null
           out_of_stock_products: number | null
@@ -1177,7 +1184,31 @@ export type Database = {
           },
         ]
       }
-      vw_orders_live: {
+      order_summaries: {
+        Row: {
+          avg_ticket_today_cents: number | null
+          orders_canceled: number | null
+          orders_completed: number | null
+          orders_dispatched: number | null
+          orders_new: number | null
+          orders_preparing: number | null
+          orders_ready: number | null
+          orders_today: number | null
+          store_id: string | null
+          total_orders: number | null
+          total_sales_today_cents: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders_live: {
         Row: {
           accepted_at: string | null
           canceled_at: string | null
@@ -1205,30 +1236,6 @@ export type Database = {
           subtotal_cents: number | null
           total_amount_cents: number | null
           updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "orders_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vw_orders_summary: {
-        Row: {
-          avg_ticket_today_cents: number | null
-          orders_canceled: number | null
-          orders_completed: number | null
-          orders_dispatched: number | null
-          orders_new: number | null
-          orders_preparing: number | null
-          orders_ready: number | null
-          orders_today: number | null
-          store_id: string | null
-          total_orders: number | null
-          total_sales_today_cents: number | null
         }
         Relationships: [
           {

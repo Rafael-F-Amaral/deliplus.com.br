@@ -2891,11 +2891,11 @@ export default function MenuClient({
           onClick={() => setAdicionaisModalItem(null)}
         >
           <div 
-            className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150 max-h-[90vh]"
+            className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150 max-h-[90vh] relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
+            <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0] rounded-t-2xl">
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-serif font-bold text-[#CB5A3C] text-lg">
@@ -2906,7 +2906,7 @@ export default function MenuClient({
                     <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
                       ?
                     </div>
-                    <div className="absolute top-full left-0 mt-2 w-72 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                    <div className="absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-3rem)] p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[120] pointer-events-none">
                       <p className="text-[12px] text-white leading-relaxed">
                         <span className="font-extrabold text-white">Dica:</span> Cadastre e gerencie os adicionais e complementos deste prato.
                       </p>
@@ -3146,7 +3146,7 @@ export default function MenuClient({
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-3.5 border-t border-[#E9E4D4] flex items-center justify-end gap-2 bg-[#FAF8F0]/40">
+            <div className="px-5 py-3.5 border-t border-[#E9E4D4] flex items-center justify-end gap-2 bg-[#FAF8F0]/40 rounded-b-2xl">
               <button
                 type="button"
                 onClick={() => setAdicionaisModalItem(null)}

@@ -555,6 +555,29 @@ Never rely on JavaScript binary floating-point for authoritative money calculati
 
 Use timezone-aware timestamps for persisted system events. Display/localization belongs at application boundaries.
 
+## Naming and View Conventions
+
+To maintain a consistent, secure, and clean architecture across the PostgreSQL schema and PostgREST API:
+
+### 1. Base Tables (`BASE TABLE`)
+- **Language & Casing**: Lowercase English in `snake_case`.
+- **Plural Domain Entities**: Always use plural nouns (`organizations`, `stores`, `products`, `categories`, `orders`, `customers`, `inventory_items`).
+- **Compound Domain Entities**: `order_items`, `product_complements`, `store_memberships`, `store_delivery_settings`.
+- **System / Lifecycle Records**: `stripe_webhook_events`, `billing_checkout_attempts`, `user_tour_progress`.
+- **Forbidden**: Hungarian notation prefixes (`tbl_`, `tb_`, `t_`).
+
+### 2. Views (`VIEW`)
+- **Forbidden**: Hungarian notation prefixes (`vw_`, `view_`, `v_`). PostgREST exposes views directly in the REST API; implementation details must not leak into consumer contracts.
+- **Domain Projections**: Named as domain relations or projections:
+  - `menu_items`: Rich projection of products with categories, computed discounts, and aggregated JSON complements.
+  - `orders_live`: Real-time operational feed of orders with aggregated items and complements.
+  - `inventory_alerts`: Items currently below their minimum stock threshold.
+  - `order_summaries`: Consolidated daily metrics per store.
+  - `menu_summaries`: Consolidated catalog metrics per store.
+  - `inventory_summaries`: Consolidated inventory value and count metrics per store.
+- **Mandatory Security Rule**:
+  Every view MUST be created with `WITH (security_invoker = true)` so that the invoking user's Row Level Security (RLS) is evaluated, preventing unauthorized tenant data access and eliminating the `UNRESTRICTED` security warning in Supabase Studio.
+
 ## Schema change checklist
 
 Every migration should answer:
