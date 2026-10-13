@@ -362,6 +362,7 @@ export default function MenuClient({
   const [adicionalDesc, setAdicionalDesc] = useState("")
   const [adicionalImage, setAdicionalImage] = useState("")
   const [adicionalErrors, setAdicionalErrors] = useState<{ name?: boolean; price?: boolean; desc?: boolean }>({})
+  const [shakeKey, setShakeKey] = useState(0)
   const [isSavingAdicionais, setIsSavingAdicionais] = useState(false)
   const [isUploadingAdicionalPhoto, setIsUploadingAdicionalPhoto] = useState(false)
   const [isDraggingAdicionalPhoto, setIsDraggingAdicionalPhoto] = useState(false)
@@ -1184,6 +1185,7 @@ export default function MenuClient({
         price: isPriceMissing,
         desc: isDescMissing
       })
+      setShakeKey((prev) => prev + 1)
       return
     }
 
@@ -2976,6 +2978,7 @@ export default function MenuClient({
                       Nome do Adicional <span className="text-[#CB5A3C]">*</span>
                     </label>
                     <input
+                      key={adicionalErrors.name ? `err-name-${shakeKey}` : 'ok-name'}
                       type="text"
                       value={adicionalName}
                       onChange={(e) => {
@@ -2986,7 +2989,7 @@ export default function MenuClient({
                       placeholder="Ex: Queijo Extra, Molho Especial..."
                       className={`w-full px-3 py-1.5 border rounded-lg text-xs font-medium transition-all ${
                         adicionalErrors.name
-                          ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20"
+                          ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 animate-shake"
                           : "border-[#E9E4D4] focus:outline-none focus:border-[#CB5A3C]"
                       }`}
                     />
@@ -2996,6 +2999,7 @@ export default function MenuClient({
                       Valor adicional <span className="text-[#CB5A3C]">*</span>
                     </label>
                     <input
+                      key={adicionalErrors.price ? `err-price-${shakeKey}` : 'ok-price'}
                       type="text"
                       value={adicionalPrice}
                       onChange={(e) => {
@@ -3005,7 +3009,7 @@ export default function MenuClient({
                       placeholder="R$ 0,00"
                       className={`w-full px-3 py-1.5 border rounded-lg text-xs font-bold transition-all ${
                         adicionalErrors.price
-                          ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 text-red-600"
+                          ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 text-red-600 animate-shake"
                           : "border-[#E9E4D4] text-[#CB5A3C] focus:outline-none focus:border-[#CB5A3C]"
                       }`}
                     />
@@ -3017,6 +3021,7 @@ export default function MenuClient({
                     Descrição do adicional <span className="text-[#CB5A3C]">*</span>
                   </label>
                   <input
+                    key={adicionalErrors.desc ? `err-desc-${shakeKey}` : 'ok-desc'}
                     type="text"
                     value={adicionalDesc}
                     onChange={(e) => {
@@ -3027,7 +3032,7 @@ export default function MenuClient({
                     placeholder="Ex: Porção de 50g artesanal feita na casa"
                     className={`w-full px-3 py-1.5 border rounded-lg text-xs transition-all ${
                       adicionalErrors.desc
-                        ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 text-gray-800"
+                        ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 text-gray-800 animate-shake"
                         : "border-[#E9E4D4] text-gray-700 focus:outline-none focus:border-[#CB5A3C]"
                     }`}
                   />
