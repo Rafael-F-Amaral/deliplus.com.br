@@ -354,11 +354,14 @@ export default function MenuClient({
   // Modal Adicionais (Gerenciar complementos e adicionais do prato)
   const [adicionaisModalItem, setAdicionaisModalItem] = useState<MenuItem | null>(null)
   const [adicionaisList, setAdicionaisList] = useState<ProductAdicional[]>([])
+  const [adicionaisPage, setAdicionaisPage] = useState(1)
+  const ADICIONAIS_PER_PAGE = 3
   const [editingAdicionalId, setEditingAdicionalId] = useState<string | null>(null)
   const [adicionalName, setAdicionalName] = useState("")
   const [adicionalPrice, setAdicionalPrice] = useState("")
   const [adicionalDesc, setAdicionalDesc] = useState("")
   const [adicionalImage, setAdicionalImage] = useState("")
+  const [adicionalErrors, setAdicionalErrors] = useState<{ name?: boolean; price?: boolean; desc?: boolean }>({})
   const [isSavingAdicionais, setIsSavingAdicionais] = useState(false)
   const [isUploadingAdicionalPhoto, setIsUploadingAdicionalPhoto] = useState(false)
   const [isDraggingAdicionalPhoto, setIsDraggingAdicionalPhoto] = useState(false)
@@ -1160,18 +1163,34 @@ export default function MenuClient({
     if (e) e.stopPropagation()
     setAdicionaisModalItem(item)
     setAdicionaisList(item.adicionais ? [...item.adicionais] : [])
+    setAdicionaisPage(1)
     setEditingAdicionalId(null)
     setAdicionalName("")
     setAdicionalPrice("")
     setAdicionalDesc("")
     setAdicionalImage("")
+    setAdicionalErrors({})
   }
 
   // Adicionar ou Atualizar Adicional na Lista
   const handleAddOrUpdateAdicional = () => {
+    const isNameMissing = !adicionalName.trim()
+    const isPriceMissing = !adicionalPrice.trim()
+    const isDescMissing = !adicionalDesc.trim()
+
+    if (isNameMissing || isPriceMissing || isDescMissing) {
+      setAdicionalErrors({
+        name: isNameMissing,
+        price: isPriceMissing,
+        desc: isDescMissing
+      })
+      return
+    }
+
+    setAdicionalErrors({})
+
     const formattedName = autoCapitalizeFirstLetter(adicionalName.trim())
     const formattedDesc = autoCapitalizeFirstLetter(adicionalDesc.trim())
-    if (!formattedName) return
 
     const priceNum = Math.round(parseCurrency(adicionalPrice) * 100)
     const priceFormatted = formatCurrency(priceNum / 100)
@@ -1204,7 +1223,11 @@ export default function MenuClient({
         isActive: true,
         sortOrder: adicionaisList.length + 1
       }
-      setAdicionaisList((prev) => [...prev, newAd])
+      setAdicionaisList((prev) => {
+        const next = [...prev, newAd]
+        setAdicionaisPage(Math.ceil(next.length / ADICIONAIS_PER_PAGE))
+        return next
+      })
     }
 
     setAdicionalName("")
@@ -1216,7 +1239,12 @@ export default function MenuClient({
 
   // Deletar adicional da lista
   const handleDeleteAdicional = (id: string) => {
-    setAdicionaisList((prev) => prev.filter((a) => a.id !== id))
+    setAdicionaisList((prev) => {
+      const filtered = prev.filter((a) => a.id !== id)
+      const newTotal = Math.max(1, Math.ceil(filtered.length / ADICIONAIS_PER_PAGE))
+      setAdicionaisPage((p) => Math.min(p, newTotal))
+      return filtered
+    })
     if (editingAdicionalId === id) {
       setEditingAdicionalId(null)
       setAdicionalName("")
@@ -2895,7 +2923,7 @@ export default function MenuClient({
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-serif font-bold text-[#CB5A3C] text-lg">
-                    Adicionais: {adicionaisModalItem.name}
+                    {adicionaisModalItem.name}
                   </h3>
                   {/* Tooltip Icon & Popover no padrão DeliPlus */}
                   <div className="relative group inline-block">
@@ -2950,37 +2978,58 @@ export default function MenuClient({
                     <input
                       type="text"
                       value={adicionalName}
-                      onChange={(e) => setAdicionalName(autoCapitalizeFirstLetter(e.target.value))}
+                      onChange={(e) => {
+                        setAdicionalName(autoCapitalizeFirstLetter(e.target.value))
+                        if (adicionalErrors.name) setAdicionalErrors((p) => ({ ...p, name: false }))
+                      }}
                       onBlur={() => setAdicionalName(autoCapitalizeFirstLetter(adicionalName))}
                       placeholder="Ex: Queijo Extra, Molho Especial..."
-                      className="w-full px-3 py-1.5 border border-[#E9E4D4] rounded-lg text-xs font-medium focus:outline-none focus:border-[#CB5A3C]"
+                      className={`w-full px-3 py-1.5 border rounded-lg text-xs font-medium transition-all ${
+                        adicionalErrors.name
+                          ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20"
+                          : "border-[#E9E4D4] focus:outline-none focus:border-[#CB5A3C]"
+                      }`}
                     />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-[11px] font-semibold text-gray-700">
-                      Valor adicional
+                      Valor adicional <span className="text-[#CB5A3C]">*</span>
                     </label>
                     <input
                       type="text"
                       value={adicionalPrice}
-                      onChange={(e) => setAdicionalPrice(formatCurrencyInput(e.target.value))}
+                      onChange={(e) => {
+                        setAdicionalPrice(formatCurrencyInput(e.target.value))
+                        if (adicionalErrors.price) setAdicionalErrors((p) => ({ ...p, price: false }))
+                      }}
                       placeholder="R$ 0,00"
-                      className="w-full px-3 py-1.5 border border-[#E9E4D4] rounded-lg text-xs font-bold text-[#CB5A3C] focus:outline-none focus:border-[#CB5A3C]"
+                      className={`w-full px-3 py-1.5 border rounded-lg text-xs font-bold transition-all ${
+                        adicionalErrors.price
+                          ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 text-red-600"
+                          : "border-[#E9E4D4] text-[#CB5A3C] focus:outline-none focus:border-[#CB5A3C]"
+                      }`}
                     />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] font-semibold text-gray-700">
-                    Descrição do adicional
+                    Descrição do adicional <span className="text-[#CB5A3C]">*</span>
                   </label>
                   <input
                     type="text"
                     value={adicionalDesc}
-                    onChange={(e) => setAdicionalDesc(autoCapitalizeFirstLetter(e.target.value))}
+                    onChange={(e) => {
+                      setAdicionalDesc(autoCapitalizeFirstLetter(e.target.value))
+                      if (adicionalErrors.desc) setAdicionalErrors((p) => ({ ...p, desc: false }))
+                    }}
                     onBlur={() => setAdicionalDesc(autoCapitalizeFirstLetter(adicionalDesc))}
                     placeholder="Ex: Porção de 50g artesanal feita na casa"
-                    className="w-full px-3 py-1.5 border border-[#E9E4D4] rounded-lg text-xs text-gray-700 focus:outline-none focus:border-[#CB5A3C]"
+                    className={`w-full px-3 py-1.5 border rounded-lg text-xs transition-all ${
+                      adicionalErrors.desc
+                        ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 text-gray-800"
+                        : "border-[#E9E4D4] text-gray-700 focus:outline-none focus:border-[#CB5A3C]"
+                    }`}
                   />
                 </div>
 
@@ -3059,86 +3108,114 @@ export default function MenuClient({
                     </div>
                   )}
 
-                  {/* Input alternativo para URL direta */}
-                  <div className="flex items-center gap-2 mt-1">
-                    <input
-                      type="text"
-                      value={adicionalImage}
-                      onChange={(e) => setAdicionalImage(e.target.value)}
-                      placeholder="Ou cole a URL da imagem (https://...)"
-                      className="flex-1 px-3 py-1.5 border border-[#E9E4D4] rounded-lg text-xs text-gray-700 focus:outline-none focus:border-[#CB5A3C]"
-                    />
+                  {/* Botão de Incluir Adicional no formulário */}
+                  <div className="flex justify-end pt-1">
                     <button
                       type="button"
                       onClick={handleAddOrUpdateAdicional}
-                      disabled={!adicionalName.trim() || isUploadingAdicionalPhoto}
-                      className="px-4 py-1.5 bg-[#CB5A3C] hover:bg-[#b0482e] disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs"
+                      className="px-5 py-2 bg-[#CB5A3C] hover:bg-[#b0482e] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow active:scale-95 flex items-center gap-1.5"
                     >
-                      + Incluir
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{editingAdicionalId ? "Salvar Adicional" : "Incluir Adicional"}</span>
                     </button>
                   </div>
                 </div>
               </div>
 
               {/* Lista de Adicionais Atuais (Embaixo conforme solicitado) */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#CB5A3C]">
-                    Adicionais Cadastrados ({adicionaisList.length})
-                  </span>
-                </div>
+              {(() => {
+                const adicionaisTotalPages = Math.max(1, Math.ceil(adicionaisList.length / ADICIONAIS_PER_PAGE));
+                const paginatedAdicionais = adicionaisList.slice(
+                  (adicionaisPage - 1) * ADICIONAIS_PER_PAGE,
+                  adicionaisPage * ADICIONAIS_PER_PAGE
+                );
 
-                {adicionaisList.length === 0 ? (
-                  <div className="p-4 bg-[#FDE7DE] rounded-xl border-2 border-dashed border-[#CB5A3C]/40 text-center text-xs text-[#8A3822] font-semibold">
-                    Nenhum adicional cadastrado ainda. Use o formulário acima para adicionar opções.
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                    {adicionaisList.map((ad, idx) => (
-                      <div
-                        key={ad.id || idx}
-                        className="flex items-center justify-between p-2.5 rounded-xl border-2 border-[#CB5A3C]/40 bg-white hover:border-[#CB5A3C] transition-all shadow-2xs gap-3"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          {/* Foto do Adicional */}
-                          <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#E9E4D4] bg-[#FAF8F0] shrink-0 flex items-center justify-center">
-                            {ad.image ? (
-                              <img src={ad.image} alt={ad.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <Camera className="w-4 h-4 text-gray-400" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-xs text-[#2E4233] truncate">
-                                {ad.name}
-                              </span>
-                              <span className="text-xs font-bold text-[#CB5A3C] shrink-0">
-                                {ad.price}
-                              </span>
-                            </div>
-                            {ad.description && (
-                              <p className="text-[11px] text-gray-500 truncate">{ad.description}</p>
-                            )}
-                          </div>
-                        </div>
+                return (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#CB5A3C]">
+                        Adicionais Cadastrados ({adicionaisList.length})
+                      </span>
+                    </div>
 
-                        {/* Ação: Excluir */}
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => setAdicionalToDelete(ad)}
-                            className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-colors cursor-pointer"
-                            title="Excluir adicional"
+                    {adicionaisList.length === 0 ? (
+                      <div className="p-4 bg-[#FDE7DE] rounded-xl border-2 border-dashed border-[#CB5A3C]/40 text-center text-xs text-[#8A3822] font-semibold">
+                        Nenhum adicional cadastrado ainda. Use o formulário acima para adicionar opções.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {paginatedAdicionais.map((ad, idx) => (
+                          <div
+                            key={ad.id || idx}
+                            className="flex items-center justify-between p-2.5 rounded-xl border-2 border-[#CB5A3C]/40 bg-white hover:border-[#CB5A3C] transition-all shadow-2xs gap-3"
                           >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {/* Foto do Adicional */}
+                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#E9E4D4] bg-[#FAF8F0] shrink-0 flex items-center justify-center">
+                                {ad.image ? (
+                                  <img src={ad.image} alt={ad.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <Camera className="w-4 h-4 text-gray-400" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-xs text-[#2E4233] truncate">
+                                    {ad.name}
+                                  </span>
+                                  <span className="text-xs font-bold text-[#CB5A3C] shrink-0">
+                                    {ad.price}
+                                  </span>
+                                </div>
+                                {ad.description && (
+                                  <p className="text-[11px] text-gray-500 truncate">{ad.description}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Ação: Excluir */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setAdicionalToDelete(ad)}
+                                className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-colors cursor-pointer"
+                                title="Excluir adicional"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Pagination Controls no padrão DeliPlus (3 em 3 adicionais) */}
+                    {adicionaisTotalPages > 1 && (
+                      <div className="flex items-center justify-between pt-2.5 border-t border-[#ECEAE2] text-[11px] text-[#637267]">
+                        <span className="font-medium text-[#637267]">
+                          {(adicionaisPage - 1) * ADICIONAIS_PER_PAGE + 1}–{Math.min(adicionaisPage * ADICIONAIS_PER_PAGE, adicionaisList.length)} de {adicionaisList.length} adicionais
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: adicionaisTotalPages }).map((_, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setAdicionaisPage(i + 1)}
+                              className={`w-6 h-6 rounded-md text-[11px] font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                                adicionaisPage === i + 1
+                                  ? "bg-[#CB5A3C] text-white shadow-xs"
+                                  : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                              }`}
+                            >
+                              {i + 1}
+                            </button>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })()}
             </div>
 
             {/* Footer */}
@@ -3269,25 +3346,25 @@ export default function MenuClient({
                   {/* Comparativo de Preços: Original e Promocional juntos */}
                   <div className="p-3.5 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-between gap-3 shadow-xs">
                     <div className="flex flex-col">
-                      <span className="text-[11px] text-gray-500 font-medium">Preço Original</span>
-                      <span className="text-sm font-semibold text-gray-400 line-through">
+                      <span className="text-xs font-bold text-[#111827]">Preço Original</span>
+                      <span className="text-base font-extrabold text-red-600 line-through decoration-red-600 decoration-2">
                         {discountModalItem.originalPrice}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FDF2F0] border border-[#CB5A3C]/20">
-                      <span className="text-xs font-bold text-[#CB5A3C]">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 shadow-2xs">
+                      <span className="text-xs font-extrabold text-[#059669]">
                         -{pct > 0 ? pct : 0}%
                       </span>
                     </div>
 
                     <div className="flex flex-col items-end">
-                      <span className="text-[11px] text-gray-500 font-medium">Preço Promocional</span>
-                      <span className="text-xl font-extrabold text-[#CB5A3C]">
+                      <span className="text-xs font-bold text-[#111827]">Preço Promocional</span>
+                      <span className="text-2xl font-black text-[#059669]">
                         {formatCurrency(calculatedPromo)}
                       </span>
                       {savings > 0 && (
-                        <span className="text-[10.5px] font-semibold text-[#2E4233]">
+                        <span className="text-[11px] font-semibold text-[#059669]">
                           Economia de {formatCurrency(savings)}
                         </span>
                       )}
@@ -3296,9 +3373,9 @@ export default function MenuClient({
 
                   {/* Campo Porcentagem de Desconto */}
                   <div id="tour-promo-modal-calc" className="flex flex-col gap-2 p-1 rounded-xl">
-                    <label className="text-xs font-semibold text-gray-700 flex justify-between">
+                    <label className="text-xs font-bold text-[#111827] flex justify-between">
                       <span>Porcentagem de Desconto:</span>
-                      <span className="text-[#CB5A3C] font-bold">{pct > 0 ? `${pct}%` : "0%"}</span>
+                      <span className="text-[#059669] font-extrabold">{pct > 0 ? `${pct}%` : "0%"}</span>
                     </label>
                     
                     <div className="relative">
@@ -3311,29 +3388,11 @@ export default function MenuClient({
                         onChange={(e) => setDiscountPercentInput(e.target.value)}
                         placeholder="Ex: 15"
                         autoFocus={promoIsActive}
-                        className="w-full border border-[#E9E4D4] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#CB5A3C] focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all"
+                        className="w-full border border-[#E9E4D4] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#059669] focus:outline-none focus:ring-2 focus:ring-[#059669]/20 focus:border-[#059669] transition-all"
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">
                         %
                       </span>
-                    </div>
-
-                    {/* Atalhos rápidos de % (Botões na cor verde Deli) */}
-                    <div className="flex items-center gap-1.5 pt-0.5">
-                      {[5, 10, 15, 20, 25, 30].map((quickPct) => (
-                        <button
-                          key={quickPct}
-                          type="button"
-                          onClick={() => setDiscountPercentInput(quickPct.toString())}
-                          className={`flex-1 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
-                            pct === quickPct
-                              ? "bg-[#2E4233] text-white border-[#2E4233]"
-                              : "bg-white text-gray-600 border-[#E9E4D4] hover:bg-[#FAF8F0] hover:text-[#2E4233]"
-                          }`}
-                        >
-                          {quickPct}%
-                        </button>
-                      ))}
                     </div>
                   </div>
 

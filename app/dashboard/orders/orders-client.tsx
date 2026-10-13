@@ -10,6 +10,8 @@ import {
   Printer,
   X,
   Check,
+  CheckCircle2,
+  Truck,
   Search,
   Calendar,
   ChevronDown,
@@ -20,7 +22,9 @@ import {
   ArrowDown,
   Trash2,
   Plus,
-  Minus
+  Minus,
+  RotateCcw,
+  Pencil
 } from 'lucide-react'
 
 // Official WhatsApp Vector Icon (White / Crisp)
@@ -810,6 +814,7 @@ export default function OrdersClient({
           filter: `store_id=eq.${storeId}`
         },
         async () => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { data } = await (supabase as any)
             .from('orders_live')
             .select('*')
@@ -1261,6 +1266,38 @@ export default function OrdersClient({
     }
   }
 
+  // Handle Revert Status (Voltar status caso o logista tenha alterado por engano)
+  const handleRevertStatus = async (orderId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    const target = orders.find(o => o.id === orderId || o.dbId === orderId)
+    if (!target) return
+
+    let prevStatus: OrderStatus = 'Novo'
+    if (target.status === 'Concluído') {
+      prevStatus = target.type === 'Retirada' ? 'Pronto' : 'Em entrega'
+    } else if (target.status === 'Em entrega') {
+      prevStatus = 'Pronto'
+    } else if (target.status === 'Pronto') {
+      prevStatus = 'Em preparo'
+    } else if (target.status === 'Em preparo') {
+      prevStatus = 'Novo'
+    } else if (target.status === 'Cancelado') {
+      prevStatus = 'Novo'
+    } else {
+      return
+    }
+
+    setOrders(prev =>
+      prev.map(o => (o.id === target.id ? { ...o, status: prevStatus, isUrgent: prevStatus === 'Novo' } : o))
+    )
+
+    try {
+      await updateOrderStatusAction(target.dbId || target.id, prevStatus)
+    } catch (err) {
+      console.error('Falha ao reverter status no Supabase:', err)
+    }
+  }
+
   // Handle Cancel Order (Abre modal estilizado DeliPlus)
   const handleCancelOrder = (orderId: string) => {
     const target = orders.find(o => o.id === orderId || o.dbId === orderId)
@@ -1441,10 +1478,10 @@ export default function OrdersClient({
                 </div>
               </div>
 
-              {/* Search Bar (Cardápio pattern: compact, aligned with right edge of table) */}
+              {/* Search Bar: Destacado, nítido e altamente visível */}
               <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-                <div className="relative w-full sm:w-[155px]">
-                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <div className="relative w-full sm:w-[220px] md:w-[260px]">
+                  <Search className="w-4 h-4 text-[#CB5A3C] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
                   <input
                     type="text"
                     value={searchQuery}
@@ -1452,8 +1489,8 @@ export default function OrdersClient({
                       setSearchQuery(e.target.value)
                       setCurrentPage(1)
                     }}
-                    placeholder="Buscar pedido..."
-                    className="w-full pl-7 pr-6 py-1 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 focus:border-[#1E3A2B] transition-all shadow-xs"
+                    placeholder="Buscar pedido por nº ou cliente..."
+                    className="w-full pl-9 pr-8 py-2 bg-white border-2 border-[#D6D0C2] hover:border-[#CB5A3C]/70 focus:border-[#CB5A3C] rounded-xl text-xs font-semibold text-[#1C2C22] placeholder:text-[#8C827A] placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 transition-all shadow-xs"
                   />
                   {searchQuery && (
                     <button
@@ -1462,9 +1499,10 @@ export default function OrdersClient({
                         setSearchQuery('')
                         setCurrentPage(1)
                       }}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                      title="Limpar busca"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
@@ -1604,11 +1642,8 @@ export default function OrdersClient({
                       )}
                     </div>
                   </th>
-                  <th className="py-2.5 px-1.5 text-center whitespace-nowrap select-none font-bold">
-                    Ação rápida
-                  </th>
-                  <th className="py-2.5 px-1.5 text-center whitespace-nowrap select-none font-bold">
-                    Imprimir
+                  <th className="py-2.5 px-2 text-center whitespace-nowrap select-none font-bold">
+                    Ações
                   </th>
                   <th className="py-2.5 pr-3 pl-1 w-6 select-none"></th>
                 </tr>
@@ -1616,7 +1651,7 @@ export default function OrdersClient({
               <tbody className="divide-y divide-[#E9E4D4]/60">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-gray-500 text-sm">
+                    <td colSpan={8} className="py-12 text-center text-gray-500 text-sm">
                       Nenhum pedido encontrado para os filtros selecionados.
                     </td>
                   </tr>
@@ -1627,8 +1662,6 @@ export default function OrdersClient({
                     const isPreparo = order.status === 'Em preparo'
                     const isPronto = order.status === 'Pronto'
                     const isEntrega = order.status === 'Em entrega'
-                    const isConcluido = order.status === 'Concluído'
-                    const isCancelado = order.status === 'Cancelado'
 
                     return (
                       <tr
@@ -1636,18 +1669,8 @@ export default function OrdersClient({
                         onClick={() => setSelectedOrderId(order.id)}
                         title="Clique para ver os detalhes deste pedido"
                         className={cn(
-                          "cursor-pointer transition-colors relative group select-none",
-                          isSelected
-                            ? isCancelado
-                              ? "bg-[#FEE2E2] shadow-[inset_3px_0_0_0_#DC2626]"
-                              : isConcluido
-                                ? "bg-[#D1FAE5] shadow-[inset_3px_0_0_0_#059669]"
-                                : "bg-[#FAF5E9] shadow-[inset_3px_0_0_0_#CB5A3C]"
-                            : isCancelado
-                              ? "bg-[#FEE2E2]/90 hover:bg-[#FECACA]/80"
-                              : isConcluido
-                                ? "bg-[#D1FAE5]/90 hover:bg-[#A7F3D0]/80"
-                                : "hover:bg-[#FAF8F0]/70"
+                          "cursor-pointer transition-colors relative group select-none bg-white hover:bg-[#FAF8F0]/80",
+                          isSelected && "bg-[#FAF5E9] shadow-[inset_3px_0_0_0_#CB5A3C]"
                         )}
                       >
                         {/* Order ID with Urgent Stripe */}
@@ -1753,81 +1776,28 @@ export default function OrdersClient({
                           )}
                         </td>
 
-                        {/* Ação rápida */}
-                        <td className="py-2 px-1.5 text-center whitespace-nowrap">
-                          {isNovo && (
-                            <button
-                              type="button"
-                              onClick={(e) => handleAcceptOrder(order.id, e)}
-                              className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold bg-[#CB5A3C] hover:bg-[#B34B30] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
-                              title="Aceitar pedido e iniciar preparo"
-                            >
-                              <span>Aceitar</span>
-                            </button>
-                          )}
-                          {isPreparo && (
-                            <button
-                              type="button"
-                              onClick={(e) => handleAdvanceStatus(order.id, e)}
-                              className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold bg-[#1E3A2B] hover:bg-[#162B20] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
-                              title={order.type === 'Retirada' ? "Marcar como pronto para retirada no balcão" : "Marcar como pronto para entrega"}
-                            >
-                              <span>Pronto</span>
-                            </button>
-                          )}
-                          {isPronto && (
-                            order.type === 'Retirada' ? (
-                              <button
-                                type="button"
-                                onClick={(e) => handleAdvanceStatus(order.id, e)}
-                                className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-800 hover:bg-black text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
-                                title="Concluir retirada do cliente"
-                              >
-                                <span>Concluir</span>
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={(e) => handleAdvanceStatus(order.id, e)}
-                                className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold bg-[#0284C7] hover:bg-[#0369A1] text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
-                                title="Marcar como em rota de entrega"
-                              >
-                                <span>Em rota</span>
-                              </button>
-                            )
-                          )}
-                          {isEntrega && (
-                            <button
-                              type="button"
-                              onClick={(e) => handleAdvanceStatus(order.id, e)}
-                              className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-800 hover:bg-black text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
-                              title="Confirmar entrega e concluir pedido"
-                            >
-                              <span>Concluir</span>
-                            </button>
-                          )}
-                          {order.status === 'Concluído' && (
-                            <span className="inline-flex items-center justify-center text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/50">
-                              <span>Finalizado</span>
-                            </span>
-                          )}
-                          {order.status === 'Cancelado' && (
-                            <span className="inline-flex items-center justify-center text-[11px] font-semibold text-[#DC2626] bg-[#FEF2F2] px-2 py-0.5 rounded-md border border-[#FCA5A5]/60">
-                              <span>Cancelado</span>
-                            </span>
-                          )}
-                        </td>
 
-                        {/* Imprimir */}
-                        <td className="py-2 px-1.5 text-center whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={(e) => handleOpenPrint(order, e)}
-                            className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold text-[#1C2C22] bg-[#FAF8F0] hover:bg-[#F3EEDD] border border-[#E9E4D4] hover:border-[#2E4233]/40 shadow-2xs hover:shadow-xs transition-all cursor-pointer group/print active:scale-95"
-                            title="Imprimir comanda térmica 80mm"
-                          >
-                            <span className="font-semibold text-[11px]">Imprimir</span>
-                          </button>
+
+                        {/* Ações: Imprimir & + Detalhes */}
+                        <td className="py-2 px-1.5 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <div className="inline-flex items-center gap-1.5 justify-center">
+                            <button
+                              type="button"
+                              onClick={(e) => handleOpenPrint(order, e)}
+                              className="inline-flex items-center justify-center px-2 py-1 rounded-lg text-xs font-bold text-[#1C2C22] bg-[#FAF8F0] hover:bg-[#F3EEDD] border border-[#E9E4D4] hover:border-[#2E4233]/40 shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95"
+                              title="Imprimir comanda térmica 80mm"
+                            >
+                              <span className="font-semibold text-[11px]">Imprimir</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedOrderId(order.id)}
+                              className="inline-flex items-center justify-center px-2 py-1 rounded-lg text-xs font-bold text-[#CB5A3C] bg-white hover:bg-[#FEF2EE] border border-[#CB5A3C]/40 hover:border-[#CB5A3C] shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95"
+                              title="Abrir detalhes deste pedido"
+                            >
+                              <span className="font-bold text-[11px]">+ Detalhes</span>
+                            </button>
+                          </div>
                         </td>
 
                         {/* Indicador de linha selecionada */}
@@ -2021,16 +1991,6 @@ export default function OrdersClient({
                   <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider">
                     Itens do pedido ({activeOrder.itemsDetail.length})
                   </h3>
-                  {activeOrder.status !== 'Concluído' && (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditModal(activeOrder)}
-                      className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-[11px] font-bold text-white bg-[#CB5A3C] hover:bg-[#B34B30] transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
-                      title="Adicionar ou excluir itens deste pedido"
-                    >
-                      <span>Editar pedido</span>
-                    </button>
-                  )}
                 </div>
 
                 {(() => {
@@ -2156,23 +2116,131 @@ export default function OrdersClient({
               </div>
             </div>
 
-            {/* Drawer Bottom Actions: Apenas Cancelar Pedido conforme solicitado */}
-            {activeOrder.status !== 'Concluído' && activeOrder.status !== 'Cancelado' && (
-              <div className="p-3 bg-[#FAF8F0]/80 border-t border-[#E9E4D4] shrink-0">
+            {/* Drawer Bottom Actions: Ação Rápida + Voltar Status + Alterar Pedido + Cancelar Pedido */}
+            <div className="p-3 bg-[#FAF8F0] border-t border-[#E9E4D4] shrink-0 space-y-2">
+              {/* Ação Rápida Principal */}
+              {activeOrder.status === 'Novo' && (
+                <button
+                  type="button"
+                  onClick={() => handleAcceptOrder(activeOrder.id)}
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#CB5A3C] hover:bg-[#B34B30] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                >
+                  <Check className="w-4 h-4 stroke-[2.5]" />
+                  <span>Aceitar pedido (Iniciar preparo)</span>
+                </button>
+              )}
+              {activeOrder.status === 'Em preparo' && (
+                <button
+                  type="button"
+                  onClick={() => handleAdvanceStatus(activeOrder.id)}
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#1E3A2B] hover:bg-[#162B20] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                >
+                  <Check className="w-4 h-4 stroke-[2.5]" />
+                  <span>Marcar como Pronto</span>
+                </button>
+              )}
+              {activeOrder.status === 'Pronto' && (
+                activeOrder.type === 'Retirada' ? (
+                  <button
+                    type="button"
+                    onClick={() => handleAdvanceStatus(activeOrder.id)}
+                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#1C2C22] hover:bg-black shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                  >
+                    <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                    <span>Concluir retirada do balcão</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleAdvanceStatus(activeOrder.id)}
+                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#0284C7] hover:bg-[#0369A1] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                  >
+                    <Truck className="w-4 h-4" />
+                    <span>Despachar pedido (Em rota)</span>
+                  </button>
+                )
+              )}
+              {activeOrder.status === 'Em entrega' && (
+                <button
+                  type="button"
+                  onClick={() => handleAdvanceStatus(activeOrder.id)}
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#1C2C22] hover:bg-black shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                >
+                  <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                  <span>Confirmar entrega e concluir</span>
+                </button>
+              )}
+              {activeOrder.status === 'Concluído' && (
+                <div className="w-full py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-200 text-center flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-800">
+                  <Check className="w-4 h-4 stroke-[2.5] text-emerald-600" />
+                  <span>Pedido Concluído com Sucesso</span>
+                </div>
+              )}
+
+              {/* Linha secundária de Ações: Voltar Status & Alterar Pedido */}
+              <div className="flex items-center gap-2">
+                {/* Botão de Voltar Status (Permite reverter se clicou acidentalmente) */}
+                {activeOrder.status !== 'Novo' && (
+                  <button
+                    type="button"
+                    onClick={() => handleRevertStatus(activeOrder.id)}
+                    className="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold text-[#1C2C22] bg-white hover:bg-gray-100 border-2 border-[#D6D0C2] shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    title="Voltar status anterior do pedido"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-gray-500" />
+                    <span>
+                      Voltar para{" "}
+                      {activeOrder.status === 'Em preparo'
+                        ? 'Novo'
+                        : activeOrder.status === 'Pronto'
+                        ? 'Em preparo'
+                        : activeOrder.status === 'Em entrega'
+                        ? 'Pronto'
+                        : activeOrder.status === 'Concluído'
+                        ? (activeOrder.type === 'Delivery' ? 'Em entrega' : 'Pronto')
+                        : 'Novo'}
+                    </span>
+                  </button>
+                )}
+
+                {/* Botão Alterar Pedido com fundo laranja Deli */}
+                <button
+                  type="button"
+                  onClick={() => handleOpenEditModal(activeOrder)}
+                  className="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold text-white bg-[#CB5A3C] hover:bg-[#B34B30] border border-[#B34B30] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                  title="Adicionar ou alterar itens deste pedido"
+                >
+                  <Pencil className="w-3.5 h-3.5 stroke-[2.2]" />
+                  <span>Alterar pedido</span>
+                </button>
+              </div>
+
+              {/* Botão Cancelar Pedido com fundo vermelho / Estado Cancelado */}
+              {activeOrder.status !== 'Cancelado' ? (
                 <button
                   type="button"
                   onClick={() => handleCancelOrder(activeOrder.id)}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 shadow-2xs hover:shadow-xs transition-all cursor-pointer text-center active:scale-95"
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 border border-red-700 shadow-sm hover:shadow-md transition-all cursor-pointer text-center active:scale-95"
                 >
                   Cancelar pedido
                 </button>
-              </div>
-            )}
-            {activeOrder.status === 'Cancelado' && (
-              <div className="p-3 bg-[#FEF2F2] border-t border-[#FCA5A5]/60 shrink-0 text-center">
-                <span className="text-xs font-bold text-[#DC2626]">Pedido Cancelado</span>
-              </div>
-            )}
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 py-1.5 px-3 bg-[#FEF2F2] border border-[#FCA5A5]/60 rounded-lg text-center">
+                    <span className="text-xs font-bold text-[#DC2626]">Pedido Cancelado</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRevertStatus(activeOrder.id)}
+                    className="py-1.5 px-3 rounded-lg text-xs font-bold text-[#1C2C22] bg-white hover:bg-gray-100 border border-[#E9E4D4] shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
+                    title="Reativar pedido como Novo"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-gray-500" />
+                    <span>Reativar</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </>
         ) : (
           /* Centered Empty State when no order is selected */

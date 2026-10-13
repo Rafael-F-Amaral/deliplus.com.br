@@ -500,7 +500,7 @@ export default function PromotionsClient({
         <div className="mb-8">
           <div className="flex items-center gap-2.5 mb-2">
             <h1 className="font-serif text-[32px] sm:text-[38px] lg:text-[42px] font-semibold text-[#CB5A3C] tracking-tight leading-none">
-              Métricas Promocionais
+              Promoções
             </h1>
 
             {/* Tooltip Icon & Popover */}
@@ -530,7 +530,7 @@ export default function PromotionsClient({
             </div>
           </div>
 
-          <p className="text-[14px] sm:text-[15px] text-[#5D6B60] max-w-2xl">
+          <p className="text-[14px] sm:text-[15px] text-[#0D1510] font-medium max-w-2xl">
             Monitore quais produtos têm maior saída, acompanhe cliques no cardápio público e ajuste preços promocionais em tempo real.
           </p>
         </div>
@@ -871,16 +871,16 @@ export default function PromotionsClient({
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-[#ECEAE2] text-[#637267] font-medium">
-                  <th className="pb-3 pl-1 font-semibold">Produto</th>
-                  <th className="pb-3 font-semibold">Categoria</th>
-                  <th className="pb-3 font-semibold">Preço Regular</th>
-                  <th className="pb-3 font-semibold">Preço Promocional</th>
-                  <th className="pb-3 font-semibold">Adicionais</th>
-                  <th className="pb-3 font-semibold">Saídas / Cliques</th>
-                  <th className="pb-3 font-semibold">Faturamento</th>
-                  <th className="pb-3 text-center font-semibold">Status</th>
-                  <th className="pb-3 text-right pr-1 font-semibold">Ações</th>
+                <tr className="border-b border-[#ECEAE2] text-[#0D1510] font-bold">
+                  <th className="pb-3 pl-1 font-bold text-[#0D1510]">Produto</th>
+                  <th className="pb-3 font-bold text-[#0D1510]">Categoria</th>
+                  <th className="pb-3 font-bold text-[#0D1510]">Preço Regular</th>
+                  <th className="pb-3 font-bold text-[#0D1510]">Preço Promocional</th>
+                  <th className="pb-3 font-bold text-[#0D1510]">Adicionais</th>
+                  <th className="pb-3 font-bold text-[#0D1510]">Saídas / Cliques</th>
+                  <th className="pb-3 font-bold text-[#0D1510]">Faturamento</th>
+                  <th className="pb-3 text-center font-bold text-[#0D1510]">Status</th>
+                  <th className="pb-3 text-right pr-1 font-bold text-[#0D1510]">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#ECEAE2]/60">
@@ -1117,25 +1117,25 @@ export default function PromotionsClient({
                   {/* Comparativo de Preços: Original e Promocional juntos */}
                   <div className="p-3.5 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-between gap-3 shadow-xs">
                     <div className="flex flex-col">
-                      <span className="text-[11px] text-gray-500 font-medium">Preço Original</span>
-                      <span className="text-sm font-semibold text-gray-400 line-through">
+                      <span className="text-xs font-bold text-[#111827]">Preço Original</span>
+                      <span className="text-base font-extrabold text-red-600 line-through decoration-red-600 decoration-2">
                         {formatBRL(editingPromoProduct.priceCents)}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FDF2F0] border border-[#CB5A3C]/20">
-                      <span className="text-xs font-bold text-[#CB5A3C]">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 shadow-2xs">
+                      <span className="text-xs font-extrabold text-[#059669]">
                         -{pct > 0 ? pct : 0}%
                       </span>
                     </div>
 
                     <div className="flex flex-col items-end">
-                      <span className="text-[11px] text-gray-500 font-medium">Preço Promocional</span>
-                      <span className="text-xl font-extrabold text-[#CB5A3C]">
+                      <span className="text-xs font-bold text-[#111827]">Preço Promocional</span>
+                      <span className="text-2xl font-black text-[#059669]">
                         {formatBRL(Math.round(calculatedPromo * 100))}
                       </span>
                       {savings > 0 && (
-                        <span className="text-[10.5px] font-semibold text-[#2E4233]">
+                        <span className="text-[11px] font-semibold text-[#059669]">
                           Economia de {formatBRL(Math.round(savings * 100))}
                         </span>
                       )}
@@ -1144,9 +1144,9 @@ export default function PromotionsClient({
 
                   {/* Campo Porcentagem de Desconto */}
                   <div className="flex flex-col gap-2 p-1 rounded-xl">
-                    <label className="text-xs font-semibold text-gray-700 flex justify-between">
+                    <label className="text-xs font-bold text-[#111827] flex justify-between">
                       <span>Porcentagem de Desconto:</span>
-                      <span className="text-[#CB5A3C] font-bold">{pct > 0 ? `${pct}%` : "0%"}</span>
+                      <span className="text-[#059669] font-extrabold">{pct > 0 ? `${pct}%` : "0%"}</span>
                     </label>
 
                     <div className="relative">
@@ -1159,29 +1159,11 @@ export default function PromotionsClient({
                         onChange={(e) => setDiscountPercentInput(e.target.value)}
                         placeholder="Ex: 15"
                         autoFocus={promoIsActive}
-                        className="w-full border border-[#E9E4D4] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#CB5A3C] focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all"
+                        className="w-full border border-[#E9E4D4] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#059669] focus:outline-none focus:ring-2 focus:ring-[#059669]/20 focus:border-[#059669] transition-all"
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">
                         %
                       </span>
-                    </div>
-
-                    {/* Atalhos rápidos de % (Botões na cor verde Deli) */}
-                    <div className="flex items-center gap-1.5 pt-0.5">
-                      {[5, 10, 15, 20, 25, 30].map((quickPct) => (
-                        <button
-                          key={quickPct}
-                          type="button"
-                          onClick={() => setDiscountPercentInput(quickPct.toString())}
-                          className={`flex-1 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
-                            pct === quickPct
-                              ? "bg-[#2E4233] text-white border-[#2E4233]"
-                              : "bg-white text-gray-600 border-[#E9E4D4] hover:bg-[#FAF8F0] hover:text-[#2E4233]"
-                          }`}
-                        >
-                          {quickPct}%
-                        </button>
-                      ))}
                     </div>
                   </div>
 
