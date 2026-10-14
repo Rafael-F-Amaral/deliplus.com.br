@@ -17,6 +17,7 @@ import {
   Sliders,
   Share2
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import type { CouponItem } from "./coupons-client";
 
 export interface CouponImageGeneratorProps {
@@ -127,14 +128,13 @@ const FOOD_THEMES: FoodTheme[] = [
   }
 ];
 
-const AVAILABLE_SOCIALS = [
-  { id: "instagram", name: "Instagram", icon: "📸" },
-  { id: "whatsapp", name: "WhatsApp", icon: "💬" },
-  { id: "facebook", name: "Facebook", icon: "👥" },
-  { id: "tiktok", name: "TikTok", icon: "🎵" },
-  { id: "ifood", name: "iFood", icon: "🛵" },
-  { id: "google", name: "Google", icon: "⭐" }
-];
+export interface SocialAccountItem {
+  id: "instagram" | "whatsapp" | "facebook" | "youtube" | "x" | "tiktok" | "kwai";
+  name: string;
+  handle: string;
+  enabled: boolean;
+  brandColor: string;
+}
 
 function hslToHex(h: number, s: number, l: number): string {
   l /= 100;
@@ -166,6 +166,127 @@ function hexToHue(hex: string): number {
   return h;
 }
 
+// Draw authentic brand logos on canvas
+function drawBrandLogo(ctx: CanvasRenderingContext2D, id: string, x: number, y: number, size: number) {
+  ctx.save();
+  const r = size / 2;
+  const cx = x + r;
+  const cy = y + r;
+
+  if (id === "instagram") {
+    // Official Instagram gradient rounded square
+    const grad = ctx.createLinearGradient(x, y + size, x + size, y);
+    grad.addColorStop(0, "#f09433");
+    grad.addColorStop(0.3, "#e6683c");
+    grad.addColorStop(0.6, "#dc2743");
+    grad.addColorStop(1, "#bc1888");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, size, size, size * 0.28);
+    ctx.fill();
+
+    // White camera outline + circle + dot
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = Math.max(1.8, size * 0.08);
+    ctx.beginPath();
+    ctx.roundRect(x + size * 0.18, y + size * 0.18, size * 0.64, size * 0.64, size * 0.18);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, size * 0.16, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.beginPath();
+    ctx.arc(x + size * 0.68, y + size * 0.32, size * 0.05, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (id === "whatsapp") {
+    // WhatsApp green circle
+    ctx.fillStyle = "#25D366";
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // White bubble & phone
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.fillStyle = "#FFFFFF";
+    ctx.lineWidth = Math.max(1.8, size * 0.08);
+    ctx.beginPath();
+    ctx.arc(cx, cy - size * 0.03, size * 0.26, 0.2 * Math.PI, 1.9 * Math.PI);
+    ctx.lineTo(cx - size * 0.26, cy + size * 0.26);
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.font = `bold ${Math.round(size * 0.38)}px system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText("✆", cx, cy + size * 0.11);
+  } else if (id === "facebook") {
+    // Facebook blue circle
+    ctx.fillStyle = "#1877F2";
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `bold ${Math.round(size * 0.68)}px 'Segoe UI', Arial, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText("f", cx + size * 0.04, cy + size * 0.24);
+  } else if (id === "youtube") {
+    // YouTube red rounded rect
+    ctx.fillStyle = "#FF0000";
+    ctx.beginPath();
+    ctx.roundRect(x, y + size * 0.14, size, size * 0.72, size * 0.22);
+    ctx.fill();
+
+    // White play triangle
+    ctx.fillStyle = "#FFFFFF";
+    ctx.beginPath();
+    ctx.moveTo(cx - size * 0.12, cy - size * 0.16);
+    ctx.lineTo(cx + size * 0.18, cy);
+    ctx.lineTo(cx - size * 0.12, cy + size * 0.16);
+    ctx.closePath();
+    ctx.fill();
+  } else if (id === "x") {
+    // X black circle
+    ctx.fillStyle = "#000000";
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `900 ${Math.round(size * 0.52)}px system-ui, -apple-system, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText("𝕏", cx, cy + size * 0.18);
+  } else if (id === "tiktok") {
+    // TikTok black circle
+    ctx.fillStyle = "#010101";
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `bold ${Math.round(size * 0.58)}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText("♪", cx, cy + size * 0.2);
+  } else if (id === "kwai") {
+    // Kwai orange rounded rect
+    ctx.fillStyle = "#FF5000";
+    ctx.beginPath();
+    ctx.roundRect(x, y + size * 0.08, size, size * 0.84, size * 0.25);
+    ctx.fill();
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `bold ${Math.round(size * 0.44)}px 'Arial Black', sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText("K", cx, cy + size * 0.16);
+  }
+
+  ctx.restore();
+}
+
 interface CaptionTemplate {
   id: string;
   title: string;
@@ -193,10 +314,18 @@ function CouponImageGeneratorContent({
   const [selectedThemeId, setSelectedThemeId] = useState<string>("burger");
   const [customImageSrc, setCustomImageSrc] = useState<string | null>(null);
 
-  // Social Icons on Image (Max 4)
-  const [selectedSocials, setSelectedSocials] = useState<string[]>(["instagram", "whatsapp"]);
+  // Social Accounts with Handles (Max 4 active)
+  const [socialAccounts, setSocialAccounts] = useState<SocialAccountItem[]>(() => [
+    { id: "instagram", name: "Instagram", handle: `@${storeSlug || "sualoja"}`, enabled: true, brandColor: "#E1306C" },
+    { id: "whatsapp", name: "WhatsApp", handle: "Peça pelo WhatsApp", enabled: true, brandColor: "#25D366" },
+    { id: "facebook", name: "Facebook", handle: `/${storeSlug || "sualoja"}`, enabled: false, brandColor: "#1877F2" },
+    { id: "youtube", name: "YouTube", handle: `@${storeSlug || "sualoja"}`, enabled: false, brandColor: "#FF0000" },
+    { id: "tiktok", name: "TikTok", handle: `@${storeSlug || "sualoja"}`, enabled: false, brandColor: "#010101" },
+    { id: "x", name: "X (Twitter)", handle: `@${storeSlug || "sualoja"}`, enabled: false, brandColor: "#000000" },
+    { id: "kwai", name: "Kwai", handle: `@${storeSlug || "sualoja"}`, enabled: false, brandColor: "#FF5000" }
+  ]);
 
-  // Editable fields
+  // Editable Text fields
   const [headline, setHeadline] = useState(() => {
     if (coupon?.description && coupon.description.includes("1º")) return "SEU 1º PEDIDO";
     return "DESCONTO ESPECIAL";
@@ -226,6 +355,7 @@ function CouponImageGeneratorContent({
 
   const [copiedCaption, setCopiedCaption] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [liveRenderedImageUrl, setLiveRenderedImageUrl] = useState<string | null>(null);
 
   // Copywriting Studio State
   const cleanStoreLink = `deliplus.com.br/${storeSlug || "sua-loja"}`;
@@ -294,14 +424,26 @@ function CouponImageGeneratorContent({
 
   const activeTheme = FOOD_THEMES.find((t) => t.id === selectedThemeId) || FOOD_THEMES[0];
 
-  // Toggle social network selection (max 4)
-  const handleToggleSocial = (id: string) => {
-    if (selectedSocials.includes(id)) {
-      setSelectedSocials(selectedSocials.filter((s) => s !== id));
-    } else {
-      if (selectedSocials.length >= 4) return;
-      setSelectedSocials([...selectedSocials, id]);
-    }
+  // Toggle social network enabled state (max 4 active)
+  const handleToggleSocialAccount = (id: string) => {
+    setSocialAccounts((prev) => {
+      const target = prev.find((s) => s.id === id);
+      if (!target) return prev;
+      const currentlyEnabledCount = prev.filter((s) => s.enabled).length;
+
+      if (!target.enabled && currentlyEnabledCount >= 4) {
+        return prev; // Maximum 4 active
+      }
+
+      return prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s));
+    });
+  };
+
+  // Change handle for a social account
+  const handleSocialAccountChange = (id: string, newHandle: string) => {
+    setSocialAccounts((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, handle: newHandle } : s))
+    );
   };
 
   // Render canvas
@@ -324,7 +466,6 @@ function CouponImageGeneratorContent({
 
       // 2. Draw image or fallback gradient
       if (imgBg) {
-        // Draw image covering canvas (object-fit: cover)
         const imgAspect = imgBg.width / imgBg.height;
         const canvasAspect = width / height;
         let renderW = width;
@@ -341,7 +482,7 @@ function CouponImageGeneratorContent({
         }
         ctx.drawImage(imgBg, renderX, renderY, renderW, renderH);
 
-        // Dark cinematic vignette overlay (10% lighter as requested!)
+        // Dark cinematic vignette overlay (12% lighter so food shines through!)
         const darkOverlay = ctx.createLinearGradient(0, 0, 0, height);
         darkOverlay.addColorStop(0, "rgba(10, 12, 16, 0.65)");
         darkOverlay.addColorStop(0.3, "rgba(10, 12, 16, 0.72)");
@@ -350,7 +491,6 @@ function CouponImageGeneratorContent({
         ctx.fillStyle = darkOverlay;
         ctx.fillRect(0, 0, width, height);
       } else {
-        // Fallback rich gradient
         const bgGrad = ctx.createLinearGradient(0, 0, width, height);
         if (selectedThemeId === "grad_forest") {
           bgGrad.addColorStop(0, "#0e1e16");
@@ -365,7 +505,6 @@ function CouponImageGeneratorContent({
         ctx.fillStyle = bgGrad;
         ctx.fillRect(0, 0, width, height);
 
-        // Circular ambient glow
         const glow = ctx.createRadialGradient(width / 2, height / 2, 50, width / 2, height / 2, 600);
         glow.addColorStop(0, `${accentColor}33`);
         glow.addColorStop(1, "transparent");
@@ -493,88 +632,83 @@ function CouponImageGeneratorContent({
       ctx.fillText(`👉 ${callToAction.toUpperCase()}`, width / 2, ctaY + (isStory ? 52 : 45));
 
       // 9. Link do cardápio
-      const linkY = isStory ? 1315 : 880;
+      const linkY = isStory ? 1310 : 875;
       const linkFontSize = isStory ? 36 : 32;
       ctx.font = `bold ${linkFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "#E5E7EB";
       ctx.fillText(`deliplus.com.br/${storeSlug || "sua-loja"}`, width / 2, linkY);
 
-      // 10. REDES SOCIAIS ABAIXO DO LINK (ATÉ 4 ÍCONES)
-      if (selectedSocials.length > 0) {
-        const socialY = isStory ? 1410 : 935;
-        const iconRadius = isStory ? 24 : 19;
-        const iconSpacing = isStory ? 64 : 52;
-        const totalSocialW = (selectedSocials.length - 1) * iconSpacing;
-        const startX = width / 2 - totalSocialW / 2;
+      // 10. REDES SOCIAIS COM ÍCONES OFICIAIS + ENDEREÇO/HANDLE (ATÉ 4)
+      const activeSocials = socialAccounts.filter((s) => s.enabled).slice(0, 4);
 
-        selectedSocials.forEach((socialId, idx) => {
-          const cx = startX + idx * iconSpacing;
-          const cy = socialY;
+      if (activeSocials.length > 0) {
+        const logoSize = isStory ? 32 : 24;
+        const fontTextSize = isStory ? 26 : 21;
+        ctx.font = `bold ${fontTextSize}px system-ui, -apple-system, sans-serif`;
 
-          // Outer circle badge
-          ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.40)";
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.arc(cx, cy, iconRadius, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
+        // Calculate layout: 1 row if 1-2 socials, 2 rows if 3-4 socials
+        const isMultiRow = activeSocials.length > 2;
+        const rows = isMultiRow
+          ? [activeSocials.slice(0, 2), activeSocials.slice(2, 4)]
+          : [activeSocials];
 
-          ctx.fillStyle = "#FFFFFF";
-          ctx.strokeStyle = "#FFFFFF";
+        const baseY = isStory ? 1395 : 925;
+        const rowHeight = isStory ? 52 : 42;
+        const rowGap = isStory ? 12 : 8;
 
-          if (socialId === "instagram") {
-            const s = iconRadius * 1.05;
-            ctx.lineWidth = 2.2;
+        rows.forEach((rowSocials, rIdx) => {
+          const currentY = baseY + rIdx * (rowHeight + rowGap);
+
+          // Measure widths for all pills in this row
+          const pillMetrics = rowSocials.map((soc) => {
+            const txt = soc.handle.trim() || soc.name;
+            const textW = ctx.measureText(txt).width;
+            const pillW = logoSize + textW + (isStory ? 36 : 28);
+            return { soc, txt, pillW };
+          });
+
+          const totalRowW = pillMetrics.reduce((acc, p) => acc + p.pillW, 0) + (rowSocials.length - 1) * (isStory ? 18 : 12);
+          let currentX = width / 2 - totalRowW / 2;
+
+          pillMetrics.forEach(({ soc, txt, pillW }) => {
+            // Pill background
+            ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+            ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.roundRect(cx - s / 2, cy - s / 2, s, s, 6);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(cx, cy, s * 0.26, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(cx + s * 0.28, cy - s * 0.28, 1.8, 0, Math.PI * 2);
+            ctx.roundRect(currentX, currentY, pillW, rowHeight, rowHeight / 2);
             ctx.fill();
-          } else if (socialId === "whatsapp") {
-            ctx.lineWidth = 2.2;
-            ctx.beginPath();
-            ctx.arc(cx, cy - 1, iconRadius * 0.58, 0.2 * Math.PI, 1.9 * Math.PI);
-            ctx.lineTo(cx - iconRadius * 0.6, cy + iconRadius * 0.6);
-            ctx.closePath();
             ctx.stroke();
-            ctx.font = `bold ${iconRadius * 0.75}px sans-serif`;
-            ctx.textAlign = "center";
-            ctx.fillText("✆", cx + 0.5, cy + iconRadius * 0.28);
-          } else if (socialId === "facebook") {
-            ctx.font = `bold ${iconRadius * 1.3}px 'Segoe UI', Arial, sans-serif`;
-            ctx.textAlign = "center";
-            ctx.fillText("f", cx, cy + iconRadius * 0.45);
-          } else if (socialId === "tiktok") {
-            ctx.font = `bold ${iconRadius * 1.25}px sans-serif`;
-            ctx.textAlign = "center";
-            ctx.fillText("♪", cx, cy + iconRadius * 0.42);
-          } else if (socialId === "ifood") {
-            ctx.font = `bold ${iconRadius * 0.9}px 'Arial Black', sans-serif`;
-            ctx.textAlign = "center";
-            ctx.fillText("iF", cx, cy + iconRadius * 0.34);
-          } else if (socialId === "google") {
-            ctx.font = `bold ${iconRadius * 1.2}px 'Segoe UI', Arial, sans-serif`;
-            ctx.textAlign = "center";
-            ctx.fillText("G", cx, cy + iconRadius * 0.42);
-          }
+
+            // Brand logo inside pill
+            const logoPadding = isStory ? 10 : 8;
+            const logoX = currentX + logoPadding;
+            const logoY = currentY + (rowHeight - logoSize) / 2;
+            drawBrandLogo(ctx, soc.id, logoX, logoY, logoSize);
+
+            // Handle text
+            ctx.fillStyle = "#FFFFFF";
+            ctx.textAlign = "left";
+            const textX = logoX + logoSize + (isStory ? 10 : 8);
+            const textY = currentY + rowHeight / 2 + (fontTextSize * 0.35);
+            ctx.fillText(txt, textX, textY);
+
+            currentX += pillW + (isStory ? 18 : 12);
+          });
         });
       }
 
       // 11. MARCA D'ÁGUA DELIPLUS EM BADGE / PÍLULA (SAFE ZONE RESPEITADA)
       const waterFontSize = isStory ? 32 : 26;
       ctx.font = `bold ${waterFontSize}px system-ui, -apple-system, sans-serif`;
+      ctx.textAlign = "center";
       const waterText = "✦ Criado com DeliPlus  •  www.deliplus.com.br ✦";
       const waterPillWidth = ctx.measureText(waterText).width + 64;
       const waterPillHeight = isStory ? 64 : 52;
       const waterPillX = (width - waterPillWidth) / 2;
-      const waterPillY = isStory ? 1560 : 990;
+      const waterPillY = isStory ? 1570 : 1005;
 
-      ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+      ctx.fillStyle = "rgba(0, 0, 0, 0.78)";
       ctx.strokeStyle = "rgba(255, 255, 255, 0.34)";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -584,6 +718,14 @@ function CouponImageGeneratorContent({
 
       ctx.fillStyle = "#FFFFFF";
       ctx.fillText(waterText, width / 2, waterPillY + (isStory ? 43 : 35));
+
+      // Sync rendered image with Copy Studio mockup
+      try {
+        const dataUrl = canvas.toDataURL("image/png");
+        setLiveRenderedImageUrl(dataUrl);
+      } catch {
+        // Ignore CORS local issues if any
+      }
     };
 
     // Load image if available
@@ -614,9 +756,10 @@ function CouponImageGeneratorContent({
     minOrderText,
     callToAction,
     accentColor,
-    selectedSocials,
+    socialAccounts,
     storeName,
-    storeSlug
+    storeSlug,
+    activeTab
   ]);
 
   // Custom User Image Upload
@@ -675,26 +818,18 @@ function CouponImageGeneratorContent({
     setActiveCaptionText((prev) => `${prev} ${tag}`);
   };
 
+  const enabledSocialsCount = socialAccounts.filter((s) => s.enabled).length;
+
   return (
     <div className="bg-[#FAF9F5] border border-[#E3E1D9] rounded-2xl w-full max-w-5xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
-      {/* Modal Top Header with Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-5 py-3.5 bg-white border-b border-[#ECEAE2] gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#FAF0ED] text-[#CB5A3C] flex items-center justify-center shrink-0">
-            <Sparkles size={18} />
-          </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-[#1A241E] leading-tight">
-              Gerador de Artes & Estúdio de Legendas
-            </h2>
-            <p className="text-[12px] text-[#637267]">
-              Crie a arte visual e copie a legenda profissional para suas postagens
-            </p>
-          </div>
-        </div>
+      {/* Modal Top Header with Clean Title (No subtitle and no icon, as requested!) */}
+      <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-[#ECEAE2]">
+        <h2 className="text-base sm:text-lg font-bold text-[#1A241E] leading-tight">
+          Gerador de Artes & Estúdio de Legendas
+        </h2>
 
         {/* Studio Sub-Pages Tab Switcher */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 bg-[#F4F3EE] p-1 rounded-xl border border-[#EAE8E0]">
             <button
               type="button"
@@ -710,7 +845,17 @@ function CouponImageGeneratorContent({
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab("copy_studio")}
+              onClick={() => {
+                // Take snapshot of canvas before switching
+                if (canvasRef.current) {
+                  try {
+                    setLiveRenderedImageUrl(canvasRef.current.toDataURL("image/png"));
+                  } catch {
+                    // Ignore if CORS issue
+                  }
+                }
+                setActiveTab("copy_studio");
+              }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "copy_studio"
                   ? "bg-white text-[#2E4233] shadow-xs"
@@ -734,562 +879,562 @@ function CouponImageGeneratorContent({
 
       {/* ============================================================== */}
       {/* TAB 1: DESIGN DA ARTE (VISUAL)                                  */}
+      {/* Kept mounted in DOM via CSS hidden to prevent black canvas bug!*/}
       {/* ============================================================== */}
-      {activeTab === "design" && (
-        <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-0">
-          {/* LEFT: Live Preview Canvas */}
-          <div className="lg:col-span-5 bg-[#121614] p-4 sm:p-6 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-[#242A27] min-h-[440px]">
-            {/* Format Switcher */}
-            <div className="flex items-center gap-2 bg-[#1C221F] p-1 rounded-xl mb-3 border border-[#2D3631]">
-              <button
-                type="button"
-                onClick={() => setAspectFormat("story")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  aspectFormat === "story"
-                    ? "bg-[#CB5A3C] text-white shadow-xs"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                <Smartphone size={14} />
-                <span>Story / Reels (9:16)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setAspectFormat("feed")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  aspectFormat === "feed"
-                    ? "bg-[#CB5A3C] text-white shadow-xs"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                <Square size={14} />
-                <span>Feed / Post (1:1)</span>
-              </button>
-            </div>
+      <div className={`flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-0 ${activeTab === "design" ? "" : "hidden"}`}>
+        {/* LEFT: Live Preview Canvas */}
+        <div className="lg:col-span-5 bg-[#121614] p-4 sm:p-6 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-[#242A27] min-h-[440px]">
+          {/* Format Switcher */}
+          <div className="flex items-center gap-2 bg-[#1C221F] p-1 rounded-xl mb-3 border border-[#2D3631]">
+            <button
+              type="button"
+              onClick={() => setAspectFormat("story")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                aspectFormat === "story"
+                  ? "bg-[#CB5A3C] text-white shadow-xs"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <Smartphone size={14} />
+              <span>Story / Reels (9:16)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAspectFormat("feed")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                aspectFormat === "feed"
+                  ? "bg-[#CB5A3C] text-white shadow-xs"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <Square size={14} />
+              <span>Feed / Post (1:1)</span>
+            </button>
+          </div>
 
-            {/* Canvas Viewport container */}
-            <div className="relative flex items-center justify-center w-full max-w-[350px] shadow-2xl rounded-2xl overflow-hidden border-2 border-white/10">
-              <canvas
-                ref={canvasRef}
-                className="w-full h-auto object-contain block rounded-2xl"
-                style={{
-                  maxHeight: aspectFormat === "story" ? "540px" : "350px"
-                }}
+          {/* Canvas Viewport container */}
+          <div className="relative flex items-center justify-center w-full max-w-[350px] shadow-2xl rounded-2xl overflow-hidden border-2 border-white/10">
+            <canvas
+              ref={canvasRef}
+              className="w-full h-auto object-contain block rounded-2xl"
+              style={{
+                maxHeight: aspectFormat === "story" ? "540px" : "350px"
+              }}
+            />
+          </div>
+
+          <div className="mt-3 flex items-center gap-1.5 text-[11px] text-gray-400 text-center">
+            <Sparkles size={12} className="text-[#CB5A3C]" />
+            <span>Marca d&apos;água <strong>www.deliplus.com.br</strong> nítida e segura no rodapé</span>
+          </div>
+        </div>
+
+        {/* RIGHT: Visual Customization Controls */}
+        <div className="lg:col-span-7 p-4 sm:p-6 space-y-4 overflow-y-auto bg-white">
+          {/* 1. Escolha do Nicho / Fundo (Em SELECT compacto) */}
+          <div>
+            <label className="text-[12.5px] font-bold text-[#1A241E] block mb-1.5">
+              1. Nicho & Fundo da Arte (Foto 10% mais iluminada)
+            </label>
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <select
+                  value={customImageSrc ? "custom" : selectedThemeId}
+                  onChange={(e) => {
+                    if (e.target.value === "custom") {
+                      fileInputRef.current?.click();
+                    } else {
+                      setSelectedThemeId(e.target.value);
+                      setCustomImageSrc(null);
+                      const found = FOOD_THEMES.find((t) => t.id === e.target.value);
+                      if (found) {
+                        setAccentColor(found.accentColor);
+                        setHueValue(hexToHue(found.accentColor));
+                      }
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-white border border-[#E3E1D9] rounded-xl text-[13px] font-semibold text-[#1A241E] focus:outline-none focus:border-[#CB5A3C] cursor-pointer"
+                >
+                  <optgroup label="🍕 Nichos de Food Delivery">
+                    {FOOD_THEMES.filter((t) => t.category !== "Cores da Marca").map((theme) => (
+                      <option key={theme.id} value={theme.id}>
+                        {theme.icon} {theme.name} — {theme.category}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🎨 Cores & Gradientes da Marca">
+                    {FOOD_THEMES.filter((t) => t.category === "Cores da Marca").map((theme) => (
+                      <option key={theme.id} value={theme.id}>
+                        {theme.icon} {theme.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                  {customImageSrc && (
+                    <option value="custom">📸 Imagem própria enviada</option>
+                  )}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#CB5A3C]/40 bg-[#FAF0ED] text-[#CB5A3C] text-xs font-bold hover:bg-[#FBE8E4] transition-colors cursor-pointer shrink-0"
+              >
+                <Upload size={14} />
+                <span>Foto própria</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
               />
             </div>
 
-            <div className="mt-3 flex items-center gap-1.5 text-[11px] text-gray-400 text-center">
-              <Sparkles size={12} className="text-[#CB5A3C]" />
-              <span>Marca d&apos;água <strong>www.deliplus.com.br</strong> nítida e segura no rodapé</span>
-            </div>
-          </div>
-
-          {/* RIGHT: Visual Customization Controls */}
-          <div className="lg:col-span-7 p-4 sm:p-6 space-y-4 overflow-y-auto bg-white">
-            {/* 1. Escolha do Nicho / Fundo (Em SELECT compacto para economizar espaço!) */}
-            <div>
-              <label className="text-[12.5px] font-bold text-[#1A241E] block mb-1.5">
-                1. Nicho & Fundo da Arte (Foto 10% mais iluminada)
-              </label>
-
-              <div className="flex items-center gap-2">
-                <div className="flex-1">
-                  <select
-                    value={customImageSrc ? "custom" : selectedThemeId}
-                    onChange={(e) => {
-                      if (e.target.value === "custom") {
-                        fileInputRef.current?.click();
-                      } else {
-                        setSelectedThemeId(e.target.value);
-                        setCustomImageSrc(null);
-                        const found = FOOD_THEMES.find((t) => t.id === e.target.value);
-                        if (found) {
-                          setAccentColor(found.accentColor);
-                          setHueValue(hexToHue(found.accentColor));
-                        }
-                      }
-                    }}
-                    className="w-full px-3 py-2 bg-white border border-[#E3E1D9] rounded-xl text-[13px] font-semibold text-[#1A241E] focus:outline-none focus:border-[#CB5A3C] cursor-pointer"
-                  >
-                    <optgroup label="🍕 Nichos de Food Delivery">
-                      {FOOD_THEMES.filter((t) => t.category !== "Cores da Marca").map((theme) => (
-                        <option key={theme.id} value={theme.id}>
-                          {theme.icon} {theme.name} — {theme.category}
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="🎨 Cores & Gradientes da Marca">
-                      {FOOD_THEMES.filter((t) => t.category === "Cores da Marca").map((theme) => (
-                        <option key={theme.id} value={theme.id}>
-                          {theme.icon} {theme.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                    {customImageSrc && (
-                      <option value="custom">📸 Imagem própria enviada</option>
-                    )}
-                  </select>
-                </div>
-
+            {customImageSrc && (
+              <div className="mt-1.5 p-1.5 rounded-lg bg-orange-50 border border-orange-200 flex items-center justify-between text-xs">
+                <span className="text-orange-800 font-medium flex items-center gap-1">
+                  <ImageIcon size={12} />
+                  Foto personalizada ativa
+                </span>
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#CB5A3C]/40 bg-[#FAF0ED] text-[#CB5A3C] text-xs font-bold hover:bg-[#FBE8E4] transition-colors cursor-pointer shrink-0"
+                  onClick={() => setCustomImageSrc(null)}
+                  className="text-[11px] text-red-600 hover:underline font-bold"
                 >
-                  <Upload size={14} />
-                  <span>Foto própria</span>
+                  Remover
                 </button>
+              </div>
+            )}
+          </div>
+
+          {/* 2. Textos do Cupom */}
+          <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2.5">
+            <label className="text-[12.5px] font-bold text-[#1A241E] block">
+              2. Textos da Arte
+            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[11px] font-medium text-[#637267] block mb-1">
+                  Código do Cupom
+                </label>
                 <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  className="w-full px-3 py-1.5 text-sm font-mono font-bold border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
                 />
               </div>
 
-              {customImageSrc && (
-                <div className="mt-1.5 p-1.5 rounded-lg bg-orange-50 border border-orange-200 flex items-center justify-between text-xs">
-                  <span className="text-orange-800 font-medium flex items-center gap-1">
-                    <ImageIcon size={12} />
-                    Foto personalizada ativa
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setCustomImageSrc(null)}
-                    className="text-[11px] text-red-600 hover:underline font-bold"
+              <div>
+                <label className="text-[11px] font-medium text-[#637267] block mb-1">
+                  Destaque do Desconto
+                </label>
+                <input
+                  type="text"
+                  value={discountHighlight}
+                  onChange={(e) => setDiscountHighlight(e.target.value)}
+                  placeholder="Ex: 15% OFF, R$ 10 OFF"
+                  className="w-full px-3 py-1.5 text-sm font-bold text-[#CB5A3C] border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[11px] font-medium text-[#637267] block mb-1">
+                  Título Principal
+                </label>
+                <input
+                  type="text"
+                  value={headline}
+                  onChange={(e) => setHeadline(e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm font-semibold border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-medium text-[#637267] block mb-1">
+                  Subtítulo / Tagline
+                </label>
+                <input
+                  type="text"
+                  value={tagline}
+                  onChange={(e) => setTagline(e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[11px] font-medium text-[#637267] block mb-1">
+                  Regra de Pedido Mínimo
+                </label>
+                <input
+                  type="text"
+                  value={minOrderText}
+                  onChange={(e) => setMinOrderText(e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-medium text-[#637267] block mb-1">
+                  Chamada para Ação
+                </label>
+                <input
+                  type="text"
+                  value={callToAction}
+                  onChange={(e) => setCallToAction(e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Redes Sociais com Logo Oficial e Campo de Endereço/Handle */}
+          <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-[12.5px] font-bold text-[#1A241E] block">
+                  3. Redes Sociais na Arte (com Logo Oficial e Endereço)
+                </label>
+                <p className="text-[11px] text-[#637267]">
+                  Ative até 4 redes e digite o seu @ ou número para exibir na imagem:
+                </p>
+              </div>
+              <span className={`text-[11.5px] font-bold px-2 py-0.5 rounded-full ${
+                enabledSocialsCount === 4 ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-700"
+              }`}>
+                {enabledSocialsCount}/4 ativas
+              </span>
+            </div>
+
+            <div className="space-y-1.5 pt-1">
+              {socialAccounts.map((soc) => (
+                <div
+                  key={soc.id}
+                  className={`flex items-center gap-2.5 p-2 rounded-xl border transition-all ${
+                    soc.enabled
+                      ? "bg-[#FAF8F0] border-[#D5D0C0] shadow-2xs"
+                      : "bg-white border-[#EAE8E0] opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  {/* Switch to enable */}
+                  <Switch
+                    checked={soc.enabled}
+                    onCheckedChange={() => handleToggleSocialAccount(soc.id)}
+                    activeTrackColor="bg-[#2E4233]"
+                    inactiveTrackColor="bg-stone-300"
+                    aria-label={`Ativar ${soc.name}`}
+                  />
+
+                  {/* Brand Logo Icon Badge */}
+                  <div
+                    className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs"
+                    style={{ backgroundColor: soc.brandColor }}
                   >
-                    Remover
-                  </button>
+                    <span className="text-[11px] font-black text-white">
+                      {soc.id === "instagram" ? "📷" : soc.id === "whatsapp" ? "✆" : soc.id === "facebook" ? "f" : soc.id === "youtube" ? "▶" : soc.id === "tiktok" ? "♪" : soc.id === "kwai" ? "K" : "𝕏"}
+                    </span>
+                  </div>
+
+                  <span className="text-[12px] font-bold text-[#1A241E] w-24 shrink-0">
+                    {soc.name}
+                  </span>
+
+                  {/* Editable Handle Input */}
+                  <input
+                    type="text"
+                    disabled={!soc.enabled}
+                    value={soc.handle}
+                    onChange={(e) => handleSocialAccountChange(soc.id, e.target.value)}
+                    placeholder={`Ex: @${storeSlug || "sualoja"}`}
+                    className={`flex-1 px-2.5 py-1 text-[12px] border rounded-lg focus:outline-none transition-colors ${
+                      soc.enabled
+                        ? "bg-white border-[#D5D0C0] text-[#1A241E] font-medium focus:border-[#CB5A3C]"
+                        : "bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed"
+                    }`}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. Cor de Destaque com SLIDER INTERATIVO (Sem as bolinhas, conforme seta vermelha!) */}
+          <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[12.5px] font-bold text-[#1A241E] flex items-center gap-1.5">
+                <Sliders size={14} className="text-[#CB5A3C]" />
+                <span>4. Seletor de Cores Interativo</span>
+              </label>
+
+              {/* Eyedropper & Hex Display */}
+              <div className="flex items-center gap-1.5 bg-[#FAF8F0] border border-[#E3E1D9] px-2 py-0.5 rounded-lg">
+                <input
+                  type="color"
+                  value={accentColor}
+                  onChange={(e) => {
+                    setAccentColor(e.target.value);
+                    setHueValue(hexToHue(e.target.value));
+                  }}
+                  className="w-4 h-4 rounded cursor-pointer border-0 p-0 bg-transparent"
+                  title="Seletor de cor livre"
+                />
+                <span className="font-mono text-[11.5px] font-bold text-gray-800 uppercase">
+                  {accentColor}
+                </span>
+              </div>
+            </div>
+
+            {/* Slider de arrastar o pontinho */}
+            <div className="relative pt-1 pb-1">
+              <input
+                type="range"
+                min="0"
+                max="360"
+                value={hueValue}
+                onChange={(e) => {
+                  const h = Number(e.target.value);
+                  setHueValue(h);
+                  setAccentColor(hslToHex(h, 92, 50));
+                }}
+                className="w-full h-3.5 rounded-full appearance-none cursor-pointer border border-black/10 shadow-inner"
+                style={{
+                  background:
+                    "linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)"
+                }}
+              />
+            </div>
+          </div>
+
+          {/* 5. Botões de Ação do Design (Apenas Baixar PNG, sem o botão redundante 'Gerar Legenda'!) */}
+          <div className="border-t border-[#ECEAE2] pt-3.5">
+            <button
+              type="button"
+              onClick={handleDownloadImage}
+              disabled={isGenerating}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white font-bold text-sm shadow-sm transition-all cursor-pointer"
+            >
+              <Download size={16} />
+              <span>{isGenerating ? "Exportando PNG..." : "Baixar Arte PNG em Alta Definição"}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* TAB 2: ESTÚDIO DE LEGENDAS (COPYWRITING PARA DELIVERY)           */}
+      {/* Kept mounted in DOM via CSS hidden to preserve state & canvas! */}
+      {/* ============================================================== */}
+      <div className={`flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-0 ${activeTab === "copy_studio" ? "" : "hidden"}`}>
+        {/* LEFT: Live Post Mockup com a IMAGEM REAL DO CANVAS */}
+        <div className="lg:col-span-5 bg-[#171A18] p-4 sm:p-6 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-[#242A27]">
+          <div className="w-full max-w-[340px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden text-[#111827]">
+            {/* Instagram Mockup Header */}
+            <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-[#CB5A3C] text-white flex items-center justify-center text-xs font-bold">
+                  {storeName ? storeName.slice(0, 1).toUpperCase() : "D"}
+                </div>
+                <div>
+                  <div className="text-[12px] font-bold leading-tight">{storeName || "DeliPlus"}</div>
+                  <div className="text-[10px] text-gray-500">Patrocinado • Delivery</div>
+                </div>
+              </div>
+              <span className="text-gray-400 font-bold text-xs">•••</span>
+            </div>
+
+            {/* Post Thumbnail: IMAGEM EXATA GERADA NO CANVAS! */}
+            <div className="relative aspect-square bg-[#121614] flex items-center justify-center overflow-hidden">
+              {liveRenderedImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={liveRenderedImageUrl}
+                  alt="Arte do post"
+                  className="w-full h-full object-cover block"
+                />
+              ) : (
+                <div className="p-4 text-center text-gray-400 text-xs">
+                  Carregando imagem da arte...
                 </div>
               )}
             </div>
 
-            {/* 2. Textos do Cupom */}
-            <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2.5">
-              <label className="text-[12.5px] font-bold text-[#1A241E] block">
-                2. Textos da Arte
+            {/* Instagram Post Content */}
+            <div className="p-3 space-y-1.5 text-[12px]">
+              <div className="flex items-center justify-between text-gray-700">
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-sm">♡</span>
+                  <span className="font-bold text-sm">💬</span>
+                  <span className="font-bold text-sm">↗</span>
+                </div>
+                <span className="font-bold text-sm">🔖</span>
+              </div>
+
+              <div className="font-semibold text-[11px] text-gray-900">
+                Curtido por outros clientes
+              </div>
+
+              {/* Caption with real text */}
+              <div className="text-[11.5px] text-gray-800 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
+                <span className="font-bold mr-1.5">{storeSlug || "sualoja"}</span>
+                {activeCaptionText}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center gap-1.5 text-[11px] text-gray-400 text-center">
+            <Share2 size={12} className="text-[#CB5A3C]" />
+            <span>Prévia exata de como a imagem e a legenda aparecem no feed</span>
+          </div>
+        </div>
+
+        {/* RIGHT: Caption Studio Controls & Templates */}
+        <div className="lg:col-span-7 p-4 sm:p-6 space-y-4 overflow-y-auto bg-white">
+          {/* Template Selector by Category */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[12.5px] font-bold text-[#1A241E]">
+                Modelos de Copy de Alta Conversão
               </label>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-[11px] font-medium text-[#637267] block mb-1">
-                    Código do Cupom
-                  </label>
-                  <input
-                    type="text"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                    className="w-full px-3 py-1.5 text-sm font-mono font-bold border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-medium text-[#637267] block mb-1">
-                    Destaque do Desconto
-                  </label>
-                  <input
-                    type="text"
-                    value={discountHighlight}
-                    onChange={(e) => setDiscountHighlight(e.target.value)}
-                    placeholder="Ex: 15% OFF, R$ 10 OFF"
-                    className="w-full px-3 py-1.5 text-sm font-bold text-[#CB5A3C] border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-[11px] font-medium text-[#637267] block mb-1">
-                    Título Principal
-                  </label>
-                  <input
-                    type="text"
-                    value={headline}
-                    onChange={(e) => setHeadline(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm font-semibold border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-medium text-[#637267] block mb-1">
-                    Subtítulo / Tagline
-                  </label>
-                  <input
-                    type="text"
-                    value={tagline}
-                    onChange={(e) => setTagline(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-[11px] font-medium text-[#637267] block mb-1">
-                    Regra de Pedido Mínimo
-                  </label>
-                  <input
-                    type="text"
-                    value={minOrderText}
-                    onChange={(e) => setMinOrderText(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-medium text-[#637267] block mb-1">
-                    Chamada para Ação
-                  </label>
-                  <input
-                    type="text"
-                    value={callToAction}
-                    onChange={(e) => setCallToAction(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
-                  />
-                </div>
-              </div>
+              <span className="text-[11px] text-[#CB5A3C] font-semibold">
+                Clique para carregar
+              </span>
             </div>
 
-            {/* 3. Ícones de Redes Sociais na Imagem (Máx 4) */}
-            <div className="border-t border-[#ECEAE2] pt-3.5">
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[12.5px] font-bold text-[#1A241E]">
-                  3. Redes Sociais na Imagem (abaixo do link)
-                </label>
-                <span className="text-[11px] text-[#637267] font-semibold">
-                  {selectedSocials.length}/4 selecionadas
-                </span>
-              </div>
-              <p className="text-[11px] text-[#637267] mb-2">
-                Selecione até 4 redes para exibir os ícones estilizados na arte:
-              </p>
-
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                {AVAILABLE_SOCIALS.map((soc) => {
-                  const isSelected = selectedSocials.includes(soc.id);
-                  return (
-                    <button
-                      key={soc.id}
-                      type="button"
-                      onClick={() => handleToggleSocial(soc.id)}
-                      className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all cursor-pointer ${
-                        isSelected
-                          ? "bg-[#2E4233] text-white border-[#2E4233] shadow-2xs font-bold"
-                          : "bg-[#FAF8F0] border-[#E3E1D9] text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      <span className="text-sm mb-0.5">{soc.icon}</span>
-                      <span className="text-[10.5px]">{soc.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 4. Cor de Destaque com SELETOR DE PONTINHO (Slider de Matiz) */}
-            <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[12.5px] font-bold text-[#1A241E] flex items-center gap-1.5">
-                  <Sliders size={14} className="text-[#CB5A3C]" />
-                  <span>4. Seletor de Cores Interativo</span>
-                </label>
-
-                {/* Eyedropper & Hex */}
-                <div className="flex items-center gap-1.5 bg-[#FAF8F0] border border-[#E3E1D9] px-2 py-0.5 rounded-lg">
-                  <input
-                    type="color"
-                    value={accentColor}
-                    onChange={(e) => {
-                      setAccentColor(e.target.value);
-                      setHueValue(hexToHue(e.target.value));
-                    }}
-                    className="w-4 h-4 rounded cursor-pointer border-0 p-0 bg-transparent"
-                    title="Seletor de cor livre"
-                  />
-                  <span className="font-mono text-[11.5px] font-bold text-gray-800 uppercase">
-                    {accentColor}
-                  </span>
-                </div>
-              </div>
-
-              {/* Slider de arrastar o pontinho */}
-              <div className="relative pt-1 pb-1">
-                <input
-                  type="range"
-                  min="0"
-                  max="360"
-                  value={hueValue}
-                  onChange={(e) => {
-                    const h = Number(e.target.value);
-                    setHueValue(h);
-                    setAccentColor(hslToHex(h, 92, 50));
-                  }}
-                  className="w-full h-3.5 rounded-full appearance-none cursor-pointer border border-black/10 shadow-inner"
-                  style={{
-                    background:
-                      "linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)"
-                  }}
-                />
-              </div>
-
-              {/* Bolinhas de atalho de cores recomendadas */}
-              <div className="flex items-center gap-2 pt-0.5">
-                {[
-                  { name: "Laranja Logo", color: "#CB5A3C" },
-                  { name: "Ouro Quente", color: "#F59E0B" },
-                  { name: "Verde Esmeralda", color: "#10B981" },
-                  { name: "Roxo Neon", color: "#9333EA" },
-                  { name: "Vermelho Rubi", color: "#E11D48" },
-                  { name: "Azul Céu", color: "#0EA5E9" }
-                ].map((item) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {CAPTION_TEMPLATES.map((tmpl) => {
+                const isSelected = selectedTemplateCategory === tmpl.id;
+                return (
                   <button
-                    key={item.color}
+                    key={tmpl.id}
                     type="button"
                     onClick={() => {
-                      setAccentColor(item.color);
-                      setHueValue(hexToHue(item.color));
+                      setSelectedTemplateCategory(tmpl.id);
+                      setActiveCaptionText(buildCaptionTemplate(tmpl.text));
                     }}
-                    style={{ backgroundColor: item.color }}
-                    className={`w-6 h-6 rounded-full transition-transform cursor-pointer shadow-xs ${
-                      accentColor === item.color
-                        ? "scale-125 ring-2 ring-offset-2 ring-[#1A241E]"
-                        : "hover:scale-110"
+                    className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                      isSelected
+                        ? "border-[#CB5A3C] bg-[#FAF0ED] ring-1 ring-[#CB5A3C]"
+                        : "border-[#ECEAE2] bg-[#FAF8F0] hover:bg-gray-100"
                     }`}
-                    title={item.name}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* 5. Botões de Ação do Design */}
-            <div className="border-t border-[#ECEAE2] pt-3.5 flex flex-col sm:flex-row items-center gap-2.5">
-              <button
-                type="button"
-                onClick={handleDownloadImage}
-                disabled={isGenerating}
-                className="w-full sm:flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white font-bold text-sm shadow-sm transition-all cursor-pointer"
-              >
-                <Download size={16} />
-                <span>{isGenerating ? "Exportando PNG..." : "Baixar Arte PNG em Alta Definição"}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab("copy_studio")}
-                className="w-full sm:w-auto flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-[#CB5A3C]/40 bg-[#FAF0ED] hover:bg-[#FBE8E4] text-[#CB5A3C] font-bold text-sm transition-colors cursor-pointer"
-              >
-                <PenTool size={15} />
-                <span>Gerar Legenda</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ============================================================== */}
-      {/* TAB 2: ESTÚDIO DE LEGENDAS (COPYWRITING PARA DELIVERY)           */}
-      {/* ============================================================== */}
-      {activeTab === "copy_studio" && (
-        <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-0">
-          {/* LEFT: Live Post Mockup */}
-          <div className="lg:col-span-5 bg-[#171A18] p-4 sm:p-6 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-[#242A27]">
-            <div className="w-full max-w-[340px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden text-[#111827]">
-              {/* Instagram Mockup Header */}
-              <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-[#CB5A3C] text-white flex items-center justify-center text-xs font-bold">
-                    {storeName ? storeName.slice(0, 1).toUpperCase() : "D"}
-                  </div>
-                  <div>
-                    <div className="text-[12px] font-bold leading-tight">{storeName || "DeliPlus"}</div>
-                    <div className="text-[10px] text-gray-500">Patrocinado • Delivery</div>
-                  </div>
-                </div>
-                <span className="text-gray-400 font-bold text-xs">•••</span>
-              </div>
-
-              {/* Post Thumbnail / Aspect Preview */}
-              <div className="relative aspect-square bg-[#121614] flex items-center justify-center p-3 text-center overflow-hidden">
-                <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${customImageSrc || activeTheme.imageUrl})` }} />
-                <div className="relative z-10 p-3 bg-black/60 backdrop-blur-xs rounded-xl border border-white/20 text-white">
-                  <div className="text-xs font-bold text-[#F59E0B] mb-0.5">{couponCode}</div>
-                  <div className="text-lg font-black">{discountHighlight}</div>
-                  <div className="text-[10px] text-gray-300">{minOrderText}</div>
-                </div>
-              </div>
-
-              {/* Instagram Post Content */}
-              <div className="p-3 space-y-1.5 text-[12px]">
-                <div className="flex items-center justify-between text-gray-700">
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-sm">♡</span>
-                    <span className="font-bold text-sm">💬</span>
-                    <span className="font-bold text-sm">↗</span>
-                  </div>
-                  <span className="font-bold text-sm">🔖</span>
-                </div>
-
-                <div className="font-semibold text-[11px] text-gray-900">
-                  Curtido por outros clientes
-                </div>
-
-                {/* Caption with real text */}
-                <div className="text-[11.5px] text-gray-800 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
-                  <span className="font-bold mr-1.5">{storeSlug || "sualoja"}</span>
-                  {activeCaptionText}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-center gap-1.5 text-[11px] text-gray-400">
-              <Share2 size={12} className="text-[#CB5A3C]" />
-              <span>Prévia de como a legenda aparece no feed do Instagram</span>
-            </div>
-          </div>
-
-          {/* RIGHT: Caption Studio Controls & Templates */}
-          <div className="lg:col-span-7 p-4 sm:p-6 space-y-4 overflow-y-auto bg-white">
-            {/* Template Selector by Category */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[12.5px] font-bold text-[#1A241E]">
-                  Modelos de Copy de Alta Conversão
-                </label>
-                <span className="text-[11px] text-[#CB5A3C] font-semibold">
-                  Clique para carregar
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                {CAPTION_TEMPLATES.map((tmpl) => {
-                  const isSelected = selectedTemplateCategory === tmpl.id;
-                  return (
-                    <button
-                      key={tmpl.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedTemplateCategory(tmpl.id);
-                        setActiveCaptionText(buildCaptionTemplate(tmpl.text));
-                      }}
-                      className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? "border-[#CB5A3C] bg-[#FAF0ED] ring-1 ring-[#CB5A3C]"
-                          : "border-[#ECEAE2] bg-[#FAF8F0] hover:bg-gray-100"
-                      }`}
-                    >
-                      <div className="text-[11.5px] font-bold text-[#1A241E] truncate">
-                        {tmpl.title}
-                      </div>
-                      <div className="text-[10px] text-[#637267] truncate">
-                        {tmpl.badge}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Dynamic Insertion Pills */}
-            <div className="border-t border-[#ECEAE2] pt-3">
-              <label className="text-[11.5px] font-bold text-[#1A241E] block mb-1">
-                Inserir Variáveis com 1 Clique:
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { label: "+ Cupom", value: `*${couponCode}*` },
-                  { label: "+ Desconto", value: `*${discountHighlight}*` },
-                  { label: "+ Mínimo", value: minOrderText },
-                  { label: "+ Link", value: cleanStoreLink },
-                  { label: "🍔", value: "🍔" },
-                  { label: "🍕", value: "🍕" },
-                  { label: "🍟", value: "🍟" },
-                  { label: "🥤", value: "🥤" },
-                  { label: "🔥", value: "🔥" },
-                  { label: "🤤", value: "🤤" },
-                  { label: "🛵", value: "🛵" },
-                  { label: "📲", value: "📲" }
-                ].map((item, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => insertTagIntoCaption(item.value)}
-                    className="px-2 py-0.5 rounded-lg border border-[#E3E1D9] bg-[#FAF8F0] hover:bg-gray-100 text-[11px] font-semibold text-gray-700 transition-colors cursor-pointer"
                   >
-                    {item.label}
+                    <div className="text-[11.5px] font-bold text-[#1A241E] truncate">
+                      {tmpl.title}
+                    </div>
+                    <div className="text-[10px] text-[#637267] truncate">
+                      {tmpl.badge}
+                    </div>
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
+          </div>
 
-            {/* Main Editable Textarea */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[12px] font-bold text-[#1A241E]">
-                  Texto da Legenda (Totalmente Editável):
-                </label>
-                <div className="text-[11px] text-[#637267] font-medium">
-                  {activeCaptionText.length} caracteres
-                </div>
-              </div>
-
-              <textarea
-                rows={9}
-                value={activeCaptionText}
-                onChange={(e) => setActiveCaptionText(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-[13px] font-normal border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white leading-relaxed resize-y"
-              />
-
-              <div className="flex items-center justify-between text-[11px] text-[#637267] mt-1">
-                <span>
-                  💡 <strong>Dica Pro:</strong> Os primeiros 125 caracteres são vistos antes do botão &quot;...mais&quot;.
-                </span>
+          {/* Dynamic Insertion Pills */}
+          <div className="border-t border-[#ECEAE2] pt-3">
+            <label className="text-[11.5px] font-bold text-[#1A241E] block mb-1">
+              Inserir Variáveis com 1 Clique:
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: "+ Cupom", value: `*${couponCode}*` },
+                { label: "+ Desconto", value: `*${discountHighlight}*` },
+                { label: "+ Mínimo", value: minOrderText },
+                { label: "+ Link", value: cleanStoreLink },
+                { label: "🍔", value: "🍔" },
+                { label: "🍕", value: "🍕" },
+                { label: "🍟", value: "🍟" },
+                { label: "🥤", value: "🥤" },
+                { label: "🔥", value: "🔥" },
+                { label: "🤤", value: "🤤" },
+                { label: "🛵", value: "🛵" },
+                { label: "📲", value: "📲" }
+              ].map((item, idx) => (
                 <button
+                  key={idx}
                   type="button"
-                  onClick={() => {
-                    const found = CAPTION_TEMPLATES.find((t) => t.id === selectedTemplateCategory);
-                    if (found) setActiveCaptionText(buildCaptionTemplate(found.text));
-                  }}
-                  className="flex items-center gap-1 text-[#CB5A3C] hover:underline font-semibold cursor-pointer"
+                  onClick={() => insertTagIntoCaption(item.value)}
+                  className="px-2 py-0.5 rounded-lg border border-[#E3E1D9] bg-[#FAF8F0] hover:bg-gray-100 text-[11px] font-semibold text-gray-700 transition-colors cursor-pointer"
                 >
-                  <RotateCcw size={11} />
-                  <span>Restaurar modelo</span>
+                  {item.label}
                 </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Main Editable Textarea */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[12px] font-bold text-[#1A241E]">
+                Texto da Legenda (Totalmente Editável):
+              </label>
+              <div className="text-[11px] text-[#637267] font-medium">
+                {activeCaptionText.length} caracteres
               </div>
             </div>
 
-            {/* Action Buttons for Caption */}
-            <div className="border-t border-[#ECEAE2] pt-3 flex flex-col sm:flex-row items-center gap-2.5">
-              <button
-                type="button"
-                onClick={handleCopyCaption}
-                className="w-full sm:flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white font-bold text-sm shadow-sm transition-all cursor-pointer"
-              >
-                {copiedCaption ? (
-                  <>
-                    <Check size={16} className="text-emerald-300" />
-                    <span>Legenda Copiada com Sucesso!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy size={16} />
-                    <span>Copiar Legenda Formatada</span>
-                  </>
-                )}
-              </button>
+            <textarea
+              rows={9}
+              value={activeCaptionText}
+              onChange={(e) => setActiveCaptionText(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-[13px] font-normal border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white leading-relaxed resize-y"
+            />
 
+            <div className="flex items-center justify-between text-[11px] text-[#637267] mt-1">
+              <span>
+                💡 <strong>Dica Pro:</strong> Os primeiros 125 caracteres são vistos antes do botão &quot;...mais&quot;.
+              </span>
               <button
                 type="button"
-                onClick={handleOpenWhatsAppShare}
-                className="w-full sm:w-auto flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-emerald-600 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-sm transition-colors cursor-pointer"
+                onClick={() => {
+                  const found = CAPTION_TEMPLATES.find((t) => t.id === selectedTemplateCategory);
+                  if (found) setActiveCaptionText(buildCaptionTemplate(found.text));
+                }}
+                className="flex items-center gap-1 text-[#CB5A3C] hover:underline font-semibold cursor-pointer"
               >
-                <Send size={15} />
-                <span>Testar no WhatsApp</span>
+                <RotateCcw size={11} />
+                <span>Restaurar modelo</span>
               </button>
             </div>
           </div>
+
+          {/* Action Buttons for Caption */}
+          <div className="border-t border-[#ECEAE2] pt-3 flex flex-col sm:flex-row items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleCopyCaption}
+              className="w-full sm:flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white font-bold text-sm shadow-sm transition-all cursor-pointer"
+            >
+              {copiedCaption ? (
+                <>
+                  <Check size={16} className="text-emerald-300" />
+                  <span>Legenda Copiada com Sucesso!</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={16} />
+                  <span>Copiar Legenda Formatada</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleOpenWhatsAppShare}
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-emerald-600 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-sm transition-colors cursor-pointer"
+            >
+              <Send size={15} />
+              <span>Testar no WhatsApp</span>
+            </button>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
