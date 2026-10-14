@@ -15,9 +15,12 @@ import {
   Send,
   RotateCcw,
   Sliders,
-  Share2
+  Share2,
+  ThumbsUp,
+  MessageSquare,
+  ChevronDown,
+  ExternalLink
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 import type { CouponItem } from "./coupons-client";
 
 export interface CouponImageGeneratorProps {
@@ -32,7 +35,6 @@ interface FoodTheme {
   id: string;
   name: string;
   category: string;
-  icon: string;
   imageUrl?: string;
   fallbackGradient: string;
   accentColor: string;
@@ -43,7 +45,6 @@ const FOOD_THEMES: FoodTheme[] = [
     id: "burger",
     name: "Burger Artesanal",
     category: "Lanches & Burgers",
-    icon: "🍔",
     imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1200&q=80",
     fallbackGradient: "linear-gradient(135deg, #1f140e, #3d1d12)",
     accentColor: "#CB5A3C"
@@ -52,7 +53,6 @@ const FOOD_THEMES: FoodTheme[] = [
     id: "pizza",
     name: "Pizza & Forno a Lenha",
     category: "Pizzarias",
-    icon: "🍕",
     imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1200&q=80",
     fallbackGradient: "linear-gradient(135deg, #2b1108, #521808)",
     accentColor: "#E11D48"
@@ -61,7 +61,6 @@ const FOOD_THEMES: FoodTheme[] = [
     id: "acai",
     name: "Açaí & Sorveteria",
     category: "Açaí & Gelados",
-    icon: "🫐",
     imageUrl: "https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=1200&q=80",
     fallbackGradient: "linear-gradient(135deg, #1e092b, #3b1057)",
     accentColor: "#9333EA"
@@ -70,7 +69,6 @@ const FOOD_THEMES: FoodTheme[] = [
     id: "sushi",
     name: "Sushi & Japonês",
     category: "Culinária Oriental",
-    icon: "🍣",
     imageUrl: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=1200&q=80",
     fallbackGradient: "linear-gradient(135deg, #0d1117, #1f2937)",
     accentColor: "#F59E0B"
@@ -79,7 +77,6 @@ const FOOD_THEMES: FoodTheme[] = [
     id: "caseira",
     name: "Marmitex & Caseira",
     category: "Restaurantes",
-    icon: "🍲",
     imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1200&q=80",
     fallbackGradient: "linear-gradient(135deg, #181d16, #2d3829)",
     accentColor: "#10B981"
@@ -88,7 +85,6 @@ const FOOD_THEMES: FoodTheme[] = [
     id: "doces",
     name: "Doceria & Bolos",
     category: "Confeitaria & Café",
-    icon: "🍰",
     imageUrl: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1200&q=80",
     fallbackGradient: "linear-gradient(135deg, #2e111a, #54192d)",
     accentColor: "#EC4899"
@@ -97,7 +93,6 @@ const FOOD_THEMES: FoodTheme[] = [
     id: "petiscos",
     name: "Pastéis & Petiscos",
     category: "Bares & Petiscarias",
-    icon: "🥟",
     imageUrl: "https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?auto=format&fit=crop&w=1200&q=80",
     fallbackGradient: "linear-gradient(135deg, #2b1f09, #4a340b)",
     accentColor: "#F59E0B"
@@ -106,7 +101,6 @@ const FOOD_THEMES: FoodTheme[] = [
     id: "grad_terracotta",
     name: "DeliPlus Terracotta",
     category: "Cores da Marca",
-    icon: "🎨",
     fallbackGradient: "linear-gradient(135deg, #1e110d, #421c14)",
     accentColor: "#CB5A3C"
   },
@@ -114,7 +108,6 @@ const FOOD_THEMES: FoodTheme[] = [
     id: "grad_forest",
     name: "Verde Floresta",
     category: "Cores da Marca",
-    icon: "🌲",
     fallbackGradient: "linear-gradient(135deg, #0e1a12, #1b3323)",
     accentColor: "#10B981"
   },
@@ -122,20 +115,29 @@ const FOOD_THEMES: FoodTheme[] = [
     id: "grad_dark",
     name: "Dark Charcoal",
     category: "Cores da Marca",
-    icon: "🖤",
     fallbackGradient: "linear-gradient(135deg, #0b0f17, #1a2233)",
     accentColor: "#38BDF8"
   }
 ];
 
+export type SocialNetworkId =
+  | "instagram"
+  | "whatsapp"
+  | "facebook"
+  | "youtube"
+  | "tiktok"
+  | "x"
+  | "kwai";
+
 export interface SocialAccountItem {
-  id: "instagram" | "whatsapp" | "facebook" | "youtube" | "x" | "tiktok" | "kwai";
+  id: SocialNetworkId;
   name: string;
   handle: string;
   enabled: boolean;
   brandColor: string;
 }
 
+// Convert HSL hue to Hex
 function hslToHex(h: number, s: number, l: number): string {
   l /= 100;
   const a = (s * Math.min(l, 1 - l)) / 100;
@@ -166,7 +168,100 @@ function hexToHue(hex: string): number {
   return h;
 }
 
-// Draw authentic brand logos on canvas
+// Authentic SVG Brand Icons for Clean React UI
+function BrandIconBadge({ id, size = 22 }: { id: SocialNetworkId; size?: number }) {
+  if (id === "instagram") {
+    return (
+      <div
+        className="rounded-md flex items-center justify-center shrink-0 shadow-2xs"
+        style={{
+          width: size,
+          height: size,
+          background: "radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%)"
+        }}
+      >
+        <svg width={size * 0.65} height={size * 0.65} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+        </svg>
+      </div>
+    );
+  }
+  if (id === "whatsapp") {
+    return (
+      <div
+        className="rounded-md flex items-center justify-center shrink-0 shadow-2xs bg-[#25D366]"
+        style={{ width: size, height: size }}
+      >
+        <svg width={size * 0.68} height={size * 0.68} viewBox="0 0 24 24" fill="white">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+        </svg>
+      </div>
+    );
+  }
+  if (id === "facebook") {
+    return (
+      <div
+        className="rounded-md flex items-center justify-center shrink-0 shadow-2xs bg-[#1877F2]"
+        style={{ width: size, height: size }}
+      >
+        <svg width={size * 0.65} height={size * 0.65} viewBox="0 0 24 24" fill="white">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+      </div>
+    );
+  }
+  if (id === "youtube") {
+    return (
+      <div
+        className="rounded-md flex items-center justify-center shrink-0 shadow-2xs bg-[#FF0000]"
+        style={{ width: size, height: size }}
+      >
+        <svg width={size * 0.65} height={size * 0.65} viewBox="0 0 24 24" fill="white">
+          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+        </svg>
+      </div>
+    );
+  }
+  if (id === "tiktok") {
+    return (
+      <div
+        className="rounded-md flex items-center justify-center shrink-0 shadow-2xs bg-[#010101]"
+        style={{ width: size, height: size }}
+      >
+        <svg width={size * 0.65} height={size * 0.65} viewBox="0 0 24 24" fill="white">
+          <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
+        </svg>
+      </div>
+    );
+  }
+  if (id === "x") {
+    return (
+      <div
+        className="rounded-md flex items-center justify-center shrink-0 shadow-2xs bg-black"
+        style={{ width: size, height: size }}
+      >
+        <svg width={size * 0.62} height={size * 0.62} viewBox="0 0 24 24" fill="white">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      </div>
+    );
+  }
+  if (id === "kwai") {
+    return (
+      <div
+        className="rounded-md flex items-center justify-center shrink-0 shadow-2xs bg-[#FF5000]"
+        style={{ width: size, height: size }}
+      >
+        <span className="text-[12px] font-black text-white leading-none">K</span>
+      </div>
+    );
+  }
+  return null;
+}
+
+// Draw authentic brand logos on Canvas
 function drawBrandLogo(ctx: CanvasRenderingContext2D, id: string, x: number, y: number, size: number) {
   ctx.save();
   const r = size / 2;
@@ -174,7 +269,6 @@ function drawBrandLogo(ctx: CanvasRenderingContext2D, id: string, x: number, y: 
   const cy = y + r;
 
   if (id === "instagram") {
-    // Official Instagram gradient rounded square
     const grad = ctx.createLinearGradient(x, y + size, x + size, y);
     grad.addColorStop(0, "#f09433");
     grad.addColorStop(0.3, "#e6683c");
@@ -185,7 +279,6 @@ function drawBrandLogo(ctx: CanvasRenderingContext2D, id: string, x: number, y: 
     ctx.roundRect(x, y, size, size, size * 0.28);
     ctx.fill();
 
-    // White camera outline + circle + dot
     ctx.strokeStyle = "#FFFFFF";
     ctx.lineWidth = Math.max(1.8, size * 0.08);
     ctx.beginPath();
@@ -201,13 +294,11 @@ function drawBrandLogo(ctx: CanvasRenderingContext2D, id: string, x: number, y: 
     ctx.arc(x + size * 0.68, y + size * 0.32, size * 0.05, 0, Math.PI * 2);
     ctx.fill();
   } else if (id === "whatsapp") {
-    // WhatsApp green circle
     ctx.fillStyle = "#25D366";
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();
 
-    // White bubble & phone
     ctx.strokeStyle = "#FFFFFF";
     ctx.fillStyle = "#FFFFFF";
     ctx.lineWidth = Math.max(1.8, size * 0.08);
@@ -221,7 +312,6 @@ function drawBrandLogo(ctx: CanvasRenderingContext2D, id: string, x: number, y: 
     ctx.textAlign = "center";
     ctx.fillText("✆", cx, cy + size * 0.11);
   } else if (id === "facebook") {
-    // Facebook blue circle
     ctx.fillStyle = "#1877F2";
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -232,13 +322,11 @@ function drawBrandLogo(ctx: CanvasRenderingContext2D, id: string, x: number, y: 
     ctx.textAlign = "center";
     ctx.fillText("f", cx + size * 0.04, cy + size * 0.24);
   } else if (id === "youtube") {
-    // YouTube red rounded rect
     ctx.fillStyle = "#FF0000";
     ctx.beginPath();
     ctx.roundRect(x, y + size * 0.14, size, size * 0.72, size * 0.22);
     ctx.fill();
 
-    // White play triangle
     ctx.fillStyle = "#FFFFFF";
     ctx.beginPath();
     ctx.moveTo(cx - size * 0.12, cy - size * 0.16);
@@ -247,7 +335,6 @@ function drawBrandLogo(ctx: CanvasRenderingContext2D, id: string, x: number, y: 
     ctx.closePath();
     ctx.fill();
   } else if (id === "x") {
-    // X black circle
     ctx.fillStyle = "#000000";
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -261,7 +348,6 @@ function drawBrandLogo(ctx: CanvasRenderingContext2D, id: string, x: number, y: 
     ctx.textAlign = "center";
     ctx.fillText("𝕏", cx, cy + size * 0.18);
   } else if (id === "tiktok") {
-    // TikTok black circle
     ctx.fillStyle = "#010101";
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -272,7 +358,6 @@ function drawBrandLogo(ctx: CanvasRenderingContext2D, id: string, x: number, y: 
     ctx.textAlign = "center";
     ctx.fillText("♪", cx, cy + size * 0.2);
   } else if (id === "kwai") {
-    // Kwai orange rounded rect
     ctx.fillStyle = "#FF5000";
     ctx.beginPath();
     ctx.roundRect(x, y + size * 0.08, size, size * 0.84, size * 0.25);
@@ -287,13 +372,146 @@ function drawBrandLogo(ctx: CanvasRenderingContext2D, id: string, x: number, y: 
   ctx.restore();
 }
 
-interface CaptionTemplate {
+// Helpers for WhatsApp formatting in live preview (*bold* and links)
+function renderWhatsAppFormattedText(text: string) {
+  const lines = text.split("\n");
+  return lines.map((line, lIdx) => {
+    const parts = line.split(/(\*[^*]+\*)/g);
+    return (
+      <React.Fragment key={lIdx}>
+        {parts.map((part, pIdx) => {
+          if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+            return (
+              <strong key={pIdx} className="font-bold text-gray-950">
+                {part.slice(1, -1)}
+              </strong>
+            );
+          }
+          if (part.startsWith("https://") || part.startsWith("deliplus.com.br")) {
+            return (
+              <span key={pIdx} className="text-[#027EB5] underline cursor-pointer">
+                {part}
+              </span>
+            );
+          }
+          return <span key={pIdx}>{part}</span>;
+        })}
+        {lIdx < lines.length - 1 && <br />}
+      </React.Fragment>
+    );
+  });
+}
+
+export type MarketingChannel = "instagram" | "facebook" | "whatsapp";
+export type MarketingFormat = "feed" | "story" | "chat";
+
+interface CaptionTemplateItem {
   id: string;
   title: string;
-  category: string;
   badge: string;
+  format: MarketingFormat;
   text: string;
 }
+
+const INSTAGRAM_TEMPLATES: CaptionTemplateItem[] = [
+  {
+    id: "ig_cravings",
+    title: "Fome & Desejo",
+    badge: "Feed (Alta Conversão)",
+    format: "feed",
+    text: "🔥 Bateu aquela fome incontrolável? A gente resolve agora!\n\nPeça direto pelo nosso cardápio online e aproveite: use o cupom *{CODIGO}* para garantir *{DESCONTO}* no seu pedido!\n\n👉 {MINIMO}\n👉 Válido apenas 1 uso por cliente\n👉 Peça quentinho em minutos pelo link da nossa bio!\n\n📲 {LINK}\n\n#delivery #comidaboa #almoco #jantar #lanche #cupomdedesconto"
+  },
+  {
+    id: "ig_urgency",
+    title: "Urgência Relâmpago",
+    badge: "Feed (Só Hoje)",
+    format: "feed",
+    text: "🚨 CUPOM RELÂMPAGO NA ÁREA! (Válido só hoje)\n\nLiberamos o cupom *{CODIGO}* com *{DESCONTO}* exclusivo para pedidos no nosso cardápio próprio!\n\n⚠️ {MINIMO}\n⚠️ Não cumulativo • Limitado a 1 uso por cliente\n\nCorre antes que acabe a cota de hoje! Link direto na bio 🏃💨\n\n📲 {LINK}\n\n#promocao #cupomdedesconto #deliveryrapido #descontodehoje"
+  },
+  {
+    id: "ig_first_order",
+    title: "Boas-Vindas (1º Pedido)",
+    badge: "Feed (Novos Clientes)",
+    format: "feed",
+    text: "👋 Primeira vez pedindo com a gente? O presente de boas-vindas é por nossa conta!\n\nUse o cupom especial *{CODIGO}* no seu 1º pedido e ganhe *{DESCONTO}*!\n\n✨ {MINIMO}\n✨ Válido exclusivamente para novos clientes no cardápio online\n\nToque no link da nossa bio e faça sua primeira experiência com a gente! 🍔✨\n\n📲 {LINK}\n\n#primeiropedido #deliverylocal #desconto #comidagourmet"
+  },
+  {
+    id: "ig_weekend",
+    title: "Sextou & Fim de Semana",
+    badge: "Feed (Fim de Semana)",
+    format: "feed",
+    text: "🍕 Sextou com comida boa e zero louça na pia!\n\nReúna a galera ou aproveite o filme no sofá: garanta *{DESCONTO}* usando o cupom *{CODIGO}* no nosso cardápio!\n\n👉 {MINIMO}\n👉 1 uso por cliente • Válido para o fim de semana\n\nPediu, chegou quentinho! Acesse o link da bio 🛋️🛵\n\n📲 {LINK}\n\n#sextou #fimdesemana #deliverynight #pizzanight #burgernight"
+  },
+  {
+    id: "ig_story",
+    title: "Story & Reels Direto",
+    badge: "Story / Reels (9:16)",
+    format: "story",
+    text: "A única notificação de delivery que você queria hoje! 📲🤤\n\nUse o cupom *{CODIGO}* para *{DESCONTO}* ({MINIMO}).\n\nToque no link do Story ou acesse o link na nossa bio! 🛵✨\n\n📲 {LINK}"
+  }
+];
+
+const FACEBOOK_TEMPLATES: CaptionTemplateItem[] = [
+  {
+    id: "fb_standard",
+    title: "Postagem de Conversão",
+    badge: "Feed do Facebook",
+    format: "feed",
+    text: "Hoje a refeição fica mais gostosa e prática por aqui! 🍽️✨\n\nLiberamos um cupom especial de {DESCONTO} para quem fizer o pedido diretamente no nosso cardápio online.\n\n🎟️ Use o cupom: {CODIGO}\n📌 Regra: {MINIMO}\n\nClique no link abaixo e faça seu pedido sem intermediários nem taxas extras:\n👉 https://{LINK}\n\nPreparamos tudo na hora com ingredientes selecionados. Peça agora e receba quentinho em casa! ❤️🛵"
+  },
+  {
+    id: "fb_urgency",
+    title: "Promoção Só Hoje",
+    badge: "Feed (Relâmpago)",
+    format: "feed",
+    text: "🚨 ATENÇÃO: CUPOM DISPONÍVEL POR TEMPO LIMITADO!\n\nGaranta {DESCONTO} no seu pedido hoje usando o código {CODIGO} no nosso cardápio oficial!\n\n⚠️ {MINIMO}\n⚠️ Válido para os primeiros pedidos do dia!\n\nClique direto no link e aproveite antes de encerrar:\n👉 https://{LINK}"
+  },
+  {
+    id: "fb_weekend",
+    title: "Fim de Semana em Família",
+    badge: "Feed (Família)",
+    format: "feed",
+    text: "Fim de semana combina com descanso e boa comida! 🍕🥤\n\nReúna a família ou os amigos e garanta {DESCONTO} no seu pedido com o cupom {CODIGO} ({MINIMO}).\n\nPeça direto pelo nosso cardápio oficial:\n👉 https://{LINK}\n\nEntrega rápida e segura no conforto do seu lar! 🛵✨"
+  },
+  {
+    id: "fb_story",
+    title: "Story do Facebook",
+    badge: "Story (9:16)",
+    format: "story",
+    text: "Cupom liberado no nosso cardápio! Use {CODIGO} e ganhe {DESCONTO} ({MINIMO}). Acesse o link no story ou acesse https://{LINK} para pedir agora! 🛵💨"
+  }
+];
+
+const WHATSAPP_TEMPLATES: CaptionTemplateItem[] = [
+  {
+    id: "wa_broadcast",
+    title: "Lista de Clientes VIP",
+    badge: "Conversa no Chat",
+    format: "chat",
+    text: "Olá! Tudo bem? Passando para te avisar que liberamos um cupom exclusivo para você hoje no nosso delivery! 🎁\n\nUse o código *{CODIGO}* e garanta *{DESCONTO}* no seu pedido!\n\n📌 {MINIMO}\n📌 Válido para 1 uso por cliente\n\nPara pedir agora sem taxas extras, clique no link:\n👉 https://{LINK}\n\nBom apetite! 😋"
+  },
+  {
+    id: "wa_flash",
+    title: "Disparo Relâmpago",
+    badge: "Conversa no Chat",
+    format: "chat",
+    text: "🚨 *CUPOM RELÂMPAGO LIBERADO!* 🚨\n\nLiberamos o cupom *{CODIGO}* dando *{DESCONTO}* exclusivo para quem pede no nosso cardápio próprio!\n\n⚠️ {MINIMO}\n⚠️ Válido apenas para pedidos de hoje!\n\nCorre para garantir o seu antes que encerre a cota:\n👉 https://{LINK}\n\nQualquer dúvida é só responder aqui! 🛵💨"
+  },
+  {
+    id: "wa_status",
+    title: "Status do WhatsApp",
+    badge: "Status (9:16)",
+    format: "story",
+    text: "🔥 Cupom especial liberado hoje no cardápio!\n\nUse o código *{CODIGO}* para garantir *{DESCONTO}* ({MINIMO}).\n\nPeça agora no link:\n👉 https://{LINK}"
+  },
+  {
+    id: "wa_welcome",
+    title: "Boas-Vindas pelo WhatsApp",
+    badge: "Conversa no Chat",
+    format: "chat",
+    text: "Seja muito bem-vindo(a) ao nosso atendimento! 👋✨\n\nComo presente para o seu primeiro pedido com a gente, você ganhou o cupom *{CODIGO}* com *{DESCONTO}*!\n\n✨ {MINIMO}\n\nVeja nosso cardápio completo e monte seu pedido:\n👉 https://{LINK}\n\nEstamos prontos para preparar o seu pedido com todo carinho! 🍔🍕"
+  }
+];
 
 function CouponImageGeneratorContent({
   onClose,
@@ -357,9 +575,11 @@ function CouponImageGeneratorContent({
   const [isGenerating, setIsGenerating] = useState(false);
   const [liveRenderedImageUrl, setLiveRenderedImageUrl] = useState<string | null>(null);
 
-  // Copywriting Studio State
+  // Copywriting Studio State (Multi-Channel: Instagram, Facebook, WhatsApp)
   const cleanStoreLink = `deliplus.com.br/${storeSlug || "sua-loja"}`;
-  const [selectedTemplateCategory, setSelectedTemplateCategory] = useState<string>("cravings");
+  const [studioChannel, setStudioChannel] = useState<MarketingChannel>("instagram");
+  const [studioFormat, setStudioFormat] = useState<MarketingFormat>("feed");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("ig_cravings");
 
   const buildCaptionTemplate = (baseText: string) => {
     return baseText
@@ -370,53 +590,8 @@ function CouponImageGeneratorContent({
       .replace(/{LINK}/g, cleanStoreLink);
   };
 
-  const CAPTION_TEMPLATES: CaptionTemplate[] = [
-    {
-      id: "cravings",
-      title: "🤤 Fome & Desejo",
-      category: "cravings",
-      badge: "Alta Conversão",
-      text: "🔥 Bateu aquela fome incontrolável? A gente resolve agora!\n\nPeça direto pelo nosso cardápio online e aproveite: use o cupom *{CODIGO}* para garantir *{DESCONTO}* no seu pedido!\n\n👉 {MINIMO}\n👉 Válido apenas 1 uso por cliente\n👉 Peça quentinho em minutos pelo link da nossa bio!\n\n📲 {LINK}\n\n#delivery #comidaboa #almoco #jantar #lanche #cupomdedesconto"
-    },
-    {
-      id: "urgency",
-      title: "🚨 Urgência & Relâmpago",
-      category: "urgency",
-      badge: "Só Hoje",
-      text: "🚨 CUPOM RELÂMPAGO NA ÁREA! (Válido só hoje)\n\nLiberamos o cupom *{CODIGO}* com *{DESCONTO}* exclusivo para pedidos no nosso cardápio próprio!\n\n⚠️ {MINIMO}\n⚠️ Não cumulativo • Limitado a 1 uso por cliente\n\nCorre antes que acabe a cota de hoje! Link direto na bio 🏃💨\n\n📲 {LINK}\n\n#promocao #cupomdedesconto #deliveryrapido #descontodehoje"
-    },
-    {
-      id: "first_order",
-      title: "🌟 Boas-Vindas (1º Pedido)",
-      category: "first_order",
-      badge: "Novos Clientes",
-      text: "👋 Primeira vez pedindo com a gente? O presente de boas-vindas é por nossa conta!\n\nUse o cupom especial *{CODIGO}* no seu 1º pedido e ganhe *{DESCONTO}*!\n\n✨ {MINIMO}\n✨ Válido exclusivamente para novos clientes no cardápio online\n\nToque no link da nossa bio e faça sua primeira experiência com a gente! 🍔✨\n\n📲 {LINK}\n\n#primeiropedido #deliverylocal #desconto #comidagourmet"
-    },
-    {
-      id: "weekend",
-      title: "🍕 Sextou & Fim de Semana",
-      category: "weekend",
-      badge: "Fim de Semana",
-      text: "🍕 Sextou com comida boa e zero louça na pia!\n\nReúna a galera ou aproveite o filme no sofá: garanta *{DESCONTO}* usando o cupom *{CODIGO}* no nosso cardápio!\n\n👉 {MINIMO}\n👉 1 uso por cliente • Válido para o fim de semana\n\nPediu, chegou quentinho! Acesse o link da bio 🛋️🛵\n\n📲 {LINK}\n\n#sextou #fimdesemana #deliverynight #pizzanight #burgernight"
-    },
-    {
-      id: "whatsapp",
-      title: "💬 Lista de Transmissão (WhatsApp)",
-      category: "whatsapp",
-      badge: "WhatsApp Direto",
-      text: "Olá! Tudo bem? Passando para te avisar que liberamos um cupom exclusivo para você hoje no nosso cardápio online! 🎁\n\nUse o código *{CODIGO}* e ganhe *{DESCONTO}* no seu pedido!\n\n📌 {MINIMO}\n📌 Válido para 1 uso por cliente\n\nPara pedir agora sem taxas extras, clique no link:\n👉 https://{LINK}\n\nBom apetite! 😋"
-    },
-    {
-      id: "short_reels",
-      title: "⚡ Curta & Direta (Reels & Stories)",
-      category: "short_reels",
-      badge: "Stories & Reels",
-      text: "A única notificação de delivery que você queria hoje! 📲🤤\n\nUse o cupom *{CODIGO}* para *{DESCONTO}* ({MINIMO}). Link na bio! 🛵✨\n\n📲 {LINK}"
-    }
-  ];
-
   const [activeCaptionText, setActiveCaptionText] = useState(() =>
-    buildCaptionTemplate(CAPTION_TEMPLATES[0].text)
+    buildCaptionTemplate(INSTAGRAM_TEMPLATES[0].text)
   );
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -424,26 +599,77 @@ function CouponImageGeneratorContent({
 
   const activeTheme = FOOD_THEMES.find((t) => t.id === selectedThemeId) || FOOD_THEMES[0];
 
-  // Toggle social network enabled state (max 4 active)
-  const handleToggleSocialAccount = (id: string) => {
-    setSocialAccounts((prev) => {
-      const target = prev.find((s) => s.id === id);
-      if (!target) return prev;
-      const currentlyEnabledCount = prev.filter((s) => s.enabled).length;
+  // Active social accounts count
+  const activeSocials = socialAccounts.filter((s) => s.enabled);
+  const enabledSocialsCount = activeSocials.length;
 
-      if (!target.enabled && currentlyEnabledCount >= 4) {
-        return prev; // Maximum 4 active
-      }
-
-      return prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s));
-    });
+  // Add social account
+  const handleAddSocialAccount = (id: string) => {
+    if (enabledSocialsCount >= 4) return;
+    setSocialAccounts((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, enabled: true } : s))
+    );
   };
 
-  // Change handle for a social account
+  // Remove social account
+  const handleRemoveSocialAccount = (id: string) => {
+    setSocialAccounts((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, enabled: false } : s))
+    );
+  };
+
+  // Change handle for an account
   const handleSocialAccountChange = (id: string, newHandle: string) => {
     setSocialAccounts((prev) =>
       prev.map((s) => (s.id === id ? { ...s, handle: newHandle } : s))
     );
+  };
+
+  // Select channel in Studio
+  const handleSelectChannel = (channel: MarketingChannel) => {
+    setStudioChannel(channel);
+    let templates: CaptionTemplateItem[] = INSTAGRAM_TEMPLATES;
+    let defaultFormat: MarketingFormat = "feed";
+
+    if (channel === "facebook") {
+      templates = FACEBOOK_TEMPLATES;
+      defaultFormat = "feed";
+    } else if (channel === "whatsapp") {
+      templates = WHATSAPP_TEMPLATES;
+      defaultFormat = "chat";
+    }
+
+    const firstTemplate = templates[0];
+    setSelectedTemplateId(firstTemplate.id);
+    setActiveCaptionText(buildCaptionTemplate(firstTemplate.text));
+    setStudioFormat(defaultFormat);
+
+    if (defaultFormat === "feed") {
+      setAspectFormat("feed");
+    }
+  };
+
+  // Select format in Studio
+  const handleSelectFormat = (format: MarketingFormat) => {
+    setStudioFormat(format);
+    if (format === "story") {
+      setAspectFormat("story");
+    } else if (format === "feed") {
+      setAspectFormat("feed");
+    }
+    // Also update template if available for that format
+    const currentTemplates =
+      studioChannel === "instagram"
+        ? INSTAGRAM_TEMPLATES
+        : studioChannel === "facebook"
+        ? FACEBOOK_TEMPLATES
+        : WHATSAPP_TEMPLATES;
+
+    const matchedTmpl = currentTemplates.find((t) => t.format === format);
+    if (matchedTmpl) {
+      setSelectedTemplateId(matchedTmpl.id);
+      setActiveCaptionText(buildCaptionTemplate(matchedTmpl.text));
+    }
   };
 
   // Render canvas
@@ -482,7 +708,7 @@ function CouponImageGeneratorContent({
         }
         ctx.drawImage(imgBg, renderX, renderY, renderW, renderH);
 
-        // Dark cinematic vignette overlay (12% lighter so food shines through!)
+        // Dark cinematic vignette overlay (lighter so food shines through!)
         const darkOverlay = ctx.createLinearGradient(0, 0, 0, height);
         darkOverlay.addColorStop(0, "rgba(10, 12, 16, 0.65)");
         darkOverlay.addColorStop(0.3, "rgba(10, 12, 16, 0.72)");
@@ -512,7 +738,7 @@ function CouponImageGeneratorContent({
         ctx.fillRect(0, 0, width, height);
       }
 
-      // Vertical spacing based on format & Instagram Safe Zones
+      // Vertical spacing based on format & Safe Zones
       const isStory = aspectFormat === "story";
 
       // 3. Top Store Pill Badge
@@ -573,7 +799,6 @@ function CouponImageGeneratorContent({
       const ticketX = (width - ticketW) / 2;
       const ticketY = isStory ? 780 : 465;
 
-      // Ticket background with shadow
       ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
       ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
       ctx.shadowBlur = 35;
@@ -584,32 +809,27 @@ function CouponImageGeneratorContent({
       ctx.shadowColor = "transparent";
       ctx.shadowBlur = 0;
 
-      // Ticket dashed border
       ctx.strokeStyle = "#CB5A3C";
       ctx.lineWidth = 3.5;
       ctx.setLineDash([14, 10]);
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Ticket "Use o cupom no checkout"
       const checkoutTextSize = isStory ? 30 : 26;
       ctx.font = `bold ${checkoutTextSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "#6B7280";
       ctx.fillText("USE O CUPOM NO CHECKOUT:", width / 2, ticketY + (isStory ? 62 : 50));
 
-      // Ticket Code (Monospace bold)
       const codeFontSize = isStory ? 84 : 72;
       ctx.font = `900 ${codeFontSize}px 'Courier New', monospace, sans-serif`;
       ctx.fillStyle = "#111827";
       ctx.fillText(couponCode.toUpperCase(), width / 2, ticketY + (isStory ? 158 : 132));
 
-      // Ticket sub-rule inside box (Mínimo)
       const minOrderFontSize = isStory ? 36 : 32;
       ctx.font = `bold ${minOrderFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "#374151";
       ctx.fillText(minOrderText, width / 2, ticketY + (isStory ? 232 : 194));
 
-      // Ticket sub-rule (1 uso por cliente / não cumulativo)
       const subRuleFontSize = isStory ? 28 : 24;
       ctx.font = `600 ${subRuleFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "#6B7280";
@@ -638,19 +858,18 @@ function CouponImageGeneratorContent({
       ctx.fillStyle = "#E5E7EB";
       ctx.fillText(`deliplus.com.br/${storeSlug || "sua-loja"}`, width / 2, linkY);
 
-      // 10. REDES SOCIAIS COM ÍCONES OFICIAIS + ENDEREÇO/HANDLE (ATÉ 4)
-      const activeSocials = socialAccounts.filter((s) => s.enabled).slice(0, 4);
+      // 10. Redes Sociais com logos oficiais e @/telefone (Até 4 ativas)
+      const visibleSocials = socialAccounts.filter((s) => s.enabled).slice(0, 4);
 
-      if (activeSocials.length > 0) {
+      if (visibleSocials.length > 0) {
         const logoSize = isStory ? 32 : 24;
         const fontTextSize = isStory ? 26 : 21;
         ctx.font = `bold ${fontTextSize}px system-ui, -apple-system, sans-serif`;
 
-        // Calculate layout: 1 row if 1-2 socials, 2 rows if 3-4 socials
-        const isMultiRow = activeSocials.length > 2;
+        const isMultiRow = visibleSocials.length > 2;
         const rows = isMultiRow
-          ? [activeSocials.slice(0, 2), activeSocials.slice(2, 4)]
-          : [activeSocials];
+          ? [visibleSocials.slice(0, 2), visibleSocials.slice(2, 4)]
+          : [visibleSocials];
 
         const baseY = isStory ? 1395 : 925;
         const rowHeight = isStory ? 52 : 42;
@@ -659,7 +878,6 @@ function CouponImageGeneratorContent({
         rows.forEach((rowSocials, rIdx) => {
           const currentY = baseY + rIdx * (rowHeight + rowGap);
 
-          // Measure widths for all pills in this row
           const pillMetrics = rowSocials.map((soc) => {
             const txt = soc.handle.trim() || soc.name;
             const textW = ctx.measureText(txt).width;
@@ -667,11 +885,12 @@ function CouponImageGeneratorContent({
             return { soc, txt, pillW };
           });
 
-          const totalRowW = pillMetrics.reduce((acc, p) => acc + p.pillW, 0) + (rowSocials.length - 1) * (isStory ? 18 : 12);
+          const totalRowW =
+            pillMetrics.reduce((acc, p) => acc + p.pillW, 0) +
+            (rowSocials.length - 1) * (isStory ? 18 : 12);
           let currentX = width / 2 - totalRowW / 2;
 
           pillMetrics.forEach(({ soc, txt, pillW }) => {
-            // Pill background
             ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
             ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
             ctx.lineWidth = 1.5;
@@ -680,17 +899,15 @@ function CouponImageGeneratorContent({
             ctx.fill();
             ctx.stroke();
 
-            // Brand logo inside pill
             const logoPadding = isStory ? 10 : 8;
             const logoX = currentX + logoPadding;
             const logoY = currentY + (rowHeight - logoSize) / 2;
             drawBrandLogo(ctx, soc.id, logoX, logoY, logoSize);
 
-            // Handle text
             ctx.fillStyle = "#FFFFFF";
             ctx.textAlign = "left";
             const textX = logoX + logoSize + (isStory ? 10 : 8);
-            const textY = currentY + rowHeight / 2 + (fontTextSize * 0.35);
+            const textY = currentY + rowHeight / 2 + fontTextSize * 0.35;
             ctx.fillText(txt, textX, textY);
 
             currentX += pillW + (isStory ? 18 : 12);
@@ -698,7 +915,7 @@ function CouponImageGeneratorContent({
         });
       }
 
-      // 11. MARCA D'ÁGUA DELIPLUS EM BADGE / PÍLULA (SAFE ZONE RESPEITADA)
+      // 11. Marca d'água DeliPlus em pílula nítida
       const waterFontSize = isStory ? 32 : 26;
       ctx.font = `bold ${waterFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.textAlign = "center";
@@ -719,7 +936,7 @@ function CouponImageGeneratorContent({
       ctx.fillStyle = "#FFFFFF";
       ctx.fillText(waterText, width / 2, waterPillY + (isStory ? 43 : 35));
 
-      // Sync rendered image with Copy Studio mockup
+      // Sync rendered snapshot
       try {
         const dataUrl = canvas.toDataURL("image/png");
         setLiveRenderedImageUrl(dataUrl);
@@ -728,7 +945,6 @@ function CouponImageGeneratorContent({
       }
     };
 
-    // Load image if available
     const targetImageSrc = customImageSrc || activeTheme.imageUrl;
 
     if (targetImageSrc) {
@@ -818,11 +1034,20 @@ function CouponImageGeneratorContent({
     setActiveCaptionText((prev) => `${prev} ${tag}`);
   };
 
-  const enabledSocialsCount = socialAccounts.filter((s) => s.enabled).length;
+  // Templates for current channel
+  const currentTemplates =
+    studioChannel === "instagram"
+      ? INSTAGRAM_TEMPLATES
+      : studioChannel === "facebook"
+      ? FACEBOOK_TEMPLATES
+      : WHATSAPP_TEMPLATES;
+
+  // Unused social networks available to add
+  const availableSocialsToAdd = socialAccounts.filter((s) => !s.enabled);
 
   return (
-    <div className="bg-[#FAF9F5] border border-[#E3E1D9] rounded-2xl w-full max-w-5xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
-      {/* Modal Top Header with Clean Title (No subtitle and no icon, as requested!) */}
+    <div className="bg-[#FAF9F5] border border-[#E3E1D9] rounded-2xl w-full max-w-6xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
+      {/* Modal Top Header with Clean Title */}
       <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-[#ECEAE2]">
         <h2 className="text-base sm:text-lg font-bold text-[#1A241E] leading-tight">
           Gerador de Artes & Estúdio de Legendas
@@ -846,12 +1071,11 @@ function CouponImageGeneratorContent({
             <button
               type="button"
               onClick={() => {
-                // Take snapshot of canvas before switching
                 if (canvasRef.current) {
                   try {
                     setLiveRenderedImageUrl(canvasRef.current.toDataURL("image/png"));
                   } catch {
-                    // Ignore if CORS issue
+                    // Ignore CORS if any
                   }
                 }
                 setActiveTab("copy_studio");
@@ -896,7 +1120,7 @@ function CouponImageGeneratorContent({
               }`}
             >
               <Smartphone size={14} />
-              <span>Story / Reels (9:16)</span>
+              <span>Story / Reels / Status (9:16)</span>
             </button>
             <button
               type="button"
@@ -913,12 +1137,12 @@ function CouponImageGeneratorContent({
           </div>
 
           {/* Canvas Viewport container */}
-          <div className="relative flex items-center justify-center w-full max-w-[350px] shadow-2xl rounded-2xl overflow-hidden border-2 border-white/10">
+          <div className="relative flex items-center justify-center w-full max-w-[340px] shadow-2xl rounded-2xl overflow-hidden border-2 border-white/10">
             <canvas
               ref={canvasRef}
               className="w-full h-auto object-contain block rounded-2xl"
               style={{
-                maxHeight: aspectFormat === "story" ? "540px" : "350px"
+                maxHeight: aspectFormat === "story" ? "520px" : "340px"
               }}
             />
           </div>
@@ -931,10 +1155,10 @@ function CouponImageGeneratorContent({
 
         {/* RIGHT: Visual Customization Controls */}
         <div className="lg:col-span-7 p-4 sm:p-6 space-y-4 overflow-y-auto bg-white">
-          {/* 1. Escolha do Nicho / Fundo (Em SELECT compacto) */}
+          {/* 1. Escolha do Nicho / Fundo (Clean label & clean select without emojis) */}
           <div>
             <label className="text-[12.5px] font-bold text-[#1A241E] block mb-1.5">
-              1. Nicho & Fundo da Arte (Foto 10% mais iluminada)
+              1. Nicho & Imagem de Fundo
             </label>
 
             <div className="flex items-center gap-2">
@@ -956,22 +1180,22 @@ function CouponImageGeneratorContent({
                   }}
                   className="w-full px-3 py-2 bg-white border border-[#E3E1D9] rounded-xl text-[13px] font-semibold text-[#1A241E] focus:outline-none focus:border-[#CB5A3C] cursor-pointer"
                 >
-                  <optgroup label="🍕 Nichos de Food Delivery">
+                  <optgroup label="Nichos de Alimentação">
                     {FOOD_THEMES.filter((t) => t.category !== "Cores da Marca").map((theme) => (
                       <option key={theme.id} value={theme.id}>
-                        {theme.icon} {theme.name} — {theme.category}
+                        {theme.name} — {theme.category}
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="🎨 Cores & Gradientes da Marca">
+                  <optgroup label="Cores e Gradientes da Marca">
                     {FOOD_THEMES.filter((t) => t.category === "Cores da Marca").map((theme) => (
                       <option key={theme.id} value={theme.id}>
-                        {theme.icon} {theme.name}
+                        {theme.name}
                       </option>
                     ))}
                   </optgroup>
                   {customImageSrc && (
-                    <option value="custom">📸 Imagem própria enviada</option>
+                    <option value="custom">Imagem própria enviada</option>
                   )}
                 </select>
               </div>
@@ -1096,76 +1320,98 @@ function CouponImageGeneratorContent({
             </div>
           </div>
 
-          {/* 3. Redes Sociais com Logo Oficial e Campo de Endereço/Handle */}
+          {/* 3. Redes Sociais na Arte (Formato Compacto com Adição sob Demanda, máx 4) */}
           <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2">
             <div className="flex items-center justify-between">
               <div>
                 <label className="text-[12.5px] font-bold text-[#1A241E] block">
-                  3. Redes Sociais na Arte (com Logo Oficial e Endereço)
+                  3. Redes Sociais na Arte
                 </label>
                 <p className="text-[11px] text-[#637267]">
-                  Ative até 4 redes e digite o seu @ ou número para exibir na imagem:
+                  Adicione até 4 redes sociais com seu @ ou telefone:
                 </p>
               </div>
-              <span className={`text-[11.5px] font-bold px-2 py-0.5 rounded-full ${
-                enabledSocialsCount === 4 ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-700"
-              }`}>
-                {enabledSocialsCount}/4 ativas
+              <span
+                className={`text-[11.5px] font-bold px-2 py-0.5 rounded-full ${
+                  enabledSocialsCount === 4
+                    ? "bg-amber-100 text-amber-800"
+                    : "bg-gray-100 text-gray-700"
+                }`}
+              >
+                {enabledSocialsCount}/4 adicionadas
               </span>
             </div>
 
+            {/* Active Social Networks List */}
             <div className="space-y-1.5 pt-1">
-              {socialAccounts.map((soc) => (
+              {activeSocials.map((soc) => (
                 <div
                   key={soc.id}
-                  className={`flex items-center gap-2.5 p-2 rounded-xl border transition-all ${
-                    soc.enabled
-                      ? "bg-[#FAF8F0] border-[#D5D0C0] shadow-2xs"
-                      : "bg-white border-[#EAE8E0] opacity-60 hover:opacity-100"
-                  }`}
+                  className="flex items-center gap-2 p-2 rounded-xl border border-[#D5D0C0] bg-[#FAF8F0] shadow-2xs"
                 >
-                  {/* Switch to enable */}
-                  <Switch
-                    checked={soc.enabled}
-                    onCheckedChange={() => handleToggleSocialAccount(soc.id)}
-                    activeTrackColor="bg-[#2E4233]"
-                    inactiveTrackColor="bg-stone-300"
-                    aria-label={`Ativar ${soc.name}`}
-                  />
+                  <BrandIconBadge id={soc.id} />
 
-                  {/* Brand Logo Icon Badge */}
-                  <div
-                    className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs"
-                    style={{ backgroundColor: soc.brandColor }}
-                  >
-                    <span className="text-[11px] font-black text-white">
-                      {soc.id === "instagram" ? "📷" : soc.id === "whatsapp" ? "✆" : soc.id === "facebook" ? "f" : soc.id === "youtube" ? "▶" : soc.id === "tiktok" ? "♪" : soc.id === "kwai" ? "K" : "𝕏"}
-                    </span>
-                  </div>
-
-                  <span className="text-[12px] font-bold text-[#1A241E] w-24 shrink-0">
+                  <span className="text-[12px] font-bold text-[#1A241E] w-20 shrink-0">
                     {soc.name}
                   </span>
 
-                  {/* Editable Handle Input */}
                   <input
                     type="text"
-                    disabled={!soc.enabled}
                     value={soc.handle}
                     onChange={(e) => handleSocialAccountChange(soc.id, e.target.value)}
                     placeholder={`Ex: @${storeSlug || "sualoja"}`}
-                    className={`flex-1 px-2.5 py-1 text-[12px] border rounded-lg focus:outline-none transition-colors ${
-                      soc.enabled
-                        ? "bg-white border-[#D5D0C0] text-[#1A241E] font-medium focus:border-[#CB5A3C]"
-                        : "bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed"
-                    }`}
+                    className="flex-1 px-2.5 py-1 text-[12px] border border-[#D5D0C0] rounded-lg bg-white text-[#1A241E] font-medium focus:outline-none focus:border-[#CB5A3C]"
                   />
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSocialAccount(soc.id)}
+                    className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                    title={`Remover ${soc.name} da arte`}
+                  >
+                    <X size={15} />
+                  </button>
                 </div>
               ))}
+
+              {/* Compact Add Social Network Dropdown */}
+              {enabledSocialsCount < 4 && availableSocialsToAdd.length > 0 && (
+                <div className="pt-0.5">
+                  <div className="relative">
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          handleAddSocialAccount(e.target.value);
+                        }
+                      }}
+                      className="w-full py-2 px-3 bg-[#FAF0ED]/70 hover:bg-[#FAF0ED] text-[#CB5A3C] border border-dashed border-[#CB5A3C]/50 rounded-xl text-xs font-bold text-center cursor-pointer transition-colors focus:outline-none appearance-none"
+                    >
+                      <option value="" disabled>
+                        + Adicionar Rede Social ({enabledSocialsCount}/4)
+                      </option>
+                      {availableSocialsToAdd.map((s) => (
+                        <option key={s.id} value={s.id} className="text-[#1A241E] font-medium">
+                          + {s.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[#CB5A3C]">
+                      <ChevronDown size={14} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {enabledSocialsCount === 4 && (
+                <div className="text-[11px] text-[#637267] bg-gray-50 p-2 rounded-lg text-center border border-gray-200">
+                  Limite de 4 redes atingido (máximo ideal para visualização nítida na arte).
+                </div>
+              )}
             </div>
           </div>
 
-          {/* 4. Cor de Destaque com SLIDER INTERATIVO (Sem as bolinhas, conforme seta vermelha!) */}
+          {/* 4. Cor de Destaque com Slider Interativo */}
           <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[12.5px] font-bold text-[#1A241E] flex items-center gap-1.5">
@@ -1173,7 +1419,6 @@ function CouponImageGeneratorContent({
                 <span>4. Seletor de Cores Interativo</span>
               </label>
 
-              {/* Eyedropper & Hex Display */}
               <div className="flex items-center gap-1.5 bg-[#FAF8F0] border border-[#E3E1D9] px-2 py-0.5 rounded-lg">
                 <input
                   type="color"
@@ -1191,7 +1436,6 @@ function CouponImageGeneratorContent({
               </div>
             </div>
 
-            {/* Slider de arrastar o pontinho */}
             <div className="relative pt-1 pb-1">
               <input
                 type="range"
@@ -1212,7 +1456,7 @@ function CouponImageGeneratorContent({
             </div>
           </div>
 
-          {/* 5. Botões de Ação do Design (Apenas Baixar PNG, sem o botão redundante 'Gerar Legenda'!) */}
+          {/* 5. Ação de Baixar PNG */}
           <div className="border-t border-[#ECEAE2] pt-3.5">
             <button
               type="button"
@@ -1221,113 +1465,463 @@ function CouponImageGeneratorContent({
               className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white font-bold text-sm shadow-sm transition-all cursor-pointer"
             >
               <Download size={16} />
-              <span>{isGenerating ? "Exportando PNG..." : "Baixar Arte PNG em Alta Definição"}</span>
+              <span>{isGenerating ? "Exportando PNG..." : "Baixar Arte PNG em Alta Resolução"}</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* ============================================================== */}
-      {/* TAB 2: ESTÚDIO DE LEGENDAS (COPYWRITING PARA DELIVERY)           */}
-      {/* Kept mounted in DOM via CSS hidden to preserve state & canvas! */}
+      {/* TAB 2: ESTÚDIO DE LEGENDAS (MULTI-REDE SOCIAL & MOCKUPS REAIS) */}
       {/* ============================================================== */}
       <div className={`flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-0 ${activeTab === "copy_studio" ? "" : "hidden"}`}>
-        {/* LEFT: Live Post Mockup com a IMAGEM REAL DO CANVAS */}
-        <div className="lg:col-span-5 bg-[#171A18] p-4 sm:p-6 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-[#242A27]">
-          <div className="w-full max-w-[340px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden text-[#111827]">
-            {/* Instagram Mockup Header */}
-            <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-[#CB5A3C] text-white flex items-center justify-center text-xs font-bold">
-                  {storeName ? storeName.slice(0, 1).toUpperCase() : "D"}
+        {/* LEFT: Live Realistic Mockup based on Channel & Format */}
+        <div className="lg:col-span-5 bg-[#171A18] p-4 sm:p-6 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-[#242A27] min-h-[440px] overflow-y-auto">
+          {/* MOCKUP 1: INSTAGRAM FEED (1:1) */}
+          {studioChannel === "instagram" && studioFormat === "feed" && (
+            <div className="w-full max-w-[330px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden text-[#111827]">
+              {/* Header */}
+              <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-[#CB5A3C] text-white flex items-center justify-center text-xs font-bold shadow-2xs">
+                    {storeName ? storeName.slice(0, 1).toUpperCase() : "D"}
+                  </div>
+                  <div>
+                    <div className="text-[12px] font-bold leading-tight">{storeSlug || "sualoja"}</div>
+                    <div className="text-[10px] text-gray-500">Patrocinado • Delivery</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-[12px] font-bold leading-tight">{storeName || "DeliPlus"}</div>
-                  <div className="text-[10px] text-gray-500">Patrocinado • Delivery</div>
+                <span className="text-gray-400 font-bold text-xs tracking-widest">•••</span>
+              </div>
+
+              {/* Square Image Container without clipping */}
+              <div className="relative aspect-square bg-[#0c0e0d] flex items-center justify-center overflow-hidden">
+                {liveRenderedImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={liveRenderedImageUrl}
+                    alt="Arte do post"
+                    className="w-full h-full object-contain block"
+                  />
+                ) : (
+                  <div className="p-4 text-center text-gray-400 text-xs">
+                    Carregando arte...
+                  </div>
+                )}
+              </div>
+
+              {/* Action Bar */}
+              <div className="p-3 space-y-1.5 text-[12px]">
+                <div className="flex items-center justify-between text-gray-700">
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-sm">♡</span>
+                    <span className="font-bold text-sm">💬</span>
+                    <span className="font-bold text-sm">↗</span>
+                  </div>
+                  <span className="font-bold text-sm">🔖</span>
+                </div>
+
+                <div className="font-semibold text-[11px] text-gray-900">
+                  Curtido por clientes e outras pessoas
+                </div>
+
+                <div className="text-[11.5px] text-gray-800 leading-relaxed whitespace-pre-wrap break-words max-h-44 overflow-y-auto">
+                  <span className="font-bold mr-1.5">{storeSlug || "sualoja"}</span>
+                  {activeCaptionText}
                 </div>
               </div>
-              <span className="text-gray-400 font-bold text-xs">•••</span>
             </div>
+          )}
 
-            {/* Post Thumbnail: IMAGEM EXATA GERADA NO CANVAS! */}
-            <div className="relative aspect-square bg-[#121614] flex items-center justify-center overflow-hidden">
+          {/* MOCKUP 2: INSTAGRAM & FACEBOOK STORY / REELS (9:16) */}
+          {((studioChannel === "instagram" && studioFormat === "story") ||
+            (studioChannel === "facebook" && studioFormat === "story") ||
+            (studioChannel === "whatsapp" && studioFormat === "story")) && (
+            <div className="relative w-[265px] aspect-[9/16] bg-black rounded-[32px] overflow-hidden border-[5px] border-[#2A2E2C] shadow-2xl flex flex-col justify-between">
+              {/* Background 9:16 image (Full Frame, No Crop!) */}
               {liveRenderedImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={liveRenderedImageUrl}
-                  alt="Arte do post"
-                  className="w-full h-full object-cover block"
+                  alt="Story preview"
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
               ) : (
-                <div className="p-4 text-center text-gray-400 text-xs">
-                  Carregando imagem da arte...
+                <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xs">
+                  Carregando arte do Story...
                 </div>
               )}
-            </div>
 
-            {/* Instagram Post Content */}
-            <div className="p-3 space-y-1.5 text-[12px]">
-              <div className="flex items-center justify-between text-gray-700">
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-sm">♡</span>
-                  <span className="font-bold text-sm">💬</span>
-                  <span className="font-bold text-sm">↗</span>
+              {/* Story UI Top Overlay */}
+              <div className="relative z-10 p-3 pt-3.5 bg-gradient-to-b from-black/70 via-black/30 to-transparent space-y-2">
+                {/* 3 Progress Bars */}
+                <div className="grid grid-cols-3 gap-1">
+                  <div className="h-0.5 bg-white rounded-full"></div>
+                  <div className="h-0.5 bg-white/40 rounded-full"></div>
+                  <div className="h-0.5 bg-white/40 rounded-full"></div>
                 </div>
-                <span className="font-bold text-sm">🔖</span>
+
+                {/* Profile Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full p-[1.5px] bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center">
+                      <div className="w-full h-full rounded-full bg-black text-white text-[9px] font-bold flex items-center justify-center">
+                        {storeName ? storeName.slice(0, 1).toUpperCase() : "D"}
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-bold text-white shadow-xs drop-shadow-sm">
+                      {storeSlug || "sualoja"}
+                    </span>
+                    <span className="text-[10px] text-white/70">12 min</span>
+                  </div>
+                  <span className="text-white text-xs font-bold">✕</span>
+                </div>
               </div>
 
-              <div className="font-semibold text-[11px] text-gray-900">
-                Curtido por outros clientes
+              {/* Link Sticker in Middle */}
+              <div className="relative z-10 flex justify-center px-4">
+                <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-[11px] font-bold text-gray-900 border border-white">
+                  <ExternalLink size={12} className="text-[#CB5A3C]" />
+                  <span>{cleanStoreLink}</span>
+                </div>
               </div>
 
-              {/* Caption with real text */}
-              <div className="text-[11.5px] text-gray-800 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
-                <span className="font-bold mr-1.5">{storeSlug || "sualoja"}</span>
+              {/* Story UI Bottom Overlay */}
+              <div className="relative z-10 p-3 pb-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center gap-2">
+                <div className="flex-1 py-1.5 px-3 rounded-full border border-white/40 bg-black/40 text-white/80 text-[11px]">
+                  Enviar mensagem...
+                </div>
+                <div className="text-white text-base">♡</div>
+                <div className="text-white text-base">↗</div>
+              </div>
+            </div>
+          )}
+
+          {/* MOCKUP 3: FACEBOOK FEED POST (1:1) */}
+          {studioChannel === "facebook" && studioFormat === "feed" && (
+            <div className="w-full max-w-[330px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden text-[#111827]">
+              {/* Facebook Header */}
+              <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-[#1877F2] text-white flex items-center justify-center text-xs font-bold shadow-2xs">
+                    {storeName ? storeName.slice(0, 1).toUpperCase() : "D"}
+                  </div>
+                  <div>
+                    <div className="text-[12px] font-bold text-gray-900 leading-tight">
+                      {storeName || "DeliPlus"}
+                    </div>
+                    <div className="text-[10px] text-gray-500">Publicado agora • 🌐</div>
+                  </div>
+                </div>
+                <span className="text-gray-400 font-bold text-xs tracking-widest">•••</span>
+              </div>
+
+              {/* Caption text above image */}
+              <div className="px-3.5 py-2 text-[11.5px] text-gray-800 leading-relaxed whitespace-pre-wrap break-words max-h-28 overflow-y-auto border-b border-gray-50">
                 {activeCaptionText}
               </div>
+
+              {/* Image Preview */}
+              <div className="relative aspect-square bg-[#0c0e0d] flex items-center justify-center overflow-hidden">
+                {liveRenderedImageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={liveRenderedImageUrl}
+                    alt="Facebook arte"
+                    className="w-full h-full object-contain block"
+                  />
+                )}
+              </div>
+
+              {/* Reactions Bar */}
+              <div className="px-3 py-2 flex items-center justify-between text-[11px] text-gray-500 border-b border-gray-100">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs">👍❤️</span>
+                  <span>48 curtidas</span>
+                </div>
+                <span>6 comentários</span>
+              </div>
+
+              {/* Actions */}
+              <div className="grid grid-cols-3 text-center py-2 text-[11px] font-semibold text-gray-600">
+                <button type="button" className="flex items-center justify-center gap-1">
+                  <ThumbsUp size={13} />
+                  <span>Curtir</span>
+                </button>
+                <button type="button" className="flex items-center justify-center gap-1">
+                  <MessageSquare size={13} />
+                  <span>Comentar</span>
+                </button>
+                <button type="button" className="flex items-center justify-center gap-1">
+                  <Share2 size={13} />
+                  <span>Compartilhar</span>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* MOCKUP 4: WHATSAPP CHAT CONVERSATION */}
+          {studioChannel === "whatsapp" && studioFormat === "chat" && (
+            <div className="w-full max-w-[330px] rounded-2xl shadow-2xl border border-gray-300 overflow-hidden bg-[#ECE5DD] flex flex-col text-[#111827]">
+              {/* WhatsApp Header */}
+              <div className="bg-[#008069] text-white px-3 py-2.5 flex items-center justify-between shadow-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-bold text-xs">←</span>
+                  <div className="w-7 h-7 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold border border-white/30">
+                    {storeName ? storeName.slice(0, 1).toUpperCase() : "D"}
+                  </div>
+                  <div>
+                    <div className="text-[12px] font-bold leading-tight">{storeName || "DeliPlus"}</div>
+                    <div className="text-[9.5px] text-emerald-100">online</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-white text-xs">
+                  <span>📹</span>
+                  <span>📞</span>
+                  <span>⋮</span>
+                </div>
+              </div>
+
+              {/* Chat Body */}
+              <div className="p-3 space-y-2 flex-1 min-h-[300px] flex flex-col justify-end">
+                {/* Date chip */}
+                <div className="flex justify-center mb-1">
+                  <span className="bg-white/80 backdrop-blur-xs text-[10px] font-semibold text-gray-600 px-2.5 py-0.5 rounded-full shadow-2xs">
+                    HOJE
+                  </span>
+                </div>
+
+                {/* Outgoing Message Bubble */}
+                <div className="self-end max-w-[92%] bg-[#E7FFDB] rounded-2xl rounded-tr-xs p-2 shadow-xs border border-[#C5E8B7] text-[#111827]">
+                  {/* Image attachment in bubble */}
+                  {liveRenderedImageUrl && (
+                    <div className="rounded-xl overflow-hidden mb-2 bg-black/10">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={liveRenderedImageUrl}
+                        alt="Arte cupom"
+                        className="w-full max-h-[180px] object-cover block"
+                      />
+                    </div>
+                  )}
+
+                  {/* Formatted Text */}
+                  <div className="text-[11px] leading-relaxed whitespace-pre-wrap break-words text-gray-900">
+                    {renderWhatsAppFormattedText(activeCaptionText)}
+                  </div>
+
+                  {/* Time + Blue Double Checkmarks */}
+                  <div className="flex items-center justify-end gap-1 mt-1 text-[9.5px] text-gray-500">
+                    <span>14:32</span>
+                    <span className="text-[#53bdeb] font-bold">✓✓</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* WhatsApp Fake Input Footer */}
+              <div className="bg-[#F0F2F5] px-2.5 py-2 flex items-center gap-2 border-t border-gray-200">
+                <div className="flex-1 bg-white rounded-full px-3 py-1.5 text-[11px] text-gray-400 border border-gray-200 flex items-center justify-between">
+                  <span>Mensagem</span>
+                  <span className="text-gray-400">📎</span>
+                </div>
+                <div className="w-7 h-7 rounded-full bg-[#00A884] text-white flex items-center justify-center text-xs shadow-xs">
+                  🎙️
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="mt-3 flex items-center gap-1.5 text-[11px] text-gray-400 text-center">
             <Share2 size={12} className="text-[#CB5A3C]" />
-            <span>Prévia exata de como a imagem e a legenda aparecem no feed</span>
+            <span>
+              Mockup realista para <strong>{studioChannel.toUpperCase()}</strong> ({studioFormat})
+            </span>
           </div>
         </div>
 
-        {/* RIGHT: Caption Studio Controls & Templates */}
+        {/* RIGHT: Studio Controls, Channel Switcher & Templates */}
         <div className="lg:col-span-7 p-4 sm:p-6 space-y-4 overflow-y-auto bg-white">
-          {/* Template Selector by Category */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
+          {/* Step 1: Channel & Sub-Format Switcher */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
               <label className="text-[12.5px] font-bold text-[#1A241E]">
-                Modelos de Copy de Alta Conversão
+                1. Escolha a Rede Social & Formato de Publicação
               </label>
               <span className="text-[11px] text-[#CB5A3C] font-semibold">
+                Padronizado para Marketing
+              </span>
+            </div>
+
+            {/* Channels: Instagram, Facebook, WhatsApp */}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => handleSelectChannel("instagram")}
+                className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                  studioChannel === "instagram"
+                    ? "border-[#E1306C] bg-[#FFF0F5] text-[#E1306C] ring-1 ring-[#E1306C] shadow-2xs"
+                    : "border-[#ECEAE2] bg-[#FAF8F0] text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <BrandIconBadge id="instagram" size={16} />
+                <span>Instagram</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectChannel("facebook")}
+                className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                  studioChannel === "facebook"
+                    ? "border-[#1877F2] bg-[#F0F5FF] text-[#1877F2] ring-1 ring-[#1877F2] shadow-2xs"
+                    : "border-[#ECEAE2] bg-[#FAF8F0] text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <BrandIconBadge id="facebook" size={16} />
+                <span>Facebook</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectChannel("whatsapp")}
+                className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                  studioChannel === "whatsapp"
+                    ? "border-[#25D366] bg-[#F0FFF4] text-[#1D994B] ring-1 ring-[#25D366] shadow-2xs"
+                    : "border-[#ECEAE2] bg-[#FAF8F0] text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <BrandIconBadge id="whatsapp" size={16} />
+                <span>WhatsApp</span>
+              </button>
+            </div>
+
+            {/* Sub-Format Selector based on Channel */}
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-[11px] font-bold text-[#637267]">Destino:</span>
+
+              {studioChannel === "instagram" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectFormat("feed")}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      studioFormat === "feed"
+                        ? "bg-[#1A241E] text-white shadow-xs"
+                        : "bg-[#F4F3EE] text-[#637267] hover:text-[#1A241E]"
+                    }`}
+                  >
+                    Feed / Postagem (1:1)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectFormat("story")}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      studioFormat === "story"
+                        ? "bg-[#1A241E] text-white shadow-xs"
+                        : "bg-[#F4F3EE] text-[#637267] hover:text-[#1A241E]"
+                    }`}
+                  >
+                    Story / Reels (9:16)
+                  </button>
+                </>
+              )}
+
+              {studioChannel === "facebook" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectFormat("feed")}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      studioFormat === "feed"
+                        ? "bg-[#1A241E] text-white shadow-xs"
+                        : "bg-[#F4F3EE] text-[#637267] hover:text-[#1A241E]"
+                    }`}
+                  >
+                    Feed / Postagem (1:1)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectFormat("story")}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      studioFormat === "story"
+                        ? "bg-[#1A241E] text-white shadow-xs"
+                        : "bg-[#F4F3EE] text-[#637267] hover:text-[#1A241E]"
+                    }`}
+                  >
+                    Story (9:16)
+                  </button>
+                </>
+              )}
+
+              {studioChannel === "whatsapp" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectFormat("chat")}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      studioFormat === "chat"
+                        ? "bg-[#1A241E] text-white shadow-xs"
+                        : "bg-[#F4F3EE] text-[#637267] hover:text-[#1A241E]"
+                    }`}
+                  >
+                    Conversa / Chat Direto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectFormat("story")}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      studioFormat === "story"
+                        ? "bg-[#1A241E] text-white shadow-xs"
+                        : "bg-[#F4F3EE] text-[#637267] hover:text-[#1A241E]"
+                    }`}
+                  >
+                    Status (9:16)
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Step 2: Templates for this channel */}
+          <div className="border-t border-[#ECEAE2] pt-3.5">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[12.5px] font-bold text-[#1A241E]">
+                2. Modelos de Texto para {studioChannel === "instagram" ? "Instagram" : studioChannel === "facebook" ? "Facebook" : "WhatsApp"}
+              </label>
+              <span className="text-[11px] text-[#637267]">
                 Clique para carregar
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-              {CAPTION_TEMPLATES.map((tmpl) => {
-                const isSelected = selectedTemplateCategory === tmpl.id;
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
+              {currentTemplates.map((tmpl) => {
+                const isSelected = selectedTemplateId === tmpl.id;
                 return (
                   <button
                     key={tmpl.id}
                     type="button"
                     onClick={() => {
-                      setSelectedTemplateCategory(tmpl.id);
+                      setSelectedTemplateId(tmpl.id);
                       setActiveCaptionText(buildCaptionTemplate(tmpl.text));
+                      if (tmpl.format === "story") {
+                        setAspectFormat("story");
+                        setStudioFormat("story");
+                      } else if (tmpl.format === "feed") {
+                        setAspectFormat("feed");
+                        setStudioFormat("feed");
+                      } else if (tmpl.format === "chat") {
+                        setStudioFormat("chat");
+                      }
                     }}
-                    className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                       isSelected
                         ? "border-[#CB5A3C] bg-[#FAF0ED] ring-1 ring-[#CB5A3C]"
                         : "border-[#ECEAE2] bg-[#FAF8F0] hover:bg-gray-100"
                     }`}
                   >
-                    <div className="text-[11.5px] font-bold text-[#1A241E] truncate">
+                    <div className="text-[12px] font-bold text-[#1A241E] truncate">
                       {tmpl.title}
                     </div>
-                    <div className="text-[10px] text-[#637267] truncate">
+                    <div className="text-[10px] text-[#637267] truncate mt-0.5">
                       {tmpl.badge}
                     </div>
                   </button>
@@ -1336,7 +1930,7 @@ function CouponImageGeneratorContent({
             </div>
           </div>
 
-          {/* Dynamic Insertion Pills */}
+          {/* Step 3: Insert Quick Variables */}
           <div className="border-t border-[#ECEAE2] pt-3">
             <label className="text-[11.5px] font-bold text-[#1A241E] block mb-1">
               Inserir Variáveis com 1 Clique:
@@ -1368,11 +1962,11 @@ function CouponImageGeneratorContent({
             </div>
           </div>
 
-          {/* Main Editable Textarea */}
+          {/* Step 4: Main Editable Textarea */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-[12px] font-bold text-[#1A241E]">
-                Texto da Legenda (Totalmente Editável):
+                Texto da Mensagem / Legenda:
               </label>
               <div className="text-[11px] text-[#637267] font-medium">
                 {activeCaptionText.length} caracteres
@@ -1380,20 +1974,20 @@ function CouponImageGeneratorContent({
             </div>
 
             <textarea
-              rows={9}
+              rows={8}
               value={activeCaptionText}
               onChange={(e) => setActiveCaptionText(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-[13px] font-normal border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white leading-relaxed resize-y"
+              className="w-full px-3.5 py-2.5 text-[13px] font-normal border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white leading-relaxed resize-y break-words"
             />
 
             <div className="flex items-center justify-between text-[11px] text-[#637267] mt-1">
               <span>
-                💡 <strong>Dica Pro:</strong> Os primeiros 125 caracteres são vistos antes do botão &quot;...mais&quot;.
+                💡 <strong>Dica:</strong> Em mensagens do WhatsApp, textos entre *asteriscos* ficam em negrito.
               </span>
               <button
                 type="button"
                 onClick={() => {
-                  const found = CAPTION_TEMPLATES.find((t) => t.id === selectedTemplateCategory);
+                  const found = currentTemplates.find((t) => t.id === selectedTemplateId);
                   if (found) setActiveCaptionText(buildCaptionTemplate(found.text));
                 }}
                 className="flex items-center gap-1 text-[#CB5A3C] hover:underline font-semibold cursor-pointer"
@@ -1404,7 +1998,7 @@ function CouponImageGeneratorContent({
             </div>
           </div>
 
-          {/* Action Buttons for Caption */}
+          {/* Step 5: Action Buttons */}
           <div className="border-t border-[#ECEAE2] pt-3 flex flex-col sm:flex-row items-center gap-2.5">
             <button
               type="button"
@@ -1414,12 +2008,16 @@ function CouponImageGeneratorContent({
               {copiedCaption ? (
                 <>
                   <Check size={16} className="text-emerald-300" />
-                  <span>Legenda Copiada com Sucesso!</span>
+                  <span>Copiado com Sucesso!</span>
                 </>
               ) : (
                 <>
                   <Copy size={16} />
-                  <span>Copiar Legenda Formatada</span>
+                  <span>
+                    {studioChannel === "whatsapp"
+                      ? "Copiar Mensagem Formatada"
+                      : "Copiar Legenda Formatada"}
+                  </span>
                 </>
               )}
             </button>
