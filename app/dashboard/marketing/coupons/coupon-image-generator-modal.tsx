@@ -19,7 +19,9 @@ import {
   ThumbsUp,
   MessageSquare,
   ChevronDown,
-  ExternalLink
+  ExternalLink,
+  Move,
+  Edit3
 } from "lucide-react";
 import type { CouponItem } from "./coupons-client";
 
@@ -168,8 +170,8 @@ function hexToHue(hex: string): number {
   return h;
 }
 
-// Authentic SVG Brand Icons for Clean React UI
-function BrandIconBadge({ id, size = 22 }: { id: SocialNetworkId; size?: number }) {
+// Authentic SVG Brand Icons
+function BrandIconBadge({ id, size = 20 }: { id: SocialNetworkId; size?: number }) {
   if (id === "instagram") {
     return (
       <div
@@ -261,7 +263,7 @@ function BrandIconBadge({ id, size = 22 }: { id: SocialNetworkId; size?: number 
   return null;
 }
 
-// Draw authentic brand logos on Canvas
+// Canvas brand logo renderer
 function drawBrandLogo(ctx: CanvasRenderingContext2D, id: string, x: number, y: number, size: number) {
   ctx.save();
   const r = size / 2;
@@ -372,7 +374,6 @@ function drawBrandLogo(ctx: CanvasRenderingContext2D, id: string, x: number, y: 
   ctx.restore();
 }
 
-// Helpers for WhatsApp formatting in live preview (*bold* and links)
 function renderWhatsAppFormattedText(text: string) {
   const lines = text.split("\n");
   return lines.map((line, lIdx) => {
@@ -513,6 +514,34 @@ const WHATSAPP_TEMPLATES: CaptionTemplateItem[] = [
   }
 ];
 
+// Layout element positions (percentage Y from top: 0 to 100)
+interface LayoutPositions {
+  storePillY: number;
+  headerGroupY: number;
+  discountY: number;
+  ticketY: number;
+  ctaY: number;
+  socialsY: number;
+}
+
+const DEFAULT_STORY_POSITIONS: LayoutPositions = {
+  storePillY: 13,
+  headerGroupY: 22,
+  discountY: 35,
+  ticketY: 52,
+  ctaY: 69,
+  socialsY: 78
+};
+
+const DEFAULT_FEED_POSITIONS: LayoutPositions = {
+  storePillY: 7,
+  headerGroupY: 18,
+  discountY: 36,
+  ticketY: 58,
+  ctaY: 76,
+  socialsY: 86
+};
+
 function CouponImageGeneratorContent({
   onClose,
   coupon,
@@ -524,13 +553,16 @@ function CouponImageGeneratorContent({
   storeName: string;
   storeSlug: string;
 }) {
-  // Navigation Tabs: "design" (Arte Visual) vs "copy_studio" (Gerador de Legendas)
+  // Navigation Tabs: "design" (Canva Studio) vs "copy_studio" (Gerador de Legendas)
   const [activeTab, setActiveTab] = useState<"design" | "copy_studio">("design");
 
   // Formats: story (9:16 = 1080x1920) or feed (1:1 = 1080x1080)
   const [aspectFormat, setAspectFormat] = useState<"story" | "feed">("story");
   const [selectedThemeId, setSelectedThemeId] = useState<string>("burger");
   const [customImageSrc, setCustomImageSrc] = useState<string | null>(null);
+
+  // Dynamic Element Positions for Canva-style moving
+  const [positions, setPositions] = useState<LayoutPositions>(DEFAULT_STORY_POSITIONS);
 
   // Social Accounts with Handles (Max 4 active)
   const [socialAccounts, setSocialAccounts] = useState<SocialAccountItem[]>(() => [
@@ -543,7 +575,7 @@ function CouponImageGeneratorContent({
     { id: "kwai", name: "Kwai", handle: `@${storeSlug || "sualoja"}`, enabled: false, brandColor: "#FF5000" }
   ]);
 
-  // Editable Text fields
+  // Editable Text fields (directly edited on the artwork Canva-style)
   const [headline, setHeadline] = useState(() => {
     if (coupon?.description && coupon.description.includes("1º")) return "SEU 1º PEDIDO";
     return "DESCONTO ESPECIAL";
@@ -567,6 +599,15 @@ function CouponImageGeneratorContent({
   });
   const [callToAction, setCallToAction] = useState("Peça pelo link na bio ou WhatsApp");
 
+  // In-place inline editing state (which element is currently active for typing)
+  const [inlineEditingKey, setInlineEditingKey] = useState<string | null>(null);
+
+  // Dragging state
+  const [draggingKey, setDraggingKey] = useState<keyof LayoutPositions | null>(null);
+  const dragStartYRef = useRef<number>(0);
+  const dragStartElementYRef = useRef<number>(0);
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null);
+
   // Interactive Color Picker & Hue Slider
   const [accentColor, setAccentColor] = useState("#CB5A3C");
   const [hueValue, setHueValue] = useState(() => hexToHue("#CB5A3C"));
@@ -575,7 +616,7 @@ function CouponImageGeneratorContent({
   const [isGenerating, setIsGenerating] = useState(false);
   const [liveRenderedImageUrl, setLiveRenderedImageUrl] = useState<string | null>(null);
 
-  // Copywriting Studio State (Multi-Channel: Instagram, Facebook, WhatsApp)
+  // Copywriting Studio State
   const cleanStoreLink = `deliplus.com.br/${storeSlug || "sua-loja"}`;
   const [studioChannel, setStudioChannel] = useState<MarketingChannel>("instagram");
   const [studioFormat, setStudioFormat] = useState<MarketingFormat>("feed");
@@ -625,6 +666,52 @@ function CouponImageGeneratorContent({
     );
   };
 
+  // Switch format and update default positions
+  const handleToggleFormat = (newFormat: "story" | "feed") => {
+    setAspectFormat(newFormat);
+    setPositions(newFormat === "story" ? DEFAULT_STORY_POSITIONS : DEFAULT_FEED_POSITIONS);
+  };
+
+  // Reset positions to default
+  const handleResetPositions = () => {
+    setPositions(aspectFormat === "story" ? DEFAULT_STORY_POSITIONS : DEFAULT_FEED_POSITIONS);
+  };
+
+  // Dragging logic
+  const handlePointerDown = (key: keyof LayoutPositions, e: React.PointerEvent) => {
+    // Don't drag if clicking directly inside an active input
+    if ((e.target as HTMLElement).tagName === "INPUT") return;
+
+    e.preventDefault();
+    setDraggingKey(key);
+    dragStartYRef.current = e.clientY;
+    dragStartElementYRef.current = positions[key];
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!draggingKey || !canvasContainerRef.current) return;
+    const rect = canvasContainerRef.current.getBoundingClientRect();
+    const deltaY = ((e.clientY - dragStartYRef.current) / rect.height) * 100;
+    const newY = Math.min(Math.max(dragStartElementYRef.current + deltaY, 5), 92);
+
+    setPositions((prev) => ({
+      ...prev,
+      [draggingKey]: Math.round(newY * 10) / 10
+    }));
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (draggingKey) {
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {
+        // Ignore
+      }
+      setDraggingKey(null);
+    }
+  };
+
   // Select channel in Studio
   const handleSelectChannel = (channel: MarketingChannel) => {
     setStudioChannel(channel);
@@ -653,11 +740,10 @@ function CouponImageGeneratorContent({
   const handleSelectFormat = (format: MarketingFormat) => {
     setStudioFormat(format);
     if (format === "story") {
-      setAspectFormat("story");
+      handleToggleFormat("story");
     } else if (format === "feed") {
-      setAspectFormat("feed");
+      handleToggleFormat("feed");
     }
-    // Also update template if available for that format
     const currentTemplates =
       studioChannel === "instagram"
         ? INSTAGRAM_TEMPLATES
@@ -672,7 +758,7 @@ function CouponImageGeneratorContent({
     }
   };
 
-  // Render canvas
+  // Render canvas based on dynamic positions and text
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -708,7 +794,7 @@ function CouponImageGeneratorContent({
         }
         ctx.drawImage(imgBg, renderX, renderY, renderW, renderH);
 
-        // Dark cinematic vignette overlay (lighter so food shines through!)
+        // Dark cinematic vignette overlay
         const darkOverlay = ctx.createLinearGradient(0, 0, 0, height);
         darkOverlay.addColorStop(0, "rgba(10, 12, 16, 0.65)");
         darkOverlay.addColorStop(0.3, "rgba(10, 12, 16, 0.72)");
@@ -738,10 +824,9 @@ function CouponImageGeneratorContent({
         ctx.fillRect(0, 0, width, height);
       }
 
-      // Vertical spacing based on format & Safe Zones
       const isStory = aspectFormat === "story";
 
-      // 3. Top Store Pill Badge
+      // 3. Top Store Pill Badge (Positioned dynamically by positions.storePillY)
       const storeLabel = (storeName || "DELIPLUS DELIVERY").toUpperCase();
       const storeFontSize = isStory ? 32 : 26;
       ctx.font = `bold ${storeFontSize}px system-ui, -apple-system, sans-serif`;
@@ -750,7 +835,7 @@ function CouponImageGeneratorContent({
       const pillWidth = ctx.measureText(pillText).width + 60;
       const pillHeight = isStory ? 58 : 48;
       const pillX = (width - pillWidth) / 2;
-      const pillY = isStory ? 240 : 65;
+      const pillY = (positions.storePillY / 100) * height;
 
       ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
       ctx.strokeStyle = "rgba(255, 255, 255, 0.32)";
@@ -763,41 +848,40 @@ function CouponImageGeneratorContent({
       ctx.fillStyle = "#FFFFFF";
       ctx.fillText(pillText, width / 2, pillY + (isStory ? 40 : 33));
 
-      // 4. Subtitle Tagline
-      const taglineFontSize = isStory ? 44 : 34;
+      // 4 & 5. Header Group (Tagline & Headline - Positioned by positions.headerGroupY)
+      const headerCenterY = (positions.headerGroupY / 100) * height;
+
+      const taglineFontSize = isStory ? 42 : 32;
       ctx.font = `bold ${taglineFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = accentColor;
-      const taglineY = isStory ? 360 : 155;
-      ctx.fillText(tagline.toUpperCase(), width / 2, taglineY);
+      ctx.fillText(tagline.toUpperCase(), width / 2, headerCenterY);
 
-      // 5. Main Headline
-      const headlineFontSize = isStory ? 88 : 76;
+      const headlineFontSize = isStory ? 84 : 70;
       ctx.font = `900 ${headlineFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "#FFFFFF";
       ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
       ctx.shadowBlur = 22;
       ctx.shadowOffsetY = 6;
-      const headlineY = isStory ? 465 : 240;
-      ctx.fillText(headline.toUpperCase(), width / 2, headlineY);
+      ctx.fillText(headline.toUpperCase(), width / 2, headerCenterY + (isStory ? 80 : 64));
       ctx.shadowColor = "transparent";
       ctx.shadowBlur = 0;
 
-      // 6. Huge Discount Display
-      const discountFontSize = isStory ? 136 : 112;
+      // 6. Huge Discount Display (Positioned by positions.discountY)
+      const discountFontSize = isStory ? 134 : 108;
       ctx.font = `900 ${discountFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = accentColor;
       ctx.shadowColor = `${accentColor}80`;
       ctx.shadowBlur = 40;
-      const centerY = isStory ? 680 : 390;
+      const centerY = (positions.discountY / 100) * height;
       ctx.fillText(discountHighlight, width / 2, centerY);
       ctx.shadowColor = "transparent";
       ctx.shadowBlur = 0;
 
-      // 7. Coupon Ticket Voucher Box
+      // 7. Coupon Ticket Voucher Box (Positioned by positions.ticketY)
       const ticketW = isStory ? 880 : 860;
       const ticketH = isStory ? 340 : 265;
       const ticketX = (width - ticketW) / 2;
-      const ticketY = isStory ? 780 : 465;
+      const ticketY = (positions.ticketY / 100) * height;
 
       ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
       ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
@@ -835,8 +919,8 @@ function CouponImageGeneratorContent({
       ctx.fillStyle = "#6B7280";
       ctx.fillText("1 uso por cliente • Não cumulativo com outros cupons", width / 2, ticketY + (isStory ? 292 : 238));
 
-      // 8. Call to Action Button / Pill
-      const ctaY = isStory ? 1180 : 765;
+      // 8. Call to Action Button / Pill (Positioned by positions.ctaY)
+      const ctaY = (positions.ctaY / 100) * height;
       const ctaW = isStory ? 760 : 740;
       const ctaH = isStory ? 80 : 70;
       const ctaX = (width - ctaW) / 2;
@@ -851,14 +935,14 @@ function CouponImageGeneratorContent({
       ctx.fillStyle = "#FFFFFF";
       ctx.fillText(`👉 ${callToAction.toUpperCase()}`, width / 2, ctaY + (isStory ? 52 : 45));
 
-      // 9. Link do cardápio
-      const linkY = isStory ? 1310 : 875;
-      const linkFontSize = isStory ? 36 : 32;
+      // 9 & 10. Link e Redes Sociais (Positioned by positions.socialsY)
+      const socialsBaseY = (positions.socialsY / 100) * height;
+
+      const linkFontSize = isStory ? 36 : 30;
       ctx.font = `bold ${linkFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "#E5E7EB";
-      ctx.fillText(`deliplus.com.br/${storeSlug || "sua-loja"}`, width / 2, linkY);
+      ctx.fillText(`deliplus.com.br/${storeSlug || "sua-loja"}`, width / 2, socialsBaseY);
 
-      // 10. Redes Sociais com logos oficiais e @/telefone (Até 4 ativas)
       const visibleSocials = socialAccounts.filter((s) => s.enabled).slice(0, 4);
 
       if (visibleSocials.length > 0) {
@@ -871,12 +955,12 @@ function CouponImageGeneratorContent({
           ? [visibleSocials.slice(0, 2), visibleSocials.slice(2, 4)]
           : [visibleSocials];
 
-        const baseY = isStory ? 1395 : 925;
         const rowHeight = isStory ? 52 : 42;
         const rowGap = isStory ? 12 : 8;
+        const startY = socialsBaseY + (isStory ? 30 : 22);
 
         rows.forEach((rowSocials, rIdx) => {
-          const currentY = baseY + rIdx * (rowHeight + rowGap);
+          const currentY = startY + rIdx * (rowHeight + rowGap);
 
           const pillMetrics = rowSocials.map((soc) => {
             const txt = soc.handle.trim() || soc.name;
@@ -915,18 +999,18 @@ function CouponImageGeneratorContent({
         });
       }
 
-      // 11. Marca d'água DeliPlus em pílula nítida
-      const waterFontSize = isStory ? 32 : 26;
+      // 11. Marca d'água DeliPlus (Fixa com segurança na base)
+      const waterFontSize = isStory ? 32 : 24;
       ctx.font = `bold ${waterFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.textAlign = "center";
       const waterText = "✦ Criado com DeliPlus  •  www.deliplus.com.br ✦";
       const waterPillWidth = ctx.measureText(waterText).width + 64;
-      const waterPillHeight = isStory ? 64 : 52;
+      const waterPillHeight = isStory ? 64 : 50;
       const waterPillX = (width - waterPillWidth) / 2;
-      const waterPillY = isStory ? 1570 : 1005;
+      const waterPillY = isStory ? 1810 : 1010;
 
-      ctx.fillStyle = "rgba(0, 0, 0, 0.78)";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.34)";
+      ctx.fillStyle = "rgba(0, 0, 0, 0.82)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.36)";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.roundRect(waterPillX, waterPillY, waterPillWidth, waterPillHeight, waterPillHeight / 2);
@@ -934,7 +1018,7 @@ function CouponImageGeneratorContent({
       ctx.stroke();
 
       ctx.fillStyle = "#FFFFFF";
-      ctx.fillText(waterText, width / 2, waterPillY + (isStory ? 43 : 35));
+      ctx.fillText(waterText, width / 2, waterPillY + (isStory ? 43 : 33));
 
       // Sync rendered snapshot
       try {
@@ -975,6 +1059,7 @@ function CouponImageGeneratorContent({
     socialAccounts,
     storeName,
     storeSlug,
+    positions,
     activeTab
   ]);
 
@@ -1034,7 +1119,6 @@ function CouponImageGeneratorContent({
     setActiveCaptionText((prev) => `${prev} ${tag}`);
   };
 
-  // Templates for current channel
   const currentTemplates =
     studioChannel === "instagram"
       ? INSTAGRAM_TEMPLATES
@@ -1042,18 +1126,22 @@ function CouponImageGeneratorContent({
       ? FACEBOOK_TEMPLATES
       : WHATSAPP_TEMPLATES;
 
-  // Unused social networks available to add
   const availableSocialsToAdd = socialAccounts.filter((s) => !s.enabled);
 
   return (
-    <div className="bg-[#FAF9F5] border border-[#E3E1D9] rounded-2xl w-full max-w-6xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
-      {/* Modal Top Header with Clean Title */}
+    <div className="bg-[#FAF9F5] border border-[#E3E1D9] rounded-2xl w-full max-w-6xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden">
+      {/* Top Header */}
       <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-[#ECEAE2]">
-        <h2 className="text-base sm:text-lg font-bold text-[#1A241E] leading-tight">
-          Gerador de Artes & Estúdio de Legendas
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-bold text-[#1A241E] leading-tight">
+            Estúdio de Criação DeliPlus
+          </h2>
+          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-[#FAF0ED] text-[#CB5A3C] text-[11px] font-bold">
+            Edição Direta na Arte
+          </span>
+        </div>
 
-        {/* Studio Sub-Pages Tab Switcher */}
+        {/* Studio Sub-Pages Switcher */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 bg-[#F4F3EE] p-1 rounded-xl border border-[#EAE8E0]">
             <button
@@ -1102,281 +1190,393 @@ function CouponImageGeneratorContent({
       </div>
 
       {/* ============================================================== */}
-      {/* TAB 1: DESIGN DA ARTE (VISUAL)                                  */}
-      {/* Kept mounted in DOM via CSS hidden to prevent black canvas bug!*/}
+      {/* TAB 1: DESIGN DA ARTE (CANVA STYLE DIRECT EDITING & DRAGGING)    */}
       {/* ============================================================== */}
       <div className={`flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-0 ${activeTab === "design" ? "" : "hidden"}`}>
-        {/* LEFT: Live Preview Canvas */}
-        <div className="lg:col-span-5 bg-[#121614] p-4 sm:p-6 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-[#242A27] min-h-[440px]">
-          {/* Format Switcher */}
-          <div className="flex items-center gap-2 bg-[#1C221F] p-1 rounded-xl mb-3 border border-[#2D3631]">
+        {/* LEFT / CENTER: The Hero Interactive Artwork (Canva Space) */}
+        <div
+          className="lg:col-span-8 bg-[#121614] p-4 sm:p-6 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-[#242A27] min-h-[520px] select-none"
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+        >
+          {/* Format and Tool Controls */}
+          <div className="flex items-center justify-between w-full max-w-[420px] mb-3">
+            <div className="flex items-center gap-1 bg-[#1C221F] p-1 rounded-xl border border-[#2D3631]">
+              <button
+                type="button"
+                onClick={() => handleToggleFormat("story")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  aspectFormat === "story"
+                    ? "bg-[#CB5A3C] text-white shadow-xs"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <Smartphone size={13} />
+                <span>Story (9:16)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleFormat("feed")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  aspectFormat === "feed"
+                    ? "bg-[#CB5A3C] text-white shadow-xs"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <Square size={13} />
+                <span>Feed (1:1)</span>
+              </button>
+            </div>
+
             <button
               type="button"
-              onClick={() => setAspectFormat("story")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                aspectFormat === "story"
-                  ? "bg-[#CB5A3C] text-white shadow-xs"
-                  : "text-gray-400 hover:text-white"
-              }`}
+              onClick={handleResetPositions}
+              className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-white bg-[#1C221F] hover:bg-[#252E2A] px-2.5 py-1.5 rounded-xl border border-[#2D3631] transition-colors cursor-pointer"
+              title="Restaurar posições originais de fábrica"
             >
-              <Smartphone size={14} />
-              <span>Story / Reels / Status (9:16)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setAspectFormat("feed")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                aspectFormat === "feed"
-                  ? "bg-[#CB5A3C] text-white shadow-xs"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              <Square size={14} />
-              <span>Feed / Post (1:1)</span>
+              <RotateCcw size={12} />
+              <span>Resetar Posições</span>
             </button>
           </div>
 
-          {/* Canvas Viewport container */}
-          <div className="relative flex items-center justify-center w-full max-w-[340px] shadow-2xl rounded-2xl overflow-hidden border-2 border-white/10">
+          {/* Interactive Canva Workspace Container */}
+          <div
+            ref={canvasContainerRef}
+            className="relative flex items-center justify-center w-full max-w-[360px] shadow-2xl rounded-2xl overflow-hidden border-2 border-white/15 bg-black"
+            style={{
+              maxHeight: aspectFormat === "story" ? "560px" : "360px"
+            }}
+          >
+            {/* The Raw Canvas (Visual Layer) */}
             <canvas
               ref={canvasRef}
-              className="w-full h-auto object-contain block rounded-2xl"
-              style={{
-                maxHeight: aspectFormat === "story" ? "520px" : "340px"
-              }}
+              className="w-full h-auto object-contain block rounded-2xl pointer-events-none"
             />
+
+            {/* THE CANVA INTERACTIVE OVERLAY: Direct In-Place Edit & Drag Layer */}
+            <div className="absolute inset-0 z-20 pointer-events-auto overflow-hidden">
+              {/* 1. Header Group (Tagline & Headline) */}
+              <div
+                style={{ top: `${positions.headerGroupY}%` }}
+                onPointerDown={(e) => handlePointerDown("headerGroupY", e)}
+                className={`absolute left-0 right-0 -translate-y-1/2 flex flex-col items-center justify-center px-4 group transition-shadow ${
+                  draggingKey === "headerGroupY"
+                    ? "ring-2 ring-[#CB5A3C] ring-dashed bg-black/40 cursor-grabbing rounded-xl"
+                    : "hover:ring-1 hover:ring-[#CB5A3C]/70 hover:ring-dashed hover:bg-black/25 rounded-xl cursor-grab"
+                }`}
+              >
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-[9.5px] px-2 py-0.5 rounded-full flex items-center gap-1 mb-1 pointer-events-none shadow-md">
+                  <Move size={10} />
+                  <span>Arraste para mover • Clique para editar</span>
+                </div>
+
+                {/* Tagline Inline Input */}
+                {inlineEditingKey === "tagline" ? (
+                  <input
+                    autoFocus
+                    type="text"
+                    value={tagline}
+                    onChange={(e) => setTagline(e.target.value)}
+                    onBlur={() => setInlineEditingKey(null)}
+                    onKeyDown={(e) => e.key === "Enter" && setInlineEditingKey(null)}
+                    className="w-[90%] text-center text-xs font-bold text-white bg-black/90 border border-[#CB5A3C] rounded-lg px-2 py-1 outline-none shadow-xl"
+                  />
+                ) : (
+                  <div
+                    onClick={() => setInlineEditingKey("tagline")}
+                    className="w-full h-5 cursor-text"
+                    title="Clique para editar subtítulo"
+                  />
+                )}
+
+                {/* Headline Inline Input */}
+                {inlineEditingKey === "headline" ? (
+                  <input
+                    autoFocus
+                    type="text"
+                    value={headline}
+                    onChange={(e) => setHeadline(e.target.value)}
+                    onBlur={() => setInlineEditingKey(null)}
+                    onKeyDown={(e) => e.key === "Enter" && setInlineEditingKey(null)}
+                    className="w-[95%] text-center text-sm font-black text-white bg-black/90 border border-[#CB5A3C] rounded-lg px-2 py-1 outline-none shadow-xl mt-1"
+                  />
+                ) : (
+                  <div
+                    onClick={() => setInlineEditingKey("headline")}
+                    className="w-full h-8 cursor-text mt-1"
+                    title="Clique para editar título principal"
+                  />
+                )}
+              </div>
+
+              {/* 2. Discount Highlight */}
+              <div
+                style={{ top: `${positions.discountY}%` }}
+                onPointerDown={(e) => handlePointerDown("discountY", e)}
+                className={`absolute left-0 right-0 -translate-y-1/2 flex flex-col items-center justify-center px-4 group transition-shadow ${
+                  draggingKey === "discountY"
+                    ? "ring-2 ring-[#CB5A3C] ring-dashed bg-black/40 cursor-grabbing rounded-xl"
+                    : "hover:ring-1 hover:ring-[#CB5A3C]/70 hover:ring-dashed hover:bg-black/25 rounded-xl cursor-grab"
+                }`}
+              >
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-[9.5px] px-2 py-0.5 rounded-full flex items-center gap-1 mb-1 pointer-events-none shadow-md">
+                  <Move size={10} />
+                  <span>Arraste o desconto • Clique para alterar valor</span>
+                </div>
+
+                {inlineEditingKey === "discount" ? (
+                  <input
+                    autoFocus
+                    type="text"
+                    value={discountHighlight}
+                    onChange={(e) => setDiscountHighlight(e.target.value)}
+                    onBlur={() => setInlineEditingKey(null)}
+                    onKeyDown={(e) => e.key === "Enter" && setInlineEditingKey(null)}
+                    className="w-[85%] text-center text-base font-black text-[#CB5A3C] bg-black/90 border border-[#CB5A3C] rounded-lg px-3 py-1 outline-none shadow-xl"
+                  />
+                ) : (
+                  <div
+                    onClick={() => setInlineEditingKey("discount")}
+                    className="w-full h-10 cursor-text"
+                    title="Clique para editar o desconto"
+                  />
+                )}
+              </div>
+
+              {/* 3. Coupon Ticket Voucher */}
+              <div
+                style={{ top: `${positions.ticketY}%` }}
+                onPointerDown={(e) => handlePointerDown("ticketY", e)}
+                className={`absolute left-4 right-4 flex flex-col items-center justify-center p-2 group transition-shadow ${
+                  draggingKey === "ticketY"
+                    ? "ring-2 ring-[#CB5A3C] ring-dashed bg-white/20 cursor-grabbing rounded-2xl"
+                    : "hover:ring-1 hover:ring-[#CB5A3C]/70 hover:ring-dashed hover:bg-black/15 rounded-2xl cursor-grab"
+                }`}
+              >
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-[9.5px] px-2 py-0.5 rounded-full flex items-center gap-1 mb-1 pointer-events-none shadow-md">
+                  <Move size={10} />
+                  <span>Arraste o ticket • Clique para alterar código/regras</span>
+                </div>
+
+                {/* Click area for Code */}
+                {inlineEditingKey === "couponCode" ? (
+                  <input
+                    autoFocus
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    onBlur={() => setInlineEditingKey(null)}
+                    onKeyDown={(e) => e.key === "Enter" && setInlineEditingKey(null)}
+                    className="w-[75%] text-center text-sm font-mono font-black text-gray-950 bg-white border-2 border-[#CB5A3C] rounded-lg px-2 py-1 outline-none shadow-xl mt-3"
+                  />
+                ) : (
+                  <div
+                    onClick={() => setInlineEditingKey("couponCode")}
+                    className="w-[80%] h-8 cursor-text mt-3"
+                    title="Clique para editar o código do cupom"
+                  />
+                )}
+
+                {/* Click area for Rule */}
+                {inlineEditingKey === "minOrder" ? (
+                  <input
+                    autoFocus
+                    type="text"
+                    value={minOrderText}
+                    onChange={(e) => setMinOrderText(e.target.value)}
+                    onBlur={() => setInlineEditingKey(null)}
+                    onKeyDown={(e) => e.key === "Enter" && setInlineEditingKey(null)}
+                    className="w-[85%] text-center text-[11px] font-bold text-gray-800 bg-white border border-[#CB5A3C] rounded-lg px-2 py-0.5 outline-none shadow-xl mt-2"
+                  />
+                ) : (
+                  <div
+                    onClick={() => setInlineEditingKey("minOrder")}
+                    className="w-[85%] h-5 cursor-text mt-2"
+                    title="Clique para editar a regra de pedido mínimo"
+                  />
+                )}
+              </div>
+
+              {/* 4. Call to Action Pill */}
+              <div
+                style={{ top: `${positions.ctaY}%` }}
+                onPointerDown={(e) => handlePointerDown("ctaY", e)}
+                className={`absolute left-4 right-4 flex flex-col items-center justify-center p-1 group transition-shadow ${
+                  draggingKey === "ctaY"
+                    ? "ring-2 ring-white ring-dashed bg-black/40 cursor-grabbing rounded-full"
+                    : "hover:ring-1 hover:ring-white/80 hover:ring-dashed hover:bg-black/25 rounded-full cursor-grab"
+                }`}
+              >
+                {inlineEditingKey === "cta" ? (
+                  <input
+                    autoFocus
+                    type="text"
+                    value={callToAction}
+                    onChange={(e) => setCallToAction(e.target.value)}
+                    onBlur={() => setInlineEditingKey(null)}
+                    onKeyDown={(e) => e.key === "Enter" && setInlineEditingKey(null)}
+                    className="w-[90%] text-center text-xs font-bold text-white bg-black/90 border border-white rounded-full px-3 py-1 outline-none shadow-xl"
+                  />
+                ) : (
+                  <div
+                    onClick={() => setInlineEditingKey("cta")}
+                    className="w-[90%] h-6 cursor-text"
+                    title="Clique para editar a chamada de ação"
+                  />
+                )}
+              </div>
+
+              {/* 5. Socials & Link (Draggable footer) */}
+              <div
+                style={{ top: `${positions.socialsY}%` }}
+                onPointerDown={(e) => handlePointerDown("socialsY", e)}
+                className={`absolute left-2 right-2 flex flex-col items-center justify-center p-1 group transition-shadow ${
+                  draggingKey === "socialsY"
+                    ? "ring-2 ring-white/60 ring-dashed bg-black/40 cursor-grabbing rounded-xl"
+                    : "hover:ring-1 hover:ring-white/40 hover:ring-dashed hover:bg-black/25 rounded-xl cursor-grab"
+                }`}
+              >
+                <div
+                  className="w-full h-8 cursor-grab"
+                  title="Arraste para reposicionar o bloco de redes e link"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="mt-3 flex items-center gap-1.5 text-[11px] text-gray-400 text-center">
-            <Sparkles size={12} className="text-[#CB5A3C]" />
-            <span>Marca d&apos;água <strong>www.deliplus.com.br</strong> nítida e segura no rodapé</span>
+          {/* Canva Studio Helper Tip */}
+          <div className="mt-3 flex items-center gap-2 text-xs text-gray-300 bg-[#1C221F] px-3.5 py-1.5 rounded-full border border-[#2D3631]">
+            <Edit3 size={13} className="text-[#CB5A3C]" />
+            <span>
+              <strong>Modo Canva Ativo:</strong> Clique em qualquer texto na imagem para editar ou arraste para reposicionar.
+            </span>
           </div>
         </div>
 
-        {/* RIGHT: Visual Customization Controls */}
-        <div className="lg:col-span-7 p-4 sm:p-6 space-y-4 overflow-y-auto bg-white">
-          {/* 1. Escolha do Nicho / Fundo (Clean label & clean select without emojis) */}
-          <div>
-            <label className="text-[12.5px] font-bold text-[#1A241E] block mb-1.5">
-              1. Nicho & Imagem de Fundo
-            </label>
+        {/* RIGHT: Lean & Clean Quick Inspector (No cluttered form!) */}
+        <div className="lg:col-span-4 p-5 space-y-4 overflow-y-auto bg-white flex flex-col justify-between">
+          <div className="space-y-4">
+            {/* 1. Nicho & Imagem de Fundo */}
+            <div>
+              <label className="text-xs font-bold text-[#1A241E] block mb-1.5">
+                1. Fundo da Arte
+              </label>
 
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <select
-                  value={customImageSrc ? "custom" : selectedThemeId}
-                  onChange={(e) => {
-                    if (e.target.value === "custom") {
-                      fileInputRef.current?.click();
-                    } else {
-                      setSelectedThemeId(e.target.value);
-                      setCustomImageSrc(null);
-                      const found = FOOD_THEMES.find((t) => t.id === e.target.value);
-                      if (found) {
-                        setAccentColor(found.accentColor);
-                        setHueValue(hexToHue(found.accentColor));
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <select
+                    value={customImageSrc ? "custom" : selectedThemeId}
+                    onChange={(e) => {
+                      if (e.target.value === "custom") {
+                        fileInputRef.current?.click();
+                      } else {
+                        setSelectedThemeId(e.target.value);
+                        setCustomImageSrc(null);
+                        const found = FOOD_THEMES.find((t) => t.id === e.target.value);
+                        if (found) {
+                          setAccentColor(found.accentColor);
+                          setHueValue(hexToHue(found.accentColor));
+                        }
                       }
-                    }
-                  }}
-                  className="w-full px-3 py-2 bg-white border border-[#E3E1D9] rounded-xl text-[13px] font-semibold text-[#1A241E] focus:outline-none focus:border-[#CB5A3C] cursor-pointer"
-                >
-                  <optgroup label="Nichos de Alimentação">
-                    {FOOD_THEMES.filter((t) => t.category !== "Cores da Marca").map((theme) => (
-                      <option key={theme.id} value={theme.id}>
-                        {theme.name} — {theme.category}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Cores e Gradientes da Marca">
-                    {FOOD_THEMES.filter((t) => t.category === "Cores da Marca").map((theme) => (
-                      <option key={theme.id} value={theme.id}>
-                        {theme.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                  {customImageSrc && (
-                    <option value="custom">Imagem própria enviada</option>
-                  )}
-                </select>
-              </div>
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-[#E3E1D9] rounded-xl text-xs font-semibold text-[#1A241E] focus:outline-none focus:border-[#CB5A3C] cursor-pointer"
+                  >
+                    <optgroup label="Nichos de Alimentação">
+                      {FOOD_THEMES.filter((t) => t.category !== "Cores da Marca").map((theme) => (
+                        <option key={theme.id} value={theme.id}>
+                          {theme.name} — {theme.category}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Cores e Gradientes da Marca">
+                      {FOOD_THEMES.filter((t) => t.category === "Cores da Marca").map((theme) => (
+                        <option key={theme.id} value={theme.id}>
+                          {theme.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                    {customImageSrc && (
+                      <option value="custom">Imagem própria enviada</option>
+                    )}
+                  </select>
+                </div>
 
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#CB5A3C]/40 bg-[#FAF0ED] text-[#CB5A3C] text-xs font-bold hover:bg-[#FBE8E4] transition-colors cursor-pointer shrink-0"
-              >
-                <Upload size={14} />
-                <span>Foto própria</span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </div>
-
-            {customImageSrc && (
-              <div className="mt-1.5 p-1.5 rounded-lg bg-orange-50 border border-orange-200 flex items-center justify-between text-xs">
-                <span className="text-orange-800 font-medium flex items-center gap-1">
-                  <ImageIcon size={12} />
-                  Foto personalizada ativa
-                </span>
                 <button
                   type="button"
-                  onClick={() => setCustomImageSrc(null)}
-                  className="text-[11px] text-red-600 hover:underline font-bold"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#CB5A3C]/40 bg-[#FAF0ED] text-[#CB5A3C] text-xs font-bold hover:bg-[#FBE8E4] transition-colors cursor-pointer shrink-0"
                 >
-                  Remover
+                  <Upload size={13} />
+                  <span>Foto</span>
                 </button>
-              </div>
-            )}
-          </div>
-
-          {/* 2. Textos do Cupom */}
-          <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2.5">
-            <label className="text-[12.5px] font-bold text-[#1A241E] block">
-              2. Textos da Arte
-            </label>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div>
-                <label className="text-[11px] font-medium text-[#637267] block mb-1">
-                  Código do Cupom
-                </label>
                 <input
-                  type="text"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  className="w-full px-3 py-1.5 text-sm font-mono font-bold border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
                 />
               </div>
 
-              <div>
-                <label className="text-[11px] font-medium text-[#637267] block mb-1">
-                  Destaque do Desconto
-                </label>
-                <input
-                  type="text"
-                  value={discountHighlight}
-                  onChange={(e) => setDiscountHighlight(e.target.value)}
-                  placeholder="Ex: 15% OFF, R$ 10 OFF"
-                  className="w-full px-3 py-1.5 text-sm font-bold text-[#CB5A3C] border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div>
-                <label className="text-[11px] font-medium text-[#637267] block mb-1">
-                  Título Principal
-                </label>
-                <input
-                  type="text"
-                  value={headline}
-                  onChange={(e) => setHeadline(e.target.value)}
-                  className="w-full px-3 py-1.5 text-sm font-semibold border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-medium text-[#637267] block mb-1">
-                  Subtítulo / Tagline
-                </label>
-                <input
-                  type="text"
-                  value={tagline}
-                  onChange={(e) => setTagline(e.target.value)}
-                  className="w-full px-3 py-1.5 text-sm border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div>
-                <label className="text-[11px] font-medium text-[#637267] block mb-1">
-                  Regra de Pedido Mínimo
-                </label>
-                <input
-                  type="text"
-                  value={minOrderText}
-                  onChange={(e) => setMinOrderText(e.target.value)}
-                  className="w-full px-3 py-1.5 text-sm border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-medium text-[#637267] block mb-1">
-                  Chamada para Ação
-                </label>
-                <input
-                  type="text"
-                  value={callToAction}
-                  onChange={(e) => setCallToAction(e.target.value)}
-                  className="w-full px-3 py-1.5 text-sm border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 3. Redes Sociais na Arte (Formato Compacto com Adição sob Demanda, máx 4) */}
-          <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-[12.5px] font-bold text-[#1A241E] block">
-                  3. Redes Sociais na Arte
-                </label>
-                <p className="text-[11px] text-[#637267]">
-                  Adicione até 4 redes sociais com seu @ ou telefone:
-                </p>
-              </div>
-              <span
-                className={`text-[11.5px] font-bold px-2 py-0.5 rounded-full ${
-                  enabledSocialsCount === 4
-                    ? "bg-amber-100 text-amber-800"
-                    : "bg-gray-100 text-gray-700"
-                }`}
-              >
-                {enabledSocialsCount}/4 adicionadas
-              </span>
-            </div>
-
-            {/* Active Social Networks List */}
-            <div className="space-y-1.5 pt-1">
-              {activeSocials.map((soc) => (
-                <div
-                  key={soc.id}
-                  className="flex items-center gap-2 p-2 rounded-xl border border-[#D5D0C0] bg-[#FAF8F0] shadow-2xs"
-                >
-                  <BrandIconBadge id={soc.id} />
-
-                  <span className="text-[12px] font-bold text-[#1A241E] w-20 shrink-0">
-                    {soc.name}
+              {customImageSrc && (
+                <div className="mt-1.5 p-1.5 rounded-lg bg-orange-50 border border-orange-200 flex items-center justify-between text-xs">
+                  <span className="text-orange-800 font-medium flex items-center gap-1 text-[11px]">
+                    <ImageIcon size={12} />
+                    Foto personalizada ativa
                   </span>
-
-                  <input
-                    type="text"
-                    value={soc.handle}
-                    onChange={(e) => handleSocialAccountChange(soc.id, e.target.value)}
-                    placeholder={`Ex: @${storeSlug || "sualoja"}`}
-                    className="flex-1 px-2.5 py-1 text-[12px] border border-[#D5D0C0] rounded-lg bg-white text-[#1A241E] font-medium focus:outline-none focus:border-[#CB5A3C]"
-                  />
-
                   <button
                     type="button"
-                    onClick={() => handleRemoveSocialAccount(soc.id)}
-                    className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                    title={`Remover ${soc.name} da arte`}
+                    onClick={() => setCustomImageSrc(null)}
+                    className="text-[11px] text-red-600 hover:underline font-bold"
                   >
-                    <X size={15} />
+                    Remover
                   </button>
                 </div>
-              ))}
+              )}
+            </div>
 
-              {/* Compact Add Social Network Dropdown */}
-              {enabledSocialsCount < 4 && availableSocialsToAdd.length > 0 && (
-                <div className="pt-0.5">
+            {/* 2. Redes Sociais na Arte (Compacto & Sem Poluição) */}
+            <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#1A241E]">
+                  2. Redes Sociais no Rodapé
+                </label>
+                <span className="text-[11px] font-bold text-gray-500">
+                  {enabledSocialsCount}/4 ativas
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                {activeSocials.map((soc) => (
+                  <div
+                    key={soc.id}
+                    className="flex items-center gap-2 p-1.5 rounded-xl border border-[#D5D0C0] bg-[#FAF8F0]"
+                  >
+                    <BrandIconBadge id={soc.id} size={18} />
+
+                    <span className="text-[11px] font-bold text-[#1A241E] w-18 shrink-0">
+                      {soc.name}
+                    </span>
+
+                    <input
+                      type="text"
+                      value={soc.handle}
+                      onChange={(e) => handleSocialAccountChange(soc.id, e.target.value)}
+                      placeholder={`Ex: @${storeSlug || "sualoja"}`}
+                      className="flex-1 px-2 py-0.5 text-xs border border-[#D5D0C0] rounded-lg bg-white text-[#1A241E] font-medium focus:outline-none focus:border-[#CB5A3C]"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSocialAccount(soc.id)}
+                      className="p-1 text-gray-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                ))}
+
+                {enabledSocialsCount < 4 && availableSocialsToAdd.length > 0 && (
                   <div className="relative">
                     <select
                       value=""
@@ -1385,7 +1585,7 @@ function CouponImageGeneratorContent({
                           handleAddSocialAccount(e.target.value);
                         }
                       }}
-                      className="w-full py-2 px-3 bg-[#FAF0ED]/70 hover:bg-[#FAF0ED] text-[#CB5A3C] border border-dashed border-[#CB5A3C]/50 rounded-xl text-xs font-bold text-center cursor-pointer transition-colors focus:outline-none appearance-none"
+                      className="w-full py-1.5 px-3 bg-[#FAF0ED]/70 hover:bg-[#FAF0ED] text-[#CB5A3C] border border-dashed border-[#CB5A3C]/50 rounded-xl text-xs font-bold text-center cursor-pointer transition-colors focus:outline-none appearance-none"
                     >
                       <option value="" disabled>
                         + Adicionar Rede Social ({enabledSocialsCount}/4)
@@ -1400,43 +1600,34 @@ function CouponImageGeneratorContent({
                       <ChevronDown size={14} />
                     </div>
                   </div>
-                </div>
-              )}
-
-              {enabledSocialsCount === 4 && (
-                <div className="text-[11px] text-[#637267] bg-gray-50 p-2 rounded-lg text-center border border-gray-200">
-                  Limite de 4 redes atingido (máximo ideal para visualização nítida na arte).
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 4. Cor de Destaque com Slider Interativo */}
-          <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-[12.5px] font-bold text-[#1A241E] flex items-center gap-1.5">
-                <Sliders size={14} className="text-[#CB5A3C]" />
-                <span>4. Seletor de Cores Interativo</span>
-              </label>
-
-              <div className="flex items-center gap-1.5 bg-[#FAF8F0] border border-[#E3E1D9] px-2 py-0.5 rounded-lg">
-                <input
-                  type="color"
-                  value={accentColor}
-                  onChange={(e) => {
-                    setAccentColor(e.target.value);
-                    setHueValue(hexToHue(e.target.value));
-                  }}
-                  className="w-4 h-4 rounded cursor-pointer border-0 p-0 bg-transparent"
-                  title="Seletor de cor livre"
-                />
-                <span className="font-mono text-[11.5px] font-bold text-gray-800 uppercase">
-                  {accentColor}
-                </span>
+                )}
               </div>
             </div>
 
-            <div className="relative pt-1 pb-1">
+            {/* 3. Cor de Destaque Interativa */}
+            <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#1A241E] flex items-center gap-1.5">
+                  <Sliders size={13} className="text-[#CB5A3C]" />
+                  <span>3. Cor da Identidade</span>
+                </label>
+
+                <div className="flex items-center gap-1.5 bg-[#FAF8F0] border border-[#E3E1D9] px-2 py-0.5 rounded-lg">
+                  <input
+                    type="color"
+                    value={accentColor}
+                    onChange={(e) => {
+                      setAccentColor(e.target.value);
+                      setHueValue(hexToHue(e.target.value));
+                    }}
+                    className="w-4 h-4 rounded cursor-pointer border-0 p-0 bg-transparent"
+                  />
+                  <span className="font-mono text-[11px] font-bold text-gray-800 uppercase">
+                    {accentColor}
+                  </span>
+                </div>
+              </div>
+
               <input
                 type="range"
                 min="0"
@@ -1447,7 +1638,7 @@ function CouponImageGeneratorContent({
                   setHueValue(h);
                   setAccentColor(hslToHex(h, 92, 50));
                 }}
-                className="w-full h-3.5 rounded-full appearance-none cursor-pointer border border-black/10 shadow-inner"
+                className="w-full h-3 rounded-full appearance-none cursor-pointer border border-black/10 shadow-inner"
                 style={{
                   background:
                     "linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)"
@@ -1456,8 +1647,8 @@ function CouponImageGeneratorContent({
             </div>
           </div>
 
-          {/* 5. Ação de Baixar PNG */}
-          <div className="border-t border-[#ECEAE2] pt-3.5">
+          {/* Action: Download High Res PNG */}
+          <div className="border-t border-[#ECEAE2] pt-4">
             <button
               type="button"
               onClick={handleDownloadImage}
@@ -1480,7 +1671,6 @@ function CouponImageGeneratorContent({
           {/* MOCKUP 1: INSTAGRAM FEED (1:1) */}
           {studioChannel === "instagram" && studioFormat === "feed" && (
             <div className="w-full max-w-[330px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden text-[#111827]">
-              {/* Header */}
               <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-gray-100">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-[#CB5A3C] text-white flex items-center justify-center text-xs font-bold shadow-2xs">
@@ -1494,7 +1684,6 @@ function CouponImageGeneratorContent({
                 <span className="text-gray-400 font-bold text-xs tracking-widest">•••</span>
               </div>
 
-              {/* Square Image Container without clipping */}
               <div className="relative aspect-square bg-[#0c0e0d] flex items-center justify-center overflow-hidden">
                 {liveRenderedImageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -1510,7 +1699,6 @@ function CouponImageGeneratorContent({
                 )}
               </div>
 
-              {/* Action Bar */}
               <div className="p-3 space-y-1.5 text-[12px]">
                 <div className="flex items-center justify-between text-gray-700">
                   <div className="flex items-center gap-3">
@@ -1538,7 +1726,6 @@ function CouponImageGeneratorContent({
             (studioChannel === "facebook" && studioFormat === "story") ||
             (studioChannel === "whatsapp" && studioFormat === "story")) && (
             <div className="relative w-[265px] aspect-[9/16] bg-black rounded-[32px] overflow-hidden border-[5px] border-[#2A2E2C] shadow-2xl flex flex-col justify-between">
-              {/* Background 9:16 image (Full Frame, No Crop!) */}
               {liveRenderedImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -1552,16 +1739,13 @@ function CouponImageGeneratorContent({
                 </div>
               )}
 
-              {/* Story UI Top Overlay */}
               <div className="relative z-10 p-3 pt-3.5 bg-gradient-to-b from-black/70 via-black/30 to-transparent space-y-2">
-                {/* 3 Progress Bars */}
                 <div className="grid grid-cols-3 gap-1">
                   <div className="h-0.5 bg-white rounded-full"></div>
                   <div className="h-0.5 bg-white/40 rounded-full"></div>
                   <div className="h-0.5 bg-white/40 rounded-full"></div>
                 </div>
 
-                {/* Profile Header */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full p-[1.5px] bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center">
@@ -1578,7 +1762,6 @@ function CouponImageGeneratorContent({
                 </div>
               </div>
 
-              {/* Link Sticker in Middle */}
               <div className="relative z-10 flex justify-center px-4">
                 <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-[11px] font-bold text-gray-900 border border-white">
                   <ExternalLink size={12} className="text-[#CB5A3C]" />
@@ -1586,7 +1769,6 @@ function CouponImageGeneratorContent({
                 </div>
               </div>
 
-              {/* Story UI Bottom Overlay */}
               <div className="relative z-10 p-3 pb-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center gap-2">
                 <div className="flex-1 py-1.5 px-3 rounded-full border border-white/40 bg-black/40 text-white/80 text-[11px]">
                   Enviar mensagem...
@@ -1600,7 +1782,6 @@ function CouponImageGeneratorContent({
           {/* MOCKUP 3: FACEBOOK FEED POST (1:1) */}
           {studioChannel === "facebook" && studioFormat === "feed" && (
             <div className="w-full max-w-[330px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden text-[#111827]">
-              {/* Facebook Header */}
               <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-gray-100">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-[#1877F2] text-white flex items-center justify-center text-xs font-bold shadow-2xs">
@@ -1616,12 +1797,10 @@ function CouponImageGeneratorContent({
                 <span className="text-gray-400 font-bold text-xs tracking-widest">•••</span>
               </div>
 
-              {/* Caption text above image */}
               <div className="px-3.5 py-2 text-[11.5px] text-gray-800 leading-relaxed whitespace-pre-wrap break-words max-h-28 overflow-y-auto border-b border-gray-50">
                 {activeCaptionText}
               </div>
 
-              {/* Image Preview */}
               <div className="relative aspect-square bg-[#0c0e0d] flex items-center justify-center overflow-hidden">
                 {liveRenderedImageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -1633,7 +1812,6 @@ function CouponImageGeneratorContent({
                 )}
               </div>
 
-              {/* Reactions Bar */}
               <div className="px-3 py-2 flex items-center justify-between text-[11px] text-gray-500 border-b border-gray-100">
                 <div className="flex items-center gap-1">
                   <span className="text-xs">👍❤️</span>
@@ -1642,7 +1820,6 @@ function CouponImageGeneratorContent({
                 <span>6 comentários</span>
               </div>
 
-              {/* Actions */}
               <div className="grid grid-cols-3 text-center py-2 text-[11px] font-semibold text-gray-600">
                 <button type="button" className="flex items-center justify-center gap-1">
                   <ThumbsUp size={13} />
@@ -1663,7 +1840,6 @@ function CouponImageGeneratorContent({
           {/* MOCKUP 4: WHATSAPP CHAT CONVERSATION */}
           {studioChannel === "whatsapp" && studioFormat === "chat" && (
             <div className="w-full max-w-[330px] rounded-2xl shadow-2xl border border-gray-300 overflow-hidden bg-[#ECE5DD] flex flex-col text-[#111827]">
-              {/* WhatsApp Header */}
               <div className="bg-[#008069] text-white px-3 py-2.5 flex items-center justify-between shadow-xs">
                 <div className="flex items-center gap-2">
                   <span className="text-white font-bold text-xs">←</span>
@@ -1682,18 +1858,14 @@ function CouponImageGeneratorContent({
                 </div>
               </div>
 
-              {/* Chat Body */}
               <div className="p-3 space-y-2 flex-1 min-h-[300px] flex flex-col justify-end">
-                {/* Date chip */}
                 <div className="flex justify-center mb-1">
                   <span className="bg-white/80 backdrop-blur-xs text-[10px] font-semibold text-gray-600 px-2.5 py-0.5 rounded-full shadow-2xs">
                     HOJE
                   </span>
                 </div>
 
-                {/* Outgoing Message Bubble */}
                 <div className="self-end max-w-[92%] bg-[#E7FFDB] rounded-2xl rounded-tr-xs p-2 shadow-xs border border-[#C5E8B7] text-[#111827]">
-                  {/* Image attachment in bubble */}
                   {liveRenderedImageUrl && (
                     <div className="rounded-xl overflow-hidden mb-2 bg-black/10">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1705,12 +1877,10 @@ function CouponImageGeneratorContent({
                     </div>
                   )}
 
-                  {/* Formatted Text */}
                   <div className="text-[11px] leading-relaxed whitespace-pre-wrap break-words text-gray-900">
                     {renderWhatsAppFormattedText(activeCaptionText)}
                   </div>
 
-                  {/* Time + Blue Double Checkmarks */}
                   <div className="flex items-center justify-end gap-1 mt-1 text-[9.5px] text-gray-500">
                     <span>14:32</span>
                     <span className="text-[#53bdeb] font-bold">✓✓</span>
@@ -1718,7 +1888,6 @@ function CouponImageGeneratorContent({
                 </div>
               </div>
 
-              {/* WhatsApp Fake Input Footer */}
               <div className="bg-[#F0F2F5] px-2.5 py-2 flex items-center gap-2 border-t border-gray-200">
                 <div className="flex-1 bg-white rounded-full px-3 py-1.5 text-[11px] text-gray-400 border border-gray-200 flex items-center justify-between">
                   <span>Mensagem</span>
@@ -1741,7 +1910,6 @@ function CouponImageGeneratorContent({
 
         {/* RIGHT: Studio Controls, Channel Switcher & Templates */}
         <div className="lg:col-span-7 p-4 sm:p-6 space-y-4 overflow-y-auto bg-white">
-          {/* Step 1: Channel & Sub-Format Switcher */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[12.5px] font-bold text-[#1A241E]">
@@ -1752,7 +1920,6 @@ function CouponImageGeneratorContent({
               </span>
             </div>
 
-            {/* Channels: Instagram, Facebook, WhatsApp */}
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
@@ -1794,7 +1961,6 @@ function CouponImageGeneratorContent({
               </button>
             </div>
 
-            {/* Sub-Format Selector based on Channel */}
             <div className="flex items-center gap-2 pt-1">
               <span className="text-[11px] font-bold text-[#637267]">Destino:</span>
 
@@ -1881,7 +2047,6 @@ function CouponImageGeneratorContent({
             </div>
           </div>
 
-          {/* Step 2: Templates for this channel */}
           <div className="border-t border-[#ECEAE2] pt-3.5">
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-[12.5px] font-bold text-[#1A241E]">
@@ -1903,10 +2068,10 @@ function CouponImageGeneratorContent({
                       setSelectedTemplateId(tmpl.id);
                       setActiveCaptionText(buildCaptionTemplate(tmpl.text));
                       if (tmpl.format === "story") {
-                        setAspectFormat("story");
+                        handleToggleFormat("story");
                         setStudioFormat("story");
                       } else if (tmpl.format === "feed") {
-                        setAspectFormat("feed");
+                        handleToggleFormat("feed");
                         setStudioFormat("feed");
                       } else if (tmpl.format === "chat") {
                         setStudioFormat("chat");
@@ -1930,7 +2095,6 @@ function CouponImageGeneratorContent({
             </div>
           </div>
 
-          {/* Step 3: Insert Quick Variables */}
           <div className="border-t border-[#ECEAE2] pt-3">
             <label className="text-[11.5px] font-bold text-[#1A241E] block mb-1">
               Inserir Variáveis com 1 Clique:
@@ -1962,7 +2126,6 @@ function CouponImageGeneratorContent({
             </div>
           </div>
 
-          {/* Step 4: Main Editable Textarea */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-[12px] font-bold text-[#1A241E]">
@@ -1998,7 +2161,6 @@ function CouponImageGeneratorContent({
             </div>
           </div>
 
-          {/* Step 5: Action Buttons */}
           <div className="border-t border-[#ECEAE2] pt-3 flex flex-col sm:flex-row items-center gap-2.5">
             <button
               type="button"
