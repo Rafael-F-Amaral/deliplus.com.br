@@ -239,133 +239,152 @@ function CouponImageGeneratorContent({
         ctx.fillRect(0, 0, width, height);
       }
 
-      // Vertical spacing based on format
+      // Vertical spacing based on format & Instagram Safe Zones
       const isStory = aspectFormat === "story";
-      const topY = isStory ? 200 : 110;
-      const centerY = isStory ? 760 : 490;
 
       // 3. Top Store Pill Badge
       const storeLabel = (storeName || "DELIPLUS DELIVERY").toUpperCase();
-      ctx.font = "bold 26px system-ui, -apple-system, sans-serif";
+      const storeFontSize = isStory ? 32 : 26;
+      ctx.font = `bold ${storeFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.textAlign = "center";
       const pillText = `★  ${storeLabel}  ★`;
       const pillWidth = ctx.measureText(pillText).width + 60;
-      const pillHeight = 52;
+      const pillHeight = isStory ? 58 : 48;
       const pillX = (width - pillWidth) / 2;
-      const pillY = topY;
+      const pillY = isStory ? 240 : 65;
 
-      ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.14)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.30)";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 26);
+      ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillHeight / 2);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = "#FFFFFF";
-      ctx.fillText(pillText, width / 2, pillY + 35);
+      ctx.fillText(pillText, width / 2, pillY + (isStory ? 40 : 33));
 
-      // 4. Subtitle Tagline
-      ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
+      // 4. Subtitle Tagline (Aumentado para padrão profissional mobile)
+      const taglineFontSize = isStory ? 44 : 34;
+      ctx.font = `bold ${taglineFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = accentColor;
-      ctx.fillText(tagline.toUpperCase(), width / 2, pillY + 115);
+      const taglineY = isStory ? 360 : 155;
+      ctx.fillText(tagline.toUpperCase(), width / 2, taglineY);
 
-      // 5. Main Headline
-      ctx.font = "900 68px system-ui, -apple-system, sans-serif";
+      // 5. Main Headline (Impacto visual imediato)
+      const headlineFontSize = isStory ? 88 : 76;
+      ctx.font = `900 ${headlineFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "#FFFFFF";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
-      ctx.shadowBlur = 20;
+      ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+      ctx.shadowBlur = 22;
       ctx.shadowOffsetY = 6;
-      ctx.fillText(headline.toUpperCase(), width / 2, pillY + 195);
+      const headlineY = isStory ? 465 : 240;
+      ctx.fillText(headline.toUpperCase(), width / 2, headlineY);
       ctx.shadowColor = "transparent";
       ctx.shadowBlur = 0;
 
       // 6. Huge Discount Display
-      ctx.font = `900 ${isStory ? "130px" : "110px"} system-ui, -apple-system, sans-serif`;
+      const discountFontSize = isStory ? 136 : 112;
+      ctx.font = `900 ${discountFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = accentColor;
       ctx.shadowColor = `${accentColor}80`;
-      ctx.shadowBlur = 35;
+      ctx.shadowBlur = 40;
+      const centerY = isStory ? 680 : 390;
       ctx.fillText(discountHighlight, width / 2, centerY);
       ctx.shadowColor = "transparent";
       ctx.shadowBlur = 0;
 
       // 7. Coupon Ticket Voucher Box
-      const ticketW = isStory ? 820 : 760;
-      const ticketH = isStory ? 280 : 230;
+      const ticketW = isStory ? 880 : 860;
+      const ticketH = isStory ? 340 : 265;
       const ticketX = (width - ticketW) / 2;
-      const ticketY = isStory ? centerY + 90 : centerY + 50;
+      const ticketY = isStory ? 780 : 465;
 
       // Ticket background with subtle shadow
       ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
-      ctx.shadowBlur = 30;
-      ctx.shadowOffsetY = 12;
+      ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+      ctx.shadowBlur = 35;
+      ctx.shadowOffsetY = 14;
       ctx.beginPath();
-      ctx.roundRect(ticketX, ticketY, ticketW, ticketH, 28);
+      ctx.roundRect(ticketX, ticketY, ticketW, ticketH, 30);
       ctx.fill();
       ctx.shadowColor = "transparent";
       ctx.shadowBlur = 0;
 
       // Ticket dashed border
       ctx.strokeStyle = "#CB5A3C";
-      ctx.lineWidth = 3;
-      ctx.setLineDash([12, 10]);
+      ctx.lineWidth = 3.5;
+      ctx.setLineDash([14, 10]);
       ctx.stroke();
       ctx.setLineDash([]);
 
       // Ticket "Use o cupom no checkout"
-      ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
+      const checkoutTextSize = isStory ? 30 : 26;
+      ctx.font = `bold ${checkoutTextSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "#6B7280";
-      ctx.fillText("USE O CUPOM NO CHECKOUT:", width / 2, ticketY + 54);
+      ctx.fillText("USE O CUPOM NO CHECKOUT:", width / 2, ticketY + (isStory ? 62 : 50));
 
       // Ticket Code (Monospace bold)
-      ctx.font = "900 72px 'Courier New', monospace, sans-serif";
+      const codeFontSize = isStory ? 84 : 72;
+      ctx.font = `900 ${codeFontSize}px 'Courier New', monospace, sans-serif`;
       ctx.fillStyle = "#111827";
-      ctx.fillText(couponCode.toUpperCase(), width / 2, ticketY + 138);
+      ctx.fillText(couponCode.toUpperCase(), width / 2, ticketY + (isStory ? 158 : 132));
 
-      // Ticket sub-rule inside box
-      ctx.font = "600 23px system-ui, -apple-system, sans-serif";
-      ctx.fillStyle = "#4B5563";
-      ctx.fillText(minOrderText, width / 2, ticketY + 195);
+      // Ticket sub-rule inside box (Mínimo)
+      const minOrderFontSize = isStory ? 36 : 32;
+      ctx.font = `bold ${minOrderFontSize}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = "#374151";
+      ctx.fillText(minOrderText, width / 2, ticketY + (isStory ? 232 : 194));
 
-      if (isStory) {
-        ctx.font = "500 20px system-ui, -apple-system, sans-serif";
-        ctx.fillStyle = "#9CA3AF";
-        ctx.fillText("1 uso por cliente • Não cumulativo com outros cupons", width / 2, ticketY + 236);
-      }
+      // Ticket sub-rule (1 uso por cliente / não cumulativo)
+      const subRuleFontSize = isStory ? 28 : 24;
+      ctx.font = `600 ${subRuleFontSize}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = "#6B7280";
+      ctx.fillText("1 uso por cliente • Não cumulativo com outros cupons", width / 2, ticketY + (isStory ? 292 : 238));
 
       // 8. Call to Action Button / Pill
-      const ctaY = isStory ? ticketY + ticketH + 90 : ticketY + ticketH + 45;
-      const ctaW = 680;
-      const ctaH = 68;
+      const ctaY = isStory ? 1180 : 765;
+      const ctaW = isStory ? 760 : 740;
+      const ctaH = isStory ? 80 : 70;
       const ctaX = (width - ctaW) / 2;
 
       ctx.fillStyle = accentColor;
       ctx.beginPath();
-      ctx.roundRect(ctaX, ctaY, ctaW, ctaH, 34);
+      ctx.roundRect(ctaX, ctaY, ctaW, ctaH, ctaH / 2);
       ctx.fill();
 
-      ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
+      const ctaFontSize = isStory ? 36 : 32;
+      ctx.font = `bold ${ctaFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "#FFFFFF";
-      ctx.fillText(`👉 ${callToAction.toUpperCase()}`, width / 2, ctaY + 44);
+      ctx.fillText(`👉 ${callToAction.toUpperCase()}`, width / 2, ctaY + (isStory ? 52 : 45));
 
       // 9. Link do cardápio
-      const linkY = ctaY + 115;
-      ctx.font = "bold 26px system-ui, -apple-system, sans-serif";
+      const linkY = isStory ? 1320 : 885;
+      const linkFontSize = isStory ? 36 : 32;
+      ctx.font = `bold ${linkFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = "#E5E7EB";
       ctx.fillText(`deliplus.com.br/${storeSlug || "sua-loja"}`, width / 2, linkY);
 
-      // 10. WATERMARK DELIPLUS OBRIGATÓRIA (Rodapé elegante)
-      const waterY = height - (isStory ? 75 : 45);
-      ctx.font = "600 21px system-ui, -apple-system, sans-serif";
-      ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
-      ctx.fillText("Criado com DeliPlus  •  www.deliplus.com.br", width / 2, waterY);
+      // 10. MARCA D'ÁGUA DELIPLUS EM BADGE / PÍLULA (SAFE ZONE RESPEITADA)
+      const waterFontSize = isStory ? 32 : 26;
+      ctx.font = `bold ${waterFontSize}px system-ui, -apple-system, sans-serif`;
+      const waterText = "✦ Criado com DeliPlus  •  www.deliplus.com.br ✦";
+      const waterPillWidth = ctx.measureText(waterText).width + 64;
+      const waterPillHeight = isStory ? 64 : 52;
+      const waterPillX = (width - waterPillWidth) / 2;
+      // No Story, waterPillY = 1570px (acima da zona de bloqueio do Instagram que começa em ~1700px)
+      const waterPillY = isStory ? 1570 : 965;
 
-      // Subtle star icon next to watermark
-      ctx.fillStyle = accentColor;
-      ctx.font = "bold 18px system-ui, -apple-system, sans-serif";
-      ctx.fillText("✦", width / 2 - 210, waterY - 1);
-      ctx.fillText("✦", width / 2 + 210, waterY - 1);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.32)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(waterPillX, waterPillY, waterPillWidth, waterPillHeight, waterPillHeight / 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText(waterText, width / 2, waterPillY + (isStory ? 43 : 35));
     };
 
     // Load image if available
@@ -506,12 +525,12 @@ function CouponImageGeneratorContent({
           </div>
 
           {/* Canvas Viewport container */}
-          <div className="relative flex items-center justify-center w-full max-w-[320px] shadow-2xl rounded-2xl overflow-hidden border-2 border-white/10">
+          <div className="relative flex items-center justify-center w-full max-w-[350px] shadow-2xl rounded-2xl overflow-hidden border-2 border-white/10">
             <canvas
               ref={canvasRef}
               className="w-full h-auto object-contain block rounded-2xl"
               style={{
-                maxHeight: aspectFormat === "story" ? "520px" : "320px"
+                maxHeight: aspectFormat === "story" ? "540px" : "350px"
               }}
             />
           </div>
