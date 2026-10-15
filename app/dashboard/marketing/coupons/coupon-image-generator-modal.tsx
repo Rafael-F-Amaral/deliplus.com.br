@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   X,
   Download,
@@ -514,7 +514,6 @@ const WHATSAPP_TEMPLATES: CaptionTemplateItem[] = [
   }
 ];
 
-// Layout element positions (percentage Y from top: 0 to 100)
 interface LayoutPositions {
   storePillY: number;
   headerGroupY: number;
@@ -542,6 +541,8 @@ const DEFAULT_FEED_POSITIONS: LayoutPositions = {
   socialsY: 86
 };
 
+type EditTarget = "header" | "discount" | "ticket" | "cta" | null;
+
 function CouponImageGeneratorContent({
   onClose,
   coupon,
@@ -553,18 +554,14 @@ function CouponImageGeneratorContent({
   storeName: string;
   storeSlug: string;
 }) {
-  // Navigation Tabs: "design" (Canva Studio) vs "copy_studio" (Gerador de Legendas)
   const [activeTab, setActiveTab] = useState<"design" | "copy_studio">("design");
 
-  // Formats: story (9:16 = 1080x1920) or feed (1:1 = 1080x1080)
   const [aspectFormat, setAspectFormat] = useState<"story" | "feed">("story");
   const [selectedThemeId, setSelectedThemeId] = useState<string>("burger");
   const [customImageSrc, setCustomImageSrc] = useState<string | null>(null);
 
-  // Dynamic Element Positions for Canva-style moving
   const [positions, setPositions] = useState<LayoutPositions>(DEFAULT_STORY_POSITIONS);
 
-  // Social Accounts with Handles (Max 4 active)
   const [socialAccounts, setSocialAccounts] = useState<SocialAccountItem[]>(() => [
     { id: "instagram", name: "Instagram", handle: `@${storeSlug || "sualoja"}`, enabled: true, brandColor: "#E1306C" },
     { id: "whatsapp", name: "WhatsApp", handle: "Peça pelo WhatsApp", enabled: true, brandColor: "#25D366" },
@@ -575,7 +572,6 @@ function CouponImageGeneratorContent({
     { id: "kwai", name: "Kwai", handle: `@${storeSlug || "sualoja"}`, enabled: false, brandColor: "#FF5000" }
   ]);
 
-  // Editable Text fields (directly edited on the artwork Canva-style)
   const [headline, setHeadline] = useState(() => {
     if (coupon?.description && coupon.description.includes("1º")) return "SEU 1º PEDIDO";
     return "DESCONTO ESPECIAL";
@@ -599,16 +595,25 @@ function CouponImageGeneratorContent({
   });
   const [callToAction, setCallToAction] = useState("Peça pelo link na bio ou WhatsApp");
 
-  // In-place inline editing state (which element is currently active for typing)
-  const [inlineEditingKey, setInlineEditingKey] = useState<string | null>(null);
+  // Active quick edit dialog target
+  const [activeEditTarget, setActiveEditTarget] = useState<EditTarget>(null);
 
-  // Dragging state
+  // Dragging state with move-vs-click discriminator
   const [draggingKey, setDraggingKey] = useState<keyof LayoutPositions | null>(null);
-  const dragStartYRef = useRef<number>(0);
-  const dragStartElementYRef = useRef<number>(0);
+  const dragInfoRef = useRef<{
+    key: keyof LayoutPositions | null;
+    startY: number;
+    startElementY: number;
+    hasMoved: boolean;
+  }>({
+    key: null,
+    startY: 0,
+    startElementY: 0,
+    hasMoved: false
+  });
+
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Interactive Color Picker & Hue Slider
   const [accentColor, setAccentColor] = useState("#CB5A3C");
   const [hueValue, setHueValue] = useState(() => hexToHue("#CB5A3C"));
 
@@ -616,20 +621,19 @@ function CouponImageGeneratorContent({
   const [isGenerating, setIsGenerating] = useState(false);
   const [liveRenderedImageUrl, setLiveRenderedImageUrl] = useState<string | null>(null);
 
-  // Copywriting Studio State
   const cleanStoreLink = `deliplus.com.br/${storeSlug || "sua-loja"}`;
   const [studioChannel, setStudioChannel] = useState<MarketingChannel>("instagram");
   const [studioFormat, setStudioFormat] = useState<MarketingFormat>("feed");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("ig_cravings");
 
-  const buildCaptionTemplate = (baseText: string) => {
+  const buildCaptionTemplate = useCallback((baseText: string) => {
     return baseText
       .replace(/{CODIGO}/g, couponCode)
       .replace(/{DESCONTO}/g, discountHighlight)
       .replace(/{MINIMO}/g, minOrderText)
       .replace(/{LOJA}/g, storeName || "nosso delivery")
       .replace(/{LINK}/g, cleanStoreLink);
-  };
+  }, [couponCode, discountHighlight, minOrderText, storeName, cleanStoreLink]);
 
   const [activeCaptionText, setActiveCaptionText] = useState(() =>
     buildCaptionTemplate(INSTAGRAM_TEMPLATES[0].text)
@@ -638,13 +642,14 @@ function CouponImageGeneratorContent({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Cached preloaded background image in memory (ELIMINATES FLICKERING!)
+  const bgImageRef = useRef<HTMLImageElement | null>(null);
+
   const activeTheme = FOOD_THEMES.find((t) => t.id === selectedThemeId) || FOOD_THEMES[0];
 
-  // Active social accounts count
   const activeSocials = socialAccounts.filter((s) => s.enabled);
   const enabledSocialsCount = activeSocials.length;
 
-  // Add social account
   const handleAddSocialAccount = (id: string) => {
     if (enabledSocialsCount >= 4) return;
     setSocialAccounts((prev) =>
@@ -652,114 +657,29 @@ function CouponImageGeneratorContent({
     );
   };
 
-  // Remove social account
   const handleRemoveSocialAccount = (id: string) => {
     setSocialAccounts((prev) =>
       prev.map((s) => (s.id === id ? { ...s, enabled: false } : s))
     );
   };
 
-  // Change handle for an account
   const handleSocialAccountChange = (id: string, newHandle: string) => {
     setSocialAccounts((prev) =>
       prev.map((s) => (s.id === id ? { ...s, handle: newHandle } : s))
     );
   };
 
-  // Switch format and update default positions
   const handleToggleFormat = (newFormat: "story" | "feed") => {
     setAspectFormat(newFormat);
     setPositions(newFormat === "story" ? DEFAULT_STORY_POSITIONS : DEFAULT_FEED_POSITIONS);
   };
 
-  // Reset positions to default
   const handleResetPositions = () => {
     setPositions(aspectFormat === "story" ? DEFAULT_STORY_POSITIONS : DEFAULT_FEED_POSITIONS);
   };
 
-  // Dragging logic
-  const handlePointerDown = (key: keyof LayoutPositions, e: React.PointerEvent) => {
-    // Don't drag if clicking directly inside an active input
-    if ((e.target as HTMLElement).tagName === "INPUT") return;
-
-    e.preventDefault();
-    setDraggingKey(key);
-    dragStartYRef.current = e.clientY;
-    dragStartElementYRef.current = positions[key];
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!draggingKey || !canvasContainerRef.current) return;
-    const rect = canvasContainerRef.current.getBoundingClientRect();
-    const deltaY = ((e.clientY - dragStartYRef.current) / rect.height) * 100;
-    const newY = Math.min(Math.max(dragStartElementYRef.current + deltaY, 5), 92);
-
-    setPositions((prev) => ({
-      ...prev,
-      [draggingKey]: Math.round(newY * 10) / 10
-    }));
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (draggingKey) {
-      try {
-        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch {
-        // Ignore
-      }
-      setDraggingKey(null);
-    }
-  };
-
-  // Select channel in Studio
-  const handleSelectChannel = (channel: MarketingChannel) => {
-    setStudioChannel(channel);
-    let templates: CaptionTemplateItem[] = INSTAGRAM_TEMPLATES;
-    let defaultFormat: MarketingFormat = "feed";
-
-    if (channel === "facebook") {
-      templates = FACEBOOK_TEMPLATES;
-      defaultFormat = "feed";
-    } else if (channel === "whatsapp") {
-      templates = WHATSAPP_TEMPLATES;
-      defaultFormat = "chat";
-    }
-
-    const firstTemplate = templates[0];
-    setSelectedTemplateId(firstTemplate.id);
-    setActiveCaptionText(buildCaptionTemplate(firstTemplate.text));
-    setStudioFormat(defaultFormat);
-
-    if (defaultFormat === "feed") {
-      setAspectFormat("feed");
-    }
-  };
-
-  // Select format in Studio
-  const handleSelectFormat = (format: MarketingFormat) => {
-    setStudioFormat(format);
-    if (format === "story") {
-      handleToggleFormat("story");
-    } else if (format === "feed") {
-      handleToggleFormat("feed");
-    }
-    const currentTemplates =
-      studioChannel === "instagram"
-        ? INSTAGRAM_TEMPLATES
-        : studioChannel === "facebook"
-        ? FACEBOOK_TEMPLATES
-        : WHATSAPP_TEMPLATES;
-
-    const matchedTmpl = currentTemplates.find((t) => t.format === format);
-    if (matchedTmpl) {
-      setSelectedTemplateId(matchedTmpl.id);
-      setActiveCaptionText(buildCaptionTemplate(matchedTmpl.text));
-    }
-  };
-
-  // Render canvas based on dynamic positions and text
-  useEffect(() => {
+  // Synchronous, flicker-free canvas drawing routine
+  const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -771,284 +691,257 @@ function CouponImageGeneratorContent({
     canvas.width = width;
     canvas.height = height;
 
-    const renderCard = (imgBg?: HTMLImageElement | null) => {
-      // 1. Clear background
-      ctx.fillStyle = "#121417";
+    // 1. Clear background
+    ctx.fillStyle = "#121417";
+    ctx.fillRect(0, 0, width, height);
+
+    // 2. Draw image or fallback gradient (from memory cache synchronously!)
+    const imgBg = bgImageRef.current;
+    if (imgBg) {
+      const imgAspect = imgBg.width / imgBg.height;
+      const canvasAspect = width / height;
+      let renderW = width;
+      let renderH = height;
+      let renderX = 0;
+      let renderY = 0;
+
+      if (imgAspect > canvasAspect) {
+        renderW = height * imgAspect;
+        renderX = (width - renderW) / 2;
+      } else {
+        renderH = width / imgAspect;
+        renderY = (height - renderH) / 2;
+      }
+      ctx.drawImage(imgBg, renderX, renderY, renderW, renderH);
+
+      // Dark cinematic vignette overlay
+      const darkOverlay = ctx.createLinearGradient(0, 0, 0, height);
+      darkOverlay.addColorStop(0, "rgba(10, 12, 16, 0.65)");
+      darkOverlay.addColorStop(0.3, "rgba(10, 12, 16, 0.72)");
+      darkOverlay.addColorStop(0.7, "rgba(10, 12, 16, 0.76)");
+      darkOverlay.addColorStop(1, "rgba(6, 8, 12, 0.85)");
+      ctx.fillStyle = darkOverlay;
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+      if (selectedThemeId === "grad_forest") {
+        bgGrad.addColorStop(0, "#0e1e16");
+        bgGrad.addColorStop(1, "#1c3526");
+      } else if (selectedThemeId === "grad_dark") {
+        bgGrad.addColorStop(0, "#10151f");
+        bgGrad.addColorStop(1, "#1e293d");
+      } else {
+        bgGrad.addColorStop(0, "#26130e");
+        bgGrad.addColorStop(1, "#4a1e16");
+      }
+      ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // 2. Draw image or fallback gradient
-      if (imgBg) {
-        const imgAspect = imgBg.width / imgBg.height;
-        const canvasAspect = width / height;
-        let renderW = width;
-        let renderH = height;
-        let renderX = 0;
-        let renderY = 0;
-
-        if (imgAspect > canvasAspect) {
-          renderW = height * imgAspect;
-          renderX = (width - renderW) / 2;
-        } else {
-          renderH = width / imgAspect;
-          renderY = (height - renderH) / 2;
-        }
-        ctx.drawImage(imgBg, renderX, renderY, renderW, renderH);
-
-        // Dark cinematic vignette overlay
-        const darkOverlay = ctx.createLinearGradient(0, 0, 0, height);
-        darkOverlay.addColorStop(0, "rgba(10, 12, 16, 0.65)");
-        darkOverlay.addColorStop(0.3, "rgba(10, 12, 16, 0.72)");
-        darkOverlay.addColorStop(0.7, "rgba(10, 12, 16, 0.76)");
-        darkOverlay.addColorStop(1, "rgba(6, 8, 12, 0.85)");
-        ctx.fillStyle = darkOverlay;
-        ctx.fillRect(0, 0, width, height);
-      } else {
-        const bgGrad = ctx.createLinearGradient(0, 0, width, height);
-        if (selectedThemeId === "grad_forest") {
-          bgGrad.addColorStop(0, "#0e1e16");
-          bgGrad.addColorStop(1, "#1c3526");
-        } else if (selectedThemeId === "grad_dark") {
-          bgGrad.addColorStop(0, "#10151f");
-          bgGrad.addColorStop(1, "#1e293d");
-        } else {
-          bgGrad.addColorStop(0, "#26130e");
-          bgGrad.addColorStop(1, "#4a1e16");
-        }
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, width, height);
-
-        const glow = ctx.createRadialGradient(width / 2, height / 2, 50, width / 2, height / 2, 600);
-        glow.addColorStop(0, `${accentColor}33`);
-        glow.addColorStop(1, "transparent");
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, width, height);
-      }
-
-      const isStory = aspectFormat === "story";
-
-      // 3. Top Store Pill Badge (Positioned dynamically by positions.storePillY)
-      const storeLabel = (storeName || "DELIPLUS DELIVERY").toUpperCase();
-      const storeFontSize = isStory ? 32 : 26;
-      ctx.font = `bold ${storeFontSize}px system-ui, -apple-system, sans-serif`;
-      ctx.textAlign = "center";
-      const pillText = `★  ${storeLabel}  ★`;
-      const pillWidth = ctx.measureText(pillText).width + 60;
-      const pillHeight = isStory ? 58 : 48;
-      const pillX = (width - pillWidth) / 2;
-      const pillY = (positions.storePillY / 100) * height;
-
-      ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.32)";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillHeight / 2);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillText(pillText, width / 2, pillY + (isStory ? 40 : 33));
-
-      // 4 & 5. Header Group (Tagline & Headline - Positioned by positions.headerGroupY)
-      const headerCenterY = (positions.headerGroupY / 100) * height;
-
-      const taglineFontSize = isStory ? 42 : 32;
-      ctx.font = `bold ${taglineFontSize}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = accentColor;
-      ctx.fillText(tagline.toUpperCase(), width / 2, headerCenterY);
-
-      const headlineFontSize = isStory ? 84 : 70;
-      ctx.font = `900 ${headlineFontSize}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = "#FFFFFF";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
-      ctx.shadowBlur = 22;
-      ctx.shadowOffsetY = 6;
-      ctx.fillText(headline.toUpperCase(), width / 2, headerCenterY + (isStory ? 80 : 64));
-      ctx.shadowColor = "transparent";
-      ctx.shadowBlur = 0;
-
-      // 6. Huge Discount Display (Positioned by positions.discountY)
-      const discountFontSize = isStory ? 134 : 108;
-      ctx.font = `900 ${discountFontSize}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = accentColor;
-      ctx.shadowColor = `${accentColor}80`;
-      ctx.shadowBlur = 40;
-      const centerY = (positions.discountY / 100) * height;
-      ctx.fillText(discountHighlight, width / 2, centerY);
-      ctx.shadowColor = "transparent";
-      ctx.shadowBlur = 0;
-
-      // 7. Coupon Ticket Voucher Box (Positioned by positions.ticketY)
-      const ticketW = isStory ? 880 : 860;
-      const ticketH = isStory ? 340 : 265;
-      const ticketX = (width - ticketW) / 2;
-      const ticketY = (positions.ticketY / 100) * height;
-
-      ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
-      ctx.shadowBlur = 35;
-      ctx.shadowOffsetY = 14;
-      ctx.beginPath();
-      ctx.roundRect(ticketX, ticketY, ticketW, ticketH, 30);
-      ctx.fill();
-      ctx.shadowColor = "transparent";
-      ctx.shadowBlur = 0;
-
-      ctx.strokeStyle = "#CB5A3C";
-      ctx.lineWidth = 3.5;
-      ctx.setLineDash([14, 10]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      const checkoutTextSize = isStory ? 30 : 26;
-      ctx.font = `bold ${checkoutTextSize}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = "#6B7280";
-      ctx.fillText("USE O CUPOM NO CHECKOUT:", width / 2, ticketY + (isStory ? 62 : 50));
-
-      const codeFontSize = isStory ? 84 : 72;
-      ctx.font = `900 ${codeFontSize}px 'Courier New', monospace, sans-serif`;
-      ctx.fillStyle = "#111827";
-      ctx.fillText(couponCode.toUpperCase(), width / 2, ticketY + (isStory ? 158 : 132));
-
-      const minOrderFontSize = isStory ? 36 : 32;
-      ctx.font = `bold ${minOrderFontSize}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = "#374151";
-      ctx.fillText(minOrderText, width / 2, ticketY + (isStory ? 232 : 194));
-
-      const subRuleFontSize = isStory ? 28 : 24;
-      ctx.font = `600 ${subRuleFontSize}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = "#6B7280";
-      ctx.fillText("1 uso por cliente • Não cumulativo com outros cupons", width / 2, ticketY + (isStory ? 292 : 238));
-
-      // 8. Call to Action Button / Pill (Positioned by positions.ctaY)
-      const ctaY = (positions.ctaY / 100) * height;
-      const ctaW = isStory ? 760 : 740;
-      const ctaH = isStory ? 80 : 70;
-      const ctaX = (width - ctaW) / 2;
-
-      ctx.fillStyle = accentColor;
-      ctx.beginPath();
-      ctx.roundRect(ctaX, ctaY, ctaW, ctaH, ctaH / 2);
-      ctx.fill();
-
-      const ctaFontSize = isStory ? 36 : 32;
-      ctx.font = `bold ${ctaFontSize}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillText(`👉 ${callToAction.toUpperCase()}`, width / 2, ctaY + (isStory ? 52 : 45));
-
-      // 9 & 10. Link e Redes Sociais (Positioned by positions.socialsY)
-      const socialsBaseY = (positions.socialsY / 100) * height;
-
-      const linkFontSize = isStory ? 36 : 30;
-      ctx.font = `bold ${linkFontSize}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = "#E5E7EB";
-      ctx.fillText(`deliplus.com.br/${storeSlug || "sua-loja"}`, width / 2, socialsBaseY);
-
-      const visibleSocials = socialAccounts.filter((s) => s.enabled).slice(0, 4);
-
-      if (visibleSocials.length > 0) {
-        const logoSize = isStory ? 32 : 24;
-        const fontTextSize = isStory ? 26 : 21;
-        ctx.font = `bold ${fontTextSize}px system-ui, -apple-system, sans-serif`;
-
-        const isMultiRow = visibleSocials.length > 2;
-        const rows = isMultiRow
-          ? [visibleSocials.slice(0, 2), visibleSocials.slice(2, 4)]
-          : [visibleSocials];
-
-        const rowHeight = isStory ? 52 : 42;
-        const rowGap = isStory ? 12 : 8;
-        const startY = socialsBaseY + (isStory ? 30 : 22);
-
-        rows.forEach((rowSocials, rIdx) => {
-          const currentY = startY + rIdx * (rowHeight + rowGap);
-
-          const pillMetrics = rowSocials.map((soc) => {
-            const txt = soc.handle.trim() || soc.name;
-            const textW = ctx.measureText(txt).width;
-            const pillW = logoSize + textW + (isStory ? 36 : 28);
-            return { soc, txt, pillW };
-          });
-
-          const totalRowW =
-            pillMetrics.reduce((acc, p) => acc + p.pillW, 0) +
-            (rowSocials.length - 1) * (isStory ? 18 : 12);
-          let currentX = width / 2 - totalRowW / 2;
-
-          pillMetrics.forEach(({ soc, txt, pillW }) => {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.roundRect(currentX, currentY, pillW, rowHeight, rowHeight / 2);
-            ctx.fill();
-            ctx.stroke();
-
-            const logoPadding = isStory ? 10 : 8;
-            const logoX = currentX + logoPadding;
-            const logoY = currentY + (rowHeight - logoSize) / 2;
-            drawBrandLogo(ctx, soc.id, logoX, logoY, logoSize);
-
-            ctx.fillStyle = "#FFFFFF";
-            ctx.textAlign = "left";
-            const textX = logoX + logoSize + (isStory ? 10 : 8);
-            const textY = currentY + rowHeight / 2 + fontTextSize * 0.35;
-            ctx.fillText(txt, textX, textY);
-
-            currentX += pillW + (isStory ? 18 : 12);
-          });
-        });
-      }
-
-      // 11. Marca d'água DeliPlus (Fixa com segurança na base)
-      const waterFontSize = isStory ? 32 : 24;
-      ctx.font = `bold ${waterFontSize}px system-ui, -apple-system, sans-serif`;
-      ctx.textAlign = "center";
-      const waterText = "✦ Criado com DeliPlus  •  www.deliplus.com.br ✦";
-      const waterPillWidth = ctx.measureText(waterText).width + 64;
-      const waterPillHeight = isStory ? 64 : 50;
-      const waterPillX = (width - waterPillWidth) / 2;
-      const waterPillY = isStory ? 1810 : 1010;
-
-      ctx.fillStyle = "rgba(0, 0, 0, 0.82)";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.36)";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(waterPillX, waterPillY, waterPillWidth, waterPillHeight, waterPillHeight / 2);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillText(waterText, width / 2, waterPillY + (isStory ? 43 : 33));
-
-      // Sync rendered snapshot
-      try {
-        const dataUrl = canvas.toDataURL("image/png");
-        setLiveRenderedImageUrl(dataUrl);
-      } catch {
-        // Ignore CORS local issues if any
-      }
-    };
-
-    const targetImageSrc = customImageSrc || activeTheme.imageUrl;
-
-    if (targetImageSrc) {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        renderCard(img);
-      };
-      img.onerror = () => {
-        renderCard(null);
-      };
-      img.src = targetImageSrc;
-    } else {
-      renderCard(null);
+      const glow = ctx.createRadialGradient(width / 2, height / 2, 50, width / 2, height / 2, 600);
+      glow.addColorStop(0, `${accentColor}33`);
+      glow.addColorStop(1, "transparent");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, width, height);
     }
+
+    const isStory = aspectFormat === "story";
+
+    // 3. Top Store Pill Badge
+    const storeLabel = (storeName || "DELIPLUS DELIVERY").toUpperCase();
+    const storeFontSize = isStory ? 32 : 26;
+    ctx.font = `bold ${storeFontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.textAlign = "center";
+    const pillText = `★  ${storeLabel}  ★`;
+    const pillWidth = ctx.measureText(pillText).width + 60;
+    const pillHeight = isStory ? 58 : 48;
+    const pillX = (width - pillWidth) / 2;
+    const pillY = (positions.storePillY / 100) * height;
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.32)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillHeight / 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText(pillText, width / 2, pillY + (isStory ? 40 : 33));
+
+    // 4 & 5. Header Group (Tagline & Headline)
+    const headerCenterY = (positions.headerGroupY / 100) * height;
+
+    const taglineFontSize = isStory ? 42 : 32;
+    ctx.font = `bold ${taglineFontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = accentColor;
+    ctx.fillText(tagline.toUpperCase(), width / 2, headerCenterY);
+
+    const headlineFontSize = isStory ? 84 : 70;
+    ctx.font = `900 ${headlineFontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+    ctx.shadowBlur = 22;
+    ctx.shadowOffsetY = 6;
+    ctx.fillText(headline.toUpperCase(), width / 2, headerCenterY + (isStory ? 80 : 64));
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+
+    // 6. Huge Discount Display
+    const discountFontSize = isStory ? 134 : 108;
+    ctx.font = `900 ${discountFontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = accentColor;
+    ctx.shadowColor = `${accentColor}80`;
+    ctx.shadowBlur = 40;
+    const centerY = (positions.discountY / 100) * height;
+    ctx.fillText(discountHighlight, width / 2, centerY);
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+
+    // 7. Coupon Ticket Voucher Box
+    const ticketW = isStory ? 880 : 860;
+    const ticketH = isStory ? 340 : 265;
+    const ticketX = (width - ticketW) / 2;
+    const ticketY = (positions.ticketY / 100) * height;
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+    ctx.shadowBlur = 35;
+    ctx.shadowOffsetY = 14;
+    ctx.beginPath();
+    ctx.roundRect(ticketX, ticketY, ticketW, ticketH, 30);
+    ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle = "#CB5A3C";
+    ctx.lineWidth = 3.5;
+    ctx.setLineDash([14, 10]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const checkoutTextSize = isStory ? 30 : 26;
+    ctx.font = `bold ${checkoutTextSize}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = "#6B7280";
+    ctx.fillText("USE O CUPOM NO CHECKOUT:", width / 2, ticketY + (isStory ? 62 : 50));
+
+    const codeFontSize = isStory ? 84 : 72;
+    ctx.font = `900 ${codeFontSize}px 'Courier New', monospace, sans-serif`;
+    ctx.fillStyle = "#111827";
+    ctx.fillText(couponCode.toUpperCase(), width / 2, ticketY + (isStory ? 158 : 132));
+
+    const minOrderFontSize = isStory ? 36 : 32;
+    ctx.font = `bold ${minOrderFontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = "#374151";
+    ctx.fillText(minOrderText, width / 2, ticketY + (isStory ? 232 : 194));
+
+    const subRuleFontSize = isStory ? 28 : 24;
+    ctx.font = `600 ${subRuleFontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = "#6B7280";
+    ctx.fillText("1 uso por cliente • Não cumulativo com outros cupons", width / 2, ticketY + (isStory ? 292 : 238));
+
+    // 8. Call to Action Button / Pill
+    const ctaY = (positions.ctaY / 100) * height;
+    const ctaW = isStory ? 760 : 740;
+    const ctaH = isStory ? 80 : 70;
+    const ctaX = (width - ctaW) / 2;
+
+    ctx.fillStyle = accentColor;
+    ctx.beginPath();
+    ctx.roundRect(ctaX, ctaY, ctaW, ctaH, ctaH / 2);
+    ctx.fill();
+
+    const ctaFontSize = isStory ? 36 : 32;
+    ctx.font = `bold ${ctaFontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText(`👉 ${callToAction.toUpperCase()}`, width / 2, ctaY + (isStory ? 52 : 45));
+
+    // 9 & 10. Link e Redes Sociais
+    const socialsBaseY = (positions.socialsY / 100) * height;
+
+    const linkFontSize = isStory ? 36 : 30;
+    ctx.font = `bold ${linkFontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = "#E5E7EB";
+    ctx.fillText(`deliplus.com.br/${storeSlug || "sua-loja"}`, width / 2, socialsBaseY);
+
+    const visibleSocials = socialAccounts.filter((s) => s.enabled).slice(0, 4);
+
+    if (visibleSocials.length > 0) {
+      const logoSize = isStory ? 32 : 24;
+      const fontTextSize = isStory ? 26 : 21;
+      ctx.font = `bold ${fontTextSize}px system-ui, -apple-system, sans-serif`;
+
+      const isMultiRow = visibleSocials.length > 2;
+      const rows = isMultiRow
+        ? [visibleSocials.slice(0, 2), visibleSocials.slice(2, 4)]
+        : [visibleSocials];
+
+      const rowHeight = isStory ? 52 : 42;
+      const rowGap = isStory ? 12 : 8;
+      const startY = socialsBaseY + (isStory ? 30 : 22);
+
+      rows.forEach((rowSocials, rIdx) => {
+        const currentY = startY + rIdx * (rowHeight + rowGap);
+
+        const pillMetrics = rowSocials.map((soc) => {
+          const txt = soc.handle.trim() || soc.name;
+          const textW = ctx.measureText(txt).width;
+          const pillW = logoSize + textW + (isStory ? 36 : 28);
+          return { soc, txt, pillW };
+        });
+
+        const totalRowW =
+          pillMetrics.reduce((acc, p) => acc + p.pillW, 0) +
+          (rowSocials.length - 1) * (isStory ? 18 : 12);
+        let currentX = width / 2 - totalRowW / 2;
+
+        pillMetrics.forEach(({ soc, txt, pillW }) => {
+          ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(currentX, currentY, pillW, rowHeight, rowHeight / 2);
+          ctx.fill();
+          ctx.stroke();
+
+          const logoPadding = isStory ? 10 : 8;
+          const logoX = currentX + logoPadding;
+          const logoY = currentY + (rowHeight - logoSize) / 2;
+          drawBrandLogo(ctx, soc.id, logoX, logoY, logoSize);
+
+          ctx.fillStyle = "#FFFFFF";
+          ctx.textAlign = "left";
+          const textX = logoX + logoSize + (isStory ? 10 : 8);
+          const textY = currentY + rowHeight / 2 + fontTextSize * 0.35;
+          ctx.fillText(txt, textX, textY);
+
+          currentX += pillW + (isStory ? 18 : 12);
+        });
+      });
+    }
+
+    // 11. Marca d'água DeliPlus
+    const waterFontSize = isStory ? 32 : 24;
+    ctx.font = `bold ${waterFontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.textAlign = "center";
+    const waterText = "✦ Criado com DeliPlus  •  www.deliplus.com.br ✦";
+    const waterPillWidth = ctx.measureText(waterText).width + 64;
+    const waterPillHeight = isStory ? 64 : 50;
+    const waterPillX = (width - waterPillWidth) / 2;
+    const waterPillY = isStory ? 1810 : 1010;
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.82)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.36)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(waterPillX, waterPillY, waterPillWidth, waterPillHeight, waterPillHeight / 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText(waterText, width / 2, waterPillY + (isStory ? 43 : 33));
   }, [
     aspectFormat,
     selectedThemeId,
-    customImageSrc,
-    activeTheme,
     headline,
     tagline,
     couponCode,
@@ -1059,9 +952,111 @@ function CouponImageGeneratorContent({
     socialAccounts,
     storeName,
     storeSlug,
-    positions,
-    activeTab
+    positions
   ]);
+
+  // Synchronize snapshot for copy studio / export (only when needed, not on every drag frame!)
+  const syncSnapshot = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    try {
+      const dataUrl = canvas.toDataURL("image/png");
+      setLiveRenderedImageUrl(dataUrl);
+    } catch {
+      // Ignore CORS local issues if any
+    }
+  }, []);
+
+  // Preload background image ONCE when source changes (ELIMINATES FLICKERING!)
+  useEffect(() => {
+    const targetImageSrc = customImageSrc || activeTheme.imageUrl;
+    if (!targetImageSrc) {
+      bgImageRef.current = null;
+      drawCanvas();
+      syncSnapshot();
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      bgImageRef.current = img;
+      drawCanvas();
+      syncSnapshot();
+    };
+    img.onerror = () => {
+      bgImageRef.current = null;
+      drawCanvas();
+      syncSnapshot();
+    };
+    img.src = targetImageSrc;
+  }, [customImageSrc, selectedThemeId, activeTheme.imageUrl, drawCanvas, syncSnapshot]);
+
+  // Redraw canvas smoothly on state/positions change
+  useEffect(() => {
+    drawCanvas();
+  }, [drawCanvas]);
+
+  // Open edit dialog for clicked element
+  const openEditorForBlock = (key: keyof LayoutPositions) => {
+    if (key === "headerGroupY") setActiveEditTarget("header");
+    else if (key === "discountY") setActiveEditTarget("discount");
+    else if (key === "ticketY") setActiveEditTarget("ticket");
+    else if (key === "ctaY") setActiveEditTarget("cta");
+  };
+
+  // Pointer Down: Setup drag without cancelling click!
+  const handleBlockPointerDown = (key: keyof LayoutPositions, e: React.PointerEvent) => {
+    // If clicking an edit button, let it trigger click directly
+    if ((e.target as HTMLElement).closest("button")) return;
+
+    dragInfoRef.current = {
+      key,
+      startY: e.clientY,
+      startElementY: positions[key],
+      hasMoved: false
+    };
+  };
+
+  // Pointer Move: Only start dragging if moved > 4px
+  const handleContainerPointerMove = (e: React.PointerEvent) => {
+    const info = dragInfoRef.current;
+    if (!info.key || !canvasContainerRef.current) return;
+
+    const distY = Math.abs(e.clientY - info.startY);
+    if (distY > 4) {
+      info.hasMoved = true;
+      if (draggingKey !== info.key) {
+        setDraggingKey(info.key);
+      }
+      const rect = canvasContainerRef.current.getBoundingClientRect();
+      const deltaY = ((e.clientY - info.startY) / rect.height) * 100;
+      const newY = Math.min(Math.max(info.startElementY + deltaY, 6), 92);
+
+      setPositions((prev) => ({
+        ...prev,
+        [info.key!]: Math.round(newY * 10) / 10
+      }));
+    }
+  };
+
+  // Pointer Up: If didn't move, it's a CLICK!
+  const handleContainerPointerUp = () => {
+    const info = dragInfoRef.current;
+    if (!info.key) return;
+
+    const wasDragging = info.hasMoved;
+    const targetKey = info.key;
+
+    dragInfoRef.current.key = null;
+    setDraggingKey(null);
+
+    if (!wasDragging) {
+      openEditorForBlock(targetKey);
+    } else {
+      syncSnapshot();
+    }
+  };
 
   // Custom User Image Upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1101,20 +1096,17 @@ function CouponImageGeneratorContent({
     }, 150);
   };
 
-  // Copy caption to clipboard
   const handleCopyCaption = () => {
     navigator.clipboard.writeText(activeCaptionText);
     setCopiedCaption(true);
     setTimeout(() => setCopiedCaption(false), 2500);
   };
 
-  // Open WhatsApp with prefilled caption
   const handleOpenWhatsAppShare = () => {
     const encoded = encodeURIComponent(activeCaptionText);
     window.open(`https://api.whatsapp.com/send?text=${encoded}`, "_blank");
   };
 
-  // Insert tag into active caption text
   const insertTagIntoCaption = (tag: string) => {
     setActiveCaptionText((prev) => `${prev} ${tag}`);
   };
@@ -1127,6 +1119,43 @@ function CouponImageGeneratorContent({
       : WHATSAPP_TEMPLATES;
 
   const availableSocialsToAdd = socialAccounts.filter((s) => !s.enabled);
+
+  const handleSelectChannel = (channel: MarketingChannel) => {
+    setStudioChannel(channel);
+    let templates: CaptionTemplateItem[] = INSTAGRAM_TEMPLATES;
+    let defaultFormat: MarketingFormat = "feed";
+
+    if (channel === "facebook") {
+      templates = FACEBOOK_TEMPLATES;
+      defaultFormat = "feed";
+    } else if (channel === "whatsapp") {
+      templates = WHATSAPP_TEMPLATES;
+      defaultFormat = "chat";
+    }
+
+    const firstTemplate = templates[0];
+    setSelectedTemplateId(firstTemplate.id);
+    setActiveCaptionText(buildCaptionTemplate(firstTemplate.text));
+    setStudioFormat(defaultFormat);
+
+    if (defaultFormat === "feed") {
+      setAspectFormat("feed");
+    }
+  };
+
+  const handleSelectFormat = (format: MarketingFormat) => {
+    setStudioFormat(format);
+    if (format === "story") {
+      handleToggleFormat("story");
+    } else if (format === "feed") {
+      handleToggleFormat("feed");
+    }
+    const matchedTmpl = currentTemplates.find((t) => t.format === format);
+    if (matchedTmpl) {
+      setSelectedTemplateId(matchedTmpl.id);
+      setActiveCaptionText(buildCaptionTemplate(matchedTmpl.text));
+    }
+  };
 
   return (
     <div className="bg-[#FAF9F5] border border-[#E3E1D9] rounded-2xl w-full max-w-6xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden">
@@ -1159,13 +1188,7 @@ function CouponImageGeneratorContent({
             <button
               type="button"
               onClick={() => {
-                if (canvasRef.current) {
-                  try {
-                    setLiveRenderedImageUrl(canvasRef.current.toDataURL("image/png"));
-                  } catch {
-                    // Ignore CORS if any
-                  }
-                }
+                syncSnapshot();
                 setActiveTab("copy_studio");
               }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -1196,8 +1219,8 @@ function CouponImageGeneratorContent({
         {/* LEFT / CENTER: The Hero Interactive Artwork (Canva Space) */}
         <div
           className="lg:col-span-8 bg-[#121614] p-4 sm:p-6 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-[#242A27] min-h-[520px] select-none"
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
+          onPointerMove={handleContainerPointerMove}
+          onPointerUp={handleContainerPointerUp}
         >
           {/* Format and Tool Controls */}
           <div className="flex items-center justify-between w-full max-w-[420px] mb-3">
@@ -1253,202 +1276,306 @@ function CouponImageGeneratorContent({
               className="w-full h-auto object-contain block rounded-2xl pointer-events-none"
             />
 
-            {/* THE CANVA INTERACTIVE OVERLAY: Direct In-Place Edit & Drag Layer */}
+            {/* THE CANVA INTERACTIVE OVERLAY: Click to Edit + Drag Layer */}
             <div className="absolute inset-0 z-20 pointer-events-auto overflow-hidden">
               {/* 1. Header Group (Tagline & Headline) */}
               <div
                 style={{ top: `${positions.headerGroupY}%` }}
-                onPointerDown={(e) => handlePointerDown("headerGroupY", e)}
-                className={`absolute left-0 right-0 -translate-y-1/2 flex flex-col items-center justify-center px-4 group transition-shadow ${
+                onPointerDown={(e) => handleBlockPointerDown("headerGroupY", e)}
+                className={`absolute left-2 right-2 -translate-y-1/2 flex flex-col items-center justify-center px-2 py-1.5 group rounded-xl transition-all ${
                   draggingKey === "headerGroupY"
-                    ? "ring-2 ring-[#CB5A3C] ring-dashed bg-black/40 cursor-grabbing rounded-xl"
-                    : "hover:ring-1 hover:ring-[#CB5A3C]/70 hover:ring-dashed hover:bg-black/25 rounded-xl cursor-grab"
+                    ? "ring-2 ring-[#CB5A3C] ring-dashed bg-black/50 cursor-grabbing"
+                    : "hover:ring-1 hover:ring-[#CB5A3C]/80 hover:ring-dashed hover:bg-black/30 cursor-pointer"
                 }`}
               >
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-[9.5px] px-2 py-0.5 rounded-full flex items-center gap-1 mb-1 pointer-events-none shadow-md">
-                  <Move size={10} />
-                  <span>Arraste para mover • Clique para editar</span>
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 mb-1 pointer-events-none shadow-lg">
+                  <span className="flex items-center gap-1 text-[#CB5A3C]">
+                    <Edit3 size={11} />
+                    Clique para editar
+                  </span>
+                  <span className="text-white/50">•</span>
+                  <span className="flex items-center gap-1 text-gray-300">
+                    <Move size={11} />
+                    Arraste ↕
+                  </span>
                 </div>
-
-                {/* Tagline Inline Input */}
-                {inlineEditingKey === "tagline" ? (
-                  <input
-                    autoFocus
-                    type="text"
-                    value={tagline}
-                    onChange={(e) => setTagline(e.target.value)}
-                    onBlur={() => setInlineEditingKey(null)}
-                    onKeyDown={(e) => e.key === "Enter" && setInlineEditingKey(null)}
-                    className="w-[90%] text-center text-xs font-bold text-white bg-black/90 border border-[#CB5A3C] rounded-lg px-2 py-1 outline-none shadow-xl"
-                  />
-                ) : (
-                  <div
-                    onClick={() => setInlineEditingKey("tagline")}
-                    className="w-full h-5 cursor-text"
-                    title="Clique para editar subtítulo"
-                  />
-                )}
-
-                {/* Headline Inline Input */}
-                {inlineEditingKey === "headline" ? (
-                  <input
-                    autoFocus
-                    type="text"
-                    value={headline}
-                    onChange={(e) => setHeadline(e.target.value)}
-                    onBlur={() => setInlineEditingKey(null)}
-                    onKeyDown={(e) => e.key === "Enter" && setInlineEditingKey(null)}
-                    className="w-[95%] text-center text-sm font-black text-white bg-black/90 border border-[#CB5A3C] rounded-lg px-2 py-1 outline-none shadow-xl mt-1"
-                  />
-                ) : (
-                  <div
-                    onClick={() => setInlineEditingKey("headline")}
-                    className="w-full h-8 cursor-text mt-1"
-                    title="Clique para editar título principal"
-                  />
-                )}
+                <div className="w-full h-12" />
               </div>
 
               {/* 2. Discount Highlight */}
               <div
                 style={{ top: `${positions.discountY}%` }}
-                onPointerDown={(e) => handlePointerDown("discountY", e)}
-                className={`absolute left-0 right-0 -translate-y-1/2 flex flex-col items-center justify-center px-4 group transition-shadow ${
+                onPointerDown={(e) => handleBlockPointerDown("discountY", e)}
+                className={`absolute left-2 right-2 -translate-y-1/2 flex flex-col items-center justify-center px-2 py-1.5 group rounded-xl transition-all ${
                   draggingKey === "discountY"
-                    ? "ring-2 ring-[#CB5A3C] ring-dashed bg-black/40 cursor-grabbing rounded-xl"
-                    : "hover:ring-1 hover:ring-[#CB5A3C]/70 hover:ring-dashed hover:bg-black/25 rounded-xl cursor-grab"
+                    ? "ring-2 ring-[#CB5A3C] ring-dashed bg-black/50 cursor-grabbing"
+                    : "hover:ring-1 hover:ring-[#CB5A3C]/80 hover:ring-dashed hover:bg-black/30 cursor-pointer"
                 }`}
               >
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-[9.5px] px-2 py-0.5 rounded-full flex items-center gap-1 mb-1 pointer-events-none shadow-md">
-                  <Move size={10} />
-                  <span>Arraste o desconto • Clique para alterar valor</span>
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 mb-1 pointer-events-none shadow-lg">
+                  <span className="flex items-center gap-1 text-[#CB5A3C]">
+                    <Edit3 size={11} />
+                    Clique para trocar desconto
+                  </span>
+                  <span className="text-white/50">•</span>
+                  <span className="flex items-center gap-1 text-gray-300">
+                    <Move size={11} />
+                    Arraste ↕
+                  </span>
                 </div>
-
-                {inlineEditingKey === "discount" ? (
-                  <input
-                    autoFocus
-                    type="text"
-                    value={discountHighlight}
-                    onChange={(e) => setDiscountHighlight(e.target.value)}
-                    onBlur={() => setInlineEditingKey(null)}
-                    onKeyDown={(e) => e.key === "Enter" && setInlineEditingKey(null)}
-                    className="w-[85%] text-center text-base font-black text-[#CB5A3C] bg-black/90 border border-[#CB5A3C] rounded-lg px-3 py-1 outline-none shadow-xl"
-                  />
-                ) : (
-                  <div
-                    onClick={() => setInlineEditingKey("discount")}
-                    className="w-full h-10 cursor-text"
-                    title="Clique para editar o desconto"
-                  />
-                )}
+                <div className="w-full h-12" />
               </div>
 
               {/* 3. Coupon Ticket Voucher */}
               <div
                 style={{ top: `${positions.ticketY}%` }}
-                onPointerDown={(e) => handlePointerDown("ticketY", e)}
-                className={`absolute left-4 right-4 flex flex-col items-center justify-center p-2 group transition-shadow ${
+                onPointerDown={(e) => handleBlockPointerDown("ticketY", e)}
+                className={`absolute left-3 right-3 flex flex-col items-center justify-center p-2 group rounded-2xl transition-all ${
                   draggingKey === "ticketY"
-                    ? "ring-2 ring-[#CB5A3C] ring-dashed bg-white/20 cursor-grabbing rounded-2xl"
-                    : "hover:ring-1 hover:ring-[#CB5A3C]/70 hover:ring-dashed hover:bg-black/15 rounded-2xl cursor-grab"
+                    ? "ring-2 ring-[#CB5A3C] ring-dashed bg-white/20 cursor-grabbing"
+                    : "hover:ring-1 hover:ring-[#CB5A3C]/80 hover:ring-dashed hover:bg-black/20 cursor-pointer"
                 }`}
               >
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-[9.5px] px-2 py-0.5 rounded-full flex items-center gap-1 mb-1 pointer-events-none shadow-md">
-                  <Move size={10} />
-                  <span>Arraste o ticket • Clique para alterar código/regras</span>
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 mb-1 pointer-events-none shadow-lg">
+                  <span className="flex items-center gap-1 text-[#CB5A3C]">
+                    <Edit3 size={11} />
+                    Clique para alterar cupom/regras
+                  </span>
+                  <span className="text-white/50">•</span>
+                  <span className="flex items-center gap-1 text-gray-300">
+                    <Move size={11} />
+                    Arraste ↕
+                  </span>
                 </div>
-
-                {/* Click area for Code */}
-                {inlineEditingKey === "couponCode" ? (
-                  <input
-                    autoFocus
-                    type="text"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                    onBlur={() => setInlineEditingKey(null)}
-                    onKeyDown={(e) => e.key === "Enter" && setInlineEditingKey(null)}
-                    className="w-[75%] text-center text-sm font-mono font-black text-gray-950 bg-white border-2 border-[#CB5A3C] rounded-lg px-2 py-1 outline-none shadow-xl mt-3"
-                  />
-                ) : (
-                  <div
-                    onClick={() => setInlineEditingKey("couponCode")}
-                    className="w-[80%] h-8 cursor-text mt-3"
-                    title="Clique para editar o código do cupom"
-                  />
-                )}
-
-                {/* Click area for Rule */}
-                {inlineEditingKey === "minOrder" ? (
-                  <input
-                    autoFocus
-                    type="text"
-                    value={minOrderText}
-                    onChange={(e) => setMinOrderText(e.target.value)}
-                    onBlur={() => setInlineEditingKey(null)}
-                    onKeyDown={(e) => e.key === "Enter" && setInlineEditingKey(null)}
-                    className="w-[85%] text-center text-[11px] font-bold text-gray-800 bg-white border border-[#CB5A3C] rounded-lg px-2 py-0.5 outline-none shadow-xl mt-2"
-                  />
-                ) : (
-                  <div
-                    onClick={() => setInlineEditingKey("minOrder")}
-                    className="w-[85%] h-5 cursor-text mt-2"
-                    title="Clique para editar a regra de pedido mínimo"
-                  />
-                )}
+                <div className="w-full h-20" />
               </div>
 
               {/* 4. Call to Action Pill */}
               <div
                 style={{ top: `${positions.ctaY}%` }}
-                onPointerDown={(e) => handlePointerDown("ctaY", e)}
-                className={`absolute left-4 right-4 flex flex-col items-center justify-center p-1 group transition-shadow ${
+                onPointerDown={(e) => handleBlockPointerDown("ctaY", e)}
+                className={`absolute left-4 right-4 flex flex-col items-center justify-center p-1 group rounded-full transition-all ${
                   draggingKey === "ctaY"
-                    ? "ring-2 ring-white ring-dashed bg-black/40 cursor-grabbing rounded-full"
-                    : "hover:ring-1 hover:ring-white/80 hover:ring-dashed hover:bg-black/25 rounded-full cursor-grab"
+                    ? "ring-2 ring-white ring-dashed bg-black/40 cursor-grabbing"
+                    : "hover:ring-1 hover:ring-white/80 hover:ring-dashed hover:bg-black/25 cursor-pointer"
                 }`}
               >
-                {inlineEditingKey === "cta" ? (
-                  <input
-                    autoFocus
-                    type="text"
-                    value={callToAction}
-                    onChange={(e) => setCallToAction(e.target.value)}
-                    onBlur={() => setInlineEditingKey(null)}
-                    onKeyDown={(e) => e.key === "Enter" && setInlineEditingKey(null)}
-                    className="w-[90%] text-center text-xs font-bold text-white bg-black/90 border border-white rounded-full px-3 py-1 outline-none shadow-xl"
-                  />
-                ) : (
-                  <div
-                    onClick={() => setInlineEditingKey("cta")}
-                    className="w-[90%] h-6 cursor-text"
-                    title="Clique para editar a chamada de ação"
-                  />
-                )}
+                <div className="w-full h-8" />
               </div>
 
               {/* 5. Socials & Link (Draggable footer) */}
               <div
                 style={{ top: `${positions.socialsY}%` }}
-                onPointerDown={(e) => handlePointerDown("socialsY", e)}
-                className={`absolute left-2 right-2 flex flex-col items-center justify-center p-1 group transition-shadow ${
+                onPointerDown={(e) => handleBlockPointerDown("socialsY", e)}
+                className={`absolute left-2 right-2 flex flex-col items-center justify-center p-1 group rounded-xl transition-all ${
                   draggingKey === "socialsY"
-                    ? "ring-2 ring-white/60 ring-dashed bg-black/40 cursor-grabbing rounded-xl"
-                    : "hover:ring-1 hover:ring-white/40 hover:ring-dashed hover:bg-black/25 rounded-xl cursor-grab"
+                    ? "ring-2 ring-white/60 ring-dashed bg-black/40 cursor-grabbing"
+                    : "hover:ring-1 hover:ring-white/40 hover:ring-dashed hover:bg-black/25 cursor-grab"
                 }`}
               >
-                <div
-                  className="w-full h-8 cursor-grab"
-                  title="Arraste para reposicionar o bloco de redes e link"
-                />
+                <div className="w-full h-10" />
               </div>
             </div>
+
+            {/* DIRECT EDITING POPUP MODAL (Opens instantly on click!) */}
+            {activeEditTarget && (
+              <div
+                className="absolute inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-100"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) setActiveEditTarget(null);
+                }}
+              >
+                <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-2xl border border-gray-200 w-full max-w-[320px] text-gray-950 space-y-3">
+                  {/* EDIT TARGET 1: HEADER (TAGLINE + HEADLINE) */}
+                  {activeEditTarget === "header" && (
+                    <>
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <span className="text-xs font-bold text-gray-900">
+                          Editar Título e Subtítulo
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveEditTarget(null)}
+                          className="text-gray-400 hover:text-gray-700"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                          Subtítulo / Tagline
+                        </label>
+                        <input
+                          autoFocus
+                          type="text"
+                          value={tagline}
+                          onChange={(e) => setTagline(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && setActiveEditTarget(null)}
+                          className="w-full px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg outline-none focus:border-[#CB5A3C]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                          Título Principal
+                        </label>
+                        <input
+                          type="text"
+                          value={headline}
+                          onChange={(e) => setHeadline(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && setActiveEditTarget(null)}
+                          className="w-full px-3 py-1.5 text-xs font-bold border border-gray-300 rounded-lg outline-none focus:border-[#CB5A3C]"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* EDIT TARGET 2: DISCOUNT HIGHLIGHT */}
+                  {activeEditTarget === "discount" && (
+                    <>
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <span className="text-xs font-bold text-gray-900">
+                          Editar Destaque do Desconto
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveEditTarget(null)}
+                          className="text-gray-400 hover:text-gray-700"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                          Texto do Desconto
+                        </label>
+                        <input
+                          autoFocus
+                          type="text"
+                          value={discountHighlight}
+                          onChange={(e) => setDiscountHighlight(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && setActiveEditTarget(null)}
+                          className="w-full px-3 py-2 text-base font-black text-[#CB5A3C] text-center border border-gray-300 rounded-lg outline-none focus:border-[#CB5A3C]"
+                        />
+                      </div>
+
+                      {/* Quick chips */}
+                      <div>
+                        <span className="text-[10px] text-gray-500 font-semibold block mb-1">
+                          Atalhos Rápidos:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {["10% OFF", "15% OFF", "20% OFF", "FRETE GRÁTIS", "R$ 10 OFF"].map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => setDiscountHighlight(opt)}
+                              className="px-2 py-0.5 rounded-md bg-gray-100 hover:bg-[#FAF0ED] hover:text-[#CB5A3C] text-[11px] font-bold text-gray-700 transition-colors"
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* EDIT TARGET 3: TICKET VOUCHER */}
+                  {activeEditTarget === "ticket" && (
+                    <>
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <span className="text-xs font-bold text-gray-900">
+                          Editar Cupom e Regra
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveEditTarget(null)}
+                          className="text-gray-400 hover:text-gray-700"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                          Código do Cupom
+                        </label>
+                        <input
+                          autoFocus
+                          type="text"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => e.key === "Enter" && setActiveEditTarget(null)}
+                          className="w-full px-3 py-1.5 text-sm font-mono font-black text-gray-950 text-center border border-gray-300 rounded-lg outline-none focus:border-[#CB5A3C]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                          Regra de Pedido Mínimo
+                        </label>
+                        <input
+                          type="text"
+                          value={minOrderText}
+                          onChange={(e) => setMinOrderText(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && setActiveEditTarget(null)}
+                          className="w-full px-3 py-1.5 text-xs font-medium text-gray-800 border border-gray-300 rounded-lg outline-none focus:border-[#CB5A3C]"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* EDIT TARGET 4: CALL TO ACTION */}
+                  {activeEditTarget === "cta" && (
+                    <>
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <span className="text-xs font-bold text-gray-900">
+                          Editar Chamada de Ação
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveEditTarget(null)}
+                          className="text-gray-400 hover:text-gray-700"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                          Texto do Botão
+                        </label>
+                        <input
+                          autoFocus
+                          type="text"
+                          value={callToAction}
+                          onChange={(e) => setCallToAction(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && setActiveEditTarget(null)}
+                          className="w-full px-3 py-1.5 text-xs font-semibold text-gray-900 border border-gray-300 rounded-lg outline-none focus:border-[#CB5A3C]"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveEditTarget(null)}
+                    className="w-full py-2 rounded-xl bg-[#2E4233] hover:bg-[#243428] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer mt-1"
+                  >
+                    ✓ Concluir Edição
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Canva Studio Helper Tip */}
           <div className="mt-3 flex items-center gap-2 text-xs text-gray-300 bg-[#1C221F] px-3.5 py-1.5 rounded-full border border-[#2D3631]">
             <Edit3 size={13} className="text-[#CB5A3C]" />
             <span>
-              <strong>Modo Canva Ativo:</strong> Clique em qualquer texto na imagem para editar ou arraste para reposicionar.
+              <strong>Modo Direto:</strong> Clique em qualquer texto para editar ou arraste verticalmente para posicionar.
             </span>
           </div>
         </div>
@@ -1456,8 +1583,61 @@ function CouponImageGeneratorContent({
         {/* RIGHT: Lean & Clean Quick Inspector (No cluttered form!) */}
         <div className="lg:col-span-4 p-5 space-y-4 overflow-y-auto bg-white flex flex-col justify-between">
           <div className="space-y-4">
-            {/* 1. Nicho & Imagem de Fundo */}
+            {/* Quick Text Shortcut Chips (Easy one-click access) */}
             <div>
+              <label className="text-xs font-bold text-[#1A241E] block mb-1.5">
+                Textos Rápidos da Arte (Clique para editar)
+              </label>
+
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setActiveEditTarget("header")}
+                  className="p-2 rounded-xl border border-gray-200 bg-[#FAF8F0] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
+                >
+                  <span className="text-[10px] text-gray-500 font-semibold block">Título:</span>
+                  <span className="text-xs font-bold text-gray-900 truncate block">
+                    {headline}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveEditTarget("discount")}
+                  className="p-2 rounded-xl border border-gray-200 bg-[#FAF8F0] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
+                >
+                  <span className="text-[10px] text-gray-500 font-semibold block">Desconto:</span>
+                  <span className="text-xs font-black text-[#CB5A3C] truncate block">
+                    {discountHighlight}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveEditTarget("ticket")}
+                  className="p-2 rounded-xl border border-gray-200 bg-[#FAF8F0] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
+                >
+                  <span className="text-[10px] text-gray-500 font-semibold block">Cupom:</span>
+                  <span className="text-xs font-mono font-bold text-gray-900 truncate block">
+                    {couponCode}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveEditTarget("cta")}
+                  className="p-2 rounded-xl border border-gray-200 bg-[#FAF8F0] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
+                >
+                  <span className="text-[10px] text-gray-500 font-semibold block">Botão / CTA:</span>
+                  <span className="text-xs font-bold text-gray-900 truncate block">
+                    {callToAction}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* 1. Fundo da Arte */}
+            <div className="border-t border-[#ECEAE2] pt-3.5">
               <label className="text-xs font-bold text-[#1A241E] block mb-1.5">
                 1. Fundo da Arte
               </label>
@@ -1535,7 +1715,7 @@ function CouponImageGeneratorContent({
               )}
             </div>
 
-            {/* 2. Redes Sociais na Arte (Compacto & Sem Poluição) */}
+            {/* 2. Redes Sociais no Rodapé */}
             <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-[#1A241E]">
@@ -1666,7 +1846,6 @@ function CouponImageGeneratorContent({
       {/* TAB 2: ESTÚDIO DE LEGENDAS (MULTI-REDE SOCIAL & MOCKUPS REAIS) */}
       {/* ============================================================== */}
       <div className={`flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-0 ${activeTab === "copy_studio" ? "" : "hidden"}`}>
-        {/* LEFT: Live Realistic Mockup based on Channel & Format */}
         <div className="lg:col-span-5 bg-[#171A18] p-4 sm:p-6 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-[#242A27] min-h-[440px] overflow-y-auto">
           {/* MOCKUP 1: INSTAGRAM FEED (1:1) */}
           {studioChannel === "instagram" && studioFormat === "feed" && (
