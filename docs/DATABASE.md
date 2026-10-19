@@ -226,6 +226,40 @@ delivery_zones
 store_delivery_settings
 ```
 
+#### store_delivery_settings
+
+Represents delivery rules, operational schedules, profile metadata, and payment options for a Store.
+
+Fields include:
+```text
+store_id                  UUID PK -> stores(id) on delete cascade
+min_order_cents           integer not null default 0
+default_prep_min          integer not null default 30
+default_prep_max          integer not null default 50
+delivery_fee_cents        integer not null default 500
+free_delivery_above_cents integer nullable
+accepts_delivery          boolean not null default true
+accepts_pickup            boolean not null default true
+is_open_override          boolean nullable (manual open/close toggle)
+phone                     text not null default ''
+instagram                 text not null default ''
+address                   text not null default ''
+bio                       text not null default ''
+category                  text not null default 'Restaurante'
+logo_url                  text nullable
+banner_url                text nullable
+pix_key                   text not null default ''
+pix_key_type              text not null default 'cpf'
+accept_cash               boolean not null default true
+need_change_option        boolean not null default true
+accept_card               boolean not null default true
+accept_pix                boolean not null default true
+accept_meal_voucher       boolean not null default false
+business_hours            jsonb not null (weekly schedule seg-dom)
+printer_settings          jsonb not null (auto_print, paper_width, copies, sound_alerts)
+created_at, updated_at    timestamptz
+```
+
 Do not design geographic complexity before requirements are known.
 
 ### orders

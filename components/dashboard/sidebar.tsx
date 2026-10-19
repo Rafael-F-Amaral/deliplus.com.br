@@ -16,6 +16,7 @@ import {
   CircleDollarSign,
   BarChart3,
   Settings,
+  Store,
   LogOut,
   CreditCard,
   ChevronDown,
@@ -66,7 +67,7 @@ const menuItems: MenuItem[] = [
   { name: 'Financeiro', short: 'Financeiro', href: '/dashboard/finance', icon: CircleDollarSign },
   { name: 'Relatórios', short: 'Relatórios', href: '/dashboard/reports', icon: BarChart3 },
   { name: 'Assinatura', short: 'Assinatura', href: '/dashboard/billing', icon: CreditCard },
-  { name: 'Configurações', short: 'Config.', href: '/dashboard/settings', icon: Settings },
+  { name: 'Minha Loja', short: 'Loja', href: '/dashboard/settings', icon: Store },
 ]
 
 export function DashboardSidebar() {

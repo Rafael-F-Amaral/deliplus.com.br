@@ -14,7 +14,7 @@
     "motors": "node scripts/motors.mjs start",
     "motors:stop": "node scripts/motors.mjs stop",
     "motors:status": "node scripts/motors.mjs status",
-    "dev": "next dev -H 0.0.0.0",
+    "dev": "next dev --webpack -H 0.0.0.0 -p 3004",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

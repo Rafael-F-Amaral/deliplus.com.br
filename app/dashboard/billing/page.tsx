@@ -55,7 +55,7 @@ export default async function BillingPage({
   searchParams,
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
-} = {}) {
+}) {
   const [state, query] = await Promise.all([
     readBillingPageState(),
     searchParams ??
