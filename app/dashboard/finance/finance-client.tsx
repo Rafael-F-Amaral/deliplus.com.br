@@ -544,8 +544,8 @@ export function FinanceClient({
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#FAF9F5] px-3.5 sm:px-6 lg:px-7 py-2.5 sm:py-3 lg:py-3.5 text-[#1C201A] font-sans antialiased">
-      <div className="w-full space-y-2 lg:space-y-2.5">
+    <div className="w-full min-h-screen bg-[#FAF9F5] px-3.5 sm:px-6 lg:px-7 py-3 sm:py-3.5 lg:py-4 text-[#1C201A] font-sans antialiased">
+      <div className="w-full space-y-2.5 sm:space-y-3 lg:space-y-3.5">
         {/* Success Alert when fees are updated */}
         {savedSuccessAlert && (
           <div className="bg-[#EDF6EC] border border-[#CDE3CA] text-[#2E7D32] text-xs px-3.5 py-1.5 rounded-xl flex items-center justify-between shadow-2xs transition-all">
@@ -563,10 +563,10 @@ export function FinanceClient({
         )}
 
         {/* --- HEADER --- */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-serif text-[22px] sm:text-[24px] lg:text-[26px] text-[#CB5A3C] font-normal tracking-tight leading-tight">
+            <div className="flex items-center gap-2.5">
+              <h1 className="font-serif text-[28px] sm:text-[32px] md:text-[34px] text-[#CB5A3C] font-normal tracking-tight leading-tight">
                 Financeiro
               </h1>
               <HelpTooltip
@@ -577,21 +577,21 @@ export function FinanceClient({
                   "Defina alíquotas de maquininha/banco para apuração líquida precisa.",
                   "Acompanhe o ticket médio e preserve o estoque de forma isolada."
                 ]}
-                size="sm"
+                size="md"
                 align="left"
               />
             </div>
-            <p className="text-[11px] sm:text-[11.5px] lg:text-[12px] text-[#1C201A] mt-0.5">
+            <p className="text-xs sm:text-[13px] text-[#1C201A] mt-0.5">
               Gestão de vendas dos pedidos, taxas de operadoras e faturamento
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {/* Period Selector */}
             <div className="relative">
               <button
                 onClick={() => setIsPeriodOpen(!isPeriodOpen)}
-                className="flex items-center gap-1.5 bg-white border border-[#E5E6E1] hover:border-[#D0D2C8] rounded-xl px-3 py-1.5 text-xs font-medium text-[#1C201A] shadow-2xs transition-all cursor-pointer"
+                className="flex items-center gap-2 bg-white border border-[#E5E6E1] hover:border-[#D0D2C8] rounded-xl px-3.5 py-2 text-xs font-medium text-[#1C201A] shadow-2xs transition-all cursor-pointer"
               >
                 <Calendar className="w-3.5 h-3.5 text-[#4A5547]" strokeWidth={1.8} />
                 <span>{selectedPeriod}</span>
@@ -628,7 +628,7 @@ export function FinanceClient({
             {/* Export Report Button (PDF) */}
             <button
               onClick={handleExportPDF}
-              className="flex items-center gap-1.5 bg-[#CB5A3C] hover:bg-[#B84E32] text-white rounded-xl px-3.5 py-1.5 text-xs font-semibold shadow-2xs transition-all cursor-pointer active:scale-95"
+              className="flex items-center gap-1.5 bg-[#CB5A3C] hover:bg-[#B84E32] text-white rounded-xl px-4 py-2 text-xs font-semibold shadow-2xs transition-all cursor-pointer active:scale-95"
               title="Baixar relatório executivo em PDF"
             >
               <Download className="w-3.5 h-3.5 text-white" strokeWidth={2} />
@@ -637,11 +637,11 @@ export function FinanceClient({
           </div>
         </div>
 
-        {/* --- ROW 1: 5 KPI CARDS (COMPACTOS PARA CABER 100% NA TELA SEM SCROLLBAR) --- */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 lg:gap-3">
+        {/* --- ROW 1: 5 KPI CARDS (PROPORÇÃO EQUILIBRADA QUE PREENCHE A ALTURA DA TELA) --- */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 lg:gap-3.5">
           {/* Card 1: Faturamento bruto */}
-          <div className="bg-white rounded-[18px] p-3 lg:p-3.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[92px] lg:min-h-[96px]">
-            <div className="flex items-center gap-1.5 text-xs lg:text-[12.5px] font-semibold text-[#CB5A3C]">
+          <div className="bg-white rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
+            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
               <span>Faturamento bruto</span>
               <HelpTooltip
                 title="Faturamento Bruto"
@@ -651,11 +651,11 @@ export function FinanceClient({
               />
             </div>
 
-            <div className="mt-1">
-              <div className="text-[20px] sm:text-[22px] lg:text-[23px] font-bold text-[#1C201A] tracking-tight leading-none mb-1.5">
+            <div className="mt-1.5">
+              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] tracking-tight leading-none mb-1.5">
                 {formatBRL(metrics.totalGross)}
               </div>
-              <div className="flex items-center gap-1.5 text-[10.5px] lg:text-[11px]">
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#EAF5E9] text-[#2E7D32] font-bold">
                   <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                   +12,4%
@@ -666,8 +666,8 @@ export function FinanceClient({
           </div>
 
           {/* Card 2: Taxas bancárias */}
-          <div className="bg-white rounded-[18px] p-3 lg:p-3.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[92px] lg:min-h-[96px]">
-            <div className="flex items-center gap-1.5 text-xs lg:text-[12.5px] font-semibold text-[#CB5A3C]">
+          <div className="bg-white rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
+            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
               <span>Taxas bancárias</span>
               <HelpTooltip
                 title="Taxas Bancárias e Operadoras"
@@ -677,11 +677,11 @@ export function FinanceClient({
               />
             </div>
 
-            <div className="mt-1">
-              <div className="text-[20px] sm:text-[22px] lg:text-[23px] font-bold text-[#1C201A] tracking-tight leading-none mb-1.5">
+            <div className="mt-1.5">
+              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] tracking-tight leading-none mb-1.5">
                 {formatBRL(metrics.totalFees)}
               </div>
-              <div className="flex items-center gap-1.5 text-[10.5px] lg:text-[11px]">
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#FDF2EC] text-[#CB5A3C] font-bold">
                   {(metrics.totalGross > 0 ? (metrics.totalFees / metrics.totalGross) * 100 : 2.07).toFixed(2).replace(".", ",")}%
                 </span>
@@ -691,8 +691,8 @@ export function FinanceClient({
           </div>
 
           {/* Card 3: Receita líquida */}
-          <div className="bg-white rounded-[18px] p-3 lg:p-3.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[92px] lg:min-h-[96px]">
-            <div className="flex items-center gap-1.5 text-xs lg:text-[12.5px] font-semibold text-[#CB5A3C]">
+          <div className="bg-white rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
+            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
               <span>Receita líquida</span>
               <HelpTooltip
                 title="Receita Líquida Real"
@@ -702,11 +702,11 @@ export function FinanceClient({
               />
             </div>
 
-            <div className="mt-1">
-              <div className="text-[20px] sm:text-[22px] lg:text-[23px] font-bold text-[#1C201A] tracking-tight leading-none mb-1.5">
+            <div className="mt-1.5">
+              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] tracking-tight leading-none mb-1.5">
                 {formatBRL(metrics.totalNet)}
               </div>
-              <div className="flex items-center gap-1.5 text-[10.5px] lg:text-[11px]">
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#EAF5E9] text-[#2E7D32] font-bold">
                   <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                   +13,1%
@@ -717,8 +717,8 @@ export function FinanceClient({
           </div>
 
           {/* Card 4: Ticket médio */}
-          <div className="bg-white rounded-[18px] p-3 lg:p-3.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[92px] lg:min-h-[96px]">
-            <div className="flex items-center gap-1.5 text-xs lg:text-[12.5px] font-semibold text-[#CB5A3C]">
+          <div className="bg-white rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
+            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
               <span>Ticket médio</span>
               <HelpTooltip
                 title="Ticket Médio"
@@ -728,11 +728,11 @@ export function FinanceClient({
               />
             </div>
 
-            <div className="mt-1">
-              <div className="text-[20px] sm:text-[22px] lg:text-[23px] font-bold text-[#1C201A] tracking-tight leading-none mb-1.5">
+            <div className="mt-1.5">
+              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] tracking-tight leading-none mb-1.5">
                 {formatBRL(metrics.avgTicket)}
               </div>
-              <div className="flex items-center gap-1.5 text-[10.5px] lg:text-[11px]">
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#EFF6FF] text-[#2563EB] font-bold">
                   <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                   +8,6%
@@ -743,8 +743,8 @@ export function FinanceClient({
           </div>
 
           {/* Card 5: Margem líquida */}
-          <div className="bg-white rounded-[18px] p-3 lg:p-3.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[92px] lg:min-h-[96px]">
-            <div className="flex items-center gap-1.5 text-xs lg:text-[12.5px] font-semibold text-[#CB5A3C]">
+          <div className="bg-white rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
+            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
               <span>Margem líquida</span>
               <HelpTooltip
                 title="Margem Líquida Real"
@@ -754,13 +754,13 @@ export function FinanceClient({
               />
             </div>
 
-            <div className="mt-1">
-              <div className="text-[20px] sm:text-[22px] lg:text-[23px] font-bold text-[#059669] tracking-tight leading-none mb-1.5">
+            <div className="mt-1.5">
+              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#059669] tracking-tight leading-none mb-1.5">
                 {metrics.totalGross > 0
                   ? `${((metrics.totalNet / metrics.totalGross) * 100).toFixed(1).replace(".", ",")}%`
                   : "100,0%"}
               </div>
-              <div className="flex items-center gap-1.5 text-[10.5px] lg:text-[11px]">
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#EAF5E9] text-[#2E7D32] font-bold">
                   <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                   Efetiva
@@ -772,15 +772,15 @@ export function FinanceClient({
         </div>
 
         {/* --- ROW 2: GRÁFICO DE BARRAS & FORMAS DE PAGAMENTO --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 lg:gap-3 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-3 lg:gap-3.5 items-stretch">
           {/* Card: Evolução da receita - Spans 7 cols */}
-          <div className="lg:col-span-7 bg-white rounded-[18px] p-3 lg:p-3.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+          <div className="lg:col-span-7 bg-white rounded-[20px] p-3.5 sm:p-4 lg:p-4.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
             <div>
               {/* Header */}
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-1.5">
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <h2 className="text-[13.5px] lg:text-[14.5px] font-semibold text-[#CB5A3C]">
+                    <h2 className="text-[14px] sm:text-[15px] lg:text-[15.5px] font-semibold text-[#CB5A3C]">
                       Evolução da receita
                     </h2>
                     <HelpTooltip
@@ -790,24 +790,24 @@ export function FinanceClient({
                       align="left"
                     />
                   </div>
-                  <p className="text-[10.5px] lg:text-[11px] text-[#1C201A] mt-0.5">
+                  <p className="text-[11px] sm:text-[11.5px] text-[#1C201A] mt-0.5">
                     Comparativo diário de vendas, receita líquida e taxas
                   </p>
                 </div>
               </div>
 
               {/* Legend */}
-              <div className="flex items-center gap-3 text-[11px] font-medium mb-1.5 pt-0.5">
+              <div className="flex items-center gap-3.5 text-xs font-medium mb-2 pt-0.5">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 bg-[#2563EB] rounded-xs inline-block"></span>
+                  <span className="w-2.5 h-2.5 bg-[#2563EB] rounded-xs inline-block"></span>
                   <span className="text-[#2563EB] font-semibold">Vendas brutas</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 bg-[#059669] rounded-xs inline-block"></span>
+                  <span className="w-2.5 h-2.5 bg-[#059669] rounded-xs inline-block"></span>
                   <span className="text-[#059669] font-semibold">Receita líquida</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 bg-[#EA580C] rounded-xs inline-block"></span>
+                  <span className="w-2.5 h-2.5 bg-[#EA580C] rounded-xs inline-block"></span>
                   <span className="text-[#EA580C] font-semibold">Taxa bancária</span>
                 </div>
               </div>
@@ -815,7 +815,7 @@ export function FinanceClient({
 
             {/* SVG Modern 3-Bar Chart with Scrollbar */}
             <div className="w-full overflow-x-auto pb-1 chart-horizontal-scroll">
-              <div className="relative min-w-[560px] w-full h-[125px] lg:h-[135px] select-none mt-0.5">
+              <div className="relative min-w-[560px] w-full h-[150px] lg:h-[162px] select-none mt-0.5">
                 <svg
                   viewBox="0 0 620 160"
                   className="w-full h-full overflow-visible"
@@ -986,12 +986,12 @@ export function FinanceClient({
           </div>
 
           {/* Card: Faturamento por forma de pagamento & Configuração de Taxas - Spans 5 cols */}
-          <div className="lg:col-span-5 bg-white rounded-[18px] p-3 lg:p-3.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+          <div className="lg:col-span-5 bg-white rounded-[20px] p-3.5 sm:p-4 lg:p-4.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
             <div>
               {/* Header with Settings Button (Desktop: solid button, Mobile: elegant orange link) */}
-              <div className="flex items-center justify-between gap-2 mb-1.5">
+              <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <h2 className="text-[13.5px] lg:text-[14.5px] font-semibold text-[#CB5A3C] truncate">
+                  <h2 className="text-[14px] sm:text-[15px] lg:text-[15.5px] font-semibold text-[#CB5A3C] truncate">
                     Faturamento por forma de pagamento
                   </h2>
                   <HelpTooltip
@@ -1008,7 +1008,7 @@ export function FinanceClient({
                     setTempFees(feeSettings);
                     setIsFeeModalOpen(true);
                   }}
-                  className="hidden sm:inline-flex items-center text-xs text-white font-semibold bg-[#CB5A3C] hover:bg-[#B84E32] px-3 py-1.5 rounded-xl shadow-2xs transition-all cursor-pointer active:scale-95 shrink-0"
+                  className="hidden sm:inline-flex items-center text-xs text-white font-semibold bg-[#CB5A3C] hover:bg-[#B84E32] px-3.5 py-1.5 rounded-xl shadow-2xs transition-all cursor-pointer active:scale-95 shrink-0"
                   title="Configurar taxas de cartão, PIX e banco"
                 >
                   Configurar taxas
@@ -1028,9 +1028,9 @@ export function FinanceClient({
               </div>
 
               {/* Donut Chart + Legend Grid */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 my-1">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3.5 my-1.5">
                 {/* Donut SVG with distinct high-contrast colors */}
-                <div className="relative w-22 h-22 lg:w-24 lg:h-24 shrink-0 flex items-center justify-center">
+                <div className="relative w-26 h-26 sm:w-28 sm:h-28 lg:w-30 lg:h-30 shrink-0 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                     {/* Crédito: Azul Royal #2563EB */}
                     <circle
@@ -1080,21 +1080,21 @@ export function FinanceClient({
 
                   {/* Center Text inside Donut */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-                    <span className="text-[11.5px] lg:text-[12.5px] font-bold text-[#1C201A] tracking-tight leading-tight">
+                    <span className="text-[13px] sm:text-[13.5px] lg:text-[14px] font-bold text-[#1C201A] tracking-tight leading-tight">
                       {formatBRL(metrics.totalGross)}
                     </span>
-                    <span className="text-[9px] text-[#82887D] leading-tight">
+                    <span className="text-[9.5px] text-[#82887D] leading-tight mt-0.5">
                       Total
                     </span>
                   </div>
                 </div>
 
                 {/* Legend List */}
-                <div className="space-y-1 text-xs lg:text-[11.5px] flex-1 w-full pl-0 sm:pl-2">
+                <div className="space-y-1.5 text-xs lg:text-[12px] flex-1 w-full pl-0 sm:pl-2">
                   {/* Crédito */}
                   <div className="flex items-center justify-between py-0.5 border-b border-[#F5F6F0]">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#2563EB] shrink-0"></span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#2563EB] shrink-0"></span>
                       <div>
                         <div className="font-medium text-[#1C201A] leading-tight">
                           Crédito{" "}
@@ -1113,7 +1113,7 @@ export function FinanceClient({
                   {/* Débito */}
                   <div className="flex items-center justify-between py-0.5 border-b border-[#F5F6F0]">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#059669] shrink-0"></span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#059669] shrink-0"></span>
                       <div>
                         <div className="font-medium text-[#1C201A] leading-tight">
                           Débito{" "}
@@ -1132,7 +1132,7 @@ export function FinanceClient({
                   {/* PIX */}
                   <div className="flex items-center justify-between py-0.5 border-b border-[#F5F6F0]">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#CB5A3C] shrink-0"></span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#CB5A3C] shrink-0"></span>
                       <div>
                         <div className="font-medium text-[#1C201A] leading-tight">
                           PIX{" "}
@@ -1151,7 +1151,7 @@ export function FinanceClient({
                   {/* Dinheiro */}
                   <div className="flex items-center justify-between py-0.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#D97706] shrink-0"></span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#D97706] shrink-0"></span>
                       <div>
                         <div className="font-medium text-[#1C201A] leading-tight">
                           Dinheiro{" "}
@@ -1171,28 +1171,28 @@ export function FinanceClient({
             </div>
 
             {/* Footer with visible average fee badge */}
-            <div className="pt-1.5 border-t border-[#F2F3EE] flex items-center justify-between">
-              <div className="inline-flex items-center gap-2 bg-[#EAF2E8] border border-[#CFE0CE] px-2.5 py-0.5 rounded-xl text-[10.5px] lg:text-[11px]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#2E4233]" />
+            <div className="pt-2 border-t border-[#F2F3EE] flex items-center justify-between">
+              <div className="inline-flex items-center gap-2 bg-[#EAF2E8] border border-[#CFE0CE] px-3 py-1 rounded-xl text-xs">
+                <span className="w-2 h-2 rounded-full bg-[#2E4233]" />
                 <span className="font-bold text-[#2E4233]">
                   Taxa média: {(metrics.totalGross > 0 ? (metrics.totalFees / metrics.totalGross) * 100 : 0).toFixed(2)}%
                 </span>
-                <span className="text-[10px] text-[#2E4233]/70 font-medium">(ponderada pelo volume)</span>
+                <span className="text-[10.5px] text-[#2E4233]/70 font-medium">(ponderada pelo volume)</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* --- ROW 3: TRANSAÇÕES (PAGINAÇÃO FIXA DE 4 EM 4, SEM SCROLLBAR NO DESKTOP, CARDS NO MOBILE) --- */}
-        <div className="w-full bg-white rounded-[18px] p-3 lg:p-3.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-2">
+        <div className="w-full bg-white rounded-[20px] p-3.5 sm:p-4 lg:p-4.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-2.5">
           {/* Header Controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div>
-              <div className="flex items-center gap-1.5">
-                <h2 className="text-[13.5px] lg:text-[14.5px] font-semibold text-[#CB5A3C]">
+              <div className="flex items-center gap-2">
+                <h2 className="text-[14px] sm:text-[15px] lg:text-[15.5px] font-semibold text-[#CB5A3C]">
                   Transações dos Pedidos
                 </h2>
-                <span className="text-[10.5px] bg-[#EAF2E8] text-[#2E4233] border border-[#CFE0CE] font-bold px-2 py-0.5 rounded-full">
+                <span className="text-[11px] bg-[#EAF2E8] text-[#2E4233] border border-[#CFE0CE] font-bold px-2.5 py-0.5 rounded-full">
                   {filteredTransactions.length} pedidos
                 </span>
                 <HelpTooltip
@@ -1202,7 +1202,7 @@ export function FinanceClient({
                   align="left"
                 />
               </div>
-              <p className="text-[10.5px] lg:text-[11px] text-[#1C201A] mt-0.5">
+              <p className="text-[11px] sm:text-[11.5px] text-[#1C201A] mt-0.5">
                 Valores calculados automaticamente a partir dos pedidos concluídos na cozinha
               </p>
             </div>
@@ -1215,7 +1215,7 @@ export function FinanceClient({
                   placeholder="Buscar pedido, cliente..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-[#F8F9F5] border border-[#E5E6E1] focus:border-[#4A6B3A] focus:outline-none rounded-xl pl-7.5 pr-2.5 py-1 text-xs text-[#1C201A] placeholder-[#9CA3AF] w-full sm:w-48 transition-all"
+                  className="bg-[#F8F9F5] border border-[#E5E6E1] focus:border-[#4A6B3A] focus:outline-none rounded-xl pl-7.5 pr-2.5 py-1.5 text-xs text-[#1C201A] placeholder-[#9CA3AF] w-full sm:w-52 transition-all"
                 />
                 <Search className="w-3.5 h-3.5 text-[#9CA3AF] absolute left-2.5 top-1/2 -translate-y-1/2" />
               </div>
@@ -1225,7 +1225,7 @@ export function FinanceClient({
                 <select
                   value={methodFilter}
                   onChange={(e) => setMethodFilter(e.target.value)}
-                  className="appearance-none bg-[#F8F9F5] border border-[#E5E6E1] rounded-xl pl-2.5 pr-6 py-1 text-xs text-[#1C201A] focus:outline-none focus:border-[#4A6B3A] cursor-pointer"
+                  className="appearance-none bg-[#F8F9F5] border border-[#E5E6E1] rounded-xl pl-3 pr-7 py-1.5 text-xs text-[#1C201A] focus:outline-none focus:border-[#4A6B3A] cursor-pointer"
                 >
                   <option value="Todos">Todos os meios</option>
                   <option value="Crédito">Crédito</option>
@@ -1238,24 +1238,24 @@ export function FinanceClient({
             </div>
           </div>
 
-          {/* Table Container - Desktop: NO SCROLLBAR, Fixed Row Height of 38px */}
+          {/* Table Container - Desktop: NO SCROLLBAR, Fixed Row Height of 42px */}
           <div className="hidden md:block w-full overflow-hidden">
-            <table className="w-full text-left border-collapse text-xs lg:text-[12.5px] table-fixed">
+            <table className="w-full text-left border-collapse text-xs lg:text-[13px] table-fixed">
               <thead>
                 <tr className="border-b border-[#E5E6E1]">
-                  <th className="pb-1.5 pt-0.5 font-bold text-[#1C201A] text-[11.5px] w-[10%]">Pedido</th>
-                  <th className="pb-1.5 pt-0.5 font-bold text-[#1C201A] text-[15%]">Data</th>
-                  <th className="pb-1.5 pt-0.5 font-bold text-[#1C201A] text-[18%]">Cliente</th>
-                  <th className="pb-1.5 pt-0.5 font-bold text-[#1C201A] text-[18%]">Forma de pagamento</th>
-                  <th className="pb-1.5 pt-0.5 font-bold text-[#1C201A] text-[13%]">Faturamento bruto</th>
-                  <th className="pb-1.5 pt-0.5 font-bold text-[#1C201A] text-[12%]">Taxa bancária</th>
-                  <th className="pb-1.5 pt-0.5 font-bold text-[#1C201A] text-[14%]">Receita líquida</th>
-                  <th className="pb-1.5 pt-0.5 font-bold text-[#1C201A] text-[8%] text-center">Status</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[10%]">Pedido</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[15%]">Data</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[18%]">Cliente</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[18%]">Forma de pagamento</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[13%]">Faturamento bruto</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[12%]">Taxa bancária</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[14%]">Receita líquida</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[8%] text-center">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F2F3EE]">
                 {paginatedTransactions.length === 0 ? (
-                  <tr className="h-[38px]">
+                  <tr className="h-[42px]">
                     <td colSpan={8} className="py-2 text-center text-xs text-[#7A8275]">
                       Nenhuma transação encontrada com os filtros selecionados.
                     </td>
@@ -1265,14 +1265,14 @@ export function FinanceClient({
                     <tr
                       key={tx.id}
                       onClick={() => setSelectedOrderDetails(tx)}
-                      className="h-[38px] hover:bg-[#FAF9F5] transition-colors cursor-pointer group"
+                      className="h-[42px] hover:bg-[#FAF9F5] transition-colors cursor-pointer group"
                     >
-                      <td className="py-1 font-semibold text-[#1C201A] group-hover:text-[#4A6B3A] transition-colors truncate">
+                      <td className="py-1.5 font-semibold text-[#1C201A] group-hover:text-[#4A6B3A] transition-colors truncate">
                         {tx.id}
                       </td>
-                      <td className="py-1 text-[#4B5563] text-[11.5px] truncate">{tx.date}</td>
-                      <td className="py-1 text-[#1C201A] truncate">{tx.customer}</td>
-                      <td className="py-1 text-[#4B5563] truncate">
+                      <td className="py-1.5 text-[#4B5563] text-[11.5px] lg:text-[12px] truncate">{tx.date}</td>
+                      <td className="py-1.5 text-[#1C201A] truncate">{tx.customer}</td>
+                      <td className="py-1.5 text-[#4B5563] truncate">
                         <span className="inline-flex items-center gap-1.5">
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${
@@ -1288,16 +1288,16 @@ export function FinanceClient({
                           <span className="truncate">{tx.brand ? `${tx.method} • ${tx.brand}` : tx.method}</span>
                         </span>
                       </td>
-                      <td className="py-1 font-medium text-[#1C201A] truncate">
+                      <td className="py-1.5 font-medium text-[#1C201A] truncate">
                         {formatBRL(tx.gross)}
                       </td>
-                      <td className="py-1 text-[#6B7280] truncate">
+                      <td className="py-1.5 text-[#6B7280] truncate">
                         {tx.fees === 0 ? "R$ 0,00" : `- ${formatBRL(Math.abs(tx.fees))}`}
                       </td>
-                      <td className="py-1 font-medium text-[#1C201A] truncate">
+                      <td className="py-1.5 font-medium text-[#1C201A] truncate">
                         {formatBRL(tx.net)}
                       </td>
-                      <td className="py-1 text-center">
+                      <td className="py-1.5 text-center">
                         <span className="inline-block px-2.5 py-0.5 rounded-md bg-[#EAF5E9] text-[#2E7D32] text-[10.5px] font-semibold">
                           {tx.status}
                         </span>
@@ -1308,8 +1308,8 @@ export function FinanceClient({
 
                 {/* Empty rows to complete exactly 4 rows and prevent layout jumps */}
                 {Array.from({ length: emptyRowsCount }).map((_, idx) => (
-                  <tr key={`empty-${idx}`} className="h-[38px]">
-                    <td colSpan={8} className="py-1 text-transparent select-none">
+                  <tr key={`empty-${idx}`} className="h-[42px]">
+                    <td colSpan={8} className="py-1.5 text-transparent select-none">
                       &nbsp;
                     </td>
                   </tr>
@@ -1395,7 +1395,7 @@ export function FinanceClient({
           </div>
 
           {/* Pagination Controls */}
-          <div className="pt-2 border-t border-[#F0F1ED] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] lg:text-xs text-[#7A8275]">
+          <div className="pt-2.5 border-t border-[#F0F1ED] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#7A8275]">
             <span>
               Exibindo{" "}
               <strong className="text-[#1C201A]">
@@ -1412,7 +1412,7 @@ export function FinanceClient({
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-2 py-0.5 rounded-lg border border-[#E5E6E1] text-[#1C201A] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#F5F6F0] transition-colors cursor-pointer text-xs"
+                className="px-2.5 py-1 rounded-lg border border-[#E5E6E1] text-[#1C201A] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#F5F6F0] transition-colors cursor-pointer text-xs"
               >
                 Anterior
               </button>
@@ -1421,7 +1421,7 @@ export function FinanceClient({
                 <button
                   key={i}
                   onClick={() => setCurrentPage(i + 1)}
-                  className={`w-6 h-6 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`w-6.5 h-6.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     currentPage === i + 1
                       ? "bg-[#CB5A3C] text-white shadow-xs"
                       : "border border-[#E5E6E1] text-[#1C201A] hover:bg-[#FEF2EE] hover:text-[#CB5A3C]"
@@ -1434,7 +1434,7 @@ export function FinanceClient({
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-2 py-0.5 rounded-lg border border-[#E5E6E1] text-[#1C201A] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#F5F6F0] transition-colors cursor-pointer text-xs"
+                className="px-2.5 py-1 rounded-lg border border-[#E5E6E1] text-[#1C201A] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#F5F6F0] transition-colors cursor-pointer text-xs"
               >
                 Próxima
               </button>
