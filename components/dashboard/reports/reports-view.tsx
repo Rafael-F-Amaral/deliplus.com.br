@@ -128,7 +128,7 @@ interface DayHourlyData {
 const HOURLY_BY_DAY: Record<DayFilter, DayHourlyData> = {
   todos: {
     label: "Média",
-    fullName: "Média Consolidada de Maio",
+    fullName: "Média Geral de Maio",
     totalOrders: 1248,
     peakDescription: "Picos: 12h-13h no almoço e 19h-21h no jantar",
     yMax: 250,
@@ -238,7 +238,7 @@ interface MatrizPeriodData {
 const MATRIZ_DATA: Record<MatrizPeriod, MatrizPeriodData> = {
   mes: {
     label: "Mês Completo",
-    periodName: "Maio de 2026 (Consolidado)",
+    periodName: "Maio de 2026 (Visão Geral)",
     dateRange: "01 a 31 de Maio, 2026",
     totalOrders: 1248,
     totalRevenue: "R$ 28.756,40",
@@ -655,6 +655,7 @@ export function ReportsView() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const calendarRef = useRef<HTMLDivElement>(null)
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null)
+  const [hoveredChannel, setHoveredChannel] = useState<"delivery" | "retirada" | null>(null)
 
   const [selectedDay, setSelectedDay] = useState<DayFilter>("todos")
   const [hoveredHourIndex, setHoveredHourIndex] = useState<number | null>(null)
@@ -813,7 +814,7 @@ export function ReportsView() {
                 </div>
                 <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
                   <p className="text-[13px] text-white mb-2 leading-relaxed">
-                    <span className="font-extrabold text-white">Dica:</span> Acompanhe métricas consolidadas de vendas, horários de maior fluxo e taxa de repetição da sua loja.
+                    <span className="font-extrabold text-white">Dica:</span> Acompanhe métricas gerais de vendas, horários de maior fluxo e taxa de repetição da sua loja.
                   </p>
                   <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white">
                     <div className="flex items-start gap-2">
@@ -1125,54 +1126,10 @@ export function ReportsView() {
                     tip="Passe o cursor sobre os pontos da curva para inspecionar os valores e pedidos de cada dia."
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => openDetail(
-                    "Detalhamento Completo de Vendas",
-                    (
-                      <div className="space-y-3 text-xs">
-                        <div className="grid grid-cols-3 gap-2 bg-[#F9F8F5] p-2.5 rounded-lg border border-[#EDEAE3]">
-                          <div>
-                            <span className="text-[#717A6D] block">Melhor Dia</span>
-                            <span className="font-bold text-[#2E4233] text-sm">25/Mai: R$ 2.350</span>
-                          </div>
-                          <div>
-                            <span className="text-[#717A6D] block">Média Diária</span>
-                            <span className="font-bold text-[#111827] text-sm">R$ 927,60</span>
-                          </div>
-                          <div>
-                            <span className="text-[#717A6D] block">Dia Mais Calmo</span>
-                            <span className="font-bold text-[#CB5A3C] text-sm">06/Mai: R$ 368</span>
-                          </div>
-                        </div>
-
-                        <div className="space-y-1.5 pt-1">
-                          <div className="flex justify-between py-1.5 border-b border-[#F0ECE1] font-medium">
-                            <span>Semana 4 (22 a 28 mai) — Pico</span>
-                            <span className="font-bold text-[#2E4233]">R$ 9.100,80 (32%)</span>
-                          </div>
-                          <div className="flex justify-between py-1.5 border-b border-[#F0ECE1]">
-                            <span>Semana 3 (15 a 21 mai)</span>
-                            <span>R$ 7.189,12 (25%)</span>
-                          </div>
-                          <div className="flex justify-between py-1.5 border-b border-[#F0ECE1]">
-                            <span>Semana 2 (08 a 14 mai)</span>
-                            <span>R$ 6.566,40 (23%)</span>
-                          </div>
-                          <div className="flex justify-between py-1.5 border-b border-[#F0ECE1]">
-                            <span>Semana 1 (01 a 07 mai)</span>
-                            <span>R$ 5.900,08 (20%)</span>
-                          </div>
-                        </div>
-                      </div>
-                    ),
-                    "Faturamento consolidado por semanas e picos",
-                    "A última semana do mês concentra o maior volume graças aos pagamentos salariais. Crie campanhas de combos família nessa semana para maximizar o ticket médio."
-                  )}
-                  className="text-xs font-semibold text-[#CB5A3C] hover:underline flex items-center gap-0.5 cursor-pointer shrink-0"
-                >
-                  Ver detalhes &gt;
-                </button>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] text-[#525B4E] text-[11px] font-semibold shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C]" />
+                  <span>Maio 2026</span>
+                </div>
               </div>
 
               {/* Status Strip: Clear un-abbreviated labels */}
@@ -1383,18 +1340,9 @@ export function ReportsView() {
                     tip="Os 2 itens mais vendidos concentram quase 50% de todo o faturamento da sua loja."
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => openDetail(
-                    "Curva ABC e Rentabilidade de Produtos",
-                    <CurvaAbcModalContent />,
-                    "Engenharia de cardápio e margem de contribuição",
-                    "Crie um 'Combo Campeão' juntando o Bowl Frango Oriental com a Salada Caesar e uma bebida por R$ 49,90. Isso aumenta o ticket médio sem queimar margem bruta."
-                  )}
-                  className="text-xs font-semibold text-[#CB5A3C] hover:underline flex items-center gap-0.5 cursor-pointer"
-                >
-                  Ver detalhes &gt;
-                </button>
+                <span className="text-[11px] font-semibold text-[#525B4E] bg-[#FAF8F0] px-2.5 py-1 rounded-full border border-[#E9E4D4] shrink-0">
+                  Top 5 Cardápio
+                </span>
               </div>
             </div>
 
@@ -1469,18 +1417,9 @@ export function ReportsView() {
                   />
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => openDetail(
-                    "Matriz Comparativa: Dia da Semana x Horário",
-                    <MatrizComparativaModalContent />,
-                    "Filtro consolidado por Mês de Maio ou Semanas específicas",
-                    "Como Terça-feira é o dia com menor volume (84 pedidos), faça promoções no WhatsApp de 'Frete Grátis na Terça' para preencher a ociosidade da equipe."
-                  )}
-                  className="text-xs font-semibold text-[#CB5A3C] hover:underline flex items-center gap-0.5 cursor-pointer shrink-0"
-                >
-                  Ver detalhes &gt;
-                </button>
+                <span className="text-[11px] font-semibold text-[#525B4E] bg-[#FAF8F0] px-2.5 py-1 rounded-full border border-[#E9E4D4] shrink-0 hidden sm:inline">
+                  24 Horas
+                </span>
               </div>
 
               {/* Day Selector Pills */}
@@ -1659,141 +1598,139 @@ export function ReportsView() {
                     tip="Pedidos de retirada no balcão não têm custo com motoboys, gerando maior margem líquida por pedido."
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => openDetail(
-                    "Comparativo: Delivery vs Retirada no Local",
-                    (
-                      <div className="space-y-3 text-xs">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-[#FAF8F0] p-3 rounded-xl border border-[#E9E4D4]">
-                            <div className="flex items-center gap-1.5 text-[#2E4233] font-bold">
-                              <Truck className="w-4 h-4 text-[#2E4233]" />
-                              <span>Delivery (Entrega)</span>
-                            </div>
-                            <div className="mt-2 space-y-1">
-                              <span className="text-lg font-bold text-[#111827] block">R$ 22.142,40</span>
-                              <span className="text-xs text-[#717A6D] block">77% do faturamento total</span>
-                              <div className="pt-1 text-xs text-[#717A6D]">
-                                <strong>961</strong> pedidos entregues<br />
-                                Ticket médio: <strong>R$ 23,04</strong>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="bg-[#FDF0E9] p-3 rounded-xl border border-[#F4D6C7]">
-                            <div className="flex items-center gap-1.5 text-[#CB5A3C] font-bold">
-                              <Store className="w-4 h-4 text-[#CB5A3C]" />
-                              <span>Retirada no Local</span>
-                            </div>
-                            <div className="mt-2 space-y-1">
-                              <span className="text-lg font-bold text-[#111827] block">R$ 6.614,00</span>
-                              <span className="text-xs text-[#717A6D] block">23% do faturamento total</span>
-                              <div className="pt-1 text-xs text-[#717A6D]">
-                                <strong>287</strong> pedidos no balcão<br />
-                                Ticket médio: <strong>R$ 23,04</strong>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] space-y-1 text-[#2E4233]">
-                          <span className="font-bold text-[#111827] block">Vantagem da Retirada no Balcão:</span>
-                          <p className="text-xs text-[#717A6D]">
-                            Cada pedido de retirada economiza cerca de R$ 6,00 a R$ 8,00 em taxas de motoboy e não sofre com atrasos em dias de chuva.
-                          </p>
-                        </div>
-                      </div>
-                    ),
-                    "Estratégia de distribuição e custos logísticos",
-                    "Crie uma promoção 'Retire no Balcão e ganhe uma Coca-Cola ou 10% de desconto'. Isso atrai vizinhos da loja, reduz a fila de despacho dos motoboys e aumenta sua margem limpa."
-                  )}
-                  className="text-xs font-semibold text-[#CB5A3C] hover:underline flex items-center gap-0.5 cursor-pointer"
-                >
-                  Ver detalhes &gt;
-                </button>
+                <span className="text-[11px] font-semibold text-[#525B4E] bg-[#FAF8F0] px-2.5 py-1 rounded-full border border-[#E9E4D4] shrink-0">
+                  Canais
+                </span>
               </div>
             </div>
 
-            {/* Donut and Legend: Clear, un-abbreviated labels */}
+            {/* Modern Interactive Donut Chart and Channel Breakdown */}
             <div className="flex-1 min-h-0 flex items-center gap-5 sm:gap-7 my-auto py-2">
-              {/* SVG Donut */}
-              <div className="relative w-[125px] h-[125px] sm:w-[135px] sm:h-[135px] shrink-0 flex items-center justify-center">
-                <svg viewBox="0 0 160 160" className="w-full h-full">
-                  <g transform="rotate(-90 80 80)">
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="54"
-                      fill="transparent"
-                      stroke="#2E4233"
-                      strokeWidth="24"
-                      strokeDasharray="261 340"
-                      strokeDashoffset="0"
-                    />
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="54"
-                      fill="transparent"
-                      stroke="#CB5A3C"
-                      strokeWidth="24"
-                      strokeDasharray="78 340"
-                      strokeDashoffset="-261"
-                    />
-                  </g>
-
-                  <text
-                    x="116"
-                    y="121"
-                    fill="#FFFFFF"
-                    fontSize="13"
-                    fontWeight="bold"
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                  >
-                    77%
-                  </text>
-                  <text
-                    x="44"
-                    y="40"
-                    fill="#FFFFFF"
-                    fontSize="12"
-                    fontWeight="bold"
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                  >
-                    23%
-                  </text>
+              {/* SVG Donut with Clean Center Display (No text leaking on stroke) */}
+              <div 
+                className="relative w-[130px] h-[130px] sm:w-[145px] sm:h-[145px] shrink-0 flex items-center justify-center cursor-pointer select-none"
+                onMouseLeave={() => setHoveredChannel(null)}
+              >
+                <svg viewBox="0 0 160 160" className="w-full h-full transform -rotate-90">
+                  {/* Delivery Arc (77%) */}
+                  <circle
+                    cx="80"
+                    cy="80"
+                    r="54"
+                    fill="transparent"
+                    stroke="#2E4233"
+                    strokeWidth={hoveredChannel === "delivery" ? "22" : "18"}
+                    strokeDasharray="258 340"
+                    strokeDashoffset="0"
+                    className="transition-all duration-300 cursor-pointer"
+                    onMouseEnter={() => setHoveredChannel("delivery")}
+                    opacity={hoveredChannel === "retirada" ? 0.35 : 1}
+                  />
+                  {/* Retirada Arc (23%) */}
+                  <circle
+                    cx="80"
+                    cy="80"
+                    r="54"
+                    fill="transparent"
+                    stroke="#CB5A3C"
+                    strokeWidth={hoveredChannel === "retirada" ? "22" : "18"}
+                    strokeDasharray="74 340"
+                    strokeDashoffset="-262"
+                    className="transition-all duration-300 cursor-pointer"
+                    onMouseEnter={() => setHoveredChannel("retirada")}
+                    opacity={hoveredChannel === "delivery" ? 0.35 : 1}
+                  />
                 </svg>
+
+                {/* Center of Donut: Clean, dynamic stats (zero text leaking or overlapping stroke) */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none px-2">
+                  {hoveredChannel === "retirada" ? (
+                    <>
+                      <span className="text-xl sm:text-2xl font-bold text-[#CB5A3C] leading-none transition-all">
+                        23,0%
+                      </span>
+                      <span className="text-[10px] font-semibold text-[#CB5A3C] mt-1 uppercase tracking-wider">
+                        Balcão
+                      </span>
+                    </>
+                  ) : hoveredChannel === "delivery" ? (
+                    <>
+                      <span className="text-xl sm:text-2xl font-bold text-[#2E4233] leading-none transition-all">
+                        77,0%
+                      </span>
+                      <span className="text-[10px] font-semibold text-[#2E4233] mt-1 uppercase tracking-wider">
+                        Delivery
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xl sm:text-2xl font-bold text-[#1F2E22] leading-none">
+                        1.248
+                      </span>
+                      <span className="text-[10px] text-[#525B4E] font-medium mt-1 uppercase tracking-wider">
+                        Pedidos
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
 
-              {/* Legend list */}
-              <div className="space-y-3 text-xs flex-1 min-w-0">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#2E4233] shrink-0" />
-                    <span className="text-[#111827] font-semibold text-xs sm:text-sm truncate">Delivery (Entrega a Domicílio)</span>
+              {/* Legend list with Interactive Highlights */}
+              <div className="space-y-2.5 text-xs flex-1 min-w-0">
+                <div 
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer border ${
+                    hoveredChannel === "delivery" 
+                      ? "bg-[#FAF8F0] border-[#2E4233] shadow-xs" 
+                      : "border-transparent hover:bg-[#FAF8F0] hover:border-[#E9E4D4]"
+                  }`}
+                  onMouseEnter={() => setHoveredChannel("delivery")}
+                  onMouseLeave={() => setHoveredChannel(null)}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#2E4233] shrink-0" />
+                      <span className="text-[#111827] font-semibold text-xs sm:text-sm truncate">Delivery</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-[#2E4233] bg-[#2E4233]/10 px-2 py-0.2 rounded-full shrink-0">
+                      77,0%
+                    </span>
                   </div>
-                  <span className="text-[#1F2E22] font-bold text-sm sm:text-base pl-5 block mt-0.5">
-                    R$ 22.142,40 <span className="font-normal text-[#525B4E] text-xs">(77,0% do faturamento total)</span>
-                  </span>
-                  <span className="text-[#525B4E] text-xs pl-5 block mt-0.5">
-                    961 pedidos entregues
-                  </span>
+                  <div className="mt-1 flex items-baseline justify-between gap-1 text-xs">
+                    <span className="font-bold text-[#1F2E22] text-sm sm:text-base">
+                      R$ 22.142,40
+                    </span>
+                    <span className="text-[#525B4E] text-[11px]">
+                      961 pedidos
+                    </span>
+                  </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#CB5A3C] shrink-0" />
-                    <span className="text-[#111827] font-semibold text-xs sm:text-sm truncate">Retirada no Local (Balcão)</span>
+                <div 
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer border ${
+                    hoveredChannel === "retirada" 
+                      ? "bg-[#FDF0E9] border-[#CB5A3C] shadow-xs" 
+                      : "border-transparent hover:bg-[#FAF8F0] hover:border-[#E9E4D4]"
+                  }`}
+                  onMouseEnter={() => setHoveredChannel("retirada")}
+                  onMouseLeave={() => setHoveredChannel(null)}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#CB5A3C] shrink-0" />
+                      <span className="text-[#111827] font-semibold text-xs sm:text-sm truncate">Retirada no Balcão</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-[#CB5A3C] bg-[#CB5A3C]/10 px-2 py-0.2 rounded-full shrink-0">
+                      23,0%
+                    </span>
                   </div>
-                  <span className="text-[#CB5A3C] font-bold text-sm sm:text-base pl-5 block mt-0.5">
-                    R$ 6.614,00 <span className="font-normal text-[#525B4E] text-xs">(23,0% do faturamento total)</span>
-                  </span>
-                  <span className="text-[#525B4E] text-xs pl-5 block mt-0.5">
-                    287 pedidos retirados no balcão
-                  </span>
+                  <div className="mt-1 flex items-baseline justify-between gap-1 text-xs">
+                    <span className="font-bold text-[#CB5A3C] text-sm sm:text-base">
+                      R$ 6.614,00
+                    </span>
+                    <span className="text-[#525B4E] text-[11px]">
+                      287 pedidos
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1811,18 +1748,9 @@ export function ReportsView() {
                     tip="O WhatsApp funciona como identificador único da sua clientela em qualquer compra na loja."
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => openDetail(
-                    "Repetição de Clientes nos Mesmos Produtos",
-                    <RepeticaoModalContent />,
-                    "Rastreamento de repetição de produtos via WhatsApp",
-                    "Como o cliente do Bowl Frango Oriental tem 68% de chance de pedir o mesmo prato de novo, programe um disparo no WhatsApp após 10 dias do último pedido oferecendo o Bowl favorito com entrega grátis. A taxa de conversão passa de 40%!"
-                  )}
-                  className="text-xs font-semibold text-[#CB5A3C] hover:underline flex items-center gap-0.5 cursor-pointer"
-                >
-                  Ver detalhes &gt;
-                </button>
+                <span className="text-[11px] font-semibold text-[#525B4E] bg-[#FAF8F0] px-2.5 py-1 rounded-full border border-[#E9E4D4] shrink-0">
+                  WhatsApp ID
+                </span>
               </div>
             </div>
 
@@ -1852,7 +1780,7 @@ export function ReportsView() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-1">
-                  <span className="text-2xl sm:text-3xl font-extrabold text-[#1F2E22] tracking-tight leading-none">
+                  <span className="text-2xl sm:text-3xl font-medium sm:font-semibold text-[#1F2E22] tracking-tight leading-none">
                     31,4%
                   </span>
                   <span className="text-[11px] font-semibold text-[#525B4E] mt-1 leading-tight">
