@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import {
   Store,
   Truck,
@@ -25,6 +26,11 @@ import {
   QrCode,
   ShieldCheck,
   Check,
+  Download,
+  Smartphone,
+  Plus,
+  ShoppingBag,
+  X,
 } from "lucide-react";
 import {
   BusinessHours,
@@ -75,11 +81,11 @@ const CATEGORIES = [
 ];
 
 const WEEK_DAYS: { key: keyof BusinessHours; label: string }[] = [
-  { key: "seg", label: "Segunda" },
-  { key: "ter", label: "Terça" },
-  { key: "qua", label: "Quarta" },
-  { key: "qui", label: "Quinta" },
-  { key: "sex", label: "Sexta" },
+  { key: "seg", label: "Segunda-feira" },
+  { key: "ter", label: "Terça-feira" },
+  { key: "qua", label: "Quarta-feira" },
+  { key: "qui", label: "Quinta-feira" },
+  { key: "sex", label: "Sexta-feira" },
   { key: "sab", label: "Sábado" },
   { key: "dom", label: "Domingo" },
 ];
@@ -90,8 +96,8 @@ export default function SettingsClient({
   initialData: StoreSettingsData;
 }) {
   const [activeTab, setActiveTab] = useState<
-    "profile" | "delivery" | "payment" | "printer" | "plan"
-  >("profile");
+    "overview" | "schedule" | "payment" | "printer" | "plan"
+  >("overview");
 
   // Feedback states
   const [toastMessage, setToastMessage] = useState<{
@@ -101,10 +107,14 @@ export default function SettingsClient({
   const [isSaving, setIsSaving] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedPix, setCopiedPix] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   // Perfil da Loja
   const [storeName, setStoreName] = useState(initialData.store.name);
-  const [bio, setBio] = useState(initialData.delivery.bio || "");
+  const [bio, setBio] = useState(
+    initialData.delivery.bio ||
+      "Os melhores sabores preparados com ingredientes selecionados e entrega rápida na sua casa."
+  );
   const [category, setCategory] = useState(
     initialData.delivery.category || "Restaurante Geral"
   );
@@ -224,40 +234,20 @@ export default function SettingsClient({
   };
 
   const checklist = [
-    { label: "Nome da loja", ok: !!storeName.trim() },
-    { label: "Categoria culinária", ok: !!category.trim() },
+    { label: "Nome do estabelecimento", ok: !!storeName.trim() },
+    { label: "Segmento culinário", ok: !!category.trim() },
     { label: "WhatsApp de atendimento", ok: !!phone.trim() },
-    { label: "Endereço físico", ok: !!address.trim() },
-    { label: "Chave Pix cadastrada", ok: !!pixKey.trim() },
-    { label: "Regras de delivery", ok: acceptsDelivery || acceptsPickup },
-    { label: "Horários de atendimento", ok: true },
-    { label: "Logo da loja", ok: !!logoUrl },
+    { label: "Endereço físico informado", ok: !!address.trim() },
+    { label: "Chave Pix para recebimento", ok: !!pixKey.trim() },
+    { label: "Regras de taxa e delivery", ok: acceptsDelivery || acceptsPickup },
+    { label: "Logo oficial da loja", ok: !!logoUrl },
+    { label: "Banner de capa da vitrine", ok: !!bannerUrl },
   ];
   const completedCount = checklist.filter((item) => item.ok).length;
   const healthPercent = Math.round((completedCount / checklist.length) * 100);
 
-  const handleSaveProfile = async () => {
-    setIsSaving(true);
-    const res = await updateStoreProfile({
-      name: storeName,
-      bio,
-      category,
-      phone,
-      instagram,
-      address,
-      logo_url: logoUrl,
-      banner_url: bannerUrl,
-    });
-    setIsSaving(false);
-
-    if (res.success) {
-      showToast("Perfil da loja salvo com sucesso!");
-    } else {
-      showToast(res.error || "Erro ao salvar perfil.", "error");
-    }
-  };
-
-  const handleSaveDelivery = async () => {
+  // Ação mestre de salvar (Salva Perfil + Delivery + Pagamentos)
+  const handleSaveAll = async () => {
     setIsSaving(true);
     const minOrderCents = parseCurrencyInput(minOrder);
     const deliveryFeeCents = parseCurrencyInput(deliveryFee);
@@ -265,23 +255,48 @@ export default function SettingsClient({
       ? parseCurrencyInput(freeDeliveryAbove)
       : null;
 
-    const res = await updateDeliverySettings({
-      is_open_override: isOpen,
-      accepts_delivery: acceptsDelivery,
-      accepts_pickup: acceptsPickup,
-      min_order_cents: minOrderCents,
-      delivery_fee_cents: deliveryFeeCents,
-      free_delivery_above_cents: freeDeliveryCents,
-      default_prep_min: parseInt(prepMin, 10) || 30,
-      default_prep_max: parseInt(prepMax, 10) || 50,
-      business_hours: businessHours,
-    });
+    const [resProfile, resDelivery, resPayment] = await Promise.all([
+      updateStoreProfile({
+        name: storeName,
+        bio,
+        category,
+        phone,
+        instagram,
+        address,
+        logo_url: logoUrl,
+        banner_url: bannerUrl,
+      }),
+      updateDeliverySettings({
+        is_open_override: isOpen,
+        accepts_delivery: acceptsDelivery,
+        accepts_pickup: acceptsPickup,
+        min_order_cents: minOrderCents,
+        delivery_fee_cents: deliveryFeeCents,
+        free_delivery_above_cents: freeDeliveryCents,
+        default_prep_min: parseInt(prepMin, 10) || 30,
+        default_prep_max: parseInt(prepMax, 10) || 50,
+        business_hours: businessHours,
+      }),
+      updatePaymentSettings({
+        pix_key: pixKey,
+        pix_key_type: pixKeyType,
+        accept_cash: acceptCash,
+        need_change_option: needChangeOption,
+        accept_card: acceptCard,
+        accept_pix: acceptPix,
+        accept_meal_voucher: acceptMealVoucher,
+      }),
+    ]);
+
     setIsSaving(false);
 
-    if (res.success) {
-      showToast("Regras de entrega e horários salvas!");
+    if (resProfile.success && resDelivery.success && resPayment.success) {
+      showToast("Todas as configurações da loja foram salvas! 🎉");
     } else {
-      showToast(res.error || "Erro ao salvar entrega.", "error");
+      showToast(
+        resProfile.error || resDelivery.error || resPayment.error || "Erro ao salvar alterações.",
+        "error"
+      );
     }
   };
 
@@ -295,38 +310,6 @@ export default function SettingsClient({
     } else {
       setIsOpen(!newStatus);
       showToast(res.error || "Erro ao alternar status.", "error");
-    }
-  };
-
-  const handleSavePayment = async () => {
-    setIsSaving(true);
-    const res = await updatePaymentSettings({
-      pix_key: pixKey,
-      pix_key_type: pixKeyType,
-      accept_cash: acceptCash,
-      need_change_option: needChangeOption,
-      accept_card: acceptCard,
-      accept_pix: acceptPix,
-      accept_meal_voucher: acceptMealVoucher,
-    });
-    setIsSaving(false);
-
-    if (res.success) {
-      showToast("Formas de pagamento e chave Pix salvas!");
-    } else {
-      showToast(res.error || "Erro ao salvar pagamentos.", "error");
-    }
-  };
-
-  const handleSavePrinter = async () => {
-    setIsSaving(true);
-    const res = await updatePrinterSettings(printerSettings);
-    setIsSaving(false);
-
-    if (res.success) {
-      showToast("Preferências de comanda salvas!");
-    } else {
-      showToast(res.error || "Erro ao salvar impressora.", "error");
     }
   };
 
@@ -347,21 +330,36 @@ export default function SettingsClient({
       if (type === "logo") setLogoUrl(res.url);
       else setBannerUrl(res.url);
       showToast(
-        `${type === "logo" ? "Logo" : "Capa"} carregada! Clique em Salvar para confirmar.`
+        `${type === "logo" ? "Logo" : "Capa"} carregada! Clique em Salvar Alterações para confirmar.`
       );
     } else {
       showToast(res.error || "Erro no upload da imagem.", "error");
     }
   };
 
+  const downloadQRCode = () => {
+    const canvas = document.getElementById("store-qr-canvas") as HTMLCanvasElement;
+    if (!canvas) return;
+    const pngUrl = canvas.toDataURL("image/png");
+    const downloadLink = document.createElement("a");
+    downloadLink.href = pngUrl;
+    downloadLink.download = `qrcode-${initialData.store.slug}.png`;
+    downloadLink.click();
+    showToast("QR Code baixado com sucesso! 📥");
+  };
+
   const publicUrl = `/${initialData.store.slug}`;
+  const fullPublicUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${publicUrl}`
+      : `https://deliplus.com.br${publicUrl}`;
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-3.5 sm:p-5 flex flex-col gap-3.5">
+    <div className="w-full max-w-[1600px] mx-auto p-4 lg:p-6 flex flex-col gap-5 min-h-[calc(100vh-64px)]">
       {/* Toast Feedback */}
       {toastMessage && (
         <div
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-3.5 py-2.5 rounded-xl shadow-lg border transition-all text-xs font-semibold animate-in fade-in slide-in-from-bottom-2 ${
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border transition-all text-xs font-bold animate-in fade-in slide-in-from-bottom-3 ${
             toastMessage.type === "success"
               ? "bg-[#2E4233] text-white border-[#2E4233]"
               : "bg-red-600 text-white border-red-700"
@@ -376,81 +374,160 @@ export default function SettingsClient({
         </div>
       )}
 
-      {/* Barra Superior Unificada: Abas + Ações Rápidas (Sem o header grande que ocupava espaço) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-[#E9E4D4] pb-1.5">
-        {/* Abas de Navegação */}
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+      {/* Modal de Impressão da Placa de Balcão / Mesa */}
+      {showPrintModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E9E4D4] space-y-4">
+            <div className="flex items-center justify-between border-b pb-3 border-[#ECEAE2]">
+              <h3 className="font-black text-base text-[#111827]">
+                Plaquinha de Balcão & Mesa
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowPrintModal(false)}
+                className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Template da Plaquinha para Impressão */}
+            <div
+              id="printable-tent"
+              className="p-6 rounded-2xl border-2 border-dashed border-[#CB5A3C] bg-[#FAF8F0] flex flex-col items-center text-center space-y-3"
+            >
+              <div className="w-12 h-12 rounded-full bg-white border border-[#E9E4D4] shadow-xs flex items-center justify-center overflow-hidden">
+                {logoUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <Store className="w-6 h-6 text-[#2E4233]" />
+                )}
+              </div>
+
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-[#CB5A3C] block">
+                  Cardápio Digital Oficial
+                </span>
+                <h4 className="text-lg font-black text-[#111827]">{storeName}</h4>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl shadow-xs border border-[#E9E4D4]">
+                <QRCodeSVG value={fullPublicUrl} size={150} level="H" />
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-[#2E4233]">
+                  Aponte a câmera do seu celular
+                </p>
+                <p className="text-[11px] text-[#637267]">
+                  Acesse nosso cardápio completo, veja fotos e faça seu pedido direto!
+                </p>
+                <span className="text-[10px] font-mono text-gray-400 block pt-1">
+                  deliplus.com.br{publicUrl}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setShowPrintModal(false)}
+                className="px-3.5 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl cursor-pointer"
+              >
+                Fechar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  window.print();
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-xs transition-colors cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Imprimir Plaquinha</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Barra de Navegação e Ações Rápidas */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#E9E4D4] pb-2.5">
+        {/* Abas */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           <button
             type="button"
-            onClick={() => setActiveTab("profile")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
-              activeTab === "profile"
-                ? "border-[#CB5A3C] text-[#CB5A3C] bg-white shadow-2xs"
-                : "border-transparent text-[#637267] hover:text-[#2E4233] hover:bg-white/60"
+            onClick={() => setActiveTab("overview")}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === "overview"
+                ? "bg-[#2E4233] text-white shadow-xs"
+                : "bg-white text-[#637267] border border-[#E9E4D4] hover:bg-[#FAF8F0]"
             }`}
           >
             <Store className="w-3.5 h-3.5" />
-            <span>Perfil da Loja</span>
+            <span>Minha Vitrine & Perfil</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setActiveTab("delivery")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
-              activeTab === "delivery"
-                ? "border-[#CB5A3C] text-[#CB5A3C] bg-white shadow-2xs"
-                : "border-transparent text-[#637267] hover:text-[#2E4233] hover:bg-white/60"
+            onClick={() => setActiveTab("schedule")}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === "schedule"
+                ? "bg-[#2E4233] text-white shadow-xs"
+                : "bg-white text-[#637267] border border-[#E9E4D4] hover:bg-[#FAF8F0]"
             }`}
           >
-            <Truck className="w-3.5 h-3.5" />
-            <span>Delivery & Horários</span>
+            <Clock className="w-3.5 h-3.5" />
+            <span>Horários da Semana</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("payment")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === "payment"
-                ? "border-[#CB5A3C] text-[#CB5A3C] bg-white shadow-2xs"
-                : "border-transparent text-[#637267] hover:text-[#2E4233] hover:bg-white/60"
+                ? "bg-[#2E4233] text-white shadow-xs"
+                : "bg-white text-[#637267] border border-[#E9E4D4] hover:bg-[#FAF8F0]"
             }`}
           >
             <CreditCard className="w-3.5 h-3.5" />
-            <span>Pagamentos & Pix</span>
+            <span>Formas de Pagamento</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("printer")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === "printer"
-                ? "border-[#CB5A3C] text-[#CB5A3C] bg-white shadow-2xs"
-                : "border-transparent text-[#637267] hover:text-[#2E4233] hover:bg-white/60"
+                ? "bg-[#2E4233] text-white shadow-xs"
+                : "bg-white text-[#637267] border border-[#E9E4D4] hover:bg-[#FAF8F0]"
             }`}
           >
-            <BellRing className="w-3.5 h-3.5" />
-            <span>Alertas & Comandas</span>
+            <Printer className="w-3.5 h-3.5" />
+            <span>Impressão & Cozinha</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("plan")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === "plan"
-                ? "border-[#CB5A3C] text-[#CB5A3C] bg-white shadow-2xs"
-                : "border-transparent text-[#637267] hover:text-[#2E4233] hover:bg-white/60"
+                ? "bg-[#2E4233] text-white shadow-xs"
+                : "bg-white text-[#637267] border border-[#E9E4D4] hover:bg-[#FAF8F0]"
             }`}
           >
             <Award className="w-3.5 h-3.5" />
-            <span>Plano & DeliPlus</span>
-            <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded-full bg-[#CB5A3C]/10 text-[#CB5A3C]">
+            <span>Plano & Diagnóstico</span>
+            <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-[#CB5A3C] text-white">
               {healthPercent}%
             </span>
           </button>
         </div>
 
         {/* Ações Rápidas Direitas */}
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+        <div className="flex items-center gap-2 shrink-0 self-end lg:self-center">
+          {/* Status Loja Aberta/Fechada */}
           <button
             type="button"
             onClick={() => handleToggleStoreStatus(!isOpen)}
@@ -459,7 +536,7 @@ export default function SettingsClient({
                 ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
                 : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
             }`}
-            title="Clique para abrir ou fechar a loja para pedidos"
+            title="Alternar entre loja aberta e fechada"
           >
             <span
               className={`w-2 h-2 rounded-full ${
@@ -469,66 +546,84 @@ export default function SettingsClient({
             <span>{isOpen ? "Loja Aberta" : "Loja Fechada"}</span>
           </button>
 
+          {/* Ver Vitrine */}
           <Link
             href={publicUrl}
             target="_blank"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-[#2E4233] border border-[#E9E4D4] hover:bg-[#FAF8F0] transition-colors cursor-pointer"
           >
             <span>Ver Vitrine</span>
-            <ExternalLink className="w-3 h-3 text-[#637267]" />
+            <ExternalLink className="w-3.5 h-3.5 text-[#637267]" />
           </Link>
+
+          {/* Botão Mestre Salvar */}
+          <button
+            type="button"
+            onClick={handleSaveAll}
+            disabled={isSaving}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>{isSaving ? "Salvando..." : "Salvar Alterações"}</span>
+          </button>
         </div>
       </div>
 
-      {/* Conteúdo das Abas em Grid Equilibrado (Sem Scrollbar Vertical) */}
-      <div>
-        {/* ============================================================ */}
-        {/* ABA 1: PERFIL DA LOJA (2 Colunas Preenchendo a Largura)     */}
-        {/* ============================================================ */}
-        {activeTab === "profile" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch animate-in fade-in duration-150">
-            {/* Coluna Esquerda: Identidade Visual & Vitrine (lg:col-span-5) */}
-            <div className="lg:col-span-5 bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs flex flex-col justify-between gap-3">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-bold text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
-                    <Camera className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                    <span>Identidade Visual</span>
-                  </h2>
-                  <span className="text-[11px] text-[#637267]">
-                    {initialData.store.name}
-                  </span>
-                </div>
+      {/* Canvas escondido para download do QR Code */}
+      <div className="hidden">
+        <QRCodeCanvas
+          id="store-qr-canvas"
+          value={fullPublicUrl}
+          size={500}
+          level="H"
+          includeMargin={true}
+        />
+      </div>
 
-                {/* Banner de Capa com Logo Sobreposta */}
-                <div className="relative rounded-xl overflow-hidden border border-[#E9E4D4] bg-linear-to-r from-[#2E4233] to-[#1e2c22] h-28 sm:h-32 flex items-center justify-center">
-                  {bannerUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={bannerUrl}
-                      alt="Banner de Capa"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="text-white/60 text-[11px] flex flex-col items-center gap-1">
-                      <Camera className="w-5 h-5" />
-                      <span>Sem banner de capa</span>
-                    </div>
-                  )}
+      {/* ================================================================ */}
+      {/* ABA 1: MINHA VITRINE & PERFIL (O HUB CENTRAL QUE PREENCHE A TELA) */}
+      {/* ================================================================ */}
+      {activeTab === "overview" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start animate-in fade-in duration-200">
+          {/* ============================================================ */}
+          {/* COLUNA ESQUERDA: O MOTOR DA LOJA (lg:col-span-8)             */}
+          {/* ============================================================ */}
+          <div className="lg:col-span-8 space-y-4">
+            {/* Bloco 1: Capa Panorâmica + Avatar da Loja Integrados */}
+            <div className="bg-white rounded-2xl border border-[#E9E4D4] overflow-hidden shadow-2xs">
+              {/* Capa */}
+              <div className="relative h-32 sm:h-40 bg-linear-to-r from-[#2E4233] via-[#374f3d] to-[#1c2920] flex items-center justify-center overflow-hidden">
+                {bannerUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={bannerUrl}
+                    alt="Capa da Loja"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-white/40 text-xs flex items-center gap-2 font-medium">
+                    <Camera className="w-5 h-5" />
+                    <span>Clique em &ldquo;Alterar Capa&rdquo; para personalizar o topo da sua vitrine</span>
+                  </div>
+                )}
 
-                  <label className="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-black/60 hover:bg-black/80 text-white text-[11px] font-bold cursor-pointer transition-colors backdrop-blur-xs flex items-center gap-1">
-                    <Camera className="w-3 h-3" />
-                    <span>Alterar Capa</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => handleUploadImage(e, "banner")}
-                    />
-                  </label>
+                <label className="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs font-bold cursor-pointer transition-colors backdrop-blur-xs flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Alterar Capa</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleUploadImage(e, "banner")}
+                  />
+                </label>
+              </div>
 
-                  {/* Logo Redonda Sobreposta */}
-                  <div className="absolute -bottom-1.5 left-4 translate-y-1/4 w-16 h-16 sm:w-18 sm:h-18 rounded-2xl border-2 border-white bg-[#FAF8F0] shadow-sm overflow-hidden flex items-center justify-center group">
+              {/* Barra de Perfil e Link Compartilhável */}
+              <div className="p-4 sm:p-5 pt-0 relative flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div className="flex items-end gap-3.5 -mt-10 sm:-mt-12">
+                  {/* Avatar da Logo */}
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 border-white bg-[#FAF8F0] shadow-md overflow-hidden flex items-center justify-center shrink-0 group">
                     {logoUrl ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
@@ -537,11 +632,11 @@ export default function SettingsClient({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <Store className="w-6 h-6 text-gray-400" />
+                      <Store className="w-8 h-8 text-gray-400" />
                     )}
                     <label className="absolute inset-0 bg-black/60 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                       <Camera className="w-4 h-4 mb-0.5" />
-                      <span className="text-[9px] font-bold">Trocar Logo</span>
+                      <span className="text-[10px] font-bold">Trocar</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -550,861 +645,1069 @@ export default function SettingsClient({
                       />
                     </label>
                   </div>
-                </div>
 
-                {/* Link da Vitrine com Botão Copiar */}
-                <div className="pt-4 space-y-1">
-                  <label className="text-[11px] font-bold text-[#2E4233] block">
-                    Link Compartilhável da Vitrine
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex-1 px-3 py-1.5 rounded-lg bg-[#FAF8F0] border border-[#E9E4D4] text-xs font-semibold text-[#2E4233] truncate">
-                      deliplus.com.br{publicUrl}
+                  {/* Nome e Categoria */}
+                  <div className="pb-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-xl sm:text-2xl font-black text-[#111827]">
+                        {storeName || "Nome do Estabelecimento"}
+                      </h2>
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] text-[#CB5A3C] text-[11px] font-black uppercase tracking-wider">
+                        {category}
+                      </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (typeof window !== "undefined") {
-                          navigator.clipboard.writeText(
-                            `${window.location.origin}${publicUrl}`
-                          );
-                          setCopiedLink(true);
-                          setTimeout(() => setCopiedLink(false), 2000);
-                          showToast("Link da vitrine copiado!");
-                        }
-                      }}
-                      className="px-2.5 py-1.5 rounded-lg bg-white border border-[#E9E4D4] text-xs font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer flex items-center gap-1"
-                      title="Copiar link da vitrine"
-                    >
-                      {copiedLink ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                      <span>{copiedLink ? "Copiado" : "Copiar"}</span>
-                    </button>
+                    <span className="text-xs text-[#637267] font-medium block">
+                      Vitrine ativa: <strong className="text-[#2E4233]">deliplus.com.br{publicUrl}</strong>
+                    </span>
                   </div>
                 </div>
 
-                {/* Slogan / Biografia da Loja */}
+                {/* Botões de Acesso Rápido */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(fullPublicUrl);
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 2000);
+                      showToast("Link da vitrine copiado!");
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0] text-xs font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer"
+                  >
+                    {copiedLink ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                    <span>{copiedLink ? "Copiado!" : "Copiar Link"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPrintModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0] text-xs font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                    <span>Placa de Balcão</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Bloco 2: Informações de Atendimento & Contatos */}
+            <div className="bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between border-b pb-2.5 border-[#ECEAE2]">
+                <h3 className="text-xs font-black text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-[#CB5A3C]" />
+                  <span>Dados do Estabelecimento & Canais de Atendimento</span>
+                </h3>
+                <span className="text-[11px] text-[#637267]">
+                  Atualizações refletem na vitrine em tempo real
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Nome */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#2E4233] block">
-                    Biografia / Slogan Curto
+                  <label className="text-xs font-bold text-[#2E4233]">
+                    Nome de Exibição na Vitrine <span className="text-[#CB5A3C]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={storeName}
+                    onChange={(e) => setStoreName(e.target.value)}
+                    placeholder="Ex: Pizzaria Forno Nobre"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
+                  />
+                </div>
+
+                {/* Segmento */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#2E4233]">
+                    Segmento / Categoria Gastronômica
+                  </label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* WhatsApp */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1">
+                      <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>WhatsApp de Atendimento</span>
+                    </label>
+                    {phone && (
+                      <a
+                        href={`https://wa.me/55${phone.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-emerald-700 font-bold hover:underline"
+                      >
+                        Testar no WhatsApp ↗
+                      </a>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="(11) 99999-9999"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
+                  />
+                </div>
+
+                {/* Instagram */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1">
+                    <InstagramIcon className="w-3.5 h-3.5 text-pink-600" />
+                    <span>Instagram Oficial</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
+                      @
+                    </span>
+                    <input
+                      type="text"
+                      value={instagram.replace(/^@/, "")}
+                      onChange={(e) => setInstagram(e.target.value)}
+                      placeholder="sualoja.oficial"
+                      className="w-full pl-8 pr-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
+                    />
+                  </div>
+                </div>
+
+                {/* Endereço */}
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-red-500" />
+                    <span>Endereço Físico (Ponto de Retirada / Cozinha)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Ex: Av. Paulista, 1000 - Bela Vista, São Paulo - SP"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-medium text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
+                  />
+                </div>
+
+                {/* Bio */}
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-xs font-bold text-[#2E4233] flex items-center justify-between">
+                    <span>Biografia / Slogan da Vitrine</span>
+                    <span className="text-[10px] text-gray-400">
+                      {bio.length}/150 caracteres
+                    </span>
                   </label>
                   <textarea
                     rows={2}
+                    maxLength={150}
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
-                    placeholder="Ex: O melhor hambúrguer artesanal defumado no fogo à lenha da região."
-                    className="w-full px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30 resize-none"
+                    placeholder="Ex: Pizzas artesanais assadas em forno à lenha com ingredientes selecionados."
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30 resize-none"
                   />
                 </div>
               </div>
-
-              <div className="text-[10px] text-[#637267] pt-2 border-t border-[#ECEAE2]">
-                Dica: Logo quadrada (500x500px) e Capa horizontal (1200x400px).
-              </div>
             </div>
 
-            {/* Coluna Direita: Dados do Estabelecimento (lg:col-span-7) */}
-            <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs flex flex-col justify-between gap-3">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-bold text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                    <span>Dados do Estabelecimento</span>
-                  </h2>
-                </div>
+            {/* Bloco 3: Regras Operacionais de Delivery & Taxas */}
+            <div className="bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between border-b pb-2.5 border-[#ECEAE2]">
+                <h3 className="text-xs font-black text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
+                  <Truck className="w-4 h-4 text-[#CB5A3C]" />
+                  <span>Regras de Entrega, Prazos & Pedido Mínimo</span>
+                </h3>
+                <span className="text-[11px] text-[#637267]">
+                  Visível no topo da vitrine do cliente
+                </span>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Nome da Loja */}
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2E4233]">
-                      Nome de Exibição <span className="text-[#CB5A3C]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={storeName}
-                      onChange={(e) => setStoreName(e.target.value)}
-                      placeholder="Ex: Pizzaria Forno Nobre"
-                      className="w-full px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                    />
-                  </div>
-
-                  {/* Categoria */}
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2E4233]">
-                      Segmento / Categoria
-                    </label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                    >
-                      {CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* WhatsApp */}
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2E4233] flex items-center gap-1">
-                      <Phone className="w-3 h-3 text-emerald-600" />
-                      <span>WhatsApp de Atendimento</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="(11) 99999-9999"
-                      className="w-full px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                    />
-                  </div>
-
-                  {/* Instagram */}
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2E4233] flex items-center gap-1">
-                      <InstagramIcon className="w-3 h-3 text-pink-600" />
-                      <span>Instagram Oficial</span>
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-semibold">
-                        @
+              {/* Switches de Modalidades */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/40 cursor-pointer hover:border-[#CB5A3C]/40 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-[#CB5A3C]">
+                      <Truck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-[#111827] block">
+                        Aceita Delivery (Entrega)
                       </span>
-                      <input
-                        type="text"
-                        value={instagram.replace(/^@/, "")}
-                        onChange={(e) => setInstagram(e.target.value)}
-                        placeholder="sualoja.oficial"
-                        className="w-full pl-7 pr-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                      />
+                      <span className="text-[10px] text-[#637267]">
+                        Envio por motoboy até o endereço do cliente
+                      </span>
                     </div>
                   </div>
+                  <input
+                    type="checkbox"
+                    checked={acceptsDelivery}
+                    onChange={(e) => setAcceptsDelivery(e.target.checked)}
+                    className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
+                  />
+                </label>
 
-                  {/* Endereço */}
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="text-[11px] font-bold text-[#2E4233] flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-red-500" />
-                      <span>Endereço Físico Completo</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Ex: Av. Paulista, 1000 - Bela Vista, São Paulo - SP"
-                      className="w-full px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                    />
+                <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/40 cursor-pointer hover:border-[#CB5A3C]/40 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700">
+                      <Store className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-[#111827] block">
+                        Retirada no Balcão
+                      </span>
+                      <span className="text-[10px] text-[#637267]">
+                        Cliente busca o pedido pronto no restaurante
+                      </span>
+                    </div>
                   </div>
-                </div>
+                  <input
+                    type="checkbox"
+                    checked={acceptsPickup}
+                    onChange={(e) => setAcceptsPickup(e.target.checked)}
+                    className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
+                  />
+                </label>
               </div>
 
-              {/* Botão Salvar Perfil */}
-              <div className="pt-2 border-t border-[#ECEAE2] flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleSaveProfile}
-                  disabled={isSaving}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{isSaving ? "Salvando..." : "Salvar Perfil da Loja"}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* ABA 2: DELIVERY & HORÁRIOS (2 Colunas Equilibradas)         */}
-        {/* ============================================================ */}
-        {activeTab === "delivery" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch animate-in fade-in duration-150">
-            {/* Coluna Esquerda: Modalidades e Taxas (lg:col-span-6) */}
-            <div className="lg:col-span-6 bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs flex flex-col justify-between gap-3">
-              <div className="space-y-3">
-                <h2 className="text-xs font-bold text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
-                  <Truck className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                  <span>Modalidades e Regras de Entrega</span>
-                </h2>
-
-                {/* Switches de Modalidades */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <label className="flex items-center justify-between p-2.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/40 cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center text-[#CB5A3C]">
-                        <Truck className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-[#111827] block">
-                          Delivery
-                        </span>
-                        <span className="text-[10px] text-[#637267]">
-                          Entrega até o cliente
-                        </span>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={acceptsDelivery}
-                      onChange={(e) => setAcceptsDelivery(e.target.checked)}
-                      className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                    />
-                  </label>
-
-                  <label className="flex items-center justify-between p-2.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/40 cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700">
-                        <Store className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-[#111827] block">
-                          Retirada no Balcão
-                        </span>
-                        <span className="text-[10px] text-[#637267]">
-                          Cliente retira na loja
-                        </span>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={acceptsPickup}
-                      onChange={(e) => setAcceptsPickup(e.target.checked)}
-                      className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                    />
-                  </label>
-                </div>
-
-                {/* Prazos e Taxas */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2E4233] flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-[#CB5A3C]" />
-                      <span>Tempo Mín.</span>
-                    </label>
+              {/* Prazos e Taxas */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                <div className="p-3 rounded-xl bg-[#FAF8F0]/60 border border-[#E9E4D4] space-y-1">
+                  <span className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
+                    ⏱️ Tempo Mínimo
+                  </span>
+                  <div className="flex items-center gap-1">
                     <input
                       type="number"
                       min="5"
                       max="180"
                       value={prepMin}
                       onChange={(e) => setPrepMin(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-[#FAF8F0]/30"
+                      className="w-16 px-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-white text-center"
                     />
+                    <span className="text-xs font-bold text-[#637267]">min</span>
                   </div>
+                </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2E4233] flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-[#CB5A3C]" />
-                      <span>Tempo Máx.</span>
-                    </label>
+                <div className="p-3 rounded-xl bg-[#FAF8F0]/60 border border-[#E9E4D4] space-y-1">
+                  <span className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
+                    ⏱️ Tempo Máximo
+                  </span>
+                  <div className="flex items-center gap-1">
                     <input
                       type="number"
                       min="5"
                       max="240"
                       value={prepMax}
                       onChange={(e) => setPrepMax(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-[#FAF8F0]/30"
+                      className="w-16 px-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-white text-center"
                     />
+                    <span className="text-xs font-bold text-[#637267]">min</span>
                   </div>
+                </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2E4233] flex items-center gap-1">
-                      <DollarSign className="w-3 h-3 text-emerald-600" />
-                      <span>Taxa Entrega</span>
-                    </label>
+                <div className="p-3 rounded-xl bg-[#FAF8F0]/60 border border-[#E9E4D4] space-y-1">
+                  <span className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
+                    🛵 Taxa de Entrega
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-bold text-gray-500">R$</span>
                     <input
                       type="text"
                       value={deliveryFee}
                       onChange={(e) => setDeliveryFee(e.target.value)}
                       placeholder="5,00"
-                      className="w-full px-2.5 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-[#FAF8F0]/30"
+                      className="w-20 px-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-white text-center"
                     />
                   </div>
+                </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2E4233] flex items-center gap-1">
-                      <DollarSign className="w-3 h-3 text-[#CB5A3C]" />
-                      <span>Pedido Mín.</span>
-                    </label>
+                <div className="p-3 rounded-xl bg-[#FAF8F0]/60 border border-[#E9E4D4] space-y-1">
+                  <span className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
+                    🛍️ Pedido Mínimo
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-bold text-gray-500">R$</span>
                     <input
                       type="text"
                       value={minOrder}
                       onChange={(e) => setMinOrder(e.target.value)}
                       placeholder="20,00"
-                      className="w-full px-2.5 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-[#FAF8F0]/30"
+                      className="w-20 px-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-white text-center"
                     />
                   </div>
+                </div>
+              </div>
 
-                  <div className="space-y-1 col-span-2 sm:col-span-4">
-                    <label className="text-[11px] font-bold text-[#2E4233] flex items-center justify-between">
-                      <span className="flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-amber-500" />
-                        <span>Frete Grátis a partir de (R$)</span>
-                      </span>
-                      <span className="text-[10px] text-gray-400">
-                        Opcional
-                      </span>
-                    </label>
+              {/* Frete Grátis e Chave Pix Rápida */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#2E4233] flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Frete Grátis a partir de</span>
+                    </span>
+                    <span className="text-[10px] text-gray-400">Opcional</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                      R$
+                    </span>
                     <input
                       type="text"
                       value={freeDeliveryAbove}
                       onChange={(e) => setFreeDeliveryAbove(e.target.value)}
-                      placeholder="Ex: 80,00"
-                      className="w-full px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-[#FAF8F0]/30"
+                      placeholder="Ex: 80,00 (Deixe vazio para desativar)"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-[#FAF8F0]/30"
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* Botão Salvar Delivery */}
-              <div className="pt-2 border-t border-[#ECEAE2] flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleSaveDelivery}
-                  disabled={isSaving}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{isSaving ? "Salvando..." : "Salvar Regras de Entrega"}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Coluna Direita: Grade Semanal de Funcionamento (lg:col-span-6) */}
-            <div className="lg:col-span-6 bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs flex flex-col justify-between gap-2.5">
-              <div>
-                <h2 className="text-xs font-bold text-[#111827] uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                  <Clock className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                  <span>Grade Semanal de Funcionamento</span>
-                </h2>
-
-                <div className="space-y-1.5 divide-y divide-[#ECEAE2]">
-                  {WEEK_DAYS.map(({ key, label }) => {
-                    const day = businessHours[key] || {
-                      open: "18:00",
-                      close: "23:00",
-                      enabled: true,
-                    };
-                    return (
-                      <div
-                        key={key}
-                        className="pt-1.5 first:pt-0 flex items-center justify-between gap-2 text-xs"
-                      >
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setBusinessHours((prev) => ({
-                                ...prev,
-                                [key]: { ...day, enabled: !day.enabled },
-                              }));
-                            }}
-                            className={`w-7 h-4 rounded-full transition-colors relative cursor-pointer ${
-                              day.enabled ? "bg-emerald-500" : "bg-gray-300"
-                            }`}
-                          >
-                            <span
-                              className={`w-3 h-3 rounded-full bg-white absolute top-0.5 transition-transform ${
-                                day.enabled ? "left-3.5" : "left-0.5"
-                              }`}
-                            />
-                          </button>
-                          <span
-                            className={`font-bold ${
-                              day.enabled ? "text-[#111827]" : "text-gray-400"
-                            }`}
-                          >
-                            {label}
-                          </span>
-                        </div>
-
-                        {day.enabled ? (
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-[#2E4233]">
-                            <input
-                              type="time"
-                              value={day.open}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setBusinessHours((prev) => ({
-                                  ...prev,
-                                  [key]: { ...day, open: val },
-                                }));
-                              }}
-                              className="px-2 py-0.5 rounded-lg border border-[#E9E4D4] bg-[#FAF8F0]/50 text-xs font-bold"
-                            />
-                            <span>às</span>
-                            <input
-                              type="time"
-                              value={day.close}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setBusinessHours((prev) => ({
-                                  ...prev,
-                                  [key]: { ...day, close: val },
-                                }));
-                              }}
-                              className="px-2 py-0.5 rounded-lg border border-[#E9E4D4] bg-[#FAF8F0]/50 text-xs font-bold"
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-[11px] font-semibold text-gray-400 italic">
-                            Fechado
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="text-[10px] text-[#637267] pt-2 border-t border-[#ECEAE2]">
-                Fora desses horários, a loja recusa pedidos automaticamente na vitrine.
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* ABA 3: PAGAMENTOS & PIX (2 Colunas Equilibradas)             */}
-        {/* ============================================================ */}
-        {activeTab === "payment" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch animate-in fade-in duration-150">
-            {/* Coluna Esquerda: Chave Pix (lg:col-span-5) */}
-            <div className="lg:col-span-5 bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs flex flex-col justify-between gap-3">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-bold text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
-                    <QrCode className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Chave Pix da Loja</span>
-                  </h2>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-[10px] font-bold">
-                    Recebimento Direto
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2E4233]">
-                      Tipo de Chave Pix
-                    </label>
-                    <select
-                      value={pixKeyType}
-                      onChange={(e) => setPixKeyType(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-[#111827] bg-[#FAF8F0]/30"
-                    >
-                      <option value="cpf">CPF</option>
-                      <option value="cnpj">CNPJ</option>
-                      <option value="phone">Celular</option>
-                      <option value="email">E-mail</option>
-                      <option value="random">Chave Aleatória (EVP)</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2E4233]">
-                      Valor da Chave Pix
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={pixKey}
-                        onChange={(e) => setPixKey(e.target.value)}
-                        placeholder="Ex: 123.456.789-00 ou pix@sualoja.com"
-                        className="w-full pl-3 pr-20 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] bg-[#FAF8F0]/30"
-                      />
-                      {pixKey && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(pixKey);
-                            setCopiedPix(true);
-                            setTimeout(() => setCopiedPix(false), 2000);
-                            showToast("Chave Pix copiada!");
-                          }}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-lg bg-white border border-[#E9E4D4] text-[10px] font-bold text-[#2E4233] hover:text-[#CB5A3C] transition-colors cursor-pointer flex items-center gap-1"
-                        >
-                          {copiedPix ? (
-                            <Check className="w-3 h-3 text-emerald-600" />
-                          ) : (
-                            <Copy className="w-3 h-3" />
-                          )}
-                          <span>{copiedPix ? "Copiada" : "Copiar"}</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-[10px] text-[#637267] pt-2 border-t border-[#ECEAE2]">
-                O cliente copia esta chave ou escaneia o QR Code no checkout para pagar diretamente.
-              </div>
-            </div>
-
-            {/* Coluna Direita: Formas de Pagamento (lg:col-span-7) */}
-            <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs flex flex-col justify-between gap-3">
-              <div className="space-y-3">
-                <h2 className="text-xs font-bold text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
-                  <CreditCard className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                  <span>Formas de Pagamento na Entrega / Balcão</span>
-                </h2>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <label className="flex items-center justify-between p-2.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer">
-                    <div>
-                      <span className="text-xs font-bold text-[#111827] block">
-                        Pix no Pedido
-                      </span>
-                      <span className="text-[10px] text-[#637267]">
-                        Chave e QR Code
-                      </span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={acceptPix}
-                      onChange={(e) => setAcceptPix(e.target.checked)}
-                      className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                    />
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#2E4233] flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <QrCode className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Chave Pix Oficial da Loja</span>
+                    </span>
+                    <span className="text-[10px] text-emerald-700 font-bold">
+                      Recebimento Direto
+                    </span>
                   </label>
-
-                  <div className="p-2.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 space-y-1">
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <div>
-                        <span className="text-xs font-bold text-[#111827] block">
-                          Dinheiro
-                        </span>
-                        <span className="text-[10px] text-[#637267]">
-                          Pago na entrega
-                        </span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={acceptCash}
-                        onChange={(e) => setAcceptCash(e.target.checked)}
-                        className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                      />
-                    </label>
-                    {acceptCash && (
-                      <label className="flex items-center gap-1.5 text-[10px] font-semibold text-[#637267] cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={needChangeOption}
-                          onChange={(e) => setNeedChangeOption(e.target.checked)}
-                          className="w-3 h-3 accent-[#CB5A3C] rounded cursor-pointer"
-                        />
-                        <span>Perguntar se precisa de troco</span>
-                      </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={pixKey}
+                      onChange={(e) => setPixKey(e.target.value)}
+                      placeholder="CPF, CNPJ, Telefone ou E-mail Pix"
+                      className="w-full pl-3 pr-20 py-2 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-[#FAF8F0]/30"
+                    />
+                    {pixKey && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(pixKey);
+                          setCopiedPix(true);
+                          setTimeout(() => setCopiedPix(false), 2000);
+                          showToast("Chave Pix copiada!");
+                        }}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-lg bg-white border border-[#E9E4D4] text-[10px] font-bold text-[#2E4233] hover:text-[#CB5A3C] transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        {copiedPix ? (
+                          <Check className="w-3 h-3 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                        <span>{copiedPix ? "Copiada" : "Copiar"}</span>
+                      </button>
                     )}
                   </div>
-
-                  <label className="flex items-center justify-between p-2.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer">
-                    <div>
-                      <span className="text-xs font-bold text-[#111827] block">
-                        Cartão de Crédito
-                      </span>
-                      <span className="text-[10px] text-[#637267]">
-                        Maquininha na entrega
-                      </span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={acceptCard}
-                      onChange={(e) => setAcceptCard(e.target.checked)}
-                      className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                    />
-                  </label>
-
-                  <label className="flex items-center justify-between p-2.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer">
-                    <div>
-                      <span className="text-xs font-bold text-[#111827] block">
-                        Vale-Refeição / Alimentação
-                      </span>
-                      <span className="text-[10px] text-[#637267]">
-                        VR, Sodexo, Ticket, Alelo
-                      </span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={acceptMealVoucher}
-                      onChange={(e) => setAcceptMealVoucher(e.target.checked)}
-                      className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                    />
-                  </label>
                 </div>
-              </div>
-
-              {/* Botão Salvar Pagamento */}
-              <div className="pt-2 border-t border-[#ECEAE2] flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleSavePayment}
-                  disabled={isSaving}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{isSaving ? "Salvando..." : "Salvar Formas de Pagamento"}</span>
-                </button>
               </div>
             </div>
           </div>
-        )}
 
-        {/* ============================================================ */}
-        {/* ABA 4: ALERTAS & COMANDAS (2 Colunas Equilibradas)          */}
-        {/* ============================================================ */}
-        {activeTab === "printer" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch animate-in fade-in duration-150">
-            {/* Coluna Esquerda: Alerta Sonoro (lg:col-span-5) */}
-            <div className="lg:col-span-5 bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs flex flex-col justify-between gap-3">
-              <div className="space-y-3">
-                <h2 className="text-xs font-bold text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
-                  <Volume2 className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                  <span>Aviso Sonoro de Pedido</span>
-                </h2>
-
-                <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer">
-                  <div>
-                    <span className="text-xs font-bold text-[#111827] block">
-                      Tocar campainha ao chegar pedido
-                    </span>
-                    <span className="text-[10px] text-[#637267]">
-                      Alerta em tempo real no dashboard
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={printerSettings.sound_alerts}
-                    onChange={(e) =>
-                      setPrinterSettings((prev) => ({
-                        ...prev,
-                        sound_alerts: e.target.checked,
-                      }))
-                    }
-                    className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                  />
-                </label>
-
-                <button
-                  type="button"
-                  onClick={playTestAlertSound}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] text-xs font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer"
-                >
-                  <Volume2 className="w-4 h-4 text-[#CB5A3C]" />
-                  <span>Testar Alarme Sonoro Agora</span>
-                </button>
+          {/* ============================================================ */}
+          {/* COLUNA DIREITA: A VITRINE VIVA DO CLIENTE (lg:col-span-4)   */}
+          {/* ============================================================ */}
+          <div className="lg:col-span-4 space-y-4">
+            {/* Card 1: Simulador Mobile da Vitrine em Tempo Real */}
+            <div className="bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Smartphone className="w-4 h-4 text-[#CB5A3C]" />
+                  <span className="text-xs font-black text-[#111827] uppercase tracking-wider">
+                    Como o Cliente Vê no Celular
+                  </span>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  Prévia Ao Vivo
+                </span>
               </div>
 
-              <div className="text-[10px] text-[#637267] pt-2 border-t border-[#ECEAE2]">
-                O som é sintetizado diretamente no navegador, funcionando instantaneamente sem atrasos.
-              </div>
-            </div>
-
-            {/* Coluna Direita: Impressão Térmica (lg:col-span-7) */}
-            <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs flex flex-col justify-between gap-3">
-              <div className="space-y-3">
-                <h2 className="text-xs font-bold text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
-                  <Printer className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                  <span>Impressão de Comanda para Cozinha & Balcão</span>
-                </h2>
-
-                {/* Auto-print switch */}
-                <label className="flex items-center justify-between p-2.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer">
-                  <div>
-                    <span className="text-xs font-bold text-[#111827] block">
-                      Abrir tela de impressão ao aceitar pedido
-                    </span>
-                    <span className="text-[10px] text-[#637267]">
-                      Dispara a impressão imediata da comanda
-                    </span>
+              {/* O Smartphone Frame Estilizado */}
+              <div className="w-full max-w-[310px] mx-auto rounded-[36px] border-[6px] border-[#1F2937] bg-white shadow-xl overflow-hidden flex flex-col">
+                {/* Notch / Speaker Bar */}
+                <div className="bg-[#1F2937] h-5 w-full flex items-center justify-center">
+                  <div className="w-16 h-3 rounded-full bg-black/60 flex items-center justify-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-700 block" />
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={printerSettings.auto_print}
-                    onChange={(e) =>
-                      setPrinterSettings((prev) => ({
-                        ...prev,
-                        auto_print: e.target.checked,
-                      }))
-                    }
-                    className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                  />
-                </label>
+                </div>
 
-                {/* Largura de Bobina e Vias */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2E4233]">
-                      Largura da Bobina
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setPrinterSettings((prev) => ({
-                            ...prev,
-                            paper_width: "80mm",
-                          }))
-                        }
-                        className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
-                          printerSettings.paper_width === "80mm"
-                            ? "border-[#CB5A3C] bg-orange-50/40 ring-1 ring-[#CB5A3C]"
-                            : "border-[#E9E4D4] bg-[#FAF8F0]/30"
+                {/* Conteúdo da Vitrine no Celular */}
+                <div className="flex-1 bg-[#FAF8F0] overflow-hidden flex flex-col text-[11px]">
+                  {/* Capa do Restaurante */}
+                  <div className="relative h-20 bg-linear-to-r from-[#2E4233] to-[#1c2920]">
+                    {bannerUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={bannerUrl}
+                        alt="Preview Capa"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white/40 text-[9px]">
+                        Banner da Loja
+                      </div>
+                    )}
+
+                    {/* Logo Sobreposta */}
+                    <div className="absolute -bottom-3 left-3 w-12 h-12 rounded-xl border-2 border-white bg-white shadow-xs overflow-hidden flex items-center justify-center">
+                      {logoUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={logoUrl}
+                          alt="Preview Logo"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Store className="w-5 h-5 text-gray-400" />
+                      )}
+                    </div>
+
+                    {/* Badge Aberto */}
+                    <div className="absolute top-2 right-2">
+                      <span
+                        className={`text-[9px] font-black px-2 py-0.5 rounded-full shadow-2xs ${
+                          isOpen
+                            ? "bg-emerald-500 text-white"
+                            : "bg-red-500 text-white"
                         }`}
                       >
-                        <span className="text-xs font-bold text-[#111827] block">
-                          80 mm
-                        </span>
-                        <span className="text-[9px] text-[#637267]">Padrão</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setPrinterSettings((prev) => ({
-                            ...prev,
-                            paper_width: "58mm",
-                          }))
-                        }
-                        className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
-                          printerSettings.paper_width === "58mm"
-                            ? "border-[#CB5A3C] bg-orange-50/40 ring-1 ring-[#CB5A3C]"
-                            : "border-[#E9E4D4] bg-[#FAF8F0]/30"
-                        }`}
-                      >
-                        <span className="text-xs font-bold text-[#111827] block">
-                          58 mm
-                        </span>
-                        <span className="text-[9px] text-[#637267]">Mini</span>
-                      </button>
+                        {isOpen ? "Aberto Agora" : "Fechado"}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2E4233]">
-                      Número de Vias
-                    </label>
-                    <select
-                      value={printerSettings.copies}
-                      onChange={(e) =>
-                        setPrinterSettings((prev) => ({
-                          ...prev,
-                          copies: parseInt(e.target.value, 10) || 1,
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-[#FAF8F0]/30"
-                    >
-                      <option value={1}>1 Via (Apenas Cozinha)</option>
-                      <option value={2}>2 Vias (Cozinha + Motoboy)</option>
-                      <option value={3}>3 Vias (Cozinha + Balcão + Motoboy)</option>
-                    </select>
+                  {/* Informações da Vitrine */}
+                  <div className="pt-4 px-3 pb-2 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-black text-xs text-[#111827] truncate">
+                        {storeName || "Minha Loja"}
+                      </h4>
+                      <span className="text-[9px] font-bold text-[#CB5A3C] bg-orange-50 px-1.5 py-0.2 rounded-md">
+                        {category}
+                      </span>
+                    </div>
+
+                    <p className="text-[10px] text-gray-500 line-clamp-2 leading-tight">
+                      {bio}
+                    </p>
+
+                    {/* Badges de Operação no Celular */}
+                    <div className="pt-1 flex items-center gap-1 text-[9px] font-bold text-[#2E4233] flex-wrap">
+                      <span className="px-1.5 py-0.5 rounded-md bg-white border border-[#E9E4D4]">
+                        ⏱️ {prepMin}-{prepMax} min
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded-md bg-white border border-[#E9E4D4]">
+                        🛵 R$ {deliveryFee}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded-md bg-white border border-[#E9E4D4]">
+                        🛍️ Mín. R$ {minOrder}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Demonstração de Itens do Cardápio no Mockup */}
+                  <div className="px-3 pb-3 space-y-1.5 flex-1">
+                    <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">
+                      Mais Pedidos
+                    </span>
+
+                    <div className="p-2 rounded-xl bg-white border border-[#E9E4D4] flex items-center justify-between gap-2 shadow-2xs">
+                      <div className="min-w-0">
+                        <span className="font-bold text-[10px] text-[#111827] block truncate">
+                          Hambúrguer Artesanal Smash
+                        </span>
+                        <span className="text-[9px] text-[#CB5A3C] font-black">
+                          R$ 32,90
+                        </span>
+                      </div>
+                      <div className="w-6 h-6 rounded-lg bg-[#2E4233] text-white flex items-center justify-center shrink-0">
+                        <Plus className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-white border border-[#E9E4D4] flex items-center justify-between gap-2 shadow-2xs">
+                      <div className="min-w-0">
+                        <span className="font-bold text-[10px] text-[#111827] block truncate">
+                          Refrigerante Gelado 350ml
+                        </span>
+                        <span className="text-[9px] text-[#CB5A3C] font-black">
+                          R$ 6,00
+                        </span>
+                      </div>
+                      <div className="w-6 h-6 rounded-lg bg-[#2E4233] text-white flex items-center justify-center shrink-0">
+                        <Plus className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Botão Ver Cardápio no Celular */}
+                  <div className="p-2.5 bg-white border-t border-[#ECEAE2]">
+                    <div className="w-full py-1.5 rounded-xl bg-[#CB5A3C] text-white text-center font-bold text-[10px] flex items-center justify-center gap-1 shadow-xs">
+                      <ShoppingBag className="w-3 h-3" />
+                      <span>Ver Cardápio Completo</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Botão Salvar Impressora */}
-              <div className="pt-2 border-t border-[#ECEAE2] flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleSavePrinter}
-                  disabled={isSaving}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{isSaving ? "Salvando..." : "Salvar Impressão"}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* ABA 5: PLANO & DELIPLUS (2 Colunas Equilibradas)             */}
-        {/* ============================================================ */}
-        {activeTab === "plan" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch animate-in fade-in duration-150">
-            {/* Coluna Esquerda: Assinatura Ativa (lg:col-span-5) */}
-            <div className="lg:col-span-5 bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs flex flex-col justify-between gap-3">
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-[#637267] uppercase tracking-wider">
-                    Plano Ativo
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-[#2E4233] text-white text-[10px] font-black">
-                    {initialData.billing?.planName || "Essencial"}
-                  </span>
-                </div>
-                <h3 className="text-base font-black text-[#111827]">
-                  DeliPlus Assinatura
-                </h3>
-                <p className="text-xs text-[#637267]">
-                  Capacidade: {initialData.billing?.activeStoresCount || 1} de{" "}
-                  {initialData.billing?.maxStores || 1} loja ativa permitida.
-                </p>
-              </div>
-
-              <div className="pt-2 border-t border-[#ECEAE2]">
+              <div className="pt-2 text-center">
                 <Link
-                  href="/dashboard/billing"
-                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#2E4233] text-white text-xs font-bold hover:bg-[#233327] transition-colors cursor-pointer"
+                  href={publicUrl}
+                  target="_blank"
+                  className="text-xs font-bold text-[#CB5A3C] hover:underline inline-flex items-center gap-1"
                 >
-                  <CreditCard className="w-3.5 h-3.5" />
-                  <span>Gerenciar Assinatura & Faturas</span>
+                  <span>Abrir vitrine em tela cheia</span>
+                  <ExternalLink className="w-3 h-3" />
                 </Link>
               </div>
             </div>
 
-            {/* Coluna Direita: Diagnóstico e Checklist (lg:col-span-7) */}
-            <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs flex flex-col justify-between gap-3">
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-bold text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Diagnóstico de Prontidão da Loja</span>
-                  </h2>
-                  <span className="text-base font-black text-[#CB5A3C]">
-                    {healthPercent}% Concluído
+            {/* Card 2: Placa de Balcão & Mesa com QR Code */}
+            <div className="bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <QrCode className="w-4 h-4 text-[#CB5A3C]" />
+                  <span className="text-xs font-black text-[#111827] uppercase tracking-wider">
+                    QR Code da Vitrine & Balcão
                   </span>
-                </div>
-
-                {/* Barra de Progresso */}
-                <div className="w-full h-2 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] overflow-hidden">
-                  <div
-                    className="h-full bg-linear-to-r from-emerald-500 to-[#059669] transition-all duration-300 rounded-full"
-                    style={{ width: `${healthPercent}%` }}
-                  />
-                </div>
-
-                {/* Grid Compacto do Checklist */}
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  {checklist.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex items-center gap-1.5 p-2 rounded-lg border text-[11px] font-bold ${
-                        item.ok
-                          ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
-                          : "bg-gray-50 border-gray-200 text-gray-500"
-                      }`}
-                    >
-                      {item.ok ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      ) : (
-                        <AlertCircle className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                      )}
-                      <span className="truncate">{item.label}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
 
-              <div className="text-[10px] text-[#637267] pt-2 border-t border-[#ECEAE2]">
-                Complete todos os itens para oferecer a melhor experiência na sua vitrine.
+              <div className="p-4 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex flex-col items-center text-center space-y-2.5">
+                <div className="p-2.5 bg-white rounded-xl shadow-xs border border-[#E9E4D4]">
+                  <QRCodeSVG value={fullPublicUrl} size={110} level="H" />
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-black text-[#111827]">
+                    Aponte a câmera para pedir
+                  </h4>
+                  <p className="text-[10px] text-[#637267] max-w-[220px]">
+                    Imprima para colocar nas mesas, balcão de retirada ou adesivos na embalagem!
+                  </p>
+                </div>
+
+                {/* Botões do QR Code */}
+                <div className="flex items-center gap-1.5 w-full pt-1">
+                  <button
+                    type="button"
+                    onClick={downloadQRCode}
+                    className="flex-1 py-1.5 px-2 rounded-xl bg-white border border-[#E9E4D4] text-[11px] font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    <Download className="w-3 h-3" />
+                    <span>Baixar PNG</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPrintModal(true)}
+                    className="flex-1 py-1.5 px-2 rounded-xl bg-[#2E4233] text-white text-[11px] font-bold hover:bg-[#233327] transition-colors cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    <Printer className="w-3 h-3" />
+                    <span>Imprimir Placa</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* ================================================================ */}
+      {/* ABA 2: HORÁRIOS DA SEMANA                                       */}
+      {/* ================================================================ */}
+      {activeTab === "schedule" && (
+        <div className="bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs max-w-4xl space-y-4 animate-in fade-in duration-150">
+          <div>
+            <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider flex items-center gap-2">
+              <Clock className="w-4 h-4 text-[#CB5A3C]" />
+              <span>Grade Semanal de Funcionamento da Loja</span>
+            </h3>
+            <p className="text-xs text-[#637267] mt-0.5">
+              Defina os dias em que a sua vitrine aceita pedidos automaticamente. Fora desses horários, a vitrine fica em modo &ldquo;Fechada&rdquo;.
+            </p>
+          </div>
+
+          <div className="divide-y divide-[#ECEAE2] border-t border-[#ECEAE2]">
+            {WEEK_DAYS.map(({ key, label }) => {
+              const day = businessHours[key] || {
+                open: "18:00",
+                close: "23:00",
+                enabled: true,
+              };
+              return (
+                <div
+                  key={key}
+                  className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBusinessHours((prev) => ({
+                          ...prev,
+                          [key]: { ...day, enabled: !day.enabled },
+                        }));
+                      }}
+                      className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer ${
+                        day.enabled ? "bg-emerald-500" : "bg-gray-300"
+                      }`}
+                    >
+                      <span
+                        className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${
+                          day.enabled ? "left-5" : "left-0.5"
+                        }`}
+                      />
+                    </button>
+                    <span
+                      className={`font-black text-sm ${
+                        day.enabled ? "text-[#111827]" : "text-gray-400"
+                      }`}
+                    >
+                      {label}
+                    </span>
+                  </div>
+
+                  {day.enabled ? (
+                    <div className="flex items-center gap-2 text-xs font-bold text-[#2E4233]">
+                      <span>Abertura:</span>
+                      <input
+                        type="time"
+                        value={day.open}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setBusinessHours((prev) => ({
+                            ...prev,
+                            [key]: { ...day, open: val },
+                          }));
+                        }}
+                        className="px-2.5 py-1 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0] font-bold text-xs"
+                      />
+                      <span>Fechamento:</span>
+                      <input
+                        type="time"
+                        value={day.close}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setBusinessHours((prev) => ({
+                            ...prev,
+                            [key]: { ...day, close: val },
+                          }));
+                        }}
+                        className="px-2.5 py-1 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0] font-bold text-xs"
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-xs font-bold text-gray-400 italic">
+                      Fechado o dia todo
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="pt-3 border-t border-[#ECEAE2] flex justify-end">
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              disabled={isSaving}
+              className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>{isSaving ? "Salvando..." : "Salvar Horários da Semana"}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================ */}
+      {/* ABA 3: FORMAS DE PAGAMENTO                                      */}
+      {/* ================================================================ */}
+      {activeTab === "payment" && (
+        <div className="bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs max-w-4xl space-y-5 animate-in fade-in duration-150">
+          <div>
+            <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-[#CB5A3C]" />
+              <span>Formas de Pagamento no Pedido & Entrega</span>
+            </h3>
+            <p className="text-xs text-[#637267] mt-0.5">
+              Escolha quais opções de pagamento estarão disponíveis para o cliente no fechamento do pedido.
+            </p>
+          </div>
+
+          {/* Card Chave Pix */}
+          <div className="p-4 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-[#111827] flex items-center gap-1.5">
+                <QrCode className="w-4 h-4 text-emerald-600" />
+                <span>Chave Pix Oficial da Loja</span>
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                Recebimento Imediato
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-[#2E4233]">
+                  Tipo de Chave
+                </label>
+                <select
+                  value={pixKeyType}
+                  onChange={(e) => setPixKeyType(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-white"
+                >
+                  <option value="cpf">CPF</option>
+                  <option value="cnpj">CNPJ</option>
+                  <option value="phone">Celular</option>
+                  <option value="email">E-mail</option>
+                  <option value="random">Chave Aleatória (EVP)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1 sm:col-span-2">
+                <label className="text-[11px] font-bold text-[#2E4233]">
+                  Chave Pix
+                </label>
+                <input
+                  type="text"
+                  value={pixKey}
+                  onChange={(e) => setPixKey(e.target.value)}
+                  placeholder="Insira sua chave Pix oficial"
+                  className="w-full px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-white"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Grid de Métodos Aceitos */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer">
+              <div>
+                <span className="text-xs font-bold text-[#111827] block">
+                  Pix no Pedido
+                </span>
+                <span className="text-[11px] text-[#637267]">
+                  Exibe a chave Pix e QR Code para pagamento na tela
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={acceptPix}
+                onChange={(e) => setAcceptPix(e.target.checked)}
+                className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
+              />
+            </label>
+
+            <div className="p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 space-y-1.5">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <span className="text-xs font-bold text-[#111827] block">
+                    Dinheiro em Espécie
+                  </span>
+                  <span className="text-[11px] text-[#637267]">
+                    Pagamento ao motoboy na entrega
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={acceptCash}
+                  onChange={(e) => setAcceptCash(e.target.checked)}
+                  className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
+                />
+              </label>
+              {acceptCash && (
+                <label className="flex items-center gap-1.5 text-[11px] font-semibold text-[#637267] cursor-pointer pt-1 border-t border-[#ECEAE2]">
+                  <input
+                    type="checkbox"
+                    checked={needChangeOption}
+                    onChange={(e) => setNeedChangeOption(e.target.checked)}
+                    className="w-3.5 h-3.5 accent-[#CB5A3C] rounded cursor-pointer"
+                  />
+                  <span>Perguntar ao cliente se precisa de troco</span>
+                </label>
+              )}
+            </div>
+
+            <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer">
+              <div>
+                <span className="text-xs font-bold text-[#111827] block">
+                  Cartão de Crédito
+                </span>
+                <span className="text-[11px] text-[#637267]">
+                  Maquininha levada pelo entregador
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={acceptCard}
+                onChange={(e) => setAcceptCard(e.target.checked)}
+                className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
+              />
+            </label>
+
+            <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer">
+              <div>
+                <span className="text-xs font-bold text-[#111827] block">
+                  Vale-Refeição / Alimentação
+                </span>
+                <span className="text-[11px] text-[#637267]">
+                  VR, Sodexo, Ticket, Alelo na maquininha
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={acceptMealVoucher}
+                onChange={(e) => setAcceptMealVoucher(e.target.checked)}
+                className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
+              />
+            </label>
+          </div>
+
+          <div className="pt-3 border-t border-[#ECEAE2] flex justify-end">
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              disabled={isSaving}
+              className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>{isSaving ? "Salvando..." : "Salvar Formas de Pagamento"}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================ */}
+      {/* ABA 4: IMPRESSÃO & COZINHA                                      */}
+      {/* ================================================================ */}
+      {activeTab === "printer" && (
+        <div className="bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs max-w-4xl space-y-5 animate-in fade-in duration-150">
+          <div>
+            <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider flex items-center gap-2">
+              <Printer className="w-4 h-4 text-[#CB5A3C]" />
+              <span>Alertas Sonoros & Impressão de Comandas</span>
+            </h3>
+            <p className="text-xs text-[#637267] mt-0.5">
+              Configure como a sua cozinha recebe os novos pedidos que chegam pelo cardápio digital.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Alerta Sonoro */}
+            <div className="p-4 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-[#111827] flex items-center gap-1.5">
+                  <Volume2 className="w-4 h-4 text-[#CB5A3C]" />
+                  <span>Campainha de Novo Pedido</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={printerSettings.sound_alerts}
+                  onChange={(e) =>
+                    setPrinterSettings((prev) => ({
+                      ...prev,
+                      sound_alerts: e.target.checked,
+                    }))
+                  }
+                  className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
+                />
+              </div>
+
+              <p className="text-[11px] text-[#637267]">
+                Toca um som em tempo real no dashboard toda vez que um cliente envia um pedido.
+              </p>
+
+              <button
+                type="button"
+                onClick={playTestAlertSound}
+                className="w-full py-2 px-3 rounded-xl bg-white border border-[#E9E4D4] text-xs font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Volume2 className="w-4 h-4 text-[#CB5A3C]" />
+                <span>Testar Som da Cozinha Agora</span>
+              </button>
+            </div>
+
+            {/* Impressora Térmica */}
+            <div className="p-4 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-[#111827] flex items-center gap-1.5">
+                  <Printer className="w-4 h-4 text-[#CB5A3C]" />
+                  <span>Impressão Automática</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={printerSettings.auto_print}
+                  onChange={(e) =>
+                    setPrinterSettings((prev) => ({
+                      ...prev,
+                      auto_print: e.target.checked,
+                    }))
+                  }
+                  className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
+                />
+              </div>
+
+              <p className="text-[11px] text-[#637267]">
+                Abre a janela de impressão da comanda térmica automaticamente ao confirmar o pedido.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPrinterSettings((prev) => ({
+                      ...prev,
+                      paper_width: "80mm",
+                    }))
+                  }
+                  className={`py-1.5 px-2 rounded-xl border text-center transition-all cursor-pointer ${
+                    printerSettings.paper_width === "80mm"
+                      ? "border-[#CB5A3C] bg-orange-50 font-black text-[#CB5A3C]"
+                      : "border-[#E9E4D4] bg-white text-gray-600 font-bold"
+                  }`}
+                >
+                  <span className="text-xs block">Bobina 80 mm</span>
+                  <span className="text-[9px] block">Padrão Restaurante</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPrinterSettings((prev) => ({
+                      ...prev,
+                      paper_width: "58mm",
+                    }))
+                  }
+                  className={`py-1.5 px-2 rounded-xl border text-center transition-all cursor-pointer ${
+                    printerSettings.paper_width === "58mm"
+                      ? "border-[#CB5A3C] bg-orange-50 font-black text-[#CB5A3C]"
+                      : "border-[#E9E4D4] bg-white text-gray-600 font-bold"
+                  }`}
+                >
+                  <span className="text-xs block">Bobina 58 mm</span>
+                  <span className="text-[9px] block">Mini Portátil</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-[#ECEAE2] flex justify-end">
+            <button
+              type="button"
+              onClick={async () => {
+                setIsSaving(true);
+                const res = await updatePrinterSettings(printerSettings);
+                setIsSaving(false);
+                if (res.success) {
+                  showToast("Preferências de comanda e som salvas!");
+                } else {
+                  showToast(res.error || "Erro ao salvar impressora.", "error");
+                }
+              }}
+              disabled={isSaving}
+              className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>{isSaving ? "Salvando..." : "Salvar Impressão"}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================ */}
+      {/* ABA 5: PLANO & DIAGNÓSTICO                                      */}
+      {/* ================================================================ */}
+      {activeTab === "plan" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start max-w-5xl animate-in fade-in duration-150">
+          <div className="lg:col-span-5 bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#637267] block">
+                Assinatura SaaS Ativa
+              </span>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xl font-black text-[#111827]">
+                  Plano {initialData.billing?.planName || "Essencial"}
+                </h3>
+                {initialData.billing?.isTrial && (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black">
+                    Período de Testes
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-[#637267]">
+                Capacidade: {initialData.billing?.activeStoresCount || 1} de{" "}
+                {initialData.billing?.maxStores || 1} loja(s) ativa(s).
+              </p>
+            </div>
+
+            <Link
+              href="/dashboard/billing"
+              className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#2E4233] text-white text-xs font-bold hover:bg-[#233327] transition-colors cursor-pointer"
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Gerenciar Assinatura & Faturas</span>
+            </Link>
+          </div>
+
+          <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-black text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Saúde & Checklist da Vitrine</span>
+                </h3>
+                <p className="text-xs text-[#637267] mt-0.5">
+                  Complete todas as etapas para maximizar as vendas pelo cardápio.
+                </p>
+              </div>
+              <span className="text-xl font-black text-[#CB5A3C]">
+                {healthPercent}%
+              </span>
+            </div>
+
+            <div className="w-full h-2 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] overflow-hidden">
+              <div
+                className="h-full bg-linear-to-r from-emerald-500 to-[#059669] transition-all duration-300 rounded-full"
+                style={{ width: `${healthPercent}%` }}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              {checklist.map((item, idx) => (
+                <div
+                  key={idx}
+                  className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-bold ${
+                    item.ok
+                      ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
+                      : "bg-gray-50 border-gray-200 text-gray-500"
+                  }`}
+                >
+                  {item.ok ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-gray-400 shrink-0" />
+                  )}
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
