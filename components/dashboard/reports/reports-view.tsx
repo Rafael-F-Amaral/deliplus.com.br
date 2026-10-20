@@ -795,8 +795,8 @@ export function ReportsView() {
   const activeHour = hoveredHourIndex !== null ? hoveredHourIndex : selectedHourIndex
 
   return (
-    <div className="w-full flex-1 flex flex-col bg-[#FAF8F0] text-[#2E4233] px-3 sm:px-6 py-2.5 sm:py-3.5 font-sans overflow-y-auto lg:overflow-hidden min-h-0">
-      <div className="max-w-[1440px] w-full mx-auto flex-1 flex flex-col min-h-0 gap-2.5 sm:gap-3">
+    <div className="w-full flex-1 min-h-0 flex flex-col bg-[#FAF8F0] text-[#2E4233] px-3.5 sm:px-6 lg:px-7 py-3 sm:py-3.5 font-sans overflow-y-auto lg:overflow-hidden pb-28 lg:pb-3.5">
+      <div className="w-full flex-1 flex flex-col min-h-0 gap-3 sm:gap-3.5">
 
         {/* Top Header: Standardized to Cardápio, Pedidos, Estoque (3xl md:4xl font-serif text-[#CB5A3C]) */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
@@ -842,12 +842,12 @@ export function ReportsView() {
             <button
               type="button"
               onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#E9E4D4] hover:border-[#2E4233] text-[#2E4233] text-xs font-semibold transition-all cursor-pointer shadow-2xs"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#E9E4D4] hover:border-[#CB5A3C] text-[#2E4233] text-xs font-semibold transition-all cursor-pointer shadow-xs hover:shadow-sm"
               title="Abrir calendário e selecionar dias"
             >
               <Calendar className="w-3.5 h-3.5 text-[#CB5A3C]" />
               <span>{selectedDateLabel}</span>
-              <ChevronDown className={`w-3 h-3 text-[#717A6D] transition-transform ${isCalendarOpen ? "rotate-180" : ""}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-[#717A6D] transition-transform duration-200 ${isCalendarOpen ? "rotate-180 text-[#CB5A3C]" : ""}`} />
             </button>
 
             {/* Export button */}
@@ -855,7 +855,7 @@ export function ReportsView() {
               type="button"
               onClick={handleExportPDF}
               disabled={isExporting}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#CB5A3C] hover:bg-[#B34D33] text-white text-xs font-semibold transition-all shadow-xs cursor-pointer disabled:opacity-70"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#CB5A3C] hover:bg-[#B34D33] text-white text-xs font-semibold transition-all shadow-xs hover:shadow-sm cursor-pointer disabled:opacity-70 active:scale-[0.98]"
             >
               {exportSuccess ? (
                 <>
@@ -864,7 +864,7 @@ export function ReportsView() {
                 </>
               ) : isExporting ? (
                 <>
-                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>Gerando...</span>
                 </>
               ) : (
@@ -875,27 +875,32 @@ export function ReportsView() {
               )}
             </button>
 
-            {/* Interactive Calendar Dropdown / Popover */}
+            {/* Interactive Calendar Dropdown / Popover (Stylized & Premium) */}
             {isCalendarOpen && (
-              <div className="absolute top-full right-0 mt-2 z-50 bg-white border border-[#E9E4D4] rounded-2xl shadow-xl p-3.5 w-[330px] sm:w-[440px] animate-in fade-in zoom-in-95 duration-150">
-                <div className="flex items-center justify-between pb-2.5 border-b border-[#F0ECE1]">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#CB5A3C]" />
-                    <span className="text-sm font-bold text-[#2E4233]">Selecionar Período ou Dia</span>
+              <div className="absolute top-full right-0 mt-2 z-50 bg-white border border-[#E9E4D4] rounded-2xl shadow-2xl p-4 w-[330px] sm:w-[460px] animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-3 border-b border-[#F0ECE1]">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-[#CB5A3C]/10 flex items-center justify-center text-[#CB5A3C] shrink-0">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-[#1F2E22] leading-tight">Filtrar Período</h4>
+                      <p className="text-[11px] text-[#717A6D]">Selecione um atalho rápido ou navegue pelos dias</p>
+                    </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsCalendarOpen(false)}
-                    className="text-gray-400 hover:text-gray-700 p-1 rounded-lg hover:bg-[#F5F3ED] cursor-pointer"
+                    className="text-gray-400 hover:text-gray-700 p-1.5 rounded-full hover:bg-[#FAF8F0] transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 pt-3">
                   {/* Quick presets list */}
-                  <div className="sm:col-span-4 space-y-1 sm:border-r sm:border-[#F0ECE1] sm:pr-2.5">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                  <div className="sm:col-span-4 space-y-1 sm:border-r sm:border-[#F0ECE1] sm:pr-3">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
                       Atalhos rápidos
                     </span>
                     {[
@@ -905,122 +910,136 @@ export function ReportsView() {
                       { id: "semana", label: "Esta semana", start: "2026-05-11", end: "2026-05-17" },
                       { id: "mes", label: "Este mês (Maio)", start: "2026-05-01", end: "2026-05-31" },
                       { id: "mes_ant", label: "Mês anterior (Abril)", start: "2026-04-01", end: "2026-04-30" },
-                    ].map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedDateLabel(item.label)
-                          setStartDate(item.start)
-                          setEndDate(item.end)
-                          setIsCalendarOpen(false)
-                        }}
-                        className="w-full text-left px-2 py-1 rounded-lg text-xs font-medium text-gray-700 hover:bg-[#FAF8F0] hover:text-[#2E4233] transition-colors cursor-pointer"
-                      >
-                        {item.label}
-                      </button>
-                    ))}
+                    ].map((item) => {
+                      const isActive = selectedDateLabel === item.label
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDateLabel(item.label)
+                            setStartDate(item.start)
+                            setEndDate(item.end)
+                            setIsCalendarOpen(false)
+                          }}
+                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                            isActive
+                              ? "bg-[#FAF8F0] text-[#CB5A3C] font-semibold border-l-2 border-[#CB5A3C]"
+                              : "text-[#525B4E] hover:bg-[#FAF8F0] hover:text-[#1F2E22]"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      )
+                    })}
                   </div>
 
                   {/* Visual Mini Calendar for Maio 2026 */}
-                  <div className="sm:col-span-8">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-[#2E4233]">Maio de 2026</span>
-                      <span className="text-[10px] font-semibold text-[#CB5A3C] bg-[#FDF0E9] px-2 py-0.2 rounded-full">
-                        Clique em qualquer dia
-                      </span>
-                    </div>
+                  <div className="sm:col-span-8 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-[#1F2E22] flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-[#CB5A3C]" />
+                          Maio de 2026
+                        </span>
+                        <span className="text-[10px] font-semibold text-[#CB5A3C] bg-[#FDF0E9] border border-[#F4D6C7] px-2 py-0.5 rounded-full">
+                          Pico dia 25
+                        </span>
+                      </div>
 
-                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400 mb-1">
-                      <span>D</span>
-                      <span>S</span>
-                      <span>T</span>
-                      <span>Q</span>
-                      <span>Q</span>
-                      <span>S</span>
-                      <span>S</span>
-                    </div>
+                      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400 mb-1">
+                        <span>D</span>
+                        <span>S</span>
+                        <span>T</span>
+                        <span>Q</span>
+                        <span>Q</span>
+                        <span>S</span>
+                        <span>S</span>
+                      </div>
 
-                    <div className="grid grid-cols-7 gap-1 text-center">
-                      <div className="h-6" />
-                      <div className="h-6" />
-                      <div className="h-6" />
-                      <div className="h-6" />
-                      <div className="h-6" />
+                      <div className="grid grid-cols-7 gap-1 text-center">
+                        <div className="h-6" />
+                        <div className="h-6" />
+                        <div className="h-6" />
+                        <div className="h-6" />
+                        <div className="h-6" />
 
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
-                        const dayStr = day < 10 ? `0${day}` : `${day}`
-                        const isSelected = startDate === `2026-05-${dayStr}`
-                        const isPeak = day === 25
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                          const dayStr = day < 10 ? `0${day}` : `${day}`
+                          const isSelected = startDate === `2026-05-${dayStr}`
+                          const isPeak = day === 25
 
-                        return (
-                          <button
-                            key={day}
-                            type="button"
-                            onClick={() => {
-                              setSelectedDateLabel(`Dia ${dayStr} de Maio, 2026`)
-                              setStartDate(`2026-05-${dayStr}`)
-                              setEndDate(`2026-05-${dayStr}`)
-                              setIsCalendarOpen(false)
-                            }}
-                            className={`h-6 w-full rounded-md text-[10px] font-semibold flex items-center justify-center transition-all cursor-pointer relative ${
-                              isSelected
-                                ? "bg-[#2E4233] text-white font-bold"
-                                : isPeak
-                                ? "bg-[#FDF0E9] text-[#CB5A3C] font-bold hover:bg-[#FCE3D6]"
-                                : "text-gray-700 hover:bg-[#FAF8F0]"
-                            }`}
-                            title={isPeak ? `Dia 25 (Pico de Vendas: R$ 2.350)` : `Selecionar dia ${dayStr}/05`}
-                          >
-                            {day}
-                            {isPeak && !isSelected && (
-                              <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-[#CB5A3C]" />
-                            )}
-                          </button>
-                        )
-                      })}
+                          return (
+                            <button
+                              key={day}
+                              type="button"
+                              onClick={() => {
+                                setSelectedDateLabel(`Dia ${dayStr} de Maio, 2026`)
+                                setStartDate(`2026-05-${dayStr}`)
+                                setEndDate(`2026-05-${dayStr}`)
+                                setIsCalendarOpen(false)
+                              }}
+                              className={`h-6.5 w-full rounded-md text-[10px] font-semibold flex items-center justify-center transition-all cursor-pointer relative ${
+                                isSelected
+                                  ? "bg-[#2E4233] text-white font-bold shadow-xs scale-105"
+                                  : isPeak
+                                  ? "bg-[#FDF0E9] text-[#CB5A3C] font-bold border border-[#F4D6C7] hover:bg-[#FCE3D6]"
+                                  : "text-gray-700 hover:bg-[#FAF8F0] hover:text-[#CB5A3C]"
+                              }`}
+                              title={isPeak ? `Dia 25 (Pico de Vendas: R$ 2.350)` : `Selecionar dia ${dayStr}/05`}
+                            >
+                              {day}
+                              {isPeak && !isSelected && (
+                                <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-[#CB5A3C]" />
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
 
                     {/* Date range inputs */}
-                    <div className="mt-2.5 pt-2 border-t border-[#F0ECE1] grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[9px] font-semibold text-gray-500 mb-0.5">De</label>
-                        <input
-                          type="date"
-                          value={startDate}
-                          onChange={(e) => setStartDate(e.target.value)}
-                          className="w-full text-xs px-2 py-0.5 rounded-md border border-[#E9E4D4] bg-white font-mono"
-                        />
+                    <div className="mt-3 pt-2.5 border-t border-[#F0ECE1]">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[9px] font-semibold text-[#717A6D] uppercase tracking-wider mb-0.5">De</label>
+                          <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="w-full text-xs px-2 py-1 rounded-lg border border-[#E9E4D4] bg-[#FAF8F0] text-[#1F2E22] font-mono focus:outline-none focus:border-[#CB5A3C] focus:bg-white transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-semibold text-[#717A6D] uppercase tracking-wider mb-0.5">Até</label>
+                          <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="w-full text-xs px-2 py-1 rounded-lg border border-[#E9E4D4] bg-[#FAF8F0] text-[#1F2E22] font-mono focus:outline-none focus:border-[#CB5A3C] focus:bg-white transition-all"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[9px] font-semibold text-gray-500 mb-0.5">Até</label>
-                        <input
-                          type="date"
-                          value={endDate}
-                          onChange={(e) => setEndDate(e.target.value)}
-                          className="w-full text-xs px-2 py-0.5 rounded-md border border-[#E9E4D4] bg-white font-mono"
-                        />
-                      </div>
-                    </div>
 
-                    <div className="mt-2.5 flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setIsCalendarOpen(false)}
-                        className="px-2 py-1 text-xs text-gray-500 hover:text-gray-800 cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedDateLabel(`${startDate.split("-").reverse().slice(0, 2).join("/")} a ${endDate.split("-").reverse().slice(0, 2).join("/")}`)
-                          setIsCalendarOpen(false)
-                        }}
-                        className="px-3 py-1 bg-[#2E4233] hover:bg-[#1E2D22] text-white rounded-full text-xs font-semibold transition-colors cursor-pointer shadow-xs"
-                      >
-                        Aplicar
-                      </button>
+                      <div className="mt-3 flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsCalendarOpen(false)}
+                          className="px-2.5 py-1 text-xs font-medium text-gray-500 hover:text-gray-800 cursor-pointer transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedDateLabel(`${startDate.split("-").reverse().slice(0, 2).join("/")} a ${endDate.split("-").reverse().slice(0, 2).join("/")}`)
+                            setIsCalendarOpen(false)
+                          }}
+                          className="px-3.5 py-1 bg-[#CB5A3C] hover:bg-[#B34D33] text-white rounded-full text-xs font-semibold transition-all cursor-pointer shadow-xs hover:shadow-sm"
+                        >
+                          Aplicar
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1092,7 +1111,7 @@ export function ReportsView() {
         </div>
 
         {/* Row 2: 3 Main Cards (Fills Available Height Flexibly) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5 sm:gap-3 flex-[1.35] min-h-0">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-2.5 sm:gap-3 flex-none lg:flex-[1.35] min-h-0">
 
           {/* Card 1: Vendas ao longo do tempo */}
           <div className="bg-white border border-[#E9E4D4] rounded-xl p-2.5 sm:p-3.5 shadow-xs flex flex-col justify-between min-h-0 h-full">
@@ -1199,7 +1218,7 @@ export function ReportsView() {
             </div>
 
             {/* SVG Line / Area chart: Flexible to Card Height */}
-            <div className="flex-1 min-h-0 relative w-full mt-2 flex items-center justify-center">
+            <div className="h-52 sm:h-56 lg:h-full lg:flex-1 min-h-[180px] lg:min-h-0 relative w-full mt-2 flex items-center justify-center">
               <svg
                 viewBox="0 0 600 240"
                 className="w-full h-full max-h-full select-none cursor-crosshair overflow-visible"
@@ -1432,43 +1451,6 @@ export function ReportsView() {
                 </div>
               ))}
             </div>
-
-            <button
-              type="button"
-              onClick={() => openDetail(
-                "Catálogo de Todos os Produtos",
-                (
-                  <div className="space-y-2 text-xs">
-                    <p className="text-[#717A6D]">Exibindo os itens ativos no cardápio ordenados por volume:</p>
-                    <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                      {[
-                        { name: "Bowl Frango Oriental", cat: "Prato", vendas: 456, receita: "R$ 14.592" },
-                        { name: "Moqueca de Camarão", cat: "Prato", vendas: 352, receita: "R$ 13.728" },
-                        { name: "Lasanha à Bolonhesa", cat: "Prato", vendas: 298, receita: "R$ 8.940" },
-                        { name: "Escondidinho de Carne", cat: "Prato", vendas: 274, receita: "R$ 7.672" },
-                        { name: "Salada Caesar", cat: "Salada", vendas: 241, receita: "R$ 5.784" },
-                        { name: "Suco Natural de Laranja 500ml", cat: "Bebida", vendas: 210, receita: "R$ 2.100" },
-                        { name: "Pudim de Leite Condensado", cat: "Sobremesa", vendas: 185, receita: "R$ 2.220" },
-                        { name: "Refrigerante Lata 350ml", cat: "Bebida", vendas: 172, receita: "R$ 1.204" },
-                      ].map((prod, idx) => (
-                        <div key={idx} className="flex justify-between items-center py-1.5 border-b border-[#F0ECE1]">
-                          <div>
-                            <span className="font-semibold text-[#111827]">{idx + 1}. {prod.name}</span>
-                            <span className="text-[10px] text-[#717A6D] block">{prod.cat}</span>
-                          </div>
-                          <span className="font-mono text-xs font-bold text-[#2E4233]">{prod.vendas} unidades ({prod.receita})</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ),
-                "Desempenho geral de vendas por item",
-                "Pratos com menos de 10 vendas no mês devem ser avaliados: ajuste a foto/descrição ou substitua por novidades sazonais para reduzir estoque parado."
-              )}
-              className="shrink-0 text-xs font-semibold text-[#CB5A3C] hover:underline mt-1 text-left cursor-pointer"
-            >
-              Ver todos os produtos &gt;
-            </button>
           </div>
 
           {/* Card 3: Pedidos por horário */}
@@ -1566,7 +1548,7 @@ export function ReportsView() {
             </div>
 
             {/* Dynamic SVG Bar Chart: Adapts to Card Height */}
-            <div className="flex-1 min-h-0 relative w-full mt-2 flex flex-col justify-between">
+            <div className="h-44 sm:h-48 lg:h-full lg:flex-1 min-h-[160px] lg:min-h-0 relative w-full mt-2 flex flex-col justify-between">
               <div className="flex-1 min-h-0 relative w-full flex items-center justify-center">
                 <svg viewBox="0 0 340 170" className="w-full h-full max-h-full overflow-visible">
                   {[
@@ -1663,7 +1645,7 @@ export function ReportsView() {
         </div>
 
         {/* Row 3: 2 Balanced Cards (Generous space, No Abbreviations, Rich Layout) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-3 flex-1 min-h-0">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-2.5 sm:gap-3 flex-none lg:flex-1 min-h-0">
 
           {/* Card 1: Canais de venda */}
           <div className="bg-white border border-[#E9E4D4] rounded-xl p-3 sm:p-4 shadow-xs flex flex-col justify-between min-h-0 h-full">
@@ -1815,23 +1797,6 @@ export function ReportsView() {
                 </div>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => openDetail(
-                "Configurações de Entrega & Balcão",
-                (
-                  <p className="text-xs text-[#717A6D]">
-                    Você pode alterar taxas de entrega, raio de alcance ou habilitar retirada rápida no balcão diretamente nas configurações da sua loja.
-                  </p>
-                ),
-                "Canais de venda",
-                "Divulgue fotos da sua fachada e do balcão no WhatsApp/Instagram para encorajar a retirada presencial."
-              )}
-              className="shrink-0 text-xs font-semibold text-[#CB5A3C] hover:underline mt-1.5 text-left cursor-pointer"
-            >
-              Ver detalhes por canal &gt;
-            </button>
           </div>
 
           {/* Card 2: Taxa de recompra */}
@@ -1861,10 +1826,10 @@ export function ReportsView() {
               </div>
             </div>
 
-            {/* Gauge and Stats: Fully spelled out without abbreviations */}
-            <div className="flex-1 min-h-0 flex items-center gap-5 sm:gap-7 my-auto py-2">
+            {/* Gauge and Stats: Polished, elegant visual presentation */}
+            <div className="flex-1 min-h-0 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 my-auto py-2">
               {/* SVG Progress Ring */}
-              <div className="relative w-[125px] h-[125px] sm:w-[135px] sm:h-[135px] shrink-0 flex items-center justify-center">
+              <div className="relative w-[130px] h-[130px] sm:w-[140px] sm:h-[140px] shrink-0 flex items-center justify-center">
                 <svg viewBox="0 0 120 120" className="w-full h-full transform -rotate-90">
                   <circle
                     cx="60"
@@ -1872,7 +1837,7 @@ export function ReportsView() {
                     r="46"
                     fill="transparent"
                     stroke="#F0ECE1"
-                    strokeWidth="13"
+                    strokeWidth="12"
                   />
                   <circle
                     cx="60"
@@ -1880,63 +1845,56 @@ export function ReportsView() {
                     r="46"
                     fill="transparent"
                     stroke="#2E4233"
-                    strokeWidth="13"
+                    strokeWidth="12"
                     strokeDasharray="91 289"
                     strokeDashoffset="0"
                     strokeLinecap="round"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-1">
-                  <span className="text-2xl sm:text-3xl font-bold text-[#1F2E22] leading-none">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-[#1F2E22] tracking-tight leading-none">
                     31,4%
                   </span>
-                  <span className="text-xs text-[#525B4E] mt-1 font-medium leading-tight">
+                  <span className="text-[11px] font-semibold text-[#525B4E] mt-1 leading-tight">
                     Taxa de recompra
                   </span>
                 </div>
               </div>
 
-              {/* Right stats: Clean, rich, un-abbreviated */}
-              <div className="space-y-2 flex-1 min-w-0">
-                <div>
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-[#15803D] bg-[#DCFCE7] px-2.5 py-1 rounded-full inline-flex">
-                    <span>↑ +4,3% de aumento</span>
+              {/* Right stats: Clean cards, rich, un-abbreviated */}
+              <div className="space-y-2 flex-1 w-full min-w-0">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-[#15803D] bg-[#DCFCE7] px-2.5 py-1 rounded-full inline-flex border border-[#BBF7D0]">
+                  <span>↑ +4,3% de aumento</span>
+                  <span className="text-[#166534] font-normal text-[11px]">vs. mês anterior</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <div className="p-2 sm:p-2.5 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4]">
+                    <span className="text-[11px] text-[#525B4E] block font-medium truncate">
+                      Clientes com Recompra
+                    </span>
+                    <span className="text-base sm:text-lg font-bold text-[#1F2E22] block mt-0.5">
+                      389 clientes
+                    </span>
+                    <span className="text-[10px] text-[#717A6D] block mt-0.5">
+                      Fizeram 2+ pedidos
+                    </span>
                   </div>
-                  <span className="text-xs text-[#525B4E] block mt-1">comparado ao mês anterior</span>
-                </div>
 
-                <div>
-                  <span className="text-xs text-[#525B4E] block">Clientes que retornaram (Recompra)</span>
-                  <span className="text-lg sm:text-xl font-bold text-[#1F2E22] leading-tight">
-                    389 clientes
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-xs text-[#525B4E] block">Total de clientes cadastrados no WhatsApp</span>
-                  <span className="text-lg sm:text-xl font-bold text-[#1F2E22] leading-tight">
-                    1.239 clientes
-                  </span>
+                  <div className="p-2 sm:p-2.5 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4]">
+                    <span className="text-[11px] text-[#525B4E] block font-medium truncate">
+                      Base Cadastrada
+                    </span>
+                    <span className="text-base sm:text-lg font-bold text-[#1F2E22] block mt-0.5">
+                      1.239 clientes
+                    </span>
+                    <span className="text-[10px] text-[#717A6D] block mt-0.5">
+                      100% ID no WhatsApp
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => openDetail(
-                "Métricas Detalhadas de Retenção",
-                (
-                  <p className="text-xs text-[#717A6D]">
-                    A taxa de recompra reflete clientes que realizaram 2 ou mais compras nos últimos 30 dias identificados pelo WhatsApp.
-                  </p>
-                ),
-                "Taxa de recompra",
-                "Clientes fiéis costumam comprar em dias de semana com menor movimentação. Recompense-os com pequenos mimos ou sobremesas cortesia."
-              )}
-              className="shrink-0 text-xs font-semibold text-[#CB5A3C] hover:underline mt-1.5 text-left cursor-pointer"
-            >
-              Ver detalhes de fidelidade &gt;
-            </button>
           </div>
 
         </div>
