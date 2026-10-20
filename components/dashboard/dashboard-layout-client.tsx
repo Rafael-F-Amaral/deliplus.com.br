@@ -1,16 +1,6 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import Image from "next/image"
-import { Bell } from "lucide-react"
-
-function SvgIcon({ path, className }: { path: string; className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d={path} />
-    </svg>
-  )
-}
 
 export function DashboardLayoutClient({
   children,
@@ -29,14 +19,9 @@ export function DashboardLayoutClient({
     <div className="flex h-screen overflow-hidden bg-[#FAF8F0]">
       {sidebar}
 
-      <main className="flex-1 flex flex-col min-w-0 relative">
-        {/* Top Actions - Desktop */}
-        {/* Top Actions removidas conforme solicitado */}
-
-        {/* Top Header - Mobile removido conforme solicitado */}
-        
+      <main className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden">
         {/* Page Content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#FAF8F0]">
+        <div className="flex-1 h-full flex flex-col min-h-0 overflow-y-auto overflow-x-hidden bg-[#FAF8F0] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {children}
         </div>
       </main>
