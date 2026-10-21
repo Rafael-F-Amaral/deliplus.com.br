@@ -27,9 +27,6 @@ import {
   ShieldCheck,
   Check,
   Download,
-  Smartphone,
-  Plus,
-  ShoppingBag,
   X,
 } from "lucide-react";
 import {
@@ -581,133 +578,133 @@ export default function SettingsClient({
       </div>
 
       {/* ================================================================ */}
-      {/* ABA 1: MINHA VITRINE & PERFIL (O HUB CENTRAL QUE PREENCHE A TELA) */}
+      {/* ABA 1: MINHA VITRINE & PERFIL                                    */}
       {/* ================================================================ */}
       {activeTab === "overview" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start animate-in fade-in duration-200">
-          {/* ============================================================ */}
-          {/* COLUNA ESQUERDA: O MOTOR DA LOJA (lg:col-span-8)             */}
-          {/* ============================================================ */}
-          <div className="lg:col-span-8 space-y-4">
-            {/* Bloco 1: Capa Panorâmica + Avatar da Loja Integrados */}
-            <div className="bg-white rounded-2xl border border-[#E9E4D4] overflow-hidden shadow-2xs">
-              {/* Capa */}
-              <div className="relative h-32 sm:h-40 bg-linear-to-r from-[#2E4233] via-[#374f3d] to-[#1c2920] flex items-center justify-center overflow-hidden">
-                {bannerUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={bannerUrl}
-                    alt="Capa da Loja"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="text-white/40 text-xs flex items-center gap-2 font-medium">
-                    <Camera className="w-5 h-5" />
-                    <span>Clique em &ldquo;Alterar Capa&rdquo; para personalizar o topo da sua vitrine</span>
-                  </div>
-                )}
-
-                <label className="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs font-bold cursor-pointer transition-colors backdrop-blur-xs flex items-center gap-1.5">
-                  <Camera className="w-3.5 h-3.5" />
-                  <span>Alterar Capa</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleUploadImage(e, "banner")}
-                  />
-                </label>
-              </div>
-
-              {/* Barra de Perfil e Link Compartilhável */}
-              <div className="p-4 sm:p-5 pt-0 relative flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div className="flex items-end gap-3.5 -mt-10 sm:-mt-12">
-                  {/* Avatar da Logo */}
-                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 border-white bg-[#FAF8F0] shadow-md overflow-hidden flex items-center justify-center shrink-0 group">
-                    {logoUrl ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={logoUrl}
-                        alt="Logo"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Store className="w-8 h-8 text-gray-400" />
-                    )}
-                    <label className="absolute inset-0 bg-black/60 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                      <Camera className="w-4 h-4 mb-0.5" />
-                      <span className="text-[10px] font-bold">Trocar</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleUploadImage(e, "logo")}
-                      />
-                    </label>
-                  </div>
-
-                  {/* Nome e Categoria */}
-                  <div className="pb-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-xl sm:text-2xl font-black text-[#111827]">
-                        {storeName || "Nome do Estabelecimento"}
-                      </h2>
-                      <span className="px-2.5 py-0.5 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] text-[#CB5A3C] text-[11px] font-black uppercase tracking-wider">
-                        {category}
-                      </span>
-                    </div>
-                    <span className="text-xs text-[#637267] font-medium block">
-                      Vitrine ativa: <strong className="text-[#2E4233]">deliplus.com.br{publicUrl}</strong>
-                    </span>
-                  </div>
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Bloco 1: Capa Panorâmica + Avatar da Loja Integrados */}
+          <div className="bg-white rounded-2xl border border-[#E9E4D4] overflow-hidden shadow-2xs">
+            {/* Capa */}
+            <div className="relative h-28 sm:h-36 bg-linear-to-r from-[#2E4233] via-[#374f3d] to-[#1c2920] flex items-center justify-center overflow-hidden">
+              {bannerUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={bannerUrl}
+                  alt="Capa da Loja"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="text-white/40 text-xs flex items-center gap-2 font-medium">
+                  <Camera className="w-5 h-5" />
+                  <span>Clique em &ldquo;Alterar Capa&rdquo; para personalizar o topo da sua vitrine</span>
                 </div>
+              )}
 
-                {/* Botões de Acesso Rápido */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(fullPublicUrl);
-                      setCopiedLink(true);
-                      setTimeout(() => setCopiedLink(false), 2000);
-                      showToast("Link da vitrine copiado!");
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0] text-xs font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer"
-                  >
-                    {copiedLink ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5" />
-                    )}
-                    <span>{copiedLink ? "Copiado!" : "Copiar Link"}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPrintModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0] text-xs font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer"
-                  >
-                    <QrCode className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                    <span>Placa de Balcão</span>
-                  </button>
-                </div>
-              </div>
+              <label className="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs font-bold cursor-pointer transition-colors backdrop-blur-xs flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5" />
+                <span>Alterar Capa</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleUploadImage(e, "banner")}
+                />
+              </label>
             </div>
 
-            {/* Bloco 2: Informações de Atendimento & Contatos */}
+            {/* Barra de Perfil e Link Compartilhável */}
+            <div className="p-4 sm:p-5 pt-0 relative flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div className="flex items-end gap-3.5 -mt-10 sm:-mt-12">
+                {/* Avatar da Logo */}
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 border-white bg-[#FAF8F0] shadow-md overflow-hidden flex items-center justify-center shrink-0 group">
+                  {logoUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={logoUrl}
+                      alt="Logo"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Store className="w-8 h-8 text-gray-400" />
+                  )}
+                  <label className="absolute inset-0 bg-black/60 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    <Camera className="w-4 h-4 mb-0.5" />
+                    <span className="text-[10px] font-bold">Trocar</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleUploadImage(e, "logo")}
+                    />
+                  </label>
+                </div>
+
+                {/* Nome e Categoria */}
+                <div className="pb-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-xl sm:text-2xl font-black text-[#111827]">
+                      {storeName || "Nome do Estabelecimento"}
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] text-[#CB5A3C] text-[11px] font-black uppercase tracking-wider">
+                      {category}
+                    </span>
+                  </div>
+                  <span className="text-xs text-[#637267] font-medium block">
+                    Vitrine ativa: <strong className="text-[#2E4233]">deliplus.com.br{publicUrl}</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Botões de Acesso Rápido */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(fullPublicUrl);
+                    setCopiedLink(true);
+                    setTimeout(() => setCopiedLink(false), 2000);
+                    showToast("Link da vitrine copiado!");
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0] text-xs font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer"
+                >
+                  {copiedLink ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                  <span>{copiedLink ? "Copiado!" : "Copiar Link"}</span>
+                </button>
+
+                <Link
+                  href={publicUrl}
+                  target="_blank"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#2E4233] text-white text-xs font-bold hover:bg-[#233327] transition-colors cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Ver Vitrine</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Grade de 2 Colunas Balanceadas: Dados da Loja e Regras de Entrega */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 items-start">
+            {/* ============================================================ */}
+            {/* COLUNA 1: DADOS DO ESTABELECIMENTO & CANAIS DE ATENDIMENTO  */}
+            {/* ============================================================ */}
             <div className="bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-4">
               <div className="flex items-center justify-between border-b pb-2.5 border-[#ECEAE2]">
                 <h3 className="text-xs font-black text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
                   <FileText className="w-4 h-4 text-[#CB5A3C]" />
-                  <span>Dados do Estabelecimento & Canais de Atendimento</span>
+                  <span>Dados do Estabelecimento & Canais</span>
                 </h3>
                 <span className="text-[11px] text-[#637267]">
-                  Atualizações refletem na vitrine em tempo real
+                  Exibidos na sua vitrine pública
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Nome */}
+                {/* Nome de Exibição */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-[#2E4233]">
                     Nome de Exibição na Vitrine <span className="text-[#CB5A3C]">*</span>
@@ -721,10 +718,10 @@ export default function SettingsClient({
                   />
                 </div>
 
-                {/* Segmento */}
+                {/* Segmento / Categoria */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-[#2E4233]">
-                    Segmento / Categoria Gastronômica
+                    Segmento Gastronômico
                   </label>
                   <select
                     value={category}
@@ -753,7 +750,7 @@ export default function SettingsClient({
                         rel="noreferrer"
                         className="text-[10px] text-emerald-700 font-bold hover:underline"
                       >
-                        Testar no WhatsApp ↗
+                        Testar ↗
                       </a>
                     )}
                   </div>
@@ -786,7 +783,7 @@ export default function SettingsClient({
                   </div>
                 </div>
 
-                {/* Endereço */}
+                {/* Endereço Físico */}
                 <div className="space-y-1 sm:col-span-2">
                   <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-red-500" />
@@ -801,7 +798,7 @@ export default function SettingsClient({
                   />
                 </div>
 
-                {/* Bio */}
+                {/* Bio / Slogan */}
                 <div className="space-y-1 sm:col-span-2">
                   <label className="text-xs font-bold text-[#2E4233] flex items-center justify-between">
                     <span>Biografia / Slogan da Vitrine</span>
@@ -821,7 +818,9 @@ export default function SettingsClient({
               </div>
             </div>
 
-            {/* Bloco 3: Regras Operacionais de Delivery & Taxas */}
+            {/* ============================================================ */}
+            {/* COLUNA 2: REGRAS OPERACIONAIS DE ENTREGA & TAXAS            */}
+            {/* ============================================================ */}
             <div className="bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-4">
               <div className="flex items-center justify-between border-b pb-2.5 border-[#ECEAE2]">
                 <h3 className="text-xs font-black text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
@@ -829,395 +828,249 @@ export default function SettingsClient({
                   <span>Regras de Entrega, Prazos & Pedido Mínimo</span>
                 </h3>
                 <span className="text-[11px] text-[#637267]">
-                  Visível no topo da vitrine do cliente
+                  Parâmetros de atendimento
                 </span>
               </div>
 
-              {/* Switches de Modalidades */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/40 cursor-pointer hover:border-[#CB5A3C]/40 transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-[#CB5A3C]">
-                      <Truck className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-[#111827] block">
-                        Aceita Delivery (Entrega)
-                      </span>
-                      <span className="text-[10px] text-[#637267]">
-                        Envio por motoboy até o endereço do cliente
-                      </span>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={acceptsDelivery}
-                    onChange={(e) => setAcceptsDelivery(e.target.checked)}
-                    className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                  />
-                </label>
-
-                <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/40 cursor-pointer hover:border-[#CB5A3C]/40 transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700">
-                      <Store className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-[#111827] block">
-                        Retirada no Balcão
-                      </span>
-                      <span className="text-[10px] text-[#637267]">
-                        Cliente busca o pedido pronto no restaurante
-                      </span>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={acceptsPickup}
-                    onChange={(e) => setAcceptsPickup(e.target.checked)}
-                    className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                  />
-                </label>
-              </div>
-
-              {/* Prazos e Taxas */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                <div className="p-3 rounded-xl bg-[#FAF8F0]/60 border border-[#E9E4D4] space-y-1">
-                  <span className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
-                    ⏱️ Tempo Mínimo
+              {/* CONTAINER 1: MODALIDADES DE ATENDIMENTO */}
+              <div className="p-3.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-[#2E4233] flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                    <span>Modalidades de Pedido</span>
                   </span>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      min="5"
-                      max="180"
-                      value={prepMin}
-                      onChange={(e) => setPrepMin(e.target.value)}
-                      className="w-16 px-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-white text-center"
-                    />
-                    <span className="text-xs font-bold text-[#637267]">min</span>
-                  </div>
+                  <span className="text-[10px] text-[#637267]">
+                    Opções disponíveis ao cliente
+                  </span>
                 </div>
 
-                <div className="p-3 rounded-xl bg-[#FAF8F0]/60 border border-[#E9E4D4] space-y-1">
-                  <span className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
-                    ⏱️ Tempo Máximo
-                  </span>
-                  <div className="flex items-center gap-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Delivery */}
+                  <div
+                    onClick={() => setAcceptsDelivery(!acceptsDelivery)}
+                    className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      acceptsDelivery
+                        ? "border-[#CB5A3C] bg-white shadow-xs"
+                        : "border-gray-200 bg-gray-50/70 opacity-60 hover:opacity-80"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                          acceptsDelivery
+                            ? "bg-[#CB5A3C] text-white"
+                            : "bg-gray-200 text-gray-500"
+                        }`}
+                      >
+                        <Truck className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-black text-[#111827]">
+                            Delivery
+                          </span>
+                          <span
+                            className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
+                              acceptsDelivery
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-gray-200 text-gray-600"
+                            }`}
+                          >
+                            {acceptsDelivery ? "Ativo" : "Inativo"}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[#637267] block truncate">
+                          Entrega por motoboy
+                        </span>
+                      </div>
+                    </div>
                     <input
-                      type="number"
-                      min="5"
-                      max="240"
-                      value={prepMax}
-                      onChange={(e) => setPrepMax(e.target.value)}
-                      className="w-16 px-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-white text-center"
+                      type="checkbox"
+                      checked={acceptsDelivery}
+                      onChange={(e) => setAcceptsDelivery(e.target.checked)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer shrink-0"
                     />
-                    <span className="text-xs font-bold text-[#637267]">min</span>
                   </div>
-                </div>
 
-                <div className="p-3 rounded-xl bg-[#FAF8F0]/60 border border-[#E9E4D4] space-y-1">
-                  <span className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
-                    🛵 Taxa de Entrega
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs font-bold text-gray-500">R$</span>
+                  {/* Retirada */}
+                  <div
+                    onClick={() => setAcceptsPickup(!acceptsPickup)}
+                    className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      acceptsPickup
+                        ? "border-emerald-600 bg-white shadow-xs"
+                        : "border-gray-200 bg-gray-50/70 opacity-60 hover:opacity-80"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                          acceptsPickup
+                            ? "bg-[#2E4233] text-white"
+                            : "bg-gray-200 text-gray-500"
+                        }`}
+                      >
+                        <Store className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-black text-[#111827]">
+                            Retirada
+                          </span>
+                          <span
+                            className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
+                              acceptsPickup
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-gray-200 text-gray-600"
+                            }`}
+                          >
+                            {acceptsPickup ? "Ativo" : "Inativo"}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[#637267] block truncate">
+                          Busca no balcão
+                        </span>
+                      </div>
+                    </div>
                     <input
-                      type="text"
-                      value={deliveryFee}
-                      onChange={(e) => setDeliveryFee(e.target.value)}
-                      placeholder="5,00"
-                      className="w-20 px-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-white text-center"
-                    />
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-[#FAF8F0]/60 border border-[#E9E4D4] space-y-1">
-                  <span className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
-                    🛍️ Pedido Mínimo
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs font-bold text-gray-500">R$</span>
-                    <input
-                      type="text"
-                      value={minOrder}
-                      onChange={(e) => setMinOrder(e.target.value)}
-                      placeholder="20,00"
-                      className="w-20 px-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-white text-center"
+                      type="checkbox"
+                      checked={acceptsPickup}
+                      onChange={(e) => setAcceptsPickup(e.target.checked)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-4 h-4 accent-[#2E4233] rounded cursor-pointer shrink-0"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Frete Grátis e Chave Pix Rápida */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#2E4233] flex items-center justify-between">
-                    <span className="flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      <span>Frete Grátis a partir de</span>
-                    </span>
-                    <span className="text-[10px] text-gray-400">Opcional</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+              {/* CONTAINER 2: ESTIMATIVA DE TEMPO DE PREPARO */}
+              <div className="p-3.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-[#2E4233] flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                    <span>Tempo de Preparo & Espera</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-[#2E4233] bg-white px-2 py-0.5 rounded-md border border-[#E9E4D4]">
+                    ⏱️ Vitrine: {prepMin || 0} a {prepMax || 0} min
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-2.5 rounded-xl bg-white border border-[#E9E4D4] shadow-2xs space-y-1">
+                    <label className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
+                      Tempo Mínimo
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="5"
+                        max="180"
+                        value={prepMin}
+                        onChange={(e) => setPrepMin(e.target.value)}
+                        className="w-full px-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-[#FAF8F0]/30 text-center focus:outline-none focus:border-[#CB5A3C]"
+                      />
+                      <span className="text-xs font-bold text-[#637267]">min</span>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white border border-[#E9E4D4] shadow-2xs space-y-1">
+                    <label className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
+                      Tempo Máximo
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="5"
+                        max="240"
+                        value={prepMax}
+                        onChange={(e) => setPrepMax(e.target.value)}
+                        className="w-full px-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-[#FAF8F0]/30 text-center focus:outline-none focus:border-[#CB5A3C]"
+                      />
+                      <span className="text-xs font-bold text-[#637267]">min</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CONTAINER 3: TAXA DE ENTREGA & PEDIDO MÍNIMO */}
+              <div className="p-3.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-[#2E4233] flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Taxa de Entrega & Pedido Mínimo</span>
+                  </span>
+                  <span className="text-[10px] text-[#637267]">
+                    Cobrança no fechamento
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-2.5 rounded-xl bg-white border border-[#E9E4D4] shadow-2xs space-y-1">
+                    <label className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
+                      Taxa de Entrega
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-black text-[#637267]">
+                        R$
+                      </span>
+                      <input
+                        type="text"
+                        value={deliveryFee}
+                        onChange={(e) => setDeliveryFee(e.target.value)}
+                        placeholder="5,00"
+                        className="w-full pl-8 pr-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-[#FAF8F0]/30 focus:outline-none focus:border-[#CB5A3C]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white border border-[#E9E4D4] shadow-2xs space-y-1">
+                    <label className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
+                      Pedido Mínimo
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-black text-[#637267]">
+                        R$
+                      </span>
+                      <input
+                        type="text"
+                        value={minOrder}
+                        onChange={(e) => setMinOrder(e.target.value)}
+                        placeholder="0,00"
+                        className="w-full pl-8 pr-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-[#FAF8F0]/30 focus:outline-none focus:border-[#CB5A3C]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CONTAINER 4: FRETE GRÁTIS PROMOCIONAL */}
+              <div className="p-3.5 rounded-xl border border-amber-200/90 bg-amber-50/40 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Frete Grátis Promocional</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
+                    Opcional
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="relative w-44 shrink-0">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-amber-800">
                       R$
                     </span>
                     <input
                       type="text"
                       value={freeDeliveryAbove}
                       onChange={(e) => setFreeDeliveryAbove(e.target.value)}
-                      placeholder="Ex: 80,00 (Deixe vazio para desativar)"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-[#FAF8F0]/30"
+                      placeholder="Ex: 80,00"
+                      className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-amber-300 bg-white text-xs font-black text-[#111827] focus:outline-none focus:border-[#CB5A3C]"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#2E4233] flex items-center justify-between">
-                    <span className="flex items-center gap-1">
-                      <QrCode className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Chave Pix Oficial da Loja</span>
-                    </span>
-                    <span className="text-[10px] text-emerald-700 font-bold">
-                      Recebimento Direto
-                    </span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={pixKey}
-                      onChange={(e) => setPixKey(e.target.value)}
-                      placeholder="CPF, CNPJ, Telefone ou E-mail Pix"
-                      className="w-full pl-3 pr-20 py-2 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-[#FAF8F0]/30"
-                    />
-                    {pixKey && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(pixKey);
-                          setCopiedPix(true);
-                          setTimeout(() => setCopiedPix(false), 2000);
-                          showToast("Chave Pix copiada!");
-                        }}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-lg bg-white border border-[#E9E4D4] text-[10px] font-bold text-[#2E4233] hover:text-[#CB5A3C] transition-colors cursor-pointer flex items-center gap-1"
-                      >
-                        {copiedPix ? (
-                          <Check className="w-3 h-3 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3 h-3" />
-                        )}
-                        <span>{copiedPix ? "Copiada" : "Copiar"}</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ============================================================ */}
-          {/* COLUNA DIREITA: A VITRINE VIVA DO CLIENTE (lg:col-span-4)   */}
-          {/* ============================================================ */}
-          <div className="lg:col-span-4 space-y-4">
-            {/* Card 1: Simulador Mobile da Vitrine em Tempo Real */}
-            <div className="bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Smartphone className="w-4 h-4 text-[#CB5A3C]" />
-                  <span className="text-xs font-black text-[#111827] uppercase tracking-wider">
-                    Como o Cliente Vê no Celular
+                  <span className="text-[11px] text-[#637267] leading-tight">
+                    Isenta a taxa quando o pedido atinge este valor. Deixe em branco para desativar.
                   </span>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  Prévia Ao Vivo
-                </span>
-              </div>
-
-              {/* O Smartphone Frame Estilizado */}
-              <div className="w-full max-w-[310px] mx-auto rounded-[36px] border-[6px] border-[#1F2937] bg-white shadow-xl overflow-hidden flex flex-col">
-                {/* Notch / Speaker Bar */}
-                <div className="bg-[#1F2937] h-5 w-full flex items-center justify-center">
-                  <div className="w-16 h-3 rounded-full bg-black/60 flex items-center justify-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-700 block" />
-                  </div>
-                </div>
-
-                {/* Conteúdo da Vitrine no Celular */}
-                <div className="flex-1 bg-[#FAF8F0] overflow-hidden flex flex-col text-[11px]">
-                  {/* Capa do Restaurante */}
-                  <div className="relative h-20 bg-linear-to-r from-[#2E4233] to-[#1c2920]">
-                    {bannerUrl ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={bannerUrl}
-                        alt="Preview Capa"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white/40 text-[9px]">
-                        Banner da Loja
-                      </div>
-                    )}
-
-                    {/* Logo Sobreposta */}
-                    <div className="absolute -bottom-3 left-3 w-12 h-12 rounded-xl border-2 border-white bg-white shadow-xs overflow-hidden flex items-center justify-center">
-                      {logoUrl ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={logoUrl}
-                          alt="Preview Logo"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Store className="w-5 h-5 text-gray-400" />
-                      )}
-                    </div>
-
-                    {/* Badge Aberto */}
-                    <div className="absolute top-2 right-2">
-                      <span
-                        className={`text-[9px] font-black px-2 py-0.5 rounded-full shadow-2xs ${
-                          isOpen
-                            ? "bg-emerald-500 text-white"
-                            : "bg-red-500 text-white"
-                        }`}
-                      >
-                        {isOpen ? "Aberto Agora" : "Fechado"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Informações da Vitrine */}
-                  <div className="pt-4 px-3 pb-2 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-black text-xs text-[#111827] truncate">
-                        {storeName || "Minha Loja"}
-                      </h4>
-                      <span className="text-[9px] font-bold text-[#CB5A3C] bg-orange-50 px-1.5 py-0.2 rounded-md">
-                        {category}
-                      </span>
-                    </div>
-
-                    <p className="text-[10px] text-gray-500 line-clamp-2 leading-tight">
-                      {bio}
-                    </p>
-
-                    {/* Badges de Operação no Celular */}
-                    <div className="pt-1 flex items-center gap-1 text-[9px] font-bold text-[#2E4233] flex-wrap">
-                      <span className="px-1.5 py-0.5 rounded-md bg-white border border-[#E9E4D4]">
-                        ⏱️ {prepMin}-{prepMax} min
-                      </span>
-                      <span className="px-1.5 py-0.5 rounded-md bg-white border border-[#E9E4D4]">
-                        🛵 R$ {deliveryFee}
-                      </span>
-                      <span className="px-1.5 py-0.5 rounded-md bg-white border border-[#E9E4D4]">
-                        🛍️ Mín. R$ {minOrder}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Demonstração de Itens do Cardápio no Mockup */}
-                  <div className="px-3 pb-3 space-y-1.5 flex-1">
-                    <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">
-                      Mais Pedidos
-                    </span>
-
-                    <div className="p-2 rounded-xl bg-white border border-[#E9E4D4] flex items-center justify-between gap-2 shadow-2xs">
-                      <div className="min-w-0">
-                        <span className="font-bold text-[10px] text-[#111827] block truncate">
-                          Hambúrguer Artesanal Smash
-                        </span>
-                        <span className="text-[9px] text-[#CB5A3C] font-black">
-                          R$ 32,90
-                        </span>
-                      </div>
-                      <div className="w-6 h-6 rounded-lg bg-[#2E4233] text-white flex items-center justify-center shrink-0">
-                        <Plus className="w-3.5 h-3.5" />
-                      </div>
-                    </div>
-
-                    <div className="p-2 rounded-xl bg-white border border-[#E9E4D4] flex items-center justify-between gap-2 shadow-2xs">
-                      <div className="min-w-0">
-                        <span className="font-bold text-[10px] text-[#111827] block truncate">
-                          Refrigerante Gelado 350ml
-                        </span>
-                        <span className="text-[9px] text-[#CB5A3C] font-black">
-                          R$ 6,00
-                        </span>
-                      </div>
-                      <div className="w-6 h-6 rounded-lg bg-[#2E4233] text-white flex items-center justify-center shrink-0">
-                        <Plus className="w-3.5 h-3.5" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Botão Ver Cardápio no Celular */}
-                  <div className="p-2.5 bg-white border-t border-[#ECEAE2]">
-                    <div className="w-full py-1.5 rounded-xl bg-[#CB5A3C] text-white text-center font-bold text-[10px] flex items-center justify-center gap-1 shadow-xs">
-                      <ShoppingBag className="w-3 h-3" />
-                      <span>Ver Cardápio Completo</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 text-center">
-                <Link
-                  href={publicUrl}
-                  target="_blank"
-                  className="text-xs font-bold text-[#CB5A3C] hover:underline inline-flex items-center gap-1"
-                >
-                  <span>Abrir vitrine em tela cheia</span>
-                  <ExternalLink className="w-3 h-3" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Card 2: Placa de Balcão & Mesa com QR Code */}
-            <div className="bg-white rounded-2xl border border-[#E9E4D4] p-4 shadow-2xs space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <QrCode className="w-4 h-4 text-[#CB5A3C]" />
-                  <span className="text-xs font-black text-[#111827] uppercase tracking-wider">
-                    QR Code da Vitrine & Balcão
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex flex-col items-center text-center space-y-2.5">
-                <div className="p-2.5 bg-white rounded-xl shadow-xs border border-[#E9E4D4]">
-                  <QRCodeSVG value={fullPublicUrl} size={110} level="H" />
-                </div>
-
-                <div>
-                  <h4 className="text-xs font-black text-[#111827]">
-                    Aponte a câmera para pedir
-                  </h4>
-                  <p className="text-[10px] text-[#637267] max-w-[220px]">
-                    Imprima para colocar nas mesas, balcão de retirada ou adesivos na embalagem!
-                  </p>
-                </div>
-
-                {/* Botões do QR Code */}
-                <div className="flex items-center gap-1.5 w-full pt-1">
-                  <button
-                    type="button"
-                    onClick={downloadQRCode}
-                    className="flex-1 py-1.5 px-2 rounded-xl bg-white border border-[#E9E4D4] text-[11px] font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer flex items-center justify-center gap-1"
-                  >
-                    <Download className="w-3 h-3" />
-                    <span>Baixar PNG</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPrintModal(true)}
-                    className="flex-1 py-1.5 px-2 rounded-xl bg-[#2E4233] text-white text-[11px] font-bold hover:bg-[#233327] transition-colors cursor-pointer flex items-center justify-center gap-1"
-                  >
-                    <Printer className="w-3 h-3" />
-                    <span>Imprimir Placa</span>
-                  </button>
                 </div>
               </div>
             </div>
@@ -1334,159 +1187,237 @@ export default function SettingsClient({
       )}
 
       {/* ================================================================ */}
-      {/* ABA 3: FORMAS DE PAGAMENTO                                      */}
+      {/* ABA 3: FORMAS DE PAGAMENTO & QR CODE                            */}
       {/* ================================================================ */}
       {activeTab === "payment" && (
-        <div className="bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs max-w-4xl space-y-5 animate-in fade-in duration-150">
-          <div>
-            <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-[#CB5A3C]" />
-              <span>Formas de Pagamento no Pedido & Entrega</span>
-            </h3>
-            <p className="text-xs text-[#637267] mt-0.5">
-              Escolha quais opções de pagamento estarão disponíveis para o cliente no fechamento do pedido.
-            </p>
-          </div>
-
-          {/* Card Chave Pix */}
-          <div className="p-4 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-[#111827] flex items-center gap-1.5">
-                <QrCode className="w-4 h-4 text-emerald-600" />
-                <span>Chave Pix Oficial da Loja</span>
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
-                Recebimento Imediato
-              </span>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start max-w-6xl animate-in fade-in duration-150">
+          {/* Coluna Esquerda: Métodos e Chave Pix (lg:col-span-7) */}
+          <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-5">
+            <div>
+              <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-[#CB5A3C]" />
+                <span>Formas de Pagamento no Pedido & Entrega</span>
+              </h3>
+              <p className="text-xs text-[#637267] mt-0.5">
+                Escolha quais opções de pagamento estarão disponíveis para o cliente no fechamento do pedido.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-[#2E4233]">
-                  Tipo de Chave
-                </label>
-                <select
-                  value={pixKeyType}
-                  onChange={(e) => setPixKeyType(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-white"
-                >
-                  <option value="cpf">CPF</option>
-                  <option value="cnpj">CNPJ</option>
-                  <option value="phone">Celular</option>
-                  <option value="email">E-mail</option>
-                  <option value="random">Chave Aleatória (EVP)</option>
-                </select>
+            {/* Card Chave Pix */}
+            <div className="p-4 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-[#111827] flex items-center gap-1.5">
+                  <QrCode className="w-4 h-4 text-emerald-600" />
+                  <span>Chave Pix Oficial da Loja</span>
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                  Recebimento Imediato
+                </span>
               </div>
 
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-[11px] font-bold text-[#2E4233]">
-                  Chave Pix
-                </label>
-                <input
-                  type="text"
-                  value={pixKey}
-                  onChange={(e) => setPixKey(e.target.value)}
-                  placeholder="Insira sua chave Pix oficial"
-                  className="w-full px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-white"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-[#2E4233]">
+                    Tipo de Chave
+                  </label>
+                  <select
+                    value={pixKeyType}
+                    onChange={(e) => setPixKeyType(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-white focus:outline-none focus:border-[#CB5A3C]"
+                  >
+                    <option value="cpf">CPF</option>
+                    <option value="cnpj">CNPJ</option>
+                    <option value="phone">Celular</option>
+                    <option value="email">E-mail</option>
+                    <option value="random">Chave Aleatória (EVP)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-[11px] font-bold text-[#2E4233]">
+                    Chave Pix
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={pixKey}
+                      onChange={(e) => setPixKey(e.target.value)}
+                      placeholder="Insira sua chave Pix oficial"
+                      className="w-full pl-3 pr-20 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-white focus:outline-none focus:border-[#CB5A3C]"
+                    />
+                    {pixKey && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(pixKey);
+                          setCopiedPix(true);
+                          setTimeout(() => setCopiedPix(false), 2000);
+                          showToast("Chave Pix copiada!");
+                        }}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-lg bg-[#FAF8F0] border border-[#E9E4D4] text-[10px] font-bold text-[#2E4233] hover:text-[#CB5A3C] transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        {copiedPix ? (
+                          <Check className="w-3 h-3 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                        <span>{copiedPix ? "Copiada" : "Copiar"}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Grid de Métodos Aceitos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer">
-              <div>
-                <span className="text-xs font-bold text-[#111827] block">
-                  Pix no Pedido
-                </span>
-                <span className="text-[11px] text-[#637267]">
-                  Exibe a chave Pix e QR Code para pagamento na tela
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={acceptPix}
-                onChange={(e) => setAcceptPix(e.target.checked)}
-                className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-              />
-            </label>
-
-            <div className="p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 space-y-1.5">
-              <label className="flex items-center justify-between cursor-pointer">
+            {/* Grid de Métodos Aceitos */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer hover:border-[#CB5A3C]/40 transition-colors">
                 <div>
                   <span className="text-xs font-bold text-[#111827] block">
-                    Dinheiro em Espécie
+                    Pix no Pedido
                   </span>
                   <span className="text-[11px] text-[#637267]">
-                    Pagamento ao motoboy na entrega
+                    Chave Pix e QR Code direto no cardápio
                   </span>
                 </div>
                 <input
                   type="checkbox"
-                  checked={acceptCash}
-                  onChange={(e) => setAcceptCash(e.target.checked)}
+                  checked={acceptPix}
+                  onChange={(e) => setAcceptPix(e.target.checked)}
                   className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
                 />
               </label>
-              {acceptCash && (
-                <label className="flex items-center gap-1.5 text-[11px] font-semibold text-[#637267] cursor-pointer pt-1 border-t border-[#ECEAE2]">
+
+              <div className="p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 space-y-1.5">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <span className="text-xs font-bold text-[#111827] block">
+                      Dinheiro em Espécie
+                    </span>
+                    <span className="text-[11px] text-[#637267]">
+                      Pagamento ao entregador ou balcão
+                    </span>
+                  </div>
                   <input
                     type="checkbox"
-                    checked={needChangeOption}
-                    onChange={(e) => setNeedChangeOption(e.target.checked)}
-                    className="w-3.5 h-3.5 accent-[#CB5A3C] rounded cursor-pointer"
+                    checked={acceptCash}
+                    onChange={(e) => setAcceptCash(e.target.checked)}
+                    className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
                   />
-                  <span>Perguntar ao cliente se precisa de troco</span>
                 </label>
-              )}
+                {acceptCash && (
+                  <label className="flex items-center gap-1.5 text-[11px] font-semibold text-[#637267] cursor-pointer pt-1 border-t border-[#ECEAE2]">
+                    <input
+                      type="checkbox"
+                      checked={needChangeOption}
+                      onChange={(e) => setNeedChangeOption(e.target.checked)}
+                      className="w-3.5 h-3.5 accent-[#CB5A3C] rounded cursor-pointer"
+                    />
+                    <span>Perguntar se o cliente precisa de troco</span>
+                  </label>
+                )}
+              </div>
+
+              <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer hover:border-[#CB5A3C]/40 transition-colors">
+                <div>
+                  <span className="text-xs font-bold text-[#111827] block">
+                    Cartão na Entrega / Balcão
+                  </span>
+                  <span className="text-[11px] text-[#637267]">
+                    Débito e Crédito na maquininha
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={acceptCard}
+                  onChange={(e) => setAcceptCard(e.target.checked)}
+                  className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer hover:border-[#CB5A3C]/40 transition-colors">
+                <div>
+                  <span className="text-xs font-bold text-[#111827] block">
+                    Vale-Refeição / Alimentação
+                  </span>
+                  <span className="text-[11px] text-[#637267]">
+                    VR, Sodexo, Ticket e Alelo na maquininha
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={acceptMealVoucher}
+                  onChange={(e) => setAcceptMealVoucher(e.target.checked)}
+                  className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
+                />
+              </label>
             </div>
 
-            <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer">
-              <div>
-                <span className="text-xs font-bold text-[#111827] block">
-                  Cartão de Crédito
-                </span>
-                <span className="text-[11px] text-[#637267]">
-                  Maquininha levada pelo entregador
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={acceptCard}
-                onChange={(e) => setAcceptCard(e.target.checked)}
-                className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer">
-              <div>
-                <span className="text-xs font-bold text-[#111827] block">
-                  Vale-Refeição / Alimentação
-                </span>
-                <span className="text-[11px] text-[#637267]">
-                  VR, Sodexo, Ticket, Alelo na maquininha
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={acceptMealVoucher}
-                onChange={(e) => setAcceptMealVoucher(e.target.checked)}
-                className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-              />
-            </label>
+            <div className="pt-3 border-t border-[#ECEAE2] flex justify-end">
+              <button
+                type="button"
+                onClick={handleSaveAll}
+                disabled={isSaving}
+                className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>{isSaving ? "Salvando..." : "Salvar Formas de Pagamento"}</span>
+              </button>
+            </div>
           </div>
 
-          <div className="pt-3 border-t border-[#ECEAE2] flex justify-end">
-            <button
-              type="button"
-              onClick={handleSaveAll}
-              disabled={isSaving}
-              className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>{isSaving ? "Salvando..." : "Salvar Formas de Pagamento"}</span>
-            </button>
+          {/* Coluna Direita: QR Code da Vitrine & Pagamento (lg:col-span-5) */}
+          <div className="lg:col-span-5 bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <QrCode className="w-4 h-4 text-[#CB5A3C]" />
+                <span className="text-xs font-black text-[#111827] uppercase tracking-wider">
+                  QR Code da Vitrine & Pagamento
+                </span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
+                Mesa & Balcão
+              </span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex flex-col items-center text-center space-y-3">
+              <div className="p-3 bg-white rounded-2xl shadow-xs border border-[#E9E4D4]">
+                <QRCodeSVG value={fullPublicUrl} size={150} level="H" />
+              </div>
+
+              <div>
+                <h4 className="text-xs font-black text-[#111827]">
+                  Aponte a câmera para pedir & pagar
+                </h4>
+                <p className="text-[11px] text-[#637267] max-w-[260px] mt-1">
+                  Imprima para colocar nas mesas, balcão de atendimento ou embalagens! O cliente escaneia com o celular, acessa o cardápio e faz o pedido com pagamento Pix imediato.
+                </p>
+                <span className="text-[10px] font-mono text-gray-400 block pt-1.5">
+                  deliplus.com.br{publicUrl}
+                </span>
+              </div>
+
+              {/* Botões do QR Code */}
+              <div className="flex items-center gap-2 w-full pt-1">
+                <button
+                  type="button"
+                  onClick={downloadQRCode}
+                  className="flex-1 py-2 px-3 rounded-xl bg-white border border-[#E9E4D4] text-xs font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Baixar PNG</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPrintModal(true)}
+                  className="flex-1 py-2 px-3 rounded-xl bg-[#2E4233] text-white text-xs font-bold hover:bg-[#233327] transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Imprimir Placa</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
