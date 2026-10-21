@@ -36,7 +36,13 @@ export function DashboardLayoutClient({
         {/* Top Header - Mobile removido conforme solicitado */}
         
         {/* Page Content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#FAF8F0]">
+        <div
+          className={`flex-1 h-full min-h-0 flex flex-col overflow-x-hidden bg-[#FAF8F0] ${
+            pathname === "/dashboard/finance"
+              ? "overflow-y-auto lg:overflow-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              : "overflow-y-auto"
+          }`}
+        >
           {children}
         </div>
       </main>
