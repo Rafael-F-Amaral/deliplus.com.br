@@ -37,9 +37,9 @@ export function DashboardLayoutClient({
         
         {/* Page Content */}
         <div
-          className={`flex-1 overflow-x-hidden bg-[#FAF8F0] ${
+          className={`flex-1 h-full min-h-0 flex flex-col overflow-x-hidden bg-[#FAF8F0] ${
             pathname === "/dashboard/finance"
-              ? "overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              ? "overflow-y-auto lg:overflow-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
               : "overflow-y-auto"
           }`}
         >

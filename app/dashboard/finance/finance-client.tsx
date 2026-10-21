@@ -544,11 +544,11 @@ export function FinanceClient({
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#FAF9F5] px-3.5 sm:px-6 lg:px-7 py-3 sm:py-3.5 lg:py-4 text-[#1C201A] font-sans antialiased">
-      <div className="w-full space-y-2.5 sm:space-y-3 lg:space-y-3.5">
+    <div className="w-full h-full min-h-screen lg:min-h-0 lg:h-full lg:max-h-full flex flex-col justify-between bg-[#FAF9F5] px-3.5 sm:px-6 lg:px-7 pt-3 pb-3 sm:pb-3.5 lg:pb-3.5 text-[#1C201A] font-sans antialiased overflow-x-hidden">
+      <div className="w-full flex-1 min-h-0 flex flex-col justify-between gap-2.5 sm:gap-3 lg:gap-3">
         {/* Success Alert when fees are updated */}
         {savedSuccessAlert && (
-          <div className="bg-[#EDF6EC] border border-[#CDE3CA] text-[#2E7D32] text-xs px-3.5 py-1.5 rounded-xl flex items-center justify-between shadow-2xs transition-all">
+          <div className="shrink-0 bg-[#EDF6EC] border border-[#CDE3CA] text-[#2E7D32] text-xs px-3.5 py-1.5 rounded-xl flex items-center justify-between shadow-2xs transition-all">
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4 text-[#2E7D32]" />
               <span>Taxas bancárias atualizadas com sucesso! Os valores e deduções foram recalculados.</span>
@@ -563,10 +563,10 @@ export function FinanceClient({
         )}
 
         {/* --- HEADER --- */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0">
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="font-serif text-[28px] sm:text-[32px] md:text-[34px] text-[#CB5A3C] font-normal tracking-tight leading-tight">
+              <h1 className="font-serif text-[30px] sm:text-[34px] md:text-[36px] text-[#CB5A3C] font-normal tracking-tight leading-tight">
                 Financeiro
               </h1>
               <HelpTooltip
@@ -638,7 +638,7 @@ export function FinanceClient({
         </div>
 
         {/* --- ROW 1: 5 KPI CARDS (PROPORÇÃO EQUILIBRADA QUE PREENCHE A ALTURA DA TELA) --- */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 lg:gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 lg:gap-3.5 shrink-0">
           {/* Card 1: Faturamento bruto */}
           <div className="bg-white rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
             <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
@@ -772,7 +772,7 @@ export function FinanceClient({
         </div>
 
         {/* --- ROW 2: GRÁFICO DE BARRAS & FORMAS DE PAGAMENTO --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-3 lg:gap-3.5 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-3 lg:gap-3.5 items-stretch shrink-0">
           {/* Card: Evolução da receita - Spans 7 cols */}
           <div className="lg:col-span-7 bg-white rounded-[20px] p-3.5 sm:p-4 lg:p-4.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
             <div>
@@ -813,174 +813,131 @@ export function FinanceClient({
               </div>
             </div>
 
-            {/* SVG Modern 3-Bar Chart with Scrollbar */}
-            <div className="w-full overflow-x-auto pb-1 chart-horizontal-scroll">
-              <div className="relative min-w-[560px] w-full h-[150px] lg:h-[162px] select-none mt-0.5">
-                <svg
-                  viewBox="0 0 620 160"
-                  className="w-full h-full overflow-visible"
-                >
-                  {/* Horizontal grid lines & Y labels (80% black) */}
-                  {[
-                    { label: "R$ 2.500", val: 2500 },
-                    { label: "R$ 2.000", val: 2000 },
-                    { label: "R$ 1.500", val: 1500 },
-                    { label: "R$ 1.000", val: 1000 },
-                    { label: "R$ 500", val: 500 },
-                    { label: "R$ 0", val: 0 },
-                  ].map(({ label, val }) => {
-                    const y = 135 - (val / maxBarValue) * 119;
-                    return (
-                      <g key={val}>
-                        <text
-                          x="40"
-                          y={y + 3.5}
-                          textAnchor="end"
-                          className="text-[9.5px] font-sans font-semibold fill-[#1C201A]"
-                          fillOpacity="0.80"
-                        >
-                          {label}
-                        </text>
-                        <line
-                          x1="46"
-                          y1={y}
-                          x2="610"
-                          y2={y}
-                          stroke="#1C201A"
-                          strokeOpacity="0.20"
-                          strokeWidth="1"
-                        />
-                      </g>
-                    );
-                  })}
+            {/* 100% Width Responsive 3-Bar Chart (No horizontal letterboxing) */}
+            <div className="w-full select-none mt-1">
+              <div className="relative w-full h-[145px] sm:h-[155px] lg:h-[162px] flex">
+                {/* Y-axis Labels Column */}
+                <div className="w-12 sm:w-14 shrink-0 flex flex-col justify-between text-right pr-2 pb-5 text-[9px] sm:text-[9.5px] font-semibold text-[#1C201A]/80">
+                  <span className="leading-none">R$ 2.500</span>
+                  <span className="leading-none">R$ 2.000</span>
+                  <span className="leading-none">R$ 1.500</span>
+                  <span className="leading-none">R$ 1.000</span>
+                  <span className="leading-none">R$ 500</span>
+                  <span className="leading-none">R$ 0</span>
+                </div>
 
-                  {/* Bars for each day: 3 bars per date (Azul, Verde Esmeralda, Laranja) */}
-                  {barChartData.map((d, i) => {
-                    const stepX = (610 - 52) / barChartData.length;
-                    const centerX = 52 + i * stepX + stepX / 2;
-                    const barWidth = 6.5;
-                    const barGap = 2;
+                {/* Chart Grid & Bars Area (Takes 100% of remaining width!) */}
+                <div className="flex-1 relative flex flex-col justify-between pb-5">
+                  {/* 6 Horizontal Grid Lines spanning 100% width */}
+                  <div className="absolute inset-x-0 top-0 bottom-5 flex flex-col justify-between pointer-events-none">
+                    {[0, 1, 2, 3, 4, 5].map((lvl) => (
+                      <div key={lvl} className="w-full border-b border-[#1C201A]/15" />
+                    ))}
+                  </div>
 
-                    const grossHeight = Math.max((d.gross / maxBarValue) * 119, 4);
-                    const netHeight = Math.max((d.net / maxBarValue) * 119, 4);
-                    const feeHeight = Math.max((d.fee / maxBarValue) * 119, 5);
+                  {/* Columns Container: Distributed evenly across 100% width */}
+                  <div className="relative z-10 w-full h-full flex items-end justify-between px-1 sm:px-2">
+                    {barChartData.map((d, i) => {
+                      const grossPct = Math.min(100, Math.max(3, (d.gross / maxBarValue) * 100));
+                      const netPct = Math.min(100, Math.max(3, (d.net / maxBarValue) * 100));
+                      const feePct = Math.min(100, Math.max(3, (d.fee / maxBarValue) * 100));
+                      const isHovered = hoveredBarIndex === i;
 
-                    const isHovered = hoveredBarIndex === i;
-
-                    return (
-                      <g key={d.date} className="cursor-pointer">
-                        {/* Background hover highlight column */}
-                        {isHovered && (
-                          <rect
-                            x={centerX - stepX / 2 + 1}
-                            y={14}
-                            width={stepX - 2}
-                            height={124}
-                            fill="#F8F9F3"
-                            rx="4"
-                          />
-                        )}
-
-                        {/* Bar 1: Vendas Brutas (Azul #2563EB) */}
-                        <rect
-                          x={centerX - barWidth * 1.5 - barGap}
-                          y={135 - grossHeight}
-                          width={barWidth}
-                          height={grossHeight}
-                          fill="#2563EB"
-                          rx="2"
-                          className="transition-all duration-150"
-                          opacity={isHovered ? 1 : 0.88}
-                        />
-
-                        {/* Bar 2: Receita Líquida (Verde Esmeralda #059669) */}
-                        <rect
-                          x={centerX - barWidth * 0.5}
-                          y={135 - netHeight}
-                          width={barWidth}
-                          height={netHeight}
-                          fill="#059669"
-                          rx="2"
-                          className="transition-all duration-150"
-                          opacity={isHovered ? 1 : 0.88}
-                        />
-
-                        {/* Bar 3: Taxa Bancária (Laranja #EA580C) */}
-                        <rect
-                          x={centerX + barWidth * 0.5 + barGap}
-                          y={135 - feeHeight}
-                          width={barWidth}
-                          height={feeHeight}
-                          fill="#EA580C"
-                          rx="2"
-                          className="transition-all duration-150"
-                          opacity={isHovered ? 1 : 0.88}
-                        />
-
-                        {/* X-axis date text */}
-                        <text
-                          x={centerX}
-                          y="152"
-                          textAnchor="middle"
-                          className="text-[9.5px] font-sans font-semibold fill-[#1C201A]"
-                          fillOpacity={isHovered ? 1 : 0.80}
-                        >
-                          {d.date}
-                        </text>
-
-                        {/* Invisible hover capture rect */}
-                        <rect
-                          x={centerX - stepX / 2}
-                          y={10}
-                          width={stepX}
-                          height={142}
-                          fill="transparent"
+                      return (
+                        <div
+                          key={d.date}
+                          className="flex-1 h-full flex flex-col justify-end items-center relative group cursor-pointer"
                           onMouseEnter={() => setHoveredBarIndex(i)}
                           onMouseLeave={() => setHoveredBarIndex(null)}
-                        />
-                      </g>
-                    );
-                  })}
-                </svg>
+                        >
+                          {/* Hover Column Background */}
+                          {isHovered && (
+                            <div className="absolute inset-0 -top-1 bg-[#F8F9F3] rounded-md pointer-events-none transition-opacity" />
+                          )}
 
-                {/* Bar Hover Tooltip */}
-                {hoveredBarIndex !== null && (
-                  <div
-                    className="absolute pointer-events-none bg-[#1C2417] text-white text-[11px] rounded-xl p-2.5 shadow-2xl z-30 space-y-1.5 border border-white/10"
-                    style={{
-                      left: `${Math.min(
-                        Math.max((52 + hoveredBarIndex * 50) * 0.95, 10),
-                        460
-                      )}px`,
-                      top: "4px",
-                    }}
-                  >
-                    <div className="font-semibold text-gray-200 pb-1 border-b border-white/10 flex items-center justify-between gap-4">
-                      <span>{barChartData[hoveredBarIndex].date}/2025</span>
-                      <span className="text-[10px] text-gray-400">
-                        {barChartData[hoveredBarIndex].orders} pedidos
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <span className="font-semibold text-[#60A5FA]">Vendas brutas:</span>
-                      <span className="font-medium text-white">
-                        {formatBRL(barChartData[hoveredBarIndex].gross)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <span className="font-semibold text-[#34D399]">Receita líquida:</span>
-                      <span className="font-medium text-white">
-                        {formatBRL(barChartData[hoveredBarIndex].net)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <span className="font-semibold text-[#FB923C]">Taxa bancária:</span>
-                      <span className="font-medium text-white">
-                        - {formatBRL(barChartData[hoveredBarIndex].fee)}
-                      </span>
-                    </div>
+                          {/* 3 Bars Side-by-Side (Azul, Verde, Laranja) */}
+                          <div className="relative z-10 w-full flex items-end justify-center gap-0.5 sm:gap-1 lg:gap-1.5 h-full px-0.5">
+                            {/* Bar 1: Gross (Azul #2563EB) */}
+                            <div
+                              className="w-1.5 sm:w-2 lg:w-2.5 bg-[#2563EB] rounded-t-xs transition-all duration-150"
+                              style={{
+                                height: `${grossPct}%`,
+                                opacity: isHovered ? 1 : 0.88,
+                              }}
+                            />
+
+                            {/* Bar 2: Net (Verde Esmeralda #059669) */}
+                            <div
+                              className="w-1.5 sm:w-2 lg:w-2.5 bg-[#059669] rounded-t-xs transition-all duration-150"
+                              style={{
+                                height: `${netPct}%`,
+                                opacity: isHovered ? 1 : 0.88,
+                              }}
+                            />
+
+                            {/* Bar 3: Fee (Laranja #EA580C) */}
+                            <div
+                              className="w-1.5 sm:w-2 lg:w-2.5 bg-[#EA580C] rounded-t-xs transition-all duration-150"
+                              style={{
+                                height: `${feePct}%`,
+                                opacity: isHovered ? 1 : 0.88,
+                              }}
+                            />
+                          </div>
+
+                          {/* Date Label beneath the bars */}
+                          <span
+                            className={`absolute -bottom-5 text-[9px] sm:text-[9.5px] font-sans font-semibold transition-colors ${
+                              isHovered ? "text-[#1C201A] font-bold" : "text-[#1C201A]/80"
+                            }`}
+                          >
+                            {d.date}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
+
+                  {/* Floating Hover Tooltip */}
+                  {hoveredBarIndex !== null && (
+                    <div
+                      className="absolute pointer-events-none bg-[#1C2417] text-white text-[11px] rounded-xl p-2.5 shadow-2xl z-30 space-y-1.5 border border-white/10"
+                      style={{
+                        left: `${Math.min(
+                          Math.max(((hoveredBarIndex + 0.5) / barChartData.length) * 100, 14),
+                          86
+                        )}%`,
+                        transform: "translateX(-50%)",
+                        top: "4px",
+                      }}
+                    >
+                      <div className="font-semibold text-gray-200 pb-1 border-b border-white/10 flex items-center justify-between gap-4">
+                        <span>{barChartData[hoveredBarIndex].date}/2025</span>
+                        <span className="text-[10px] text-gray-400">
+                          {barChartData[hoveredBarIndex].orders} pedidos
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="font-semibold text-[#60A5FA]">Vendas brutas:</span>
+                        <span className="font-medium text-white">
+                          {formatBRL(barChartData[hoveredBarIndex].gross)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="font-semibold text-[#34D399]">Receita líquida:</span>
+                        <span className="font-medium text-white">
+                          {formatBRL(barChartData[hoveredBarIndex].net)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="font-semibold text-[#FB923C]">Taxa bancária:</span>
+                        <span className="font-medium text-white">
+                          - {formatBRL(barChartData[hoveredBarIndex].fee)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1184,9 +1141,9 @@ export function FinanceClient({
         </div>
 
         {/* --- ROW 3: TRANSAÇÕES (PAGINAÇÃO FIXA DE 4 EM 4, SEM SCROLLBAR NO DESKTOP, CARDS NO MOBILE) --- */}
-        <div className="w-full bg-white rounded-[20px] p-3.5 sm:p-4 lg:p-4.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-2.5">
+        <div className="w-full flex-1 min-h-0 bg-white rounded-[20px] p-3.5 sm:p-4 lg:p-4 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           {/* Header Controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0 mb-1.5 sm:mb-2">
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-[14px] sm:text-[15px] lg:text-[15.5px] font-semibold text-[#CB5A3C]">
@@ -1239,7 +1196,7 @@ export function FinanceClient({
           </div>
 
           {/* Table Container - Desktop: NO SCROLLBAR, Fixed Row Height of 42px */}
-          <div className="hidden md:block w-full overflow-hidden">
+          <div className="hidden md:flex flex-col flex-1 justify-between min-h-0 overflow-hidden">
             <table className="w-full text-left border-collapse text-xs lg:text-[13px] table-fixed">
               <thead>
                 <tr className="border-b border-[#E5E6E1]">
@@ -1395,7 +1352,7 @@ export function FinanceClient({
           </div>
 
           {/* Pagination Controls */}
-          <div className="pt-2.5 border-t border-[#F0F1ED] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#7A8275]">
+          <div className="shrink-0 pt-2 sm:pt-2.5 border-t border-[#F0F1ED] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#7A8275]">
             <span>
               Exibindo{" "}
               <strong className="text-[#1C201A]">
