@@ -575,6 +575,11 @@ To maintain a consistent, secure, and clean architecture across the PostgreSQL s
   - `order_summaries`: Consolidated daily metrics per store.
   - `menu_summaries`: Consolidated catalog metrics per store.
   - `inventory_summaries`: Consolidated inventory value and count metrics per store.
+  - `report_sales_daily`: Daily timeline of orders, gross revenue, delivery vs pickup breakdown, and average ticket.
+  - `report_orders_by_hour`: Hourly distribution across 24h intervals with day-of-week classification.
+  - `report_top_products`: Ranked product volume, gross revenue, category mapping, and ABC curve data.
+  - `report_customer_retention`: WhatsApp customer order counts, spending, first/last purchase dates, and repurchase status.
+  - `report_sales_channels`: Delivery vs pickup revenue and order volume distribution.
 - **Mandatory Security Rule**:
   Every view MUST be created with `WITH (security_invoker = true)` so that the invoking user's Row Level Security (RLS) is evaluated, preventing unauthorized tenant data access and eliminating the `UNRESTRICTED` security warning in Supabase Studio.
 
