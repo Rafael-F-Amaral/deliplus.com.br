@@ -1055,17 +1055,20 @@ export function ReportsView() {
           <div className="bg-white border border-[#E9E4D4] rounded-xl p-2.5 sm:p-3 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#CB5A3C] uppercase tracking-wider">Vendas</span>
-              <span className="text-xs text-[#525B4E]">Ticket Médio: <strong className="text-[#1F2E22] font-semibold">R$ 23,04</strong></span>
+              <span className="text-xs text-[#525B4E] bg-[#FAF8F0] border border-[#E9E4D4] px-2.5 py-0.5 rounded-lg font-medium">
+                Ticket Médio: <strong className="text-[#1F2E22] font-bold">R$ 23,04</strong>
+              </span>
             </div>
             <div className="mt-1">
               <div className="text-xl sm:text-2xl font-medium text-[#1F2E22] tracking-tight">
                 R$ 28.756,40
               </div>
-              <div className="flex items-center gap-1.5 mt-1 text-xs">
-                <span className="text-[#15803D] font-semibold bg-[#DCFCE7] px-2 py-0.2 rounded-full flex items-center gap-0.5">
-                  ↑ 18,6%
+              <div className="flex items-center gap-2 mt-1.5 text-xs">
+                <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[#15803D] bg-[#DCFCE7] border border-[#BBF7D0] px-2 py-0.5 rounded-full shadow-2xs">
+                  <span className="text-sm leading-none font-bold">↑</span>
+                  <span>+18,6%</span>
                 </span>
-                <span className="text-[#525B4E]">vs. mês anterior</span>
+                <span className="text-[#525B4E] font-medium">vs. mês anterior</span>
               </div>
             </div>
           </div>
@@ -1074,17 +1077,20 @@ export function ReportsView() {
           <div className="bg-white border border-[#E9E4D4] rounded-xl p-2.5 sm:p-3 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#CB5A3C] uppercase tracking-wider">Pedidos</span>
-              <span className="text-xs text-[#525B4E]">Média / Dia: <strong className="text-[#CB5A3C] font-semibold">40,2</strong></span>
+              <span className="text-xs text-[#525B4E] bg-[#FAF8F0] border border-[#E9E4D4] px-2.5 py-0.5 rounded-lg font-medium">
+                Média / Dia: <strong className="text-[#CB5A3C] font-bold">40,2</strong>
+              </span>
             </div>
             <div className="mt-1">
               <div className="text-xl sm:text-2xl font-medium text-[#1F2E22] tracking-tight">
                 1.248
               </div>
-              <div className="flex items-center gap-1.5 mt-1 text-xs">
-                <span className="text-[#15803D] font-semibold bg-[#DCFCE7] px-2 py-0.2 rounded-full flex items-center gap-0.5">
-                  ↑ 15,2%
+              <div className="flex items-center gap-2 mt-1.5 text-xs">
+                <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[#15803D] bg-[#DCFCE7] border border-[#BBF7D0] px-2 py-0.5 rounded-full shadow-2xs">
+                  <span className="text-sm leading-none font-bold">↑</span>
+                  <span>+15,2%</span>
                 </span>
-                <span className="text-[#525B4E]">vs. mês anterior</span>
+                <span className="text-[#525B4E] font-medium">vs. mês anterior</span>
               </div>
             </div>
           </div>
@@ -1093,19 +1099,17 @@ export function ReportsView() {
           <div className="bg-white border border-[#E9E4D4] rounded-xl p-2.5 sm:p-3 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#CB5A3C] uppercase tracking-wider">Novos clientes</span>
-              <span className="text-[11px] font-semibold text-[#15803D] bg-[#DCFCE7] px-2 py-0.2 rounded-full">
-                WhatsApp 100% ID
-              </span>
             </div>
             <div className="mt-1">
               <div className="text-xl sm:text-2xl font-medium text-[#1F2E22] tracking-tight">
                 342
               </div>
-              <div className="flex items-center gap-1.5 mt-1 text-xs">
-                <span className="text-[#15803D] font-semibold bg-[#DCFCE7] px-2 py-0.2 rounded-full flex items-center gap-0.5">
-                  ↑ 22,1%
+              <div className="flex items-center gap-2 mt-1.5 text-xs">
+                <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[#15803D] bg-[#DCFCE7] border border-[#BBF7D0] px-2 py-0.5 rounded-full shadow-2xs">
+                  <span className="text-sm leading-none font-bold">↑</span>
+                  <span>+22,1%</span>
                 </span>
-                <span className="text-[#525B4E]">vs. mês anterior</span>
+                <span className="text-[#525B4E] font-medium">vs. mês anterior</span>
               </div>
             </div>
           </div>
@@ -1125,10 +1129,6 @@ export function ReportsView() {
                     description="Acompanhe a curva diária de faturamento da sua loja no mês. Identifique picos de vendas e períodos de menor movimento para programar promoções."
                     tip="Passe o cursor sobre os pontos da curva para inspecionar os valores e pedidos de cada dia."
                   />
-                </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] text-[#525B4E] text-[11px] font-semibold shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C]" />
-                  <span>Maio 2026</span>
                 </div>
               </div>
 
@@ -1340,9 +1340,6 @@ export function ReportsView() {
                     tip="Os 2 itens mais vendidos concentram quase 50% de todo o faturamento da sua loja."
                   />
                 </div>
-                <span className="text-[11px] font-semibold text-[#525B4E] bg-[#FAF8F0] px-2.5 py-1 rounded-full border border-[#E9E4D4] shrink-0">
-                  Top 5 Cardápio
-                </span>
               </div>
             </div>
 
@@ -1361,20 +1358,8 @@ export function ReportsView() {
                 >
                   <div className="flex items-center justify-between gap-1.5">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span
-                        className={`w-4.5 h-4.5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                          item.rank === 1
-                            ? "bg-[#CB5A3C] text-white shadow-2xs"
-                            : "bg-[#2E4233]/10 text-[#2E4233]"
-                        }`}
-                      >
-                        {item.rank}
-                      </span>
                       <span className="font-semibold text-xs sm:text-sm text-[#111827] truncate">
                         {item.name}
-                      </span>
-                      <span className="text-[9px] text-[#525B4E] bg-[#F3EFE3] px-1.5 py-0.2 rounded shrink-0 hidden sm:inline">
-                        {item.category}
                       </span>
                     </div>
 
@@ -1416,10 +1401,6 @@ export function ReportsView() {
                     tip="Alterne entre os dias da semana (ex: Sáb ou Ter) para dimensionar a escala da cozinha e dos entregadores."
                   />
                 </div>
-
-                <span className="text-[11px] font-semibold text-[#525B4E] bg-[#FAF8F0] px-2.5 py-1 rounded-full border border-[#E9E4D4] shrink-0 hidden sm:inline">
-                  24 Horas
-                </span>
               </div>
 
               {/* Day Selector Pills */}
@@ -1598,17 +1579,14 @@ export function ReportsView() {
                     tip="Pedidos de retirada no balcão não têm custo com motoboys, gerando maior margem líquida por pedido."
                   />
                 </div>
-                <span className="text-[11px] font-semibold text-[#525B4E] bg-[#FAF8F0] px-2.5 py-1 rounded-full border border-[#E9E4D4] shrink-0">
-                  Canais
-                </span>
               </div>
             </div>
 
-            {/* Modern Interactive Donut Chart and Channel Breakdown */}
-            <div className="flex-1 min-h-0 flex items-center gap-5 sm:gap-7 my-auto py-2">
-              {/* SVG Donut with Clean Center Display (No text leaking on stroke) */}
+            {/* Modern Interactive Donut Chart and Cohesive Channel Breakdown */}
+            <div className="flex-1 min-h-0 flex flex-col sm:flex-row items-center gap-5 sm:gap-7 my-auto py-2">
+              {/* SVG Donut with Clean Center Display */}
               <div 
-                className="relative w-[130px] h-[130px] sm:w-[145px] sm:h-[145px] shrink-0 flex items-center justify-center cursor-pointer select-none"
+                className="relative w-[130px] h-[130px] sm:w-[140px] sm:h-[140px] shrink-0 flex items-center justify-center cursor-pointer select-none"
                 onMouseLeave={() => setHoveredChannel(null)}
               >
                 <svg viewBox="0 0 160 160" className="w-full h-full transform -rotate-90">
@@ -1642,7 +1620,7 @@ export function ReportsView() {
                   />
                 </svg>
 
-                {/* Center of Donut: Clean, dynamic stats (zero text leaking or overlapping stroke) */}
+                {/* Center of Donut: Clean, dynamic stats */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none px-2">
                   {hoveredChannel === "retirada" ? (
                     <>
@@ -1675,33 +1653,36 @@ export function ReportsView() {
                 </div>
               </div>
 
-              {/* Legend list with Interactive Highlights */}
-              <div className="space-y-2.5 text-xs flex-1 min-w-0">
+              {/* Cohesive Channel Cards with Proportional Bars and Integrated Badges */}
+              <div className="space-y-2.5 flex-1 w-full min-w-0 max-w-sm">
                 <div 
                   className={`p-2.5 rounded-xl transition-all cursor-pointer border ${
                     hoveredChannel === "delivery" 
                       ? "bg-[#FAF8F0] border-[#2E4233] shadow-xs" 
-                      : "border-transparent hover:bg-[#FAF8F0] hover:border-[#E9E4D4]"
+                      : "bg-[#FAF8F0]/40 border-[#E9E4D4] hover:bg-[#FAF8F0] hover:border-[#2E4233]"
                   }`}
                   onMouseEnter={() => setHoveredChannel("delivery")}
                   onMouseLeave={() => setHoveredChannel(null)}
                 >
-                  <div className="flex items-center justify-between gap-1">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#2E4233] shrink-0" />
-                      <span className="text-[#111827] font-semibold text-xs sm:text-sm truncate">Delivery</span>
+                      <span className="text-[#1F2E22] font-bold text-xs sm:text-sm truncate">Delivery (Entrega)</span>
                     </div>
-                    <span className="text-[11px] font-bold text-[#2E4233] bg-[#2E4233]/10 px-2 py-0.2 rounded-full shrink-0">
+                    <span className="text-[11px] font-bold text-[#2E4233] bg-[#DCFCE7] border border-[#BBF7D0] px-2 py-0.5 rounded-full shrink-0">
                       77,0%
                     </span>
                   </div>
-                  <div className="mt-1 flex items-baseline justify-between gap-1 text-xs">
+                  <div className="mt-1.5 flex items-baseline justify-between text-xs">
                     <span className="font-bold text-[#1F2E22] text-sm sm:text-base">
                       R$ 22.142,40
                     </span>
-                    <span className="text-[#525B4E] text-[11px]">
+                    <span className="text-[#525B4E] text-xs font-medium">
                       961 pedidos
                     </span>
+                  </div>
+                  <div className="w-full bg-[#E9E4D4] h-1.5 rounded-full overflow-hidden mt-1.5">
+                    <div className="h-full bg-[#2E4233] rounded-full transition-all duration-300" style={{ width: "77%" }} />
                   </div>
                 </div>
 
@@ -1709,27 +1690,30 @@ export function ReportsView() {
                   className={`p-2.5 rounded-xl transition-all cursor-pointer border ${
                     hoveredChannel === "retirada" 
                       ? "bg-[#FDF0E9] border-[#CB5A3C] shadow-xs" 
-                      : "border-transparent hover:bg-[#FAF8F0] hover:border-[#E9E4D4]"
+                      : "bg-[#FDF0E9]/30 border-[#F4D6C7] hover:bg-[#FDF0E9] hover:border-[#CB5A3C]"
                   }`}
                   onMouseEnter={() => setHoveredChannel("retirada")}
                   onMouseLeave={() => setHoveredChannel(null)}
                 >
-                  <div className="flex items-center justify-between gap-1">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#CB5A3C] shrink-0" />
-                      <span className="text-[#111827] font-semibold text-xs sm:text-sm truncate">Retirada no Balcão</span>
+                      <span className="text-[#1F2E22] font-bold text-xs sm:text-sm truncate">Retirada no Balcão</span>
                     </div>
-                    <span className="text-[11px] font-bold text-[#CB5A3C] bg-[#CB5A3C]/10 px-2 py-0.2 rounded-full shrink-0">
+                    <span className="text-[11px] font-bold text-[#CB5A3C] bg-[#FDF0E9] border border-[#F4D6C7] px-2 py-0.5 rounded-full shrink-0">
                       23,0%
                     </span>
                   </div>
-                  <div className="mt-1 flex items-baseline justify-between gap-1 text-xs">
+                  <div className="mt-1.5 flex items-baseline justify-between text-xs">
                     <span className="font-bold text-[#CB5A3C] text-sm sm:text-base">
                       R$ 6.614,00
                     </span>
-                    <span className="text-[#525B4E] text-[11px]">
+                    <span className="text-[#525B4E] text-xs font-medium">
                       287 pedidos
                     </span>
+                  </div>
+                  <div className="w-full bg-[#F4D6C7]/60 h-1.5 rounded-full overflow-hidden mt-1.5">
+                    <div className="h-full bg-[#CB5A3C] rounded-full transition-all duration-300" style={{ width: "23%" }} />
                   </div>
                 </div>
               </div>
@@ -1748,9 +1732,6 @@ export function ReportsView() {
                     tip="O WhatsApp funciona como identificador único da sua clientela em qualquer compra na loja."
                   />
                 </div>
-                <span className="text-[11px] font-semibold text-[#525B4E] bg-[#FAF8F0] px-2.5 py-1 rounded-full border border-[#E9E4D4] shrink-0">
-                  WhatsApp ID
-                </span>
               </div>
             </div>
 
@@ -1791,9 +1772,12 @@ export function ReportsView() {
 
               {/* Right stats: Clean cards, rich, un-abbreviated */}
               <div className="space-y-2 flex-1 w-full min-w-0">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-[#15803D] bg-[#DCFCE7] px-2.5 py-1 rounded-full inline-flex border border-[#BBF7D0]">
-                  <span>↑ +4,3% de aumento</span>
-                  <span className="text-[#166534] font-normal text-[11px]">vs. mês anterior</span>
+                <div className="inline-flex items-center gap-2">
+                  <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[#15803D] bg-[#DCFCE7] border border-[#BBF7D0] px-2.5 py-0.5 rounded-full shadow-2xs">
+                    <span className="text-sm leading-none font-bold">↑</span>
+                    <span>+4,3%</span>
+                  </span>
+                  <span className="text-xs text-[#525B4E] font-medium">aumento vs. mês anterior</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 mt-1">
