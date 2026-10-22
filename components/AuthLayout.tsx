@@ -30,7 +30,7 @@ export function AuthLayout({ children, variant }: { children: React.ReactNode, v
 
   const getSubtitle = () => {
     if (variant === "sign-in") return "Seu cardápio, sua operação e sua marca, no mesmo lugar.";
-    if (variant === "sign-up") return "";
+    if (variant === "sign-up") return "Coloque sua operação no centro de tudo.";
     if (variant === "forgot-password") return "Vamos te enviar um código de acesso.";
     if (variant === "forgot-password-code") return "Digite o código enviado.";
     if (variant === "forgot-password-new") return "Crie uma nova senha de acesso.";
@@ -65,16 +65,16 @@ export function AuthLayout({ children, variant }: { children: React.ReactNode, v
       </div>
 
       {/* MAIN CONTAINER */}
-      <div className="relative z-10 w-full md:max-w-[540px] md:mx-auto flex-1 flex flex-col md:justify-center md:px-4 md:py-2">
+      <div className="relative z-10 w-full md:max-w-[480px] md:mx-auto flex-1 flex flex-col md:justify-center md:px-4 md:py-6">
         
         {/* DESKTOP Logo */}
-        <div className="hidden md:flex mb-2 relative justify-center flex-col items-center text-center w-full mx-auto">
-          <LogoDeli variant="solid" className="h-[60px] w-auto drop-shadow-sm" />
+        <div className="hidden md:flex mb-3 relative justify-center flex-col items-center text-center w-full mx-auto">
+          <LogoDeli variant="solid" className="h-[56px] w-auto drop-shadow-sm" />
         </div>
 
         {/* DESKTOP Headings (Center Aligned, Outside Card) */}
         {getTitleStart() && (
-          <div key={`desktop-${variant}`} className="hidden md:flex text-center mb-2 flex-col items-center justify-center w-full mx-auto">
+          <div key={`desktop-${variant}`} className="hidden md:flex text-center mb-4 flex-col items-center justify-center w-full mx-auto">
             <div className="flex items-center gap-2 mb-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C]"></span>
               <span className="text-[#CB5A3C] text-[10px] font-bold tracking-[0.2em] uppercase">
@@ -82,7 +82,7 @@ export function AuthLayout({ children, variant }: { children: React.ReactNode, v
               </span>
             </div>
             
-            <h2 className="text-[36px] leading-[1.1] mb-1.5 text-[#2B5C60]" style={{ fontFamily: 'var(--font-playfair), serif' }}>
+            <h2 className="text-[34px] leading-[1.1] mb-1.5 text-[#2B5C60]" style={{ fontFamily: 'var(--font-playfair), serif' }}>
               {getTitleStart()}
               <span className="text-[#CB5A3C] italic font-medium">
                 {getTitleHighlight().replace('.', '')}
@@ -90,14 +90,14 @@ export function AuthLayout({ children, variant }: { children: React.ReactNode, v
               .
             </h2>
             
-            <p className="text-[#5E6C60] text-[15px] max-w-[85%] leading-relaxed">
+            <p className="text-[#5E6C60] text-[14px] max-w-[90%] leading-relaxed">
               {getSubtitle()}
             </p>
           </div>
         )}
 
-        {/* WHITE CARD AREA */}
-        <div className="bg-[#FCFBFA] md:bg-transparent rounded-t-[24px] md:rounded-none flex-1 md:flex-none -mt-1 md:mt-0 p-6 md:p-0 relative z-20 shadow-[0_-4px_24px_rgba(0,0,0,0.04)] md:shadow-none w-full">
+        {/* CARD CONTAINER */}
+        <div className="bg-[#FCFBFA] rounded-t-[24px] md:rounded-[24px] flex-1 md:flex-none -mt-1 md:mt-0 p-6 md:p-8 relative z-20 shadow-[0_-4px_24px_rgba(0,0,0,0.04)] md:shadow-[0_8px_30px_rgb(0,0,0,0.06)] md:border md:border-[#2B5C60]/15 w-full">
           
           <div className="w-12 h-1.5 bg-[#E5E2D9] rounded-full mx-auto mb-6 md:hidden"></div>
           
@@ -111,7 +111,7 @@ export function AuthLayout({ children, variant }: { children: React.ReactNode, v
                 </span>
               </div>
               
-              <h2 className="text-[32px] leading-[1.1] mb-2 text-[#2B5C60]" style={{ fontFamily: 'var(--font-playfair), serif' }}>
+              <h2 className="text-[30px] leading-[1.1] mb-2 text-[#2B5C60]" style={{ fontFamily: 'var(--font-playfair), serif' }}>
                 {getTitleStart()}
                 <span className="text-[#CB5A3C] italic font-medium">
                   {getTitleHighlight().replace('.', '')}
