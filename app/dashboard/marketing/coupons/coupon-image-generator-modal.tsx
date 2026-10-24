@@ -525,20 +525,20 @@ interface LayoutPositions {
 
 const DEFAULT_STORY_POSITIONS: LayoutPositions = {
   storePillY: 10,
-  headerGroupY: 14,
+  headerGroupY: 12,
   discountY: 26,
-  ticketY: 40,
-  ctaY: 61,
-  socialsY: 74
+  ticketY: 41,
+  ctaY: 63,
+  socialsY: 75
 };
 
 const DEFAULT_FEED_POSITIONS: LayoutPositions = {
   storePillY: 6,
-  headerGroupY: 10,
+  headerGroupY: 9,
   discountY: 23,
-  ticketY: 37,
-  ctaY: 64,
-  socialsY: 76
+  ticketY: 38,
+  ctaY: 65,
+  socialsY: 77
 };
 
 type EditTarget = "header" | "discount" | "ticket" | "cta" | null;
@@ -745,6 +745,86 @@ function CouponImageGeneratorContent({
       return fontSize;
     };
 
+    const drawWrappedFittedText = (
+      text: string,
+      x: number,
+      centerY: number,
+      maxW: number,
+      baseSize: number,
+      fontFamily = "system-ui, -apple-system, sans-serif",
+      weight = "900",
+      maxLines = 3,
+      minSize = 36
+    ) => {
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      let fontSize = baseSize;
+      let lines: string[] = [];
+
+      const computeLinesForSize = (size: number): string[] => {
+        ctx.font = `${weight} ${size}px ${fontFamily}`;
+        const rawParas = text.split("\n");
+        const out: string[] = [];
+
+        for (const para of rawParas) {
+          const words = para.trim().split(/\s+/);
+          if (words.length === 0 || (words.length === 1 && words[0] === "")) continue;
+
+          let curLine = "";
+          for (const word of words) {
+            const candidate = curLine ? `${curLine} ${word}` : word;
+            if (ctx.measureText(candidate).width <= maxW) {
+              curLine = candidate;
+            } else {
+              if (curLine) {
+                out.push(curLine);
+                curLine = "";
+              }
+              if (ctx.measureText(word).width > maxW) {
+                let chunk = "";
+                for (const char of word) {
+                  if (ctx.measureText(chunk + char).width <= maxW) {
+                    chunk += char;
+                  } else {
+                    if (chunk) out.push(chunk);
+                    chunk = char;
+                  }
+                }
+                curLine = chunk;
+              } else {
+                curLine = word;
+              }
+            }
+          }
+          if (curLine) out.push(curLine);
+        }
+        return out.length > 0 ? out : [text];
+      };
+
+      lines = computeLinesForSize(fontSize);
+
+      while (lines.length > maxLines && fontSize > minSize) {
+        fontSize -= 4;
+        lines = computeLinesForSize(fontSize);
+      }
+
+      if (lines.length > maxLines) {
+        lines = lines.slice(0, maxLines);
+      }
+
+      ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
+      const lineHeight = fontSize * 1.05;
+      const totalH = (lines.length - 1) * lineHeight;
+      const startY = centerY - totalH / 2;
+
+      lines.forEach((line, idx) => {
+        ctx.fillText(line, x, startY + idx * lineHeight);
+      });
+
+      return { fontSize, linesCount: lines.length, totalHeight: totalH + fontSize };
+    };
+
     // 2. Draw image or fallback gradient (from memory cache synchronously!)
     const imgBg = bgImageRef.current;
     if (imgBg) {
@@ -802,22 +882,22 @@ function CouponImageGeneratorContent({
     const headerCenterY = (positions.headerGroupY / 100) * height;
 
     ctx.fillStyle = accentColor;
-    drawCenteredFittedText(tagline.toUpperCase(), width / 2, headerCenterY, width - 160, isStory ? 42 : 32, "system-ui, -apple-system, sans-serif", "bold");
+    drawWrappedFittedText(tagline.toUpperCase(), width / 2, headerCenterY, width - 160, isStory ? 42 : 32, "system-ui, -apple-system, sans-serif", "bold", 2, isStory ? 24 : 18);
 
     ctx.fillStyle = "#FFFFFF";
     ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
     ctx.shadowBlur = 22;
     ctx.shadowOffsetY = 6;
-    drawCenteredFittedText(headline.toUpperCase(), width / 2, headerCenterY + (isStory ? 80 : 64), width - 140, isStory ? 84 : 70, "system-ui, -apple-system, sans-serif", "900");
+    drawWrappedFittedText(headline.toUpperCase(), width / 2, headerCenterY + (isStory ? 80 : 64), width - 140, isStory ? 84 : 70, "system-ui, -apple-system, sans-serif", "900", 2, isStory ? 38 : 30);
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
 
-    // 6. Huge Discount Display
+    // 6. Huge Discount Display (Multiline wrapped & vertically centered!)
     ctx.fillStyle = accentColor;
     ctx.shadowColor = `${accentColor}80`;
     ctx.shadowBlur = 40;
     const centerY = (positions.discountY / 100) * height;
-    drawCenteredFittedText(discountHighlight, width / 2, centerY, width - 140, isStory ? 134 : 108, "system-ui, -apple-system, sans-serif", "900");
+    drawWrappedFittedText(discountHighlight, width / 2, centerY, width - 160, isStory ? 104 : 84, "system-ui, -apple-system, sans-serif", "900", 3, isStory ? 38 : 30);
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
 
@@ -1300,13 +1380,13 @@ function CouponImageGeneratorContent({
               <div
                 style={{ top: `${positions.headerGroupY}%` }}
                 onPointerDown={(e) => handleBlockPointerDown("headerGroupY", e)}
-                className={`absolute left-2 right-2 -translate-y-1/2 flex flex-col items-center justify-center px-2 py-1.5 group rounded-xl transition-all ${
+                className={`absolute left-3 right-3 -translate-y-1/2 flex items-center justify-center group rounded-xl transition-all ${
                   draggingKey === "headerGroupY"
                     ? "ring-2 ring-[#CB5A3C] ring-dashed bg-black/50 cursor-grabbing"
                     : "hover:ring-1 hover:ring-[#CB5A3C]/80 hover:ring-dashed hover:bg-black/30 cursor-pointer"
                 }`}
               >
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 mb-1 pointer-events-none shadow-lg">
+                <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 pointer-events-none shadow-lg whitespace-nowrap z-30">
                   <span className="flex items-center gap-1 text-[#CB5A3C]">
                     <Edit3 size={11} />
                     Clique para editar
@@ -1317,20 +1397,20 @@ function CouponImageGeneratorContent({
                     Arraste ↕
                   </span>
                 </div>
-                <div className="w-full h-12" />
+                <div className="w-full h-11" />
               </div>
 
-              {/* 2. Discount Highlight */}
+              {/* 2. Discount Highlight (Snug & centered without empty space) */}
               <div
                 style={{ top: `${positions.discountY}%` }}
                 onPointerDown={(e) => handleBlockPointerDown("discountY", e)}
-                className={`absolute left-2 right-2 -translate-y-1/2 flex flex-col items-center justify-center px-2 py-1.5 group rounded-xl transition-all ${
+                className={`absolute left-4 right-4 -translate-y-1/2 flex items-center justify-center group rounded-xl transition-all ${
                   draggingKey === "discountY"
                     ? "ring-2 ring-[#CB5A3C] ring-dashed bg-black/50 cursor-grabbing"
                     : "hover:ring-1 hover:ring-[#CB5A3C]/80 hover:ring-dashed hover:bg-black/30 cursor-pointer"
                 }`}
               >
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 mb-1 pointer-events-none shadow-lg">
+                <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 pointer-events-none shadow-lg whitespace-nowrap z-30">
                   <span className="flex items-center gap-1 text-[#CB5A3C]">
                     <Edit3 size={11} />
                     Clique para trocar desconto
@@ -1341,20 +1421,20 @@ function CouponImageGeneratorContent({
                     Arraste ↕
                   </span>
                 </div>
-                <div className="w-full h-12" />
+                <div className={discountHighlight.length > 25 || discountHighlight.includes('\n') ? "w-full h-14" : "w-full h-8"} />
               </div>
 
               {/* 3. Coupon Ticket Voucher */}
               <div
                 style={{ top: `${positions.ticketY}%` }}
                 onPointerDown={(e) => handleBlockPointerDown("ticketY", e)}
-                className={`absolute left-3 right-3 flex flex-col items-center justify-center p-2 group rounded-2xl transition-all ${
+                className={`absolute left-3 right-3 flex items-center justify-center group rounded-2xl transition-all ${
                   draggingKey === "ticketY"
                     ? "ring-2 ring-[#CB5A3C] ring-dashed bg-white/20 cursor-grabbing"
                     : "hover:ring-1 hover:ring-[#CB5A3C]/80 hover:ring-dashed hover:bg-black/20 cursor-pointer"
                 }`}
               >
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 mb-1 pointer-events-none shadow-lg">
+                <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 pointer-events-none shadow-lg whitespace-nowrap z-30">
                   <span className="flex items-center gap-1 text-[#CB5A3C]">
                     <Edit3 size={11} />
                     Clique para alterar cupom/regras
@@ -1365,20 +1445,31 @@ function CouponImageGeneratorContent({
                     Arraste ↕
                   </span>
                 </div>
-                <div className="w-full h-20" />
+                <div className="w-full h-24" />
               </div>
 
               {/* 4. Call to Action Pill */}
               <div
                 style={{ top: `${positions.ctaY}%` }}
                 onPointerDown={(e) => handleBlockPointerDown("ctaY", e)}
-                className={`absolute left-4 right-4 flex flex-col items-center justify-center p-1 group rounded-full transition-all ${
+                className={`absolute left-4 right-4 flex items-center justify-center group rounded-full transition-all ${
                   draggingKey === "ctaY"
                     ? "ring-2 ring-white ring-dashed bg-black/40 cursor-grabbing"
                     : "hover:ring-1 hover:ring-white/80 hover:ring-dashed hover:bg-black/25 cursor-pointer"
                 }`}
               >
-                <div className="w-full h-8" />
+                <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 pointer-events-none shadow-lg whitespace-nowrap z-30">
+                  <span className="flex items-center gap-1 text-[#CB5A3C]">
+                    <Edit3 size={11} />
+                    Clique para editar botão
+                  </span>
+                  <span className="text-white/50">•</span>
+                  <span className="flex items-center gap-1 text-gray-300">
+                    <Move size={11} />
+                    Arraste ↕
+                  </span>
+                </div>
+                <div className="w-full h-7" />
               </div>
 
               {/* 5. Socials & Link (Draggable footer) */}
@@ -1453,7 +1544,7 @@ function CouponImageGeneratorContent({
                   {activeEditTarget === "discount" && (
                     <>
                       <div className="flex items-center justify-between border-b pb-2">
-                        <span className="text-xs font-bold text-gray-900">
+                        <span className="text-xs font-bold text-gray-900 dark:text-white">
                           Editar Destaque do Desconto
                         </span>
                         <button
@@ -1467,15 +1558,20 @@ function CouponImageGeneratorContent({
 
                       <div>
                         <label className="text-[11px] font-semibold text-gray-600 dark:text-[#9CA79E] block mb-1">
-                          Texto do Desconto
+                          Texto do Desconto (Quebra de linha automática)
                         </label>
-                        <input
+                        <textarea
                           autoFocus
-                          type="text"
+                          rows={2}
                           value={discountHighlight}
                           onChange={(e) => setDiscountHighlight(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && setActiveEditTarget(null)}
-                          className="w-full px-3 py-2 text-base font-black text-[#CB5A3C] text-center border border-gray-300 rounded-lg outline-none focus:border-[#CB5A3C]"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              setActiveEditTarget(null);
+                            }
+                          }}
+                          className="w-full px-3 py-2 text-sm font-black text-[#CB5A3C] text-center border border-gray-300 dark:border-[#2A382E] bg-white dark:bg-[#161F18] rounded-lg outline-none focus:border-[#CB5A3C] resize-none"
                         />
                       </div>
 
@@ -1490,7 +1586,7 @@ function CouponImageGeneratorContent({
                               key={opt}
                               type="button"
                               onClick={() => setDiscountHighlight(opt)}
-                              className="px-2 py-0.5 rounded-md bg-gray-100 hover:bg-[#FAF0ED] hover:text-[#CB5A3C] text-[11px] font-bold text-gray-700 transition-colors"
+                              className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-[#25332A] hover:bg-[#FAF0ED] dark:hover:bg-[#2E3F34] hover:text-[#CB5A3C] text-[11px] font-bold text-gray-700 dark:text-white transition-colors"
                             >
                               {opt}
                             </button>
@@ -1504,7 +1600,7 @@ function CouponImageGeneratorContent({
                   {activeEditTarget === "ticket" && (
                     <>
                       <div className="flex items-center justify-between border-b pb-2">
-                        <span className="text-xs font-bold text-gray-900">
+                        <span className="text-xs font-bold text-gray-900 dark:text-white">
                           Editar Cupom e Regra
                         </span>
                         <button
@@ -1549,7 +1645,7 @@ function CouponImageGeneratorContent({
                   {activeEditTarget === "cta" && (
                     <>
                       <div className="flex items-center justify-between border-b pb-2">
-                        <span className="text-xs font-bold text-gray-900">
+                        <span className="text-xs font-bold text-gray-900 dark:text-white">
                           Editar Chamada de Ação
                         </span>
                         <button
