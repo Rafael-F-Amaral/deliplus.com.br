@@ -658,7 +658,7 @@ export default function PromotionsClient({
                       className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
                         topPage === i + 1
                           ? "bg-[#CB5A3C] text-white shadow-sm"
-                          : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-[#9CA79E] hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
+                          : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
                       }`}
                     >
                       {i + 1}
@@ -782,7 +782,7 @@ export default function PromotionsClient({
                       className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
                         slowPage === i + 1
                           ? "bg-[#CB5A3C] text-white shadow-sm"
-                          : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-[#9CA79E] hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
+                          : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
                       }`}
                     >
                       {i + 1}
@@ -1036,7 +1036,7 @@ export default function PromotionsClient({
                     className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
                       tablePage === i + 1
                         ? "bg-[#CB5A3C] text-white shadow-sm"
-                        : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-[#9CA79E] hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
+                        : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
                     }`}
                   >
                     {i + 1}

@@ -1856,7 +1856,7 @@ export default function OrdersClient({
                   className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
                     safeCurrentPage === i + 1 
                       ? "bg-[#CB5A3C] text-white shadow-sm" 
-                      : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                      : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
                   }`}
                 >
                   {i + 1}
@@ -2069,7 +2069,7 @@ export default function OrdersClient({
                                   "w-6 h-6 rounded-md text-xs font-bold flex items-center justify-center transition-colors cursor-pointer",
                                   safeDrawerPage === idx + 1
                                     ? "bg-[#CB5A3C] text-white shadow-2xs"
-                                    : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                                    : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
                                 )}
                               >
                                 {idx + 1}

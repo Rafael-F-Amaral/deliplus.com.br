@@ -1842,7 +1842,7 @@ export default function MenuClient({
                 className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
                   currentPage === i + 1 
                     ? "bg-[#CB5A3C] text-white shadow-sm" 
-                    : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                    : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
                 }`}
               >
                 {i + 1}
@@ -2122,7 +2122,7 @@ export default function MenuClient({
               className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors ${
                 currentPage === i + 1 
                   ? "bg-[#CB5A3C] text-white shadow-sm" 
-                  : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                  : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
               }`}
             >
               {i + 1}
@@ -3209,7 +3209,7 @@ export default function MenuClient({
                               className={`w-6 h-6 rounded-md text-[11px] font-bold flex items-center justify-center transition-colors cursor-pointer ${
                                 adicionaisPage === i + 1
                                   ? "bg-[#CB5A3C] text-white shadow-xs"
-                                  : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                                  : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
                               }`}
                             >
                               {i + 1}
@@ -3755,7 +3755,7 @@ export default function MenuClient({
                   <button
                     type="button"
                     onClick={handlePrevTour}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-xs font-semibold text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] transition-colors cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                     <span>Anterior</span>

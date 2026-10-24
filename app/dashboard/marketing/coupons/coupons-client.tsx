@@ -489,7 +489,7 @@ export default function CouponsClient({
                     className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
                       currentPage === i + 1
                         ? "bg-[#CB5A3C] text-white shadow-sm"
-                        : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                        : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
                     }`}
                   >
                     {i + 1}

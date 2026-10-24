@@ -1369,7 +1369,7 @@ export function FinanceClient({
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-2.5 py-1 rounded-lg border border-[#E5E6E1] text-[#1C201A] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#F5F6F0] transition-colors cursor-pointer text-xs"
+                className="px-2.5 py-1 rounded-lg border border-[#E5E6E1] dark:border-[#2A382E] text-[#1C201A] dark:text-white bg-white dark:bg-[#1B241E] hover:bg-[#F5F6F0] dark:hover:bg-[#25332A] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer text-xs"
               >
                 Anterior
               </button>
@@ -1381,7 +1381,7 @@ export function FinanceClient({
                   className={`w-6.5 h-6.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     currentPage === i + 1
                       ? "bg-[#CB5A3C] text-white shadow-xs"
-                      : "border border-[#E5E6E1] dark:border-[#2A382E] text-[#1C201A] dark:text-[#F2EFE9] bg-white dark:bg-[#222C25] hover:bg-[#FEF2EE] dark:hover:bg-[#2A382E] hover:text-[#CB5A3C] dark:hover:text-[#FF7D4F]"
+                      : "border border-[#E5E6E1] dark:border-[#2A382E] text-[#1C201A] dark:text-white bg-white dark:bg-[#1B241E] hover:bg-[#FEF2EE] dark:hover:bg-[#25332A] hover:text-[#CB5A3C] dark:hover:text-[#FF7D4F]"
                   }`}
                 >
                   {i + 1}
@@ -1391,7 +1391,7 @@ export function FinanceClient({
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-2.5 py-1 rounded-lg border border-[#E5E6E1] text-[#1C201A] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#F5F6F0] transition-colors cursor-pointer text-xs"
+                className="px-2.5 py-1 rounded-lg border border-[#E5E6E1] dark:border-[#2A382E] text-[#1C201A] dark:text-white bg-white dark:bg-[#1B241E] hover:bg-[#F5F6F0] dark:hover:bg-[#25332A] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer text-xs"
               >
                 Próxima
               </button>

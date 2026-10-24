@@ -524,21 +524,21 @@ interface LayoutPositions {
 }
 
 const DEFAULT_STORY_POSITIONS: LayoutPositions = {
-  storePillY: 13,
-  headerGroupY: 22,
-  discountY: 35,
-  ticketY: 52,
-  ctaY: 69,
-  socialsY: 78
+  storePillY: 10,
+  headerGroupY: 14,
+  discountY: 26,
+  ticketY: 40,
+  ctaY: 61,
+  socialsY: 74
 };
 
 const DEFAULT_FEED_POSITIONS: LayoutPositions = {
-  storePillY: 7,
-  headerGroupY: 18,
-  discountY: 36,
-  ticketY: 58,
-  ctaY: 76,
-  socialsY: 86
+  storePillY: 6,
+  headerGroupY: 10,
+  discountY: 23,
+  ticketY: 37,
+  ctaY: 64,
+  socialsY: 76
 };
 
 type EditTarget = "header" | "discount" | "ticket" | "cta" | null;
@@ -721,6 +721,30 @@ function CouponImageGeneratorContent({
     ctx.fillStyle = "#121417";
     ctx.fillRect(0, 0, width, height);
 
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+
+    const drawCenteredFittedText = (
+      text: string,
+      x: number,
+      y: number,
+      maxW: number,
+      baseSize: number,
+      fontFamily = "system-ui, -apple-system, sans-serif",
+      weight = "900"
+    ) => {
+      ctx.textAlign = "center";
+      let fontSize = baseSize;
+      ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
+      let textWidth = ctx.measureText(text).width;
+      if (textWidth > maxW) {
+        fontSize = Math.max(16, Math.floor((maxW / textWidth) * baseSize));
+        ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
+      }
+      ctx.fillText(text, x, y);
+      return fontSize;
+    };
+
     // 2. Draw image or fallback gradient (from memory cache synchronously!)
     const imgBg = bgImageRef.current;
     if (imgBg) {
@@ -777,29 +801,23 @@ function CouponImageGeneratorContent({
     // 4 & 5. Header Group (Tagline & Headline)
     const headerCenterY = (positions.headerGroupY / 100) * height;
 
-    const taglineFontSize = isStory ? 42 : 32;
-    ctx.font = `bold ${taglineFontSize}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = accentColor;
-    ctx.fillText(tagline.toUpperCase(), width / 2, headerCenterY);
+    drawCenteredFittedText(tagline.toUpperCase(), width / 2, headerCenterY, width - 160, isStory ? 42 : 32, "system-ui, -apple-system, sans-serif", "bold");
 
-    const headlineFontSize = isStory ? 84 : 70;
-    ctx.font = `900 ${headlineFontSize}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#FFFFFF";
     ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
     ctx.shadowBlur = 22;
     ctx.shadowOffsetY = 6;
-    ctx.fillText(headline.toUpperCase(), width / 2, headerCenterY + (isStory ? 80 : 64));
+    drawCenteredFittedText(headline.toUpperCase(), width / 2, headerCenterY + (isStory ? 80 : 64), width - 140, isStory ? 84 : 70, "system-ui, -apple-system, sans-serif", "900");
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
 
     // 6. Huge Discount Display
-    const discountFontSize = isStory ? 134 : 108;
-    ctx.font = `900 ${discountFontSize}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = accentColor;
     ctx.shadowColor = `${accentColor}80`;
     ctx.shadowBlur = 40;
     const centerY = (positions.discountY / 100) * height;
-    ctx.fillText(discountHighlight, width / 2, centerY);
+    drawCenteredFittedText(discountHighlight, width / 2, centerY, width - 140, isStory ? 134 : 108, "system-ui, -apple-system, sans-serif", "900");
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
 
@@ -809,7 +827,7 @@ function CouponImageGeneratorContent({
     const ticketX = (width - ticketW) / 2;
     const ticketY = (positions.ticketY / 100) * height;
 
-    ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
+    ctx.fillStyle = "#FFFFFF";
     ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
     ctx.shadowBlur = 35;
     ctx.shadowOffsetY = 14;
@@ -825,20 +843,17 @@ function CouponImageGeneratorContent({
     ctx.stroke();
     ctx.setLineDash([]);
 
+    ctx.textAlign = "center";
     const checkoutTextSize = isStory ? 30 : 26;
     ctx.font = `bold ${checkoutTextSize}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#6B7280";
     ctx.fillText("USE O CUPOM NO CHECKOUT:", width / 2, ticketY + (isStory ? 62 : 50));
 
-    const codeFontSize = isStory ? 84 : 72;
-    ctx.font = `900 ${codeFontSize}px 'Courier New', monospace, sans-serif`;
     ctx.fillStyle = "#111827";
-    ctx.fillText(couponCode.toUpperCase(), width / 2, ticketY + (isStory ? 158 : 132));
+    drawCenteredFittedText(couponCode.toUpperCase(), width / 2, ticketY + (isStory ? 158 : 132), ticketW - 80, isStory ? 84 : 72, "'Courier New', monospace, sans-serif", "900");
 
-    const minOrderFontSize = isStory ? 36 : 32;
-    ctx.font = `bold ${minOrderFontSize}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#374151";
-    ctx.fillText(minOrderText, width / 2, ticketY + (isStory ? 232 : 194));
+    drawCenteredFittedText(minOrderText, width / 2, ticketY + (isStory ? 232 : 194), ticketW - 60, isStory ? 36 : 32, "system-ui, -apple-system, sans-serif", "bold");
 
     const subRuleFontSize = isStory ? 28 : 24;
     ctx.font = `600 ${subRuleFontSize}px system-ui, -apple-system, sans-serif`;
@@ -856,18 +871,14 @@ function CouponImageGeneratorContent({
     ctx.roundRect(ctaX, ctaY, ctaW, ctaH, ctaH / 2);
     ctx.fill();
 
-    const ctaFontSize = isStory ? 36 : 32;
-    ctx.font = `bold ${ctaFontSize}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillText(`👉 ${callToAction.toUpperCase()}`, width / 2, ctaY + (isStory ? 52 : 45));
+    drawCenteredFittedText(`👉 ${callToAction.toUpperCase()}`, width / 2, ctaY + (isStory ? 52 : 45), ctaW - 60, isStory ? 36 : 32, "system-ui, -apple-system, sans-serif", "bold");
 
     // 9 & 10. Link e Redes Sociais
     const socialsBaseY = (positions.socialsY / 100) * height;
 
-    const linkFontSize = isStory ? 36 : 30;
-    ctx.font = `bold ${linkFontSize}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#E5E7EB";
-    ctx.fillText(`deliplus.com.br/${storeSlug || "sua-loja"}`, width / 2, socialsBaseY);
+    drawCenteredFittedText(`deliplus.com.br/${storeSlug || "sua-loja"}`, width / 2, socialsBaseY, width - 160, isStory ? 36 : 30, "system-ui, -apple-system, sans-serif", "bold");
 
     const visibleSocials = socialAccounts.filter((s) => s.enabled).slice(0, 4);
 
@@ -919,6 +930,7 @@ function CouponImageGeneratorContent({
           const textX = logoX + logoSize + (isStory ? 10 : 8);
           const textY = currentY + rowHeight / 2 + fontTextSize * 0.35;
           ctx.fillText(txt, textX, textY);
+          ctx.textAlign = "center";
 
           currentX += pillW + (isStory ? 18 : 12);
         });
@@ -1252,10 +1264,10 @@ function CouponImageGeneratorContent({
                     <Sparkles size={20} />
                   </div>
                   <div>
-                    <h4 className="font-bold text-[14px] text-[#1C2C22] dark:text-[#F2EFE9] mb-1">
+                    <h4 className="font-bold text-[14px] text-[#1C2C22] dark:text-white mb-1">
                       Edição Direta
                     </h4>
-                    <p className="text-[12px] text-[#556358] dark:text-[#9CA79E] leading-relaxed">
+                    <p className="text-[12px] text-[#556358] dark:text-white leading-relaxed">
                       Clique em qualquer palavra na imagem para editar o texto na hora.
                     </p>
                   </div>
@@ -1267,7 +1279,7 @@ function CouponImageGeneratorContent({
                       onChange={(e) => setDontShowSpotlightAgain(e.target.checked)}
                       className="w-4 h-4 rounded text-[#CB5A3C] focus:ring-[#CB5A3C] accent-[#CB5A3C] cursor-pointer"
                     />
-                    <label htmlFor="spotlight-dont-show" className="text-[11.5px] font-medium text-[#556358] dark:text-[#9CA79E] cursor-pointer select-none">
+                    <label htmlFor="spotlight-dont-show" className="text-[11.5px] font-medium text-[#556358] dark:text-white cursor-pointer select-none">
                       Não ver mais isso
                     </label>
                   </div>
