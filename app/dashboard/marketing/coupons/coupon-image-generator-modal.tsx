@@ -598,6 +598,32 @@ function CouponImageGeneratorContent({
   // Active quick edit dialog target
   const [activeEditTarget, setActiveEditTarget] = useState<EditTarget>(null);
 
+  // Spotlight onboarding overlay state
+  const [showSpotlight, setShowSpotlight] = useState(false);
+  const [dontShowSpotlightAgain, setDontShowSpotlightAgain] = useState(false);
+
+  useEffect(() => {
+    try {
+      const dismissed = localStorage.getItem("deliplus_image_editor_spotlight_dismissed");
+      if (!dismissed) {
+        setShowSpotlight(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleDismissSpotlight = () => {
+    if (dontShowSpotlightAgain) {
+      try {
+        localStorage.setItem("deliplus_image_editor_spotlight_dismissed", "true");
+      } catch {
+        // ignore
+      }
+    }
+    setShowSpotlight(false);
+  };
+
   // Dragging state with move-vs-click discriminator
   const [draggingKey, setDraggingKey] = useState<keyof LayoutPositions | null>(null);
   const dragInfoRef = useRef<{
@@ -746,27 +772,7 @@ function CouponImageGeneratorContent({
 
     const isStory = aspectFormat === "story";
 
-    // 3. Top Store Pill Badge
-    const storeLabel = (storeName || "DELIPLUS DELIVERY").toUpperCase();
-    const storeFontSize = isStory ? 32 : 26;
-    ctx.font = `bold ${storeFontSize}px system-ui, -apple-system, sans-serif`;
-    ctx.textAlign = "center";
-    const pillText = `★  ${storeLabel}  ★`;
-    const pillWidth = ctx.measureText(pillText).width + 60;
-    const pillHeight = isStory ? 58 : 48;
-    const pillX = (width - pillWidth) / 2;
-    const pillY = (positions.storePillY / 100) * height;
-
-    ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.32)";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillHeight / 2);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillText(pillText, width / 2, pillY + (isStory ? 40 : 33));
+    // 3. Top Store Pill Badge removed per user design request
 
     // 4 & 5. Header Group (Tagline & Headline)
     const headerCenterY = (positions.headerGroupY / 100) * height;
@@ -1161,55 +1167,17 @@ function CouponImageGeneratorContent({
     <div className="bg-[#FAF9F5] dark:bg-[#131A15] border border-[#E3E1D9] dark:border-[#2A382E] rounded-2xl w-full max-w-6xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden">
       {/* Top Header */}
       <div className="flex items-center justify-between px-5 py-3.5 bg-white dark:bg-[#1B241E] border-b border-[#ECEAE2] dark:border-[#2A382E]">
-        <div className="flex items-center gap-2">
-          <h2 className="text-base sm:text-lg font-bold text-[#1A241E] dark:text-[#F2EFE9] leading-tight">
-            Estúdio de Criação DeliPlus
-          </h2>
-          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-[#FAF0ED] text-[#CB5A3C] text-[11px] font-bold">
-            Edição Direta na Arte
-          </span>
-        </div>
+        <h2 className="text-base sm:text-lg font-bold text-[#1A241E] dark:text-[#F2EFE9] leading-tight">
+          Edição de imagem
+        </h2>
 
-        {/* Studio Sub-Pages Switcher */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-[#F4F3EE] dark:bg-[#161F18] p-1 rounded-xl border border-[#EAE8E0] dark:border-[#2A382E]">
-            <button
-              type="button"
-              onClick={() => setActiveTab("design")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === "design"
-                  ? "bg-white text-[#2E4233] shadow-xs"
-                  : "text-[#637267] hover:text-[#1A241E]"
-              }`}
-            >
-              <Sparkles size={14} className={activeTab === "design" ? "text-[#CB5A3C]" : ""} />
-              <span>1. Design da Arte</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                syncSnapshot();
-                setActiveTab("copy_studio");
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === "copy_studio"
-                  ? "bg-white text-[#2E4233] shadow-xs"
-                  : "text-[#637267] hover:text-[#1A241E]"
-              }`}
-            >
-              <PenTool size={14} className={activeTab === "copy_studio" ? "text-[#CB5A3C]" : ""} />
-              <span>2. Estúdio de Legendas</span>
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#25332A] rounded-lg transition-colors cursor-pointer ml-1"
-          >
-            <X size={20} />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#25332A] rounded-lg transition-colors cursor-pointer"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* ============================================================== */}
@@ -1275,6 +1243,44 @@ function CouponImageGeneratorContent({
               ref={canvasRef}
               className="w-full h-auto object-contain block rounded-2xl pointer-events-none"
             />
+
+            {/* Spotlight Onboarding Overlay (Only on image) */}
+            {showSpotlight && (
+              <div className="absolute inset-0 z-50 bg-black/65 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in duration-150">
+                <div className="bg-[#FAF8F0] dark:bg-[#1B241E] text-[#1C2C22] dark:text-[#F2EFE9] border border-[#E5DFD1] dark:border-[#2A382E] rounded-2xl p-5 shadow-2xl max-w-[280px] w-full text-center space-y-3">
+                  <div className="w-10 h-10 rounded-full bg-[#CB5A3C]/10 text-[#CB5A3C] flex items-center justify-center mx-auto">
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-[14px] text-[#1C2C22] dark:text-[#F2EFE9] mb-1">
+                      Edição Direta
+                    </h4>
+                    <p className="text-[12px] text-[#556358] dark:text-[#9CA79E] leading-relaxed">
+                      Clique em qualquer palavra na imagem para editar o texto na hora.
+                    </p>
+                  </div>
+                  <div className="pt-0.5 flex items-center justify-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="spotlight-dont-show"
+                      checked={dontShowSpotlightAgain}
+                      onChange={(e) => setDontShowSpotlightAgain(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#CB5A3C] focus:ring-[#CB5A3C] accent-[#CB5A3C] cursor-pointer"
+                    />
+                    <label htmlFor="spotlight-dont-show" className="text-[11.5px] font-medium text-[#556358] dark:text-[#9CA79E] cursor-pointer select-none">
+                      Não ver mais isso
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDismissSpotlight}
+                    className="w-full py-2 px-4 rounded-xl bg-[#2E4233] hover:bg-[#233327] dark:bg-[#25332A] dark:hover:bg-[#2F4235] text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                  >
+                    OK
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* THE CANVA INTERACTIVE OVERLAY: Click to Edit + Drag Layer */}
             <div className="absolute inset-0 z-20 pointer-events-auto overflow-hidden">
@@ -1571,73 +1577,14 @@ function CouponImageGeneratorContent({
             )}
           </div>
 
-          {/* Canva Studio Helper Tip */}
-          <div className="mt-3 flex items-center gap-2 text-xs text-gray-300 bg-[#1C221F] px-3.5 py-1.5 rounded-full border border-[#2D3631]">
-            <Edit3 size={13} className="text-[#CB5A3C]" />
-            <span>
-              <strong>Modo Direto:</strong> Clique em qualquer texto para editar ou arraste verticalmente para posicionar.
-            </span>
-          </div>
+
         </div>
 
         {/* RIGHT: Lean & Clean Quick Inspector (No cluttered form!) */}
         <div className="lg:col-span-4 p-5 space-y-4 overflow-y-auto bg-white dark:bg-[#1B241E] flex flex-col justify-between">
           <div className="space-y-4">
-            {/* Quick Text Shortcut Chips (Easy one-click access) */}
-            <div>
-              <label className="text-xs font-bold text-[#1A241E] dark:text-[#F2EFE9] block mb-1.5">
-                Textos Rápidos da Arte (Clique para editar)
-              </label>
-
-              <div className="grid grid-cols-2 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setActiveEditTarget("header")}
-                  className="p-2 rounded-xl border border-gray-200 dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
-                >
-                  <span className="text-[10px] text-gray-500 dark:text-[#9CA79E] font-semibold block">Título:</span>
-                  <span className="text-xs font-bold text-gray-900 dark:text-[#F2EFE9] truncate block">
-                    {headline}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveEditTarget("discount")}
-                  className="p-2 rounded-xl border border-gray-200 dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
-                >
-                  <span className="text-[10px] text-gray-500 dark:text-[#9CA79E] font-semibold block">Desconto:</span>
-                  <span className="text-xs font-black text-[#CB5A3C] truncate block">
-                    {discountHighlight}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveEditTarget("ticket")}
-                  className="p-2 rounded-xl border border-gray-200 dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
-                >
-                  <span className="text-[10px] text-gray-500 dark:text-[#9CA79E] font-semibold block">Cupom:</span>
-                  <span className="text-xs font-mono font-bold text-gray-900 dark:text-[#F2EFE9] truncate block">
-                    {couponCode}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveEditTarget("cta")}
-                  className="p-2 rounded-xl border border-gray-200 dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
-                >
-                  <span className="text-[10px] text-gray-500 dark:text-[#9CA79E] font-semibold block">Botão / CTA:</span>
-                  <span className="text-xs font-bold text-gray-900 dark:text-[#F2EFE9] truncate block">
-                    {callToAction}
-                  </span>
-                </button>
-              </div>
-            </div>
-
             {/* 1. Fundo da Arte */}
-            <div className="border-t border-[#ECEAE2] dark:border-[#2A382E] pt-3.5">
+            <div>
               <label className="text-xs font-bold text-[#1A241E] block mb-1.5">
                 1. Fundo da Arte
               </label>

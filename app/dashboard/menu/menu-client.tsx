@@ -1320,11 +1320,11 @@ export default function MenuClient({
             <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
               ?
             </div>
-            <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-              <p className="text-[13px] text-white mb-2 leading-relaxed">
-                <span className="font-extrabold text-white">Dica:</span> Aqui você gerencia os pratos, bebidas e itens do cardápio visíveis para seus clientes.
+            <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+              <p className="text-[13px] text-white dark:text-[#1C2C22] mb-2 leading-relaxed">
+                <span className="font-extrabold text-white dark:text-[#2E4233]">Dica:</span> Aqui você gerencia os pratos, bebidas e itens do cardápio visíveis para seus clientes.
               </p>
-              <div className="flex flex-col gap-2 pt-2 border-t border-[#E5DFD1] text-[12px] text-[#2E4233]">
+              <div className="flex flex-col gap-2 pt-2 border-t border-white/10 dark:border-[#E5DFD1] text-[12px] text-white/90 dark:text-[#1C2C22]">
                 <div className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
                   <span>Ative ou pause a disponibilidade de itens em tempo real pelo switch.</span>
@@ -1453,7 +1453,7 @@ export default function MenuClient({
         {/* Search Bar & + Novo Item button */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="relative w-full sm:w-[240px]">
-            <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-[#CB5A3C] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input 
               type="text" 
               placeholder="Buscar no cardápio" 
@@ -2932,11 +2932,11 @@ export default function MenuClient({
                     <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
                       ?
                     </div>
-                    <div className="absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-3rem)] p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[120] pointer-events-none">
-                      <p className="text-[12px] text-white leading-relaxed">
-                        <span className="font-extrabold text-white">Dica:</span> Cadastre e gerencie os adicionais e complementos deste prato.
+                    <div className="absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-3rem)] p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[120] pointer-events-none">
+                      <p className="text-[12px] text-white dark:text-[#1C2C22] leading-relaxed">
+                        <span className="font-extrabold text-white dark:text-[#2E4233]">Dica:</span> Cadastre e gerencie os adicionais e complementos deste prato.
                       </p>
-                      <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-white/10 text-[11px] text-white/90">
+                      <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-white/10 dark:border-[#E5DFD1] text-[11px] text-white/90 dark:text-[#1C2C22]">
                         <div className="flex items-start gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
                           <span>Os adicionais configurados aqui poderão ser escolhidos pelo cliente no pedido.</span>

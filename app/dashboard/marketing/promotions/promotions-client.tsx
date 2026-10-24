@@ -485,7 +485,7 @@ export default function PromotionsClient({
 
   return (
     <div className="flex-1 bg-[#F7F6F2] dark:bg-[#131A15] min-h-screen text-[#1A241E] dark:text-[#F2EFE9] p-4 sm:p-6 lg:p-8 transition-colors duration-150">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-full">
         {/* Toast / Notification feedback */}
         {feedbackNotification && (
           <div className="fixed bottom-6 right-6 z-[160] bg-[#2E4233] text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 text-sm font-semibold animate-in fade-in slide-in-from-bottom-2">
@@ -508,11 +508,11 @@ export default function PromotionsClient({
               <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                 ?
               </div>
-              <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                <p className="text-[13px] text-[#1C2C22] mb-2 leading-relaxed">
-                  <span className="font-extrabold text-[#1C2C22]">Sobre esta tela:</span> Acompanhe o resultado das suas ofertas e gerencie os descontos aplicados no cardápio da sua loja.
+              <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                <p className="text-[13px] text-white dark:text-[#1C2C22] mb-2 leading-relaxed">
+                  <span className="font-extrabold text-white dark:text-[#2E4233]">Sobre esta tela:</span> Acompanhe o resultado das suas ofertas e gerencie os descontos aplicados no cardápio da sua loja.
                 </p>
-                <div className="flex flex-col gap-2 pt-2 border-t border-[#E5DFD1] text-[12px] text-[#2E4233]">
+                <div className="flex flex-col gap-2 pt-2 border-t border-white/10 dark:border-[#E5DFD1] text-[12px] text-white/90 dark:text-[#1C2C22]">
                   <div className="flex items-start gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
                     <span>Identifique pratos promocionais com alto e baixo volume de pedidos.</span>
@@ -811,7 +811,7 @@ export default function PromotionsClient({
                   </div>
                   <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
                     <p className="text-[13px] text-[#1C2C22] mb-2 leading-relaxed">
-                      <span className="font-extrabold text-[#1C2C22]">Gestão Centralizada:</span> Edite qualquer item do cardápio para criar ou ajustar promoções.
+                      <span className="font-extrabold text-white dark:text-[#2E4233]">Gestão Centralizada:</span> Edite qualquer item do cardápio para criar ou ajustar promoções.
                     </p>
                     <div className="flex flex-col gap-2 pt-2 border-t border-[#E5DFD1] text-[12px] text-[#2E4233]">
                       <div className="flex items-start gap-2">
@@ -1076,11 +1076,11 @@ export default function PromotionsClient({
                       <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
                         ?
                       </div>
-                      <div className="absolute top-full left-0 sm:left-[-30px] mt-2 w-72 sm:w-80 p-3.5 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[160] pointer-events-none">
-                        <p className="text-[12px] text-[#1C2C22] leading-relaxed">
-                          <span className="font-extrabold text-[#1C2C22]">Estratégia de Preço Promocional:</span>
+                      <div className="absolute top-full left-0 sm:left-[-30px] mt-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[160] pointer-events-none">
+                        <p className="text-[12px] text-white dark:text-[#1C2C22] leading-relaxed">
+                          <span className="font-extrabold text-white dark:text-[#2E4233]">Estratégia de Preço Promocional:</span>
                         </p>
-                        <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-[#E5DFD1] text-[11px] text-[#2E4233]">
+                        <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-white/10 dark:border-[#E5DFD1] text-[11px] text-white/90 dark:text-[#1C2C22]">
                           <div className="flex items-start gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
                             <span><strong>Âncora de Valor:</strong> Exibir o valor original riscado ao lado do promocional ativa a percepção imediata de economia no cliente.</span>
@@ -1179,11 +1179,11 @@ export default function PromotionsClient({
                           <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
                             ?
                           </div>
-                          <div className="absolute bottom-full left-0 sm:left-[-40px] mb-2 w-72 sm:w-80 p-3.5 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[160] pointer-events-none">
-                            <p className="text-[12px] text-[#1C2C22] leading-relaxed">
-                              <span className="font-extrabold text-[#1C2C22]">Como funciona o agendamento:</span>
+                          <div className="absolute bottom-full left-0 sm:left-[-40px] mb-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[160] pointer-events-none">
+                            <p className="text-[12px] text-white dark:text-[#1C2C22] leading-relaxed">
+                              <span className="font-extrabold text-white dark:text-[#2E4233]">Como funciona o agendamento:</span>
                             </p>
-                            <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-[#E5DFD1] text-[11px] text-[#2E4233]">
+                            <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-white/10 dark:border-[#E5DFD1] text-[11px] text-white/90 dark:text-[#1C2C22]">
                               <div className="flex items-start gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
                                 <span><strong>Prazo indeterminado:</strong> A promoção permanece ativa continuamente no cardápio online até você desativá-la manualmente.</span>

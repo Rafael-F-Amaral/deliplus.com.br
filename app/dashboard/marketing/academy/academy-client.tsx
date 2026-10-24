@@ -101,7 +101,7 @@ export default function AcademyClient() {
 
   return (
     <div className="flex-1 bg-[#F7F6F2] dark:bg-[#131A15] min-h-screen text-[#1A241E] dark:text-[#F2EFE9] p-4 sm:p-6 lg:p-8 transition-colors duration-150">
-      <div className="max-w-6xl mx-auto">
+      <div className="w-full">
         {/* ============================================================ */}
         {/* HERO BANNER                                                  */}
         {/* ============================================================ */}

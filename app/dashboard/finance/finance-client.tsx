@@ -218,10 +218,10 @@ function HelpTooltip({
         ?
       </div>
       <div
-        className={`absolute top-full ${popoverPosition} mt-2 w-72 sm:w-80 p-3.5 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-[999] pointer-events-none text-left`}
+        className={`absolute top-full ${popoverPosition} mt-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-[999] pointer-events-none text-left`}
       >
         {title && (
-          <p className="text-[12.5px] font-bold text-[#1C2C22] mb-1 flex items-center gap-1.5">
+          <p className="text-[12.5px] font-bold text-white dark:text-[#2E4233] mb-1 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C]" />
             <span>{title}</span>
           </p>
@@ -1174,7 +1174,7 @@ export function FinanceClient({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-[#F8F9F5] dark:bg-[#222C25] border border-[#E5E6E1] dark:border-[#2A382E] focus:border-[#4A6B3A] dark:focus:border-[#FF7D4F] focus:outline-none rounded-xl pl-7.5 pr-2.5 py-1.5 text-xs text-[#1C201A] dark:text-[#F2EFE9] placeholder-[#9CA3AF] dark:placeholder-[#9CA79E] w-full sm:w-52 transition-all"
                 />
-                <Search className="w-3.5 h-3.5 text-[#9CA3AF] absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-[#CB5A3C] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
 
               {/* Filter by Method */}

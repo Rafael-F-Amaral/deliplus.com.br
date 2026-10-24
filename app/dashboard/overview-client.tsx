@@ -969,12 +969,12 @@ export default function OverviewClient({
                 <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                   ?
                 </div>
-                <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                  <p className="text-[13px] text-white mb-2 leading-relaxed">
-                    <span className="font-extrabold text-white">Central de Comando:</span>{" "}
+                <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                  <p className="text-[13px] text-white dark:text-[#1C2C22] mb-2 leading-relaxed">
+                    <span className="font-extrabold text-white dark:text-[#2E4233]">Central de Comando:</span>{" "}
                     Acompanhe o pulso da cozinha, faturamento do turno e alertas operacionais em um só lugar.
                   </p>
-                  <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white/90">
+                  <div className="flex flex-col gap-2 pt-2 border-t border-white/10 dark:border-[#E5DFD1] text-[12px] text-white/90 dark:text-[#1C2C22]">
                     <div className="flex items-start gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
                       <span>Aceite ou avance pedidos em andamento direto pela Esteira Ao Vivo.</span>

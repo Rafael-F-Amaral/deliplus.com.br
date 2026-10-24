@@ -205,7 +205,7 @@ export default function CouponsClient({
 
   return (
     <div className="flex-1 bg-[#F7F6F2] dark:bg-[#131A15] min-h-screen text-[#1A241E] dark:text-[#F2EFE9] p-4 sm:p-6 lg:p-8 transition-colors duration-150">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-full">
         {/* ============================================================ */}
         {/* HEADER LIMPO E REORGANIZADO                                  */}
         {/* ============================================================ */}
@@ -221,12 +221,12 @@ export default function CouponsClient({
                 <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                   ?
                 </div>
-                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden group-hover:block w-80 p-3.5 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] text-[12px] rounded-2xl shadow-2xl z-50 pointer-events-none">
-                  <div className="font-bold text-[13px] text-[#1C2C22] mb-1.5 flex items-center gap-1.5">
+                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden group-hover:block w-80 p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] text-[12px] rounded-2xl shadow-2xl z-50 pointer-events-none">
+                  <div className="font-bold text-[13px] text-white dark:text-[#2E4233] mb-1.5 flex items-center gap-1.5">
                     <ShieldCheck size={14} className="text-[#10B981]" />
                     Regras e Boas Práticas de Cupons
                   </div>
-                  <div className="space-y-1.5 text-[#2E4233] text-[11.5px] leading-relaxed">
+                  <div className="space-y-1.5 text-white/90 dark:text-[#1C2C22] text-[11.5px] leading-relaxed">
                     <div className="flex items-start gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5" />
                       <span><strong>Cupons Globais:</strong> Limitados a 1 uso por cliente (WhatsApp) para evitar uso repetido abusivo.</span>
