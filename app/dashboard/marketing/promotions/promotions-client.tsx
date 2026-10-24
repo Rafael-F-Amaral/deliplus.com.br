@@ -203,7 +203,7 @@ function DeliPlusDatePicker({
         type="button"
         disabled={disabled}
         onClick={handleToggle}
-        className={`w-full flex items-center justify-between border border-[#E9E4D4] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 bg-white transition-all cursor-pointer ${
+        className={`w-full flex items-center justify-between border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] transition-all cursor-pointer ${
           disabled
             ? "opacity-40 cursor-not-allowed bg-gray-50"
             : "hover:border-[#CB5A3C] focus:outline-none focus:ring-1 focus:ring-[#2E4233]"
@@ -216,8 +216,8 @@ function DeliPlusDatePicker({
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute top-full left-0 mt-1.5 z-[180] w-[250px] bg-white border border-[#E9E4D4] rounded-2xl shadow-2xl p-3 select-none animate-in fade-in zoom-in-95">
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#ECEAE2]">
+        <div className="absolute top-full left-0 mt-1.5 z-[180] w-[250px] bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-2xl p-3 select-none animate-in fade-in zoom-in-95">
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#ECEAE2] dark:border-[#2A382E]">
             <button
               type="button"
               onClick={handlePrevMonth}
@@ -225,7 +225,7 @@ function DeliPlusDatePicker({
             >
               <ChevronLeft size={15} />
             </button>
-            <span className="text-xs font-bold text-[#1A241E]">
+            <span className="text-xs font-bold text-[#1A241E] dark:text-[#F2EFE9]">
               {monthNames[viewMonth]} {viewYear}
             </span>
             <button
@@ -484,7 +484,7 @@ export default function PromotionsClient({
   }, [filteredTableProducts, tablePage]);
 
   return (
-    <div className="flex-1 bg-[#F7F6F2] min-h-screen text-[#1A241E] p-4 sm:p-6 lg:p-8">
+    <div className="flex-1 bg-[#F7F6F2] dark:bg-[#131A15] min-h-screen text-[#1A241E] dark:text-[#F2EFE9] p-4 sm:p-6 lg:p-8 transition-colors duration-150">
       <div className="max-w-7xl mx-auto">
         {/* Toast / Notification feedback */}
         {feedbackNotification && (
@@ -508,11 +508,11 @@ export default function PromotionsClient({
               <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                 ?
               </div>
-              <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                <p className="text-[13px] text-white mb-2 leading-relaxed">
-                  <span className="font-extrabold text-white">Sobre esta tela:</span> Acompanhe o resultado das suas ofertas e gerencie os descontos aplicados no cardápio da sua loja.
+              <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                <p className="text-[13px] text-[#1C2C22] mb-2 leading-relaxed">
+                  <span className="font-extrabold text-[#1C2C22]">Sobre esta tela:</span> Acompanhe o resultado das suas ofertas e gerencie os descontos aplicados no cardápio da sua loja.
                 </p>
-                <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white/90">
+                <div className="flex flex-col gap-2 pt-2 border-t border-[#E5DFD1] text-[12px] text-[#2E4233]">
                   <div className="flex items-start gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
                     <span>Identifique pratos promocionais com alto e baixo volume de pedidos.</span>
@@ -530,7 +530,7 @@ export default function PromotionsClient({
             </div>
           </div>
 
-          <p className="text-[14px] sm:text-[15px] text-[#0D1510] font-medium max-w-2xl">
+          <p className="text-[14px] sm:text-[15px] text-[#0D1510] dark:text-[#9CA79E] font-medium max-w-2xl">
             Monitore quais produtos têm maior saída, acompanhe cliques no cardápio público e ajuste preços promocionais em tempo real.
           </p>
         </div>
@@ -540,11 +540,11 @@ export default function PromotionsClient({
         {/* ============================================================ */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
           {/* Box 1: Maior Saída (Top Performers) */}
-          <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E3E1D9] dark:border-[#2A382E] rounded-[22px] p-5 sm:p-6 shadow-xs flex flex-col justify-between transition-colors">
             <div>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
-                  <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-[#1A241E]">
+                  <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-[#1A241E] dark:text-[#F2EFE9]">
                     Promoções com Maior Saída
                   </h2>
                   {/* Tooltip padronizado com bullet points */}
@@ -552,11 +552,11 @@ export default function PromotionsClient({
                     <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                       ?
                     </div>
-                    <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                      <p className="text-[13px] text-white mb-2 leading-relaxed font-bold">
+                    <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                      <p className="text-[13px] text-[#1C2C22] mb-2 leading-relaxed font-bold">
                         Como potencializar seus pratos campeões:
                       </p>
-                      <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white/90">
+                      <div className="flex flex-col gap-2 pt-2 border-t border-[#E5DFD1] text-[12px] text-[#2E4233]">
                         <div className="flex items-start gap-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
                           <span><strong>Venda Cruzada (Cross-sell):</strong> Vincule complementos e bebidas a esses pratos para elevar o ticket médio dos pedidos.</span>
@@ -578,7 +578,7 @@ export default function PromotionsClient({
                   </div>
                 </div>
               </div>
-              <p className="text-[12px] text-[#637267] mb-4">
+              <p className="text-[12px] text-[#637267] dark:text-[#9CA79E] mb-4">
                 Pratos promocionais que os clientes mais pedem
               </p>
 
@@ -593,7 +593,7 @@ export default function PromotionsClient({
                     return (
                       <div
                         key={item.id}
-                        className="p-3.5 rounded-xl border border-[#ECEAE2] bg-[#FAF8F0] flex items-center justify-between gap-3"
+                        className="p-3.5 rounded-xl border border-[#ECEAE2] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] flex items-center justify-between gap-3 transition-colors"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 shrink-0 relative">
@@ -610,11 +610,11 @@ export default function PromotionsClient({
                             )}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-[#1A241E] text-[14px] truncate flex items-center gap-1.5">
+                            <div className="font-semibold text-[#1A241E] dark:text-[#F2EFE9] text-[14px] truncate flex items-center gap-1.5">
                               <span className="text-[#CB5A3C]">#{itemRank}</span>
                               <span>{item.name}</span>
                             </div>
-                            <div className="text-[12px] text-[#637267] flex items-center gap-2">
+                            <div className="text-[12px] text-[#637267] dark:text-[#9CA79E] flex items-center gap-2">
                               <span>De {formatBRL(item.priceCents)} por <strong className="text-[#2E7D32]">{formatBRL(item.promoPriceCents)}</strong></span>
                               {item.discountPercentage > 0 && (
                                 <span className="px-1.5 py-0.2 rounded bg-red-100 text-red-700 font-bold text-[10px]">
@@ -626,13 +626,13 @@ export default function PromotionsClient({
                         </div>
 
                         <div className="text-right shrink-0">
-                          <div className="text-[14px] font-bold text-[#1A241E]">
+                          <div className="text-[14px] font-bold text-[#1A241E] dark:text-[#F2EFE9]">
                             {item.totalSold} vendidos
                           </div>
                           <div className="text-[12px] font-semibold text-[#2E7D32]">
                             {formatBRL(item.totalRevenueCents)}
                           </div>
-                          <div className="text-[11px] text-[#637267]">
+                          <div className="text-[11px] text-[#637267] dark:text-[#9CA79E]">
                             {item.clicksCount} cliques ({item.conversionRate.toFixed(1)}% conv.)
                           </div>
                         </div>
@@ -645,8 +645,8 @@ export default function PromotionsClient({
 
             {/* Pagination Controls no padrão DeliPlus (Contador de um lado, botões do outro) */}
             {topTotalPages > 1 && (
-              <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#ECEAE2] text-[12px] text-[#637267]">
-                <span className="font-medium text-[#637267]">
+              <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#ECEAE2] dark:border-[#2A382E] text-[12px] text-[#637267] dark:text-[#9CA79E]">
+                <span className="font-medium text-[#637267] dark:text-[#9CA79E]">
                   {(topPage - 1) * ITEMS_PER_BOX + 1}–{Math.min(topPage * ITEMS_PER_BOX, allTopPerformers.length)} de {allTopPerformers.length} pratos
                 </span>
                 <div className="flex items-center gap-1.5">
@@ -658,7 +658,7 @@ export default function PromotionsClient({
                       className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
                         topPage === i + 1
                           ? "bg-[#CB5A3C] text-white shadow-sm"
-                          : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                          : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-[#9CA79E] hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
                       }`}
                     >
                       {i + 1}
@@ -670,11 +670,11 @@ export default function PromotionsClient({
           </div>
 
           {/* Box 2: Menor Saída (Precisam de Atenção) */}
-          <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] flex flex-col justify-between">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E3E1D9] dark:border-[#2A382E] rounded-[22px] p-5 sm:p-6 shadow-xs flex flex-col justify-between transition-colors">
             <div>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
-                  <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-[#1A241E]">
+                  <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-[#1A241E] dark:text-[#F2EFE9]">
                     Promoções com Menor Saída
                   </h2>
                   {/* Tooltip com dicas de melhoria */}
@@ -682,11 +682,11 @@ export default function PromotionsClient({
                     <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                       ?
                     </div>
-                    <div className="absolute top-full right-0 sm:left-0 sm:right-auto mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                      <p className="text-[13px] text-white mb-2 leading-relaxed font-bold">
+                    <div className="absolute top-full right-0 sm:left-0 sm:right-auto mt-2 w-80 p-4 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                      <p className="text-[13px] text-[#1C2C22] mb-2 leading-relaxed font-bold">
                         Como melhorar a saída destes pratos:
                       </p>
-                      <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white/90">
+                      <div className="flex flex-col gap-2 pt-2 border-t border-[#E5DFD1] text-[12px] text-[#2E4233]">
                         <div className="flex items-start gap-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
                           <span><strong>Foto atraente:</strong> Pratos com foto nítida e bem iluminada recebem até 3x mais cliques.</span>
@@ -708,7 +708,7 @@ export default function PromotionsClient({
                   </div>
                 </div>
               </div>
-              <p className="text-[12px] text-[#637267] mb-4">
+              <p className="text-[12px] text-[#637267] dark:text-[#9CA79E] mb-4">
                 Itens em promoção que precisam de ajuste de preço ou foto
               </p>
 
@@ -721,7 +721,7 @@ export default function PromotionsClient({
                   paginatedSlow.map((item) => (
                     <div
                       key={item.id}
-                      className="p-3.5 rounded-xl border border-[#ECEAE2] bg-[#FAF8F0] flex items-center justify-between gap-3"
+                      className="p-3.5 rounded-xl border border-[#ECEAE2] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] flex items-center justify-between gap-3 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 shrink-0 relative">
@@ -738,10 +738,10 @@ export default function PromotionsClient({
                           )}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-semibold text-[#1A241E] text-[14px] truncate">
+                          <div className="font-semibold text-[#1A241E] dark:text-[#F2EFE9] text-[14px] truncate">
                             {item.name}
                           </div>
-                          <div className="text-[12px] text-[#637267] flex items-center gap-2">
+                          <div className="text-[12px] text-[#637267] dark:text-[#9CA79E] flex items-center gap-2">
                             <span>De {formatBRL(item.priceCents)} por <strong className="text-[#2E7D32]">{formatBRL(item.promoPriceCents)}</strong></span>
                             {item.discountPercentage > 0 && (
                               <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
@@ -756,7 +756,7 @@ export default function PromotionsClient({
                         <button
                           type="button"
                           onClick={() => handleOpenPromoModal(item)}
-                          className="text-[12px] font-semibold text-[#2E4233] bg-white border border-[#E3E1D9] hover:bg-[#F4F3ED] px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                          className="text-[12px] font-semibold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border border-[#E3E1D9] dark:border-[#2A382E] hover:bg-[#F4F3ED] dark:hover:bg-[#25332A] px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                         >
                           Ajustar Oferta
                         </button>
@@ -769,8 +769,8 @@ export default function PromotionsClient({
 
             {/* Pagination Controls no padrão DeliPlus (Contador de um lado, botões do outro) */}
             {slowTotalPages > 1 && (
-              <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#ECEAE2] text-[12px] text-[#637267]">
-                <span className="font-medium text-[#637267]">
+              <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#ECEAE2] dark:border-[#2A382E] text-[12px] text-[#637267] dark:text-[#9CA79E]">
+                <span className="font-medium text-[#637267] dark:text-[#9CA79E]">
                   {(slowPage - 1) * ITEMS_PER_BOX + 1}–{Math.min(slowPage * ITEMS_PER_BOX, allSlowPerformers.length)} de {allSlowPerformers.length} pratos
                 </span>
                 <div className="flex items-center gap-1.5">
@@ -782,7 +782,7 @@ export default function PromotionsClient({
                       className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
                         slowPage === i + 1
                           ? "bg-[#CB5A3C] text-white shadow-sm"
-                          : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                          : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-[#9CA79E] hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
                       }`}
                     >
                       {i + 1}
@@ -797,7 +797,7 @@ export default function PromotionsClient({
         {/* ============================================================ */}
         {/* TABELA: GESTÃO DE PROMOÇÕES COM TOOLTIP E SWITCH             */}
         {/* ============================================================ */}
-        <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] mb-8">
+        <div className="bg-white dark:bg-[#1B241E] border border-[#E3E1D9] dark:border-[#2A382E] rounded-[22px] p-5 sm:p-6 shadow-xs mb-8 transition-colors">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -809,11 +809,11 @@ export default function PromotionsClient({
                   <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                     ?
                   </div>
-                  <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                    <p className="text-[13px] text-white mb-2 leading-relaxed">
-                      <span className="font-extrabold text-white">Gestão Centralizada:</span> Edite qualquer item do cardápio para criar ou ajustar promoções.
+                  <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                    <p className="text-[13px] text-[#1C2C22] mb-2 leading-relaxed">
+                      <span className="font-extrabold text-[#1C2C22]">Gestão Centralizada:</span> Edite qualquer item do cardápio para criar ou ajustar promoções.
                     </p>
-                    <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white/90">
+                    <div className="flex flex-col gap-2 pt-2 border-t border-[#E5DFD1] text-[12px] text-[#2E4233]">
                       <div className="flex items-start gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
                         <span>Ligue ou pause a promoção instantaneamente pelo switch de status.</span>
@@ -830,13 +830,13 @@ export default function PromotionsClient({
                   </div>
                 </div>
               </div>
-              <p className="text-[13px] text-[#637267]">
+              <p className="text-[13px] text-[#637267] dark:text-[#9CA79E]">
                 Altere regras de desconto, configure prazos e controle o status promocional dos seus pratos.
               </p>
             </div>
 
             {/* Filter Toggle Buttons */}
-            <div className="flex items-center gap-2 bg-[#F4F3EE] p-1 rounded-xl self-start sm:self-auto border border-[#EAE8E0]">
+            <div className="flex items-center gap-2 bg-[#F4F3EE] dark:bg-[#222C25] p-1 rounded-xl self-start sm:self-auto border border-[#EAE8E0] dark:border-[#2A382E]">
               <button
                 type="button"
                 onClick={() => {
@@ -845,8 +845,8 @@ export default function PromotionsClient({
                 }}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   tableFilter === "todos"
-                    ? "bg-white text-[#2E4233] shadow-xs"
-                    : "text-[#637267] hover:text-[#1A241E]"
+                    ? "bg-white dark:bg-[#1B241E] text-[#2E4233] dark:text-[#F2EFE9] shadow-xs"
+                    : "text-[#637267] dark:text-[#9CA79E] hover:text-[#1A241E] dark:hover:text-[#F2EFE9]"
                 }`}
               >
                 Todos os Pratos ({promoProducts.length})
@@ -859,8 +859,8 @@ export default function PromotionsClient({
                 }}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   tableFilter === "em_promocao"
-                    ? "bg-white text-[#2E4233] shadow-xs"
-                    : "text-[#637267] hover:text-[#1A241E]"
+                    ? "bg-white dark:bg-[#1B241E] text-[#2E4233] dark:text-[#F2EFE9] shadow-xs"
+                    : "text-[#637267] dark:text-[#9CA79E] hover:text-[#1A241E] dark:hover:text-[#F2EFE9]"
                 }`}
               >
                 Em Promoção ({promoOnlyProducts.length})
@@ -871,19 +871,19 @@ export default function PromotionsClient({
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-[#ECEAE2] text-[#0D1510] font-bold">
-                  <th className="pb-3 pl-1 font-bold text-[#0D1510]">Produto</th>
-                  <th className="pb-3 font-bold text-[#0D1510]">Categoria</th>
-                  <th className="pb-3 font-bold text-[#0D1510]">Preço Regular</th>
-                  <th className="pb-3 font-bold text-[#0D1510]">Preço Promocional</th>
-                  <th className="pb-3 font-bold text-[#0D1510]">Adicionais</th>
-                  <th className="pb-3 font-bold text-[#0D1510]">Saídas / Cliques</th>
-                  <th className="pb-3 font-bold text-[#0D1510]">Faturamento</th>
-                  <th className="pb-3 text-center font-bold text-[#0D1510]">Status</th>
-                  <th className="pb-3 text-right pr-1 font-bold text-[#0D1510]">Ações</th>
+                <tr className="border-b border-[#ECEAE2] dark:border-[#2A382E] text-[#0D1510] font-bold">
+                  <th className="pb-3 pl-1 font-bold text-[#0D1510] dark:text-[#F2EFE9]">Produto</th>
+                  <th className="pb-3 font-bold text-[#0D1510] dark:text-[#F2EFE9]">Categoria</th>
+                  <th className="pb-3 font-bold text-[#0D1510] dark:text-[#F2EFE9]">Preço Regular</th>
+                  <th className="pb-3 font-bold text-[#0D1510] dark:text-[#F2EFE9]">Preço Promocional</th>
+                  <th className="pb-3 font-bold text-[#0D1510] dark:text-[#F2EFE9]">Adicionais</th>
+                  <th className="pb-3 font-bold text-[#0D1510] dark:text-[#F2EFE9]">Saídas / Cliques</th>
+                  <th className="pb-3 font-bold text-[#0D1510] dark:text-[#F2EFE9]">Faturamento</th>
+                  <th className="pb-3 text-center font-bold text-[#0D1510] dark:text-[#F2EFE9]">Status</th>
+                  <th className="pb-3 text-right pr-1 font-bold text-[#0D1510] dark:text-[#F2EFE9]">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#ECEAE2]/60">
+              <tbody className="divide-y divide-[#ECEAE2]/60 dark:divide-[#2A382E]">
                 {filteredTableProducts.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-8 text-center text-[#637267]">
@@ -894,7 +894,7 @@ export default function PromotionsClient({
                   paginatedTableProducts.map((product) => (
                     <tr
                       key={product.id}
-                      className="hover:bg-[#FAF8F0]/70 transition-colors"
+                      className="hover:bg-[#FAF8F0]/70 dark:hover:bg-[#25332A]/70 transition-colors"
                     >
                       {/* Produto */}
                       <td className="py-3.5 pl-1">
@@ -916,7 +916,7 @@ export default function PromotionsClient({
                             <div className="font-semibold text-[#1A241E] text-[14px]">
                               {product.name}
                             </div>
-                            <div className="text-[11px] text-[#637267]">
+                            <div className="text-[11px] text-[#637267] dark:text-[#9CA79E]">
                               ID: {product.id.slice(0, 8)}
                             </div>
                           </div>
@@ -924,7 +924,7 @@ export default function PromotionsClient({
                       </td>
 
                       {/* Categoria */}
-                      <td className="py-3.5 text-[#556358] font-medium">
+                      <td className="py-3.5 text-[#556358] dark:text-[#9CA79E] font-medium">
                         {product.categoryName || "Geral"}
                       </td>
 
@@ -966,7 +966,7 @@ export default function PromotionsClient({
                       </td>
 
                       {/* Saídas / Cliques */}
-                      <td className="py-3.5 text-[#334237]">
+                      <td className="py-3.5 text-[#334237] dark:text-[#F2EFE9]">
                         <span className="font-bold">{product.totalSold} vendas</span>
                         <span className="text-[11px] text-[#637267] block">
                           {product.clicksCount} cliques ({product.conversionRate.toFixed(1)}%)
@@ -974,7 +974,7 @@ export default function PromotionsClient({
                       </td>
 
                       {/* Faturamento */}
-                      <td className="py-3.5 font-bold text-[#1A241E]">
+                      <td className="py-3.5 font-bold text-[#1A241E] dark:text-[#F2EFE9]">
                         {formatBRL(product.totalRevenueCents)}
                       </td>
 
@@ -1021,8 +1021,8 @@ export default function PromotionsClient({
           </div>
 
           {/* Pagination Controls no padrão DeliPlus (8 em 8 produtos) */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 mt-4 border-t border-[#ECEAE2] text-[12px] text-[#637267]">
-            <span className="font-medium text-[#637267]">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 mt-4 border-t border-[#ECEAE2] dark:border-[#2A382E] text-[12px] text-[#637267] dark:text-[#9CA79E]">
+            <span className="font-medium text-[#637267] dark:text-[#9CA79E]">
               Mostrando {filteredTableProducts.length > 0 ? (tablePage - 1) * TABLE_ITEMS_PER_PAGE + 1 : 0}–{Math.min(tablePage * TABLE_ITEMS_PER_PAGE, filteredTableProducts.length)} de {filteredTableProducts.length} produtos
             </span>
 
@@ -1036,7 +1036,7 @@ export default function PromotionsClient({
                     className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
                       tablePage === i + 1
                         ? "bg-[#CB5A3C] text-white shadow-sm"
-                        : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
+                        : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-[#9CA79E] hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
                     }`}
                   >
                     {i + 1}
@@ -1063,11 +1063,11 @@ export default function PromotionsClient({
             onClick={() => setEditingPromoProduct(null)}
           >
             <div
-              className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150 relative"
+              className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-md shadow-2xl flex flex-col border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150 relative"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0] rounded-t-2xl">
+              <div className="px-5 py-4 border-b border-[#E9E4D4] dark:border-[#2A382E] flex justify-between items-center bg-[#FAF8F0] dark:bg-[#25332A] rounded-t-2xl">
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-[#CB5A3C] text-base">Preço Promocional</h3>
@@ -1076,11 +1076,11 @@ export default function PromotionsClient({
                       <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
                         ?
                       </div>
-                      <div className="absolute top-full left-0 sm:left-[-30px] mt-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[160] pointer-events-none">
-                        <p className="text-[12px] text-white leading-relaxed">
-                          <span className="font-extrabold text-white">Estratégia de Preço Promocional:</span>
+                      <div className="absolute top-full left-0 sm:left-[-30px] mt-2 w-72 sm:w-80 p-3.5 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[160] pointer-events-none">
+                        <p className="text-[12px] text-[#1C2C22] leading-relaxed">
+                          <span className="font-extrabold text-[#1C2C22]">Estratégia de Preço Promocional:</span>
                         </p>
-                        <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-white/10 text-[11px] text-white/90">
+                        <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-[#E5DFD1] text-[11px] text-[#2E4233]">
                           <div className="flex items-start gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
                             <span><strong>Âncora de Valor:</strong> Exibir o valor original riscado ao lado do promocional ativa a percepção imediata de economia no cliente.</span>
@@ -1115,9 +1115,9 @@ export default function PromotionsClient({
                 {/* Conteúdo configurável (Apagado quando promoção desativada) */}
                 <div className={`p-5 flex flex-col gap-4 transition-all duration-200 ${!promoIsActive ? "opacity-35 pointer-events-none select-none grayscale-[0.3]" : ""}`}>
                   {/* Comparativo de Preços: Original e Promocional juntos */}
-                  <div className="p-3.5 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-between gap-3 shadow-xs">
+                  <div className="p-3.5 rounded-xl bg-[#FAF8F0] dark:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-between gap-3 shadow-xs">
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-[#111827]">Preço Original</span>
+                      <span className="text-xs font-bold text-[#111827] dark:text-[#F2EFE9]">Preço Original</span>
                       <span className="text-base font-extrabold text-red-600 line-through decoration-red-600 decoration-2">
                         {formatBRL(editingPromoProduct.priceCents)}
                       </span>
@@ -1130,7 +1130,7 @@ export default function PromotionsClient({
                     </div>
 
                     <div className="flex flex-col items-end">
-                      <span className="text-xs font-bold text-[#111827]">Preço Promocional</span>
+                      <span className="text-xs font-bold text-[#111827] dark:text-[#F2EFE9]">Preço Promocional</span>
                       <span className="text-2xl font-black text-[#059669]">
                         {formatBRL(Math.round(calculatedPromo * 100))}
                       </span>
@@ -1144,7 +1144,7 @@ export default function PromotionsClient({
 
                   {/* Campo Porcentagem de Desconto */}
                   <div className="flex flex-col gap-2 p-1 rounded-xl">
-                    <label className="text-xs font-bold text-[#111827] flex justify-between">
+                    <label className="text-xs font-bold text-[#111827] dark:text-[#F2EFE9] flex justify-between">
                       <span>Porcentagem de Desconto:</span>
                       <span className="text-[#059669] font-extrabold">{pct > 0 ? `${pct}%` : "0%"}</span>
                     </label>
@@ -1179,11 +1179,11 @@ export default function PromotionsClient({
                           <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
                             ?
                           </div>
-                          <div className="absolute bottom-full left-0 sm:left-[-40px] mb-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[160] pointer-events-none">
-                            <p className="text-[12px] text-white leading-relaxed">
-                              <span className="font-extrabold text-white">Como funciona o agendamento:</span>
+                          <div className="absolute bottom-full left-0 sm:left-[-40px] mb-2 w-72 sm:w-80 p-3.5 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[160] pointer-events-none">
+                            <p className="text-[12px] text-[#1C2C22] leading-relaxed">
+                              <span className="font-extrabold text-[#1C2C22]">Como funciona o agendamento:</span>
                             </p>
-                            <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-white/10 text-[11px] text-white/90">
+                            <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-[#E5DFD1] text-[11px] text-[#2E4233]">
                               <div className="flex items-start gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
                                 <span><strong>Prazo indeterminado:</strong> A promoção permanece ativa continuamente no cardápio online até você desativá-la manualmente.</span>

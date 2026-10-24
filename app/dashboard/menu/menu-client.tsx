@@ -1320,11 +1320,11 @@ export default function MenuClient({
             <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
               ?
             </div>
-            <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+            <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
               <p className="text-[13px] text-white mb-2 leading-relaxed">
                 <span className="font-extrabold text-white">Dica:</span> Aqui você gerencia os pratos, bebidas e itens do cardápio visíveis para seus clientes.
               </p>
-              <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white">
+              <div className="flex flex-col gap-2 pt-2 border-t border-[#E5DFD1] text-[12px] text-[#2E4233]">
                 <div className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
                   <span>Ative ou pause a disponibilidade de itens em tempo real pelo switch.</span>

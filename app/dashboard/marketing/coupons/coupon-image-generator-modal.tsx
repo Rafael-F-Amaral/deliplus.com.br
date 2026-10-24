@@ -1158,11 +1158,11 @@ function CouponImageGeneratorContent({
   };
 
   return (
-    <div className="bg-[#FAF9F5] border border-[#E3E1D9] rounded-2xl w-full max-w-6xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="bg-[#FAF9F5] dark:bg-[#131A15] border border-[#E3E1D9] dark:border-[#2A382E] rounded-2xl w-full max-w-6xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden">
       {/* Top Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-[#ECEAE2]">
+      <div className="flex items-center justify-between px-5 py-3.5 bg-white dark:bg-[#1B241E] border-b border-[#ECEAE2] dark:border-[#2A382E]">
         <div className="flex items-center gap-2">
-          <h2 className="text-base sm:text-lg font-bold text-[#1A241E] leading-tight">
+          <h2 className="text-base sm:text-lg font-bold text-[#1A241E] dark:text-[#F2EFE9] leading-tight">
             Estúdio de Criação DeliPlus
           </h2>
           <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-[#FAF0ED] text-[#CB5A3C] text-[11px] font-bold">
@@ -1172,7 +1172,7 @@ function CouponImageGeneratorContent({
 
         {/* Studio Sub-Pages Switcher */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-[#F4F3EE] p-1 rounded-xl border border-[#EAE8E0]">
+          <div className="flex items-center gap-1 bg-[#F4F3EE] dark:bg-[#161F18] p-1 rounded-xl border border-[#EAE8E0] dark:border-[#2A382E]">
             <button
               type="button"
               onClick={() => setActiveTab("design")}
@@ -1205,7 +1205,7 @@ function CouponImageGeneratorContent({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer ml-1"
+            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#25332A] rounded-lg transition-colors cursor-pointer ml-1"
           >
             <X size={20} />
           </button>
@@ -1385,12 +1385,12 @@ function CouponImageGeneratorContent({
                   if (e.target === e.currentTarget) setActiveEditTarget(null);
                 }}
               >
-                <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-2xl border border-gray-200 w-full max-w-[320px] text-gray-950 space-y-3">
+                <div className="bg-white dark:bg-[#1B241E] rounded-2xl p-4 sm:p-5 shadow-2xl border border-gray-200 dark:border-[#2A382E] w-full max-w-[320px] text-gray-950 dark:text-[#F2EFE9] space-y-3">
                   {/* EDIT TARGET 1: HEADER (TAGLINE + HEADLINE) */}
                   {activeEditTarget === "header" && (
                     <>
                       <div className="flex items-center justify-between border-b pb-2">
-                        <span className="text-xs font-bold text-gray-900">
+                        <span className="text-xs font-bold text-gray-900 dark:text-[#F2EFE9]">
                           Editar Título e Subtítulo
                         </span>
                         <button
@@ -1403,7 +1403,7 @@ function CouponImageGeneratorContent({
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                        <label className="text-[11px] font-semibold text-gray-600 dark:text-[#9CA79E] block mb-1">
                           Subtítulo / Tagline
                         </label>
                         <input
@@ -1412,12 +1412,12 @@ function CouponImageGeneratorContent({
                           value={tagline}
                           onChange={(e) => setTagline(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && setActiveEditTarget(null)}
-                          className="w-full px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg outline-none focus:border-[#CB5A3C]"
+                          className="w-full px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-[#2A382E] bg-white dark:bg-[#161F18] text-gray-900 dark:text-[#F2EFE9] rounded-lg outline-none focus:border-[#CB5A3C]"
                         />
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                        <label className="text-[11px] font-semibold text-gray-600 dark:text-[#9CA79E] block mb-1">
                           Título Principal
                         </label>
                         <input
@@ -1448,7 +1448,7 @@ function CouponImageGeneratorContent({
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                        <label className="text-[11px] font-semibold text-gray-600 dark:text-[#9CA79E] block mb-1">
                           Texto do Desconto
                         </label>
                         <input
@@ -1499,7 +1499,7 @@ function CouponImageGeneratorContent({
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                        <label className="text-[11px] font-semibold text-gray-600 dark:text-[#9CA79E] block mb-1">
                           Código do Cupom
                         </label>
                         <input
@@ -1513,7 +1513,7 @@ function CouponImageGeneratorContent({
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                        <label className="text-[11px] font-semibold text-gray-600 dark:text-[#9CA79E] block mb-1">
                           Regra de Pedido Mínimo
                         </label>
                         <input
@@ -1544,7 +1544,7 @@ function CouponImageGeneratorContent({
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-semibold text-gray-600 block mb-1">
+                        <label className="text-[11px] font-semibold text-gray-600 dark:text-[#9CA79E] block mb-1">
                           Texto do Botão
                         </label>
                         <input
@@ -1581,11 +1581,11 @@ function CouponImageGeneratorContent({
         </div>
 
         {/* RIGHT: Lean & Clean Quick Inspector (No cluttered form!) */}
-        <div className="lg:col-span-4 p-5 space-y-4 overflow-y-auto bg-white flex flex-col justify-between">
+        <div className="lg:col-span-4 p-5 space-y-4 overflow-y-auto bg-white dark:bg-[#1B241E] flex flex-col justify-between">
           <div className="space-y-4">
             {/* Quick Text Shortcut Chips (Easy one-click access) */}
             <div>
-              <label className="text-xs font-bold text-[#1A241E] block mb-1.5">
+              <label className="text-xs font-bold text-[#1A241E] dark:text-[#F2EFE9] block mb-1.5">
                 Textos Rápidos da Arte (Clique para editar)
               </label>
 
@@ -1593,10 +1593,10 @@ function CouponImageGeneratorContent({
                 <button
                   type="button"
                   onClick={() => setActiveEditTarget("header")}
-                  className="p-2 rounded-xl border border-gray-200 bg-[#FAF8F0] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
+                  className="p-2 rounded-xl border border-gray-200 dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
                 >
-                  <span className="text-[10px] text-gray-500 font-semibold block">Título:</span>
-                  <span className="text-xs font-bold text-gray-900 truncate block">
+                  <span className="text-[10px] text-gray-500 dark:text-[#9CA79E] font-semibold block">Título:</span>
+                  <span className="text-xs font-bold text-gray-900 dark:text-[#F2EFE9] truncate block">
                     {headline}
                   </span>
                 </button>
@@ -1604,9 +1604,9 @@ function CouponImageGeneratorContent({
                 <button
                   type="button"
                   onClick={() => setActiveEditTarget("discount")}
-                  className="p-2 rounded-xl border border-gray-200 bg-[#FAF8F0] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
+                  className="p-2 rounded-xl border border-gray-200 dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
                 >
-                  <span className="text-[10px] text-gray-500 font-semibold block">Desconto:</span>
+                  <span className="text-[10px] text-gray-500 dark:text-[#9CA79E] font-semibold block">Desconto:</span>
                   <span className="text-xs font-black text-[#CB5A3C] truncate block">
                     {discountHighlight}
                   </span>
@@ -1615,10 +1615,10 @@ function CouponImageGeneratorContent({
                 <button
                   type="button"
                   onClick={() => setActiveEditTarget("ticket")}
-                  className="p-2 rounded-xl border border-gray-200 bg-[#FAF8F0] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
+                  className="p-2 rounded-xl border border-gray-200 dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
                 >
-                  <span className="text-[10px] text-gray-500 font-semibold block">Cupom:</span>
-                  <span className="text-xs font-mono font-bold text-gray-900 truncate block">
+                  <span className="text-[10px] text-gray-500 dark:text-[#9CA79E] font-semibold block">Cupom:</span>
+                  <span className="text-xs font-mono font-bold text-gray-900 dark:text-[#F2EFE9] truncate block">
                     {couponCode}
                   </span>
                 </button>
@@ -1626,10 +1626,10 @@ function CouponImageGeneratorContent({
                 <button
                   type="button"
                   onClick={() => setActiveEditTarget("cta")}
-                  className="p-2 rounded-xl border border-gray-200 bg-[#FAF8F0] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
+                  className="p-2 rounded-xl border border-gray-200 dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] hover:border-[#CB5A3C] text-left transition-colors cursor-pointer"
                 >
-                  <span className="text-[10px] text-gray-500 font-semibold block">Botão / CTA:</span>
-                  <span className="text-xs font-bold text-gray-900 truncate block">
+                  <span className="text-[10px] text-gray-500 dark:text-[#9CA79E] font-semibold block">Botão / CTA:</span>
+                  <span className="text-xs font-bold text-gray-900 dark:text-[#F2EFE9] truncate block">
                     {callToAction}
                   </span>
                 </button>
@@ -1637,7 +1637,7 @@ function CouponImageGeneratorContent({
             </div>
 
             {/* 1. Fundo da Arte */}
-            <div className="border-t border-[#ECEAE2] pt-3.5">
+            <div className="border-t border-[#ECEAE2] dark:border-[#2A382E] pt-3.5">
               <label className="text-xs font-bold text-[#1A241E] block mb-1.5">
                 1. Fundo da Arte
               </label>
@@ -1659,7 +1659,7 @@ function CouponImageGeneratorContent({
                         }
                       }
                     }}
-                    className="w-full px-3 py-2 bg-white border border-[#E3E1D9] rounded-xl text-xs font-semibold text-[#1A241E] focus:outline-none focus:border-[#CB5A3C] cursor-pointer"
+                    className="w-full px-3 py-2 bg-white dark:bg-[#161F18] border border-[#E3E1D9] dark:border-[#2A382E] rounded-xl text-xs font-semibold text-[#1A241E] dark:text-[#F2EFE9] focus:outline-none focus:border-[#CB5A3C] cursor-pointer"
                   >
                     <optgroup label="Nichos de Alimentação">
                       {FOOD_THEMES.filter((t) => t.category !== "Cores da Marca").map((theme) => (
@@ -1716,9 +1716,9 @@ function CouponImageGeneratorContent({
             </div>
 
             {/* 2. Redes Sociais no Rodapé */}
-            <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2">
+            <div className="border-t border-[#ECEAE2] dark:border-[#2A382E] pt-3.5 space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-[#1A241E]">
+                <label className="text-xs font-bold text-[#1A241E] dark:text-[#F2EFE9]">
                   2. Redes Sociais no Rodapé
                 </label>
                 <span className="text-[11px] font-bold text-gray-500">
@@ -1730,11 +1730,11 @@ function CouponImageGeneratorContent({
                 {activeSocials.map((soc) => (
                   <div
                     key={soc.id}
-                    className="flex items-center gap-2 p-1.5 rounded-xl border border-[#D5D0C0] bg-[#FAF8F0]"
+                    className="flex items-center gap-2 p-1.5 rounded-xl border border-[#D5D0C0] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A]"
                   >
                     <BrandIconBadge id={soc.id} size={18} />
 
-                    <span className="text-[11px] font-bold text-[#1A241E] w-18 shrink-0">
+                    <span className="text-[11px] font-bold text-[#1A241E] dark:text-[#F2EFE9] w-18 shrink-0">
                       {soc.name}
                     </span>
 
@@ -1743,7 +1743,7 @@ function CouponImageGeneratorContent({
                       value={soc.handle}
                       onChange={(e) => handleSocialAccountChange(soc.id, e.target.value)}
                       placeholder={`Ex: @${storeSlug || "sualoja"}`}
-                      className="flex-1 px-2 py-0.5 text-xs border border-[#D5D0C0] rounded-lg bg-white text-[#1A241E] font-medium focus:outline-none focus:border-[#CB5A3C]"
+                      className="flex-1 px-2 py-0.5 text-xs border border-[#D5D0C0] dark:border-[#2A382E] rounded-lg bg-white dark:bg-[#161F18] text-[#1A241E] dark:text-[#F2EFE9] font-medium focus:outline-none focus:border-[#CB5A3C]"
                     />
 
                     <button
@@ -1792,7 +1792,7 @@ function CouponImageGeneratorContent({
                   <span>3. Cor da Identidade</span>
                 </label>
 
-                <div className="flex items-center gap-1.5 bg-[#FAF8F0] border border-[#E3E1D9] px-2 py-0.5 rounded-lg">
+                <div className="flex items-center gap-1.5 bg-[#FAF8F0] dark:bg-[#25332A] border border-[#E3E1D9] dark:border-[#2A382E] px-2 py-0.5 rounded-lg">
                   <input
                     type="color"
                     value={accentColor}
@@ -1802,7 +1802,7 @@ function CouponImageGeneratorContent({
                     }}
                     className="w-4 h-4 rounded cursor-pointer border-0 p-0 bg-transparent"
                   />
-                  <span className="font-mono text-[11px] font-bold text-gray-800 uppercase">
+                  <span className="font-mono text-[11px] font-bold text-gray-800 dark:text-[#F2EFE9] uppercase">
                     {accentColor}
                   </span>
                 </div>
@@ -1828,7 +1828,7 @@ function CouponImageGeneratorContent({
           </div>
 
           {/* Action: Download High Res PNG */}
-          <div className="border-t border-[#ECEAE2] pt-4">
+          <div className="border-t border-[#ECEAE2] dark:border-[#2A382E] pt-4">
             <button
               type="button"
               onClick={handleDownloadImage}
@@ -2088,10 +2088,10 @@ function CouponImageGeneratorContent({
         </div>
 
         {/* RIGHT: Studio Controls, Channel Switcher & Templates */}
-        <div className="lg:col-span-7 p-4 sm:p-6 space-y-4 overflow-y-auto bg-white">
+        <div className="lg:col-span-7 p-4 sm:p-6 space-y-4 overflow-y-auto bg-white dark:bg-[#1B241E]">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-[12.5px] font-bold text-[#1A241E]">
+              <label className="text-[12.5px] font-bold text-[#1A241E] dark:text-[#F2EFE9]">
                 1. Escolha a Rede Social & Formato de Publicação
               </label>
               <span className="text-[11px] text-[#CB5A3C] font-semibold">
@@ -2141,7 +2141,7 @@ function CouponImageGeneratorContent({
             </div>
 
             <div className="flex items-center gap-2 pt-1">
-              <span className="text-[11px] font-bold text-[#637267]">Destino:</span>
+              <span className="text-[11px] font-bold text-[#637267] dark:text-[#9CA79E]">Destino:</span>
 
               {studioChannel === "instagram" && (
                 <>
@@ -2259,13 +2259,13 @@ function CouponImageGeneratorContent({
                     className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                       isSelected
                         ? "border-[#CB5A3C] bg-[#FAF0ED] ring-1 ring-[#CB5A3C]"
-                        : "border-[#ECEAE2] bg-[#FAF8F0] hover:bg-gray-100"
+                        : "border-[#ECEAE2] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#161F18] hover:bg-gray-100 dark:hover:bg-[#25332A]"
                     }`}
                   >
-                    <div className="text-[12px] font-bold text-[#1A241E] truncate">
+                    <div className="text-[12px] font-bold text-[#1A241E] dark:text-[#F2EFE9] truncate">
                       {tmpl.title}
                     </div>
-                    <div className="text-[10px] text-[#637267] truncate mt-0.5">
+                    <div className="text-[10px] text-[#637267] dark:text-[#9CA79E] truncate mt-0.5">
                       {tmpl.badge}
                     </div>
                   </button>
@@ -2274,8 +2274,8 @@ function CouponImageGeneratorContent({
             </div>
           </div>
 
-          <div className="border-t border-[#ECEAE2] pt-3">
-            <label className="text-[11.5px] font-bold text-[#1A241E] block mb-1">
+          <div className="border-t border-[#ECEAE2] dark:border-[#2A382E] pt-3">
+            <label className="text-[11.5px] font-bold text-[#1A241E] dark:text-[#F2EFE9] block mb-1">
               Inserir Variáveis com 1 Clique:
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -2297,7 +2297,7 @@ function CouponImageGeneratorContent({
                   key={idx}
                   type="button"
                   onClick={() => insertTagIntoCaption(item.value)}
-                  className="px-2 py-0.5 rounded-lg border border-[#E3E1D9] bg-[#FAF8F0] hover:bg-gray-100 text-[11px] font-semibold text-gray-700 transition-colors cursor-pointer"
+                  className="px-2 py-0.5 rounded-lg border border-[#E3E1D9] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] hover:bg-gray-100 dark:hover:bg-[#2E4233] text-[11px] font-semibold text-gray-700 dark:text-[#F2EFE9] transition-colors cursor-pointer"
                 >
                   {item.label}
                 </button>
@@ -2307,10 +2307,10 @@ function CouponImageGeneratorContent({
 
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-[12px] font-bold text-[#1A241E]">
+              <label className="text-[12px] font-bold text-[#1A241E] dark:text-[#F2EFE9]">
                 Texto da Mensagem / Legenda:
               </label>
-              <div className="text-[11px] text-[#637267] font-medium">
+              <div className="text-[11px] text-[#637267] dark:text-[#9CA79E] font-medium">
                 {activeCaptionText.length} caracteres
               </div>
             </div>
@@ -2319,10 +2319,10 @@ function CouponImageGeneratorContent({
               rows={8}
               value={activeCaptionText}
               onChange={(e) => setActiveCaptionText(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-[13px] font-normal border border-[#E3E1D9] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white leading-relaxed resize-y break-words"
+              className="w-full px-3.5 py-2.5 text-[13px] font-normal border border-[#E3E1D9] dark:border-[#2A382E] rounded-xl focus:border-[#CB5A3C] focus:outline-none bg-white dark:bg-[#161F18] text-[#1A241E] dark:text-[#F2EFE9] leading-relaxed resize-y break-words"
             />
 
-            <div className="flex items-center justify-between text-[11px] text-[#637267] mt-1">
+            <div className="flex items-center justify-between text-[11px] text-[#637267] dark:text-[#9CA79E] mt-1">
               <span>
                 💡 <strong>Dica:</strong> Em mensagens do WhatsApp, textos entre *asteriscos* ficam em negrito.
               </span>

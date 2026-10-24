@@ -204,7 +204,7 @@ export default function CouponsClient({
   }, [coupons, currentPage]);
 
   return (
-    <div className="flex-1 bg-[#F7F6F2] min-h-screen text-[#1A241E] p-4 sm:p-6 lg:p-8">
+    <div className="flex-1 bg-[#F7F6F2] dark:bg-[#131A15] min-h-screen text-[#1A241E] dark:text-[#F2EFE9] p-4 sm:p-6 lg:p-8 transition-colors duration-150">
       <div className="max-w-7xl mx-auto">
         {/* ============================================================ */}
         {/* HEADER LIMPO E REORGANIZADO                                  */}
@@ -212,7 +212,7 @@ export default function CouponsClient({
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <h1 className="font-serif text-[30px] sm:text-[34px] lg:text-[38px] font-semibold text-[#1A241E] tracking-tight leading-none">
+              <h1 className="font-serif text-[30px] sm:text-[34px] lg:text-[38px] font-semibold text-[#1A241E] dark:text-[#F2EFE9] tracking-tight leading-none">
                 Cupons de Desconto
               </h1>
 
@@ -221,12 +221,12 @@ export default function CouponsClient({
                 <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                   ?
                 </div>
-                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-80 p-3.5 bg-[#1A241E] text-white text-[12px] rounded-xl shadow-xl z-50 pointer-events-none">
-                  <div className="font-bold text-[13px] text-[#E8F5E9] mb-1.5 flex items-center gap-1.5">
+                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden group-hover:block w-80 p-3.5 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] text-[12px] rounded-2xl shadow-2xl z-50 pointer-events-none">
+                  <div className="font-bold text-[13px] text-[#1C2C22] mb-1.5 flex items-center gap-1.5">
                     <ShieldCheck size={14} className="text-[#10B981]" />
                     Regras e Boas Práticas de Cupons
                   </div>
-                  <div className="space-y-1.5 text-gray-200 text-[11.5px] leading-relaxed">
+                  <div className="space-y-1.5 text-[#2E4233] text-[11.5px] leading-relaxed">
                     <div className="flex items-start gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5" />
                       <span><strong>Cupons Globais:</strong> Limitados a 1 uso por cliente (WhatsApp) para evitar uso repetido abusivo.</span>
@@ -248,7 +248,7 @@ export default function CouponsClient({
               </div>
             </div>
 
-            <p className="text-[13.5px] sm:text-[14.5px] text-[#5D6B60] max-w-2xl leading-relaxed">
+            <p className="text-[13.5px] sm:text-[14.5px] text-[#5D6B60] dark:text-[#9CA79E] max-w-2xl leading-relaxed">
               Crie cupons estratégicos para sua loja e gere artes automáticas para divulgar no Instagram e WhatsApp.
             </p>
           </div>
@@ -258,7 +258,7 @@ export default function CouponsClient({
             <button
               type="button"
               onClick={handleOpenGlobalImageGen}
-              className="flex items-center gap-2 bg-white hover:bg-gray-50 text-[#CB5A3C] border border-[#CB5A3C]/40 font-semibold text-[13.5px] rounded-xl px-4 py-2.5 shadow-2xs transition-all cursor-pointer"
+              className="flex items-center gap-2 bg-white dark:bg-[#1B241E] hover:bg-gray-50 dark:hover:bg-[#25332A] text-[#CB5A3C] border border-[#CB5A3C]/40 font-semibold text-[13.5px] rounded-xl px-4 py-2.5 shadow-2xs transition-all cursor-pointer"
             >
               <Sparkles size={16} className="text-[#CB5A3C]" />
               <span>Gerador de Artes</span>
@@ -270,7 +270,7 @@ export default function CouponsClient({
                 setFormError(null);
                 setCreateModalOpen(true);
               }}
-              className="flex items-center gap-2 bg-[#2E4233] hover:bg-[#233327] text-white font-medium text-[13.5px] rounded-xl px-4 py-2.5 shadow-sm transition-all cursor-pointer"
+              className="flex items-center gap-2 bg-[#2E4233] dark:bg-[#25332A] hover:bg-[#233327] dark:hover:bg-[#2F4235] text-white font-medium text-[13.5px] rounded-xl px-4 py-2.5 shadow-sm border border-transparent dark:border-[#3B4E40] transition-all cursor-pointer"
             >
               <Plus size={17} />
               <span>Novo Cupom</span>
@@ -281,14 +281,14 @@ export default function CouponsClient({
         {/* ============================================================ */}
         {/* LISTAGEM COMPACTA E ORGANIZADA DE CUPONS                     */}
         {/* ============================================================ */}
-        <div className="bg-white border border-[#E3E1D9] rounded-[22px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(30,40,30,0.02)] mb-8">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#ECEAE2]">
+        <div className="bg-white dark:bg-[#1B241E] border border-[#E3E1D9] dark:border-[#2A382E] rounded-[22px] p-5 sm:p-6 shadow-xs mb-8 transition-colors">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#ECEAE2] dark:border-[#2A382E]">
             <div className="flex items-center gap-2">
-              <h2 className="font-bold text-[18px] text-[#1A241E]">
+              <h2 className="font-bold text-[18px] text-[#1A241E] dark:text-[#F2EFE9]">
                 Gestão de Cupons
               </h2>
             </div>
-            <span className="text-[12.5px] text-[#637267] font-medium">
+            <span className="text-[12.5px] text-[#637267] dark:text-[#9CA79E] font-medium">
               Regra: 1 cupom por pedido • Não cumulativo
             </span>
           </div>
@@ -298,16 +298,16 @@ export default function CouponsClient({
               <div className="w-12 h-12 rounded-full bg-[#FAF0ED] text-[#CB5A3C] flex items-center justify-center mx-auto mb-3">
                 <Sparkles size={24} />
               </div>
-              <h3 className="font-bold text-[#1A241E] text-[16px] mb-1">
+              <h3 className="font-bold text-[#1A241E] dark:text-[#F2EFE9] text-[16px] mb-1">
                 Nenhum cupom cadastrado ainda
               </h3>
-              <p className="text-[13px] text-[#637267] max-w-md mx-auto mb-4">
+              <p className="text-[13px] text-[#637267] dark:text-[#9CA79E] max-w-md mx-auto mb-4">
                 Crie seu primeiro cupom com pedido mínimo para atrair clientes no Instagram e aumentar seus pedidos diretos.
               </p>
               <button
                 type="button"
                 onClick={() => setCreateModalOpen(true)}
-                className="inline-flex items-center gap-2 bg-[#2E4233] text-white text-xs font-semibold px-4 py-2 rounded-xl"
+                className="inline-flex items-center gap-2 bg-[#2E4233] dark:bg-[#25332A] text-white text-xs font-semibold px-4 py-2 rounded-xl border border-transparent dark:border-[#3B4E40]"
               >
                 <Plus size={15} />
                 <span>Criar Primeiro Cupom</span>
@@ -324,21 +324,21 @@ export default function CouponsClient({
                     key={coupon.id}
                     className={`border rounded-xl p-3.5 sm:p-4 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                       coupon.status === "active" && !isExpired
-                        ? "bg-[#FAF9F5] border-[#E5E2D6] hover:border-[#D5D0C0]"
-                        : "bg-gray-50 border-gray-200 opacity-65"
+                        ? "bg-[#FAF9F5] dark:bg-[#161F18] border-[#E5E2D6] dark:border-[#2A382E] hover:border-[#D5D0C0] dark:hover:border-[#3D5243]"
+                        : "bg-gray-50 dark:bg-[#131A15] border-gray-200 dark:border-[#222E25] opacity-65"
                     }`}
                   >
                     {/* Left: Code, Audience & Discount Info */}
                     <div className="flex items-start sm:items-center gap-3 min-w-0">
                       {/* Ticket Code Box */}
-                      <div className="bg-white border border-dashed border-[#CB5A3C]/40 rounded-xl px-3 py-2 flex items-center gap-2 shrink-0 shadow-2xs">
-                        <span className="font-mono text-[15px] font-black text-[#1A241E] tracking-wider">
+                      <div className="bg-white dark:bg-[#1B241E] border border-dashed border-[#CB5A3C]/40 rounded-xl px-3 py-2 flex items-center gap-2 shrink-0 shadow-2xs">
+                        <span className="font-mono text-[15px] font-black text-[#1A241E] dark:text-[#F2EFE9] tracking-wider">
                           {coupon.code}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleCopy(coupon.code, coupon.id)}
-                          className="text-gray-400 hover:text-[#2E4233] p-1 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+                          className="text-gray-400 dark:text-gray-500 hover:text-[#2E4233] dark:hover:text-[#F2EFE9] p-1 rounded hover:bg-gray-100 dark:hover:bg-[#25332A] transition-colors cursor-pointer"
                           title="Copiar código"
                         >
                           {copiedText === coupon.id ? (
@@ -355,10 +355,10 @@ export default function CouponsClient({
                           {/* Discount Badge */}
                           <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
                             coupon.discount_type === "percentage"
-                              ? "bg-purple-100 text-purple-800"
+                              ? "bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-transparent dark:border-purple-800/40"
                               : coupon.discount_type === "fixed"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-blue-100 text-blue-800"
+                              ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-transparent dark:border-emerald-800/40"
+                              : "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-transparent dark:border-blue-800/40"
                           }`}>
                             {coupon.discount_type === "percentage"
                               ? `${coupon.discount_value}% OFF`
@@ -370,15 +370,15 @@ export default function CouponsClient({
                           {/* Audience Badge */}
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold ${
                             isFirstOrder
-                              ? "bg-amber-100 text-amber-800 border border-amber-200"
-                              : "bg-stone-100 text-stone-700"
+                              ? "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40"
+                              : "bg-stone-100 dark:bg-[#25332A] text-stone-700 dark:text-[#C5CEBA] border border-transparent dark:border-[#324538]"
                           }`}>
                             <Users size={11} />
                             {isFirstOrder ? "1º Pedido no Deli" : "Global (1 uso/cliente)"}
                           </span>
 
                           {/* Min Order Badge */}
-                          <span className="text-[11.5px] font-bold text-[#CB5A3C] bg-[#FDF2F0] px-2 py-0.5 rounded-md border border-[#CB5A3C]/20">
+                          <span className="text-[11.5px] font-bold text-[#CB5A3C] bg-[#FDF2F0] dark:bg-[#2A1D1A] px-2 py-0.5 rounded-md border border-[#CB5A3C]/20 dark:border-[#CB5A3C]/40">
                             {coupon.min_order_cents > 0
                               ? `Mínimo: ${formatBRL(coupon.min_order_cents)}`
                               : "Sem mínimo"}
@@ -386,7 +386,7 @@ export default function CouponsClient({
                         </div>
 
                         {/* Description or Expiration subline */}
-                        <div className="flex flex-wrap items-center gap-3 text-[11.5px] text-[#637267]">
+                        <div className="flex flex-wrap items-center gap-3 text-[11.5px] text-[#637267] dark:text-[#9CA79E]">
                           {coupon.description && (
                             <span className="truncate max-w-xs">{coupon.description}</span>
                           )}
@@ -405,12 +405,12 @@ export default function CouponsClient({
                     </div>
 
                     {/* Right: Switch, Generate Art, Delete */}
-                    <div className="flex items-center justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                    <div className="flex items-center justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-[#2A382E]">
                       {/* Gerar Arte Instagram Button */}
                       <button
                         type="button"
                         onClick={() => handleOpenImageGen(coupon)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-[#CB5A3C] bg-white border border-[#CB5A3C]/30 hover:bg-[#FDF2F0] rounded-xl transition-all cursor-pointer shadow-2xs"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-[#CB5A3C] bg-white dark:bg-[#1B241E] border border-[#CB5A3C]/30 hover:bg-[#FDF2F0] dark:hover:bg-[#2A1D1A] rounded-xl transition-all cursor-pointer shadow-2xs"
                         title="Gerar arte profissional para Instagram"
                       >
                         <Sparkles size={13} />
@@ -427,11 +427,11 @@ export default function CouponsClient({
                           }}
                           onCheckedChange={() => handleToggleCoupon(coupon.id, coupon.status)}
                           activeTrackColor="bg-[#2E4233]"
-                          inactiveTrackColor="bg-stone-300"
+                          inactiveTrackColor="bg-stone-300 dark:bg-stone-700"
                           aria-label={`Alternar status do cupom ${coupon.code}`}
                         />
                         <span className={`text-[10px] font-semibold mt-0.5 ${
-                          coupon.status === "active" && !isExpired ? "text-[#2E4233]" : "text-gray-400"
+                          coupon.status === "active" && !isExpired ? "text-[#2E4233] dark:text-[#10B981]" : "text-gray-400 dark:text-gray-500"
                         }`}>
                           {coupon.status === "active" && !isExpired ? "Ativo" : "Pausado"}
                         </span>
@@ -460,7 +460,7 @@ export default function CouponsClient({
                         <button
                           type="button"
                           onClick={() => setDeleteConfirmId(coupon.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                          className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-gray-100 dark:hover:bg-[#25332A] transition-colors cursor-pointer"
                           title="Excluir cupom"
                         >
                           <Trash2 size={16} />
@@ -474,7 +474,7 @@ export default function CouponsClient({
           )}
 
           {/* Standard DeliPlus Pagination */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 mt-4 border-t border-[#ECEAE2] text-[12px] text-[#637267]">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 mt-4 border-t border-[#ECEAE2] dark:border-[#2A382E] text-[12px] text-[#637267] dark:text-[#9CA79E]">
             <span className="font-medium">
               Mostrando {coupons.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–{Math.min(currentPage * ITEMS_PER_PAGE, coupons.length)} de {coupons.length} cupons
             </span>
@@ -506,19 +506,19 @@ export default function CouponsClient({
       {/* ============================================================== */}
       {createModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-[2px] z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-[#E3E1D9] max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-[#1B241E] rounded-2xl border border-[#E3E1D9] dark:border-[#2A382E] max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             <button
               type="button"
               onClick={() => setCreateModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
+              className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
             >
               <X size={20} />
             </button>
 
-            <h3 className="font-serif text-[22px] font-semibold text-[#1A241E] mb-1">
+            <h3 className="font-serif text-[22px] font-semibold text-[#1A241E] dark:text-[#F2EFE9] mb-1">
               Criar Novo Cupom de Desconto
             </h3>
-            <p className="text-[13px] text-[#637267] mb-4">
+            <p className="text-[13px] text-[#637267] dark:text-[#9CA79E] mb-4">
               Configure as regras e o valor mínimo obrigatório para proteger sua margem.
             </p>
 
@@ -532,7 +532,7 @@ export default function CouponsClient({
             <form onSubmit={handleCreateCouponSubmit} className="space-y-4">
               {/* Código */}
               <div>
-                <label className="block text-[13px] font-medium text-[#334237] mb-1">
+                <label className="block text-[13px] font-medium text-[#334237] dark:text-[#C5CEBA] mb-1">
                   Código do Cupom *
                 </label>
                 <input
@@ -540,14 +540,14 @@ export default function CouponsClient({
                   placeholder="EX: PROMO10, DELI15"
                   value={newCode}
                   onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-                  className="w-full px-3.5 py-2.5 border border-[#E3E1D9] rounded-xl text-[14px] font-mono font-bold tracking-wider uppercase focus:outline-none focus:border-[#2E4233]"
+                  className="w-full px-3.5 py-2.5 border border-[#E3E1D9] dark:border-[#2A382E] bg-white dark:bg-[#161F18] text-[#1A241E] dark:text-[#F2EFE9] rounded-xl text-[14px] font-mono font-bold tracking-wider uppercase focus:outline-none focus:border-[#2E4233] dark:focus:border-[#10B981]"
                   required
                 />
               </div>
 
               {/* Público-alvo / Regra */}
               <div>
-                <label className="block text-[13px] font-medium text-[#334237] mb-1">
+                <label className="block text-[13px] font-medium text-[#334237] dark:text-[#C5CEBA] mb-1">
                   Público do Cupom *
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -560,10 +560,10 @@ export default function CouponsClient({
                         : "border-[#E3E1D9] bg-white text-gray-600 hover:bg-gray-50"
                     }`}
                   >
-                    <div className="text-[12.5px] font-bold text-[#1A241E]">
+                    <div className="text-[12.5px] font-bold text-[#1A241E] dark:text-[#F2EFE9]">
                       👥 Global (1 uso/cliente)
                     </div>
-                    <div className="text-[11px] text-[#637267]">
+                    <div className="text-[11px] text-[#637267] dark:text-[#9CA79E]">
                       Válido para qualquer cliente uma única vez
                     </div>
                   </button>
@@ -577,10 +577,10 @@ export default function CouponsClient({
                         : "border-[#E3E1D9] bg-white text-gray-600 hover:bg-gray-50"
                     }`}
                   >
-                    <div className="text-[12.5px] font-bold text-[#1A241E]">
+                    <div className="text-[12.5px] font-bold text-[#1A241E] dark:text-[#F2EFE9]">
                       🌟 1º Pedido no Deli
                     </div>
-                    <div className="text-[11px] text-[#637267]">
+                    <div className="text-[11px] text-[#637267] dark:text-[#9CA79E]">
                       Apenas clientes novos sem compras anteriores
                     </div>
                   </button>
@@ -589,7 +589,7 @@ export default function CouponsClient({
 
               {/* Tipo de Desconto */}
               <div>
-                <label className="block text-[13px] font-medium text-[#334237] mb-1">
+                <label className="block text-[13px] font-medium text-[#334237] dark:text-[#C5CEBA] mb-1">
                   Tipo de Desconto *
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -633,7 +633,7 @@ export default function CouponsClient({
               <div className="grid grid-cols-2 gap-3">
                 {newDiscountType !== "free_shipping" ? (
                   <div>
-                    <label className="block text-[13px] font-medium text-[#334237] mb-1">
+                    <label className="block text-[13px] font-medium text-[#334237] dark:text-[#C5CEBA] mb-1">
                       {newDiscountType === "percentage" ? "Desconto (%) *" : "Desconto (R$) *"}
                     </label>
                     <div className="relative">
@@ -643,17 +643,17 @@ export default function CouponsClient({
                         min="1"
                         value={newDiscountValue}
                         onChange={(e) => setNewDiscountValue(parseFloat(e.target.value) || 0)}
-                        className="w-full px-3.5 py-2 border border-[#E3E1D9] rounded-xl text-[14px] font-bold focus:outline-none focus:border-[#2E4233]"
+                        className="w-full px-3.5 py-2 border border-[#E3E1D9] dark:border-[#2A382E] bg-white dark:bg-[#161F18] text-[#1A241E] dark:text-[#F2EFE9] rounded-xl text-[14px] font-bold focus:outline-none focus:border-[#2E4233] dark:focus:border-[#10B981]"
                         required
                       />
-                      <span className="absolute right-3.5 top-2 text-[#637267] text-[13px]">
+                      <span className="absolute right-3.5 top-2 text-[#637267] dark:text-[#9CA79E] text-[13px]">
                         {newDiscountType === "percentage" ? "%" : "R$"}
                       </span>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-[13px] font-medium text-[#334237] mb-1">
+                    <label className="block text-[13px] font-medium text-[#334237] dark:text-[#C5CEBA] mb-1">
                       Benefício
                     </label>
                     <input
@@ -675,7 +675,7 @@ export default function CouponsClient({
                     min="1"
                     value={newMinOrder}
                     onChange={(e) => setNewMinOrder(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3.5 py-2 border border-[#CB5A3C]/50 rounded-xl text-[14px] font-bold text-[#CB5A3C] bg-[#FDF2F0]/30 focus:outline-none focus:border-[#CB5A3C]"
+                    className="w-full px-3.5 py-2 border border-[#CB5A3C]/50 dark:border-[#CB5A3C]/60 rounded-xl text-[14px] font-bold text-[#CB5A3C] bg-[#FDF2F0]/30 dark:bg-[#2A1D1A]/50 focus:outline-none focus:border-[#CB5A3C]"
                     required
                   />
                   <span className="text-[11px] text-[#637267] block mt-0.5">Obrigatório para proteger a margem</span>
@@ -684,7 +684,7 @@ export default function CouponsClient({
 
               {/* Descrição Opcional */}
               <div>
-                <label className="block text-[13px] font-medium text-[#334237] mb-1">
+                <label className="block text-[13px] font-medium text-[#334237] dark:text-[#C5CEBA] mb-1">
                   Descrição (opcional)
                 </label>
                 <input
@@ -692,19 +692,19 @@ export default function CouponsClient({
                   placeholder="Ex: Válido para lanches e combos no delivery"
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  className="w-full px-3.5 py-2 border border-[#E3E1D9] rounded-xl text-[14px] focus:outline-none focus:border-[#2E4233]"
+                  className="w-full px-3.5 py-2 border border-[#E3E1D9] dark:border-[#2A382E] bg-white dark:bg-[#161F18] text-[#1A241E] dark:text-[#F2EFE9] rounded-xl text-[14px] focus:outline-none focus:border-[#2E4233] dark:focus:border-[#10B981]"
                 />
               </div>
 
               {/* Validade */}
               <div>
-                <label className="block text-[13px] font-medium text-[#334237] mb-1">
+                <label className="block text-[13px] font-medium text-[#334237] dark:text-[#C5CEBA] mb-1">
                   Validade do Cupom
                 </label>
                 <select
                   value={newExpiresInDays}
                   onChange={(e) => setNewExpiresInDays(parseInt(e.target.value))}
-                  className="w-full px-3.5 py-2 border border-[#E3E1D9] rounded-xl text-[14px] focus:outline-none focus:border-[#2E4233] bg-white cursor-pointer"
+                  className="w-full px-3.5 py-2 border border-[#E3E1D9] dark:border-[#2A382E] rounded-xl text-[14px] focus:outline-none focus:border-[#2E4233] dark:focus:border-[#10B981] bg-white dark:bg-[#161F18] text-[#1A241E] dark:text-[#F2EFE9] cursor-pointer"
                 >
                   <option value={7}>7 dias (Ideal para campanhas curtas)</option>
                   <option value={15}>15 dias</option>
@@ -715,7 +715,7 @@ export default function CouponsClient({
               </div>
 
               {/* Notice de Regras */}
-              <div className="p-2.5 rounded-xl bg-[#FAF8F0] border border-[#EAE7DC] text-[11.5px] text-[#556358] flex items-center gap-2">
+              <div className="p-2.5 rounded-xl bg-[#FAF8F0] dark:bg-[#25332A] border border-[#EAE7DC] dark:border-[#2A382E] text-[11.5px] text-[#556358] dark:text-[#C5CEBA] flex items-center gap-2">
                 <ShieldCheck size={16} className="text-[#2E4233] shrink-0" />
                 <span>
                   <strong>Não cumulativo:</strong> No carrinho do cliente, apenas 1 cupom pode ser resgatado por compra.
@@ -723,17 +723,17 @@ export default function CouponsClient({
               </div>
 
               {/* Botões */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#ECEAE2]">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#ECEAE2] dark:border-[#2A382E]">
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
-                  className="px-4 py-2 text-[14px] text-[#556358] hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 text-[14px] text-[#556358] dark:text-[#9CA79E] hover:bg-gray-100 dark:hover:bg-[#25332A] rounded-xl transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-[14px] font-semibold bg-[#2E4233] hover:bg-[#233327] text-white rounded-xl shadow-sm transition-all cursor-pointer"
+                  className="px-5 py-2 text-[14px] font-semibold bg-[#2E4233] dark:bg-[#25332A] hover:bg-[#233327] dark:hover:bg-[#2F4235] text-white rounded-xl shadow-sm border border-transparent dark:border-[#3B4E40] transition-all cursor-pointer"
                 >
                   Criar Cupom
                 </button>

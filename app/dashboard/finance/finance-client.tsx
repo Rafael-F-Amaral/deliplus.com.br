@@ -218,19 +218,19 @@ function HelpTooltip({
         ?
       </div>
       <div
-        className={`absolute top-full ${popoverPosition} mt-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-[999] pointer-events-none text-left`}
+        className={`absolute top-full ${popoverPosition} mt-2 w-72 sm:w-80 p-3.5 bg-[#FAF8F0] text-[#1C2C22] border border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-[999] pointer-events-none text-left`}
       >
         {title && (
-          <p className="text-[12.5px] font-bold text-white mb-1 flex items-center gap-1.5">
+          <p className="text-[12.5px] font-bold text-[#1C2C22] mb-1 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C]" />
             <span>{title}</span>
           </p>
         )}
-        <p className="text-[11.5px] text-white/95 leading-relaxed font-normal">
+        <p className="text-[11.5px] text-[#2E4233] leading-relaxed font-normal">
           {description}
         </p>
         {bullets && bullets.length > 0 && (
-          <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-white/10 text-[11px] text-white/90">
+          <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-[#E5DFD1] text-[11px] text-[#2E4233]">
             {bullets.map((b, i) => (
               <div key={i} className="flex items-start gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5" />
