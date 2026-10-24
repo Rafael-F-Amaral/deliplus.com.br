@@ -21,7 +21,11 @@ import {
   ChevronDown,
   ExternalLink,
   Move,
-  Edit3
+  Edit3,
+  Eye,
+  EyeOff,
+  Layers,
+  Trash2
 } from "lucide-react";
 import type { CouponItem } from "./coupons-client";
 
@@ -595,6 +599,14 @@ function CouponImageGeneratorContent({
   });
   const [callToAction, setCallToAction] = useState("Peça pelo link na bio ou WhatsApp");
 
+  // Free choice layer visibility states (Can exclude/restore any text element!)
+  const [showTagline, setShowTagline] = useState(true);
+  const [showHeadline, setShowHeadline] = useState(true);
+  const [showDiscount, setShowDiscount] = useState(true);
+  const [showTicket, setShowTicket] = useState(true);
+  const [showCta, setShowCta] = useState(true);
+  const [showSocials, setShowSocials] = useState(true);
+
   // Active quick edit dialog target
   const [activeEditTarget, setActiveEditTarget] = useState<EditTarget>(null);
 
@@ -753,14 +765,15 @@ function CouponImageGeneratorContent({
       baseSize: number,
       fontFamily = "system-ui, -apple-system, sans-serif",
       weight = "900",
-      maxLines = 3,
-      minSize = 36
+      minSize = 18,
+      maxBlockH = 400
     ) => {
+      if (!text || !text.trim()) return;
+
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
       let fontSize = baseSize;
-      let lines: string[] = [];
 
       const computeLinesForSize = (size: number): string[] => {
         ctx.font = `${weight} ${size}px ${fontFamily}`;
@@ -768,10 +781,15 @@ function CouponImageGeneratorContent({
         const out: string[] = [];
 
         for (const para of rawParas) {
-          const words = para.trim().split(/\s+/);
-          if (words.length === 0 || (words.length === 1 && words[0] === "")) continue;
+          const trimmed = para.trim();
+          if (!trimmed) {
+            if (rawParas.length > 1) out.push("");
+            continue;
+          }
 
+          const words = trimmed.split(/\s+/);
           let curLine = "";
+
           for (const word of words) {
             const candidate = curLine ? `${curLine} ${word}` : word;
             if (ctx.measureText(candidate).width <= maxW) {
@@ -802,24 +820,31 @@ function CouponImageGeneratorContent({
         return out.length > 0 ? out : [text];
       };
 
-      lines = computeLinesForSize(fontSize);
+      let lines = computeLinesForSize(fontSize);
 
-      while (lines.length > maxLines && fontSize > minSize) {
-        fontSize -= 4;
-        lines = computeLinesForSize(fontSize);
-      }
+      while (fontSize > minSize) {
+        ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
+        const lineHeight = fontSize * 1.12;
+        const totalH = (lines.length - 1) * lineHeight + fontSize;
+        const anyTooWide = lines.some((l) => ctx.measureText(l).width > maxW);
 
-      if (lines.length > maxLines) {
-        lines = lines.slice(0, maxLines);
+        if (totalH > maxBlockH || anyTooWide) {
+          fontSize -= 2;
+          lines = computeLinesForSize(fontSize);
+        } else {
+          break;
+        }
       }
 
       ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
-      const lineHeight = fontSize * 1.05;
+      const lineHeight = fontSize * 1.12;
       const totalH = (lines.length - 1) * lineHeight;
       const startY = centerY - totalH / 2;
 
       lines.forEach((line, idx) => {
-        ctx.fillText(line, x, startY + idx * lineHeight);
+        if (line) {
+          ctx.fillText(line, x, startY + idx * lineHeight);
+        }
       });
 
       return { fontSize, linesCount: lines.length, totalHeight: totalH + fontSize };
@@ -878,143 +903,223 @@ function CouponImageGeneratorContent({
 
     // 3. Top Store Pill Badge removed per user design request
 
-    // 4 & 5. Header Group (Tagline & Headline)
+    // 4 & 5. Header Group (Tagline & Headline - Unlimited Multiline & Excludable)
+    const hasTagline = Boolean(showTagline && tagline.trim());
+    const hasHeadline = Boolean(showHeadline && headline.trim());
     const headerCenterY = (positions.headerGroupY / 100) * height;
 
-    ctx.fillStyle = accentColor;
-    drawWrappedFittedText(tagline.toUpperCase(), width / 2, headerCenterY, width - 160, isStory ? 42 : 32, "system-ui, -apple-system, sans-serif", "bold", 2, isStory ? 24 : 18);
+    if (hasTagline && hasHeadline) {
+      ctx.fillStyle = accentColor;
+      drawWrappedFittedText(
+        tagline.toUpperCase(),
+        width / 2,
+        headerCenterY - (isStory ? 35 : 28),
+        width - 160,
+        isStory ? 42 : 32,
+        "system-ui, -apple-system, sans-serif",
+        "bold",
+        isStory ? 18 : 14,
+        isStory ? 120 : 80
+      );
 
-    ctx.fillStyle = "#FFFFFF";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
-    ctx.shadowBlur = 22;
-    ctx.shadowOffsetY = 6;
-    drawWrappedFittedText(headline.toUpperCase(), width / 2, headerCenterY + (isStory ? 80 : 64), width - 140, isStory ? 84 : 70, "system-ui, -apple-system, sans-serif", "900", 2, isStory ? 38 : 30);
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+      ctx.shadowBlur = 22;
+      ctx.shadowOffsetY = 6;
+      drawWrappedFittedText(
+        headline.toUpperCase(),
+        width / 2,
+        headerCenterY + (isStory ? 45 : 36),
+        width - 140,
+        isStory ? 84 : 70,
+        "system-ui, -apple-system, sans-serif",
+        "900",
+        isStory ? 24 : 18,
+        isStory ? 260 : 180
+      );
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+    } else if (hasHeadline) {
+      ctx.fillStyle = "#FFFFFF";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+      ctx.shadowBlur = 22;
+      ctx.shadowOffsetY = 6;
+      drawWrappedFittedText(
+        headline.toUpperCase(),
+        width / 2,
+        headerCenterY,
+        width - 140,
+        isStory ? 86 : 72,
+        "system-ui, -apple-system, sans-serif",
+        "900",
+        isStory ? 24 : 18,
+        isStory ? 280 : 200
+      );
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+    } else if (hasTagline) {
+      ctx.fillStyle = accentColor;
+      drawWrappedFittedText(
+        tagline.toUpperCase(),
+        width / 2,
+        headerCenterY,
+        width - 160,
+        isStory ? 46 : 36,
+        "system-ui, -apple-system, sans-serif",
+        "bold",
+        isStory ? 18 : 14,
+        isStory ? 160 : 100
+      );
+    }
 
-    // 6. Huge Discount Display (Multiline wrapped & vertically centered!)
-    ctx.fillStyle = accentColor;
-    ctx.shadowColor = `${accentColor}80`;
-    ctx.shadowBlur = 40;
-    const centerY = (positions.discountY / 100) * height;
-    drawWrappedFittedText(discountHighlight, width / 2, centerY, width - 160, isStory ? 104 : 84, "system-ui, -apple-system, sans-serif", "900", 3, isStory ? 38 : 30);
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
+    // 6. Huge Discount Display (Unlimited multiline breaks & excludable)
+    const hasDiscount = Boolean(showDiscount && discountHighlight.trim());
+    if (hasDiscount) {
+      ctx.fillStyle = accentColor;
+      ctx.shadowColor = `${accentColor}80`;
+      ctx.shadowBlur = 40;
+      const centerY = (positions.discountY / 100) * height;
+      drawWrappedFittedText(
+        discountHighlight,
+        width / 2,
+        centerY,
+        width - 160,
+        isStory ? 104 : 84,
+        "system-ui, -apple-system, sans-serif",
+        "900",
+        isStory ? 24 : 18,
+        isStory ? 420 : 290
+      );
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+    }
 
-    // 7. Coupon Ticket Voucher Box
-    const ticketW = isStory ? 880 : 860;
-    const ticketH = isStory ? 340 : 265;
-    const ticketX = (width - ticketW) / 2;
-    const ticketY = (positions.ticketY / 100) * height;
+    // 7. Coupon Ticket Voucher Box (Excludable)
+    const hasTicket = Boolean(showTicket && (couponCode.trim() || minOrderText.trim()));
+    if (hasTicket) {
+      const ticketW = isStory ? 880 : 860;
+      const ticketH = isStory ? 340 : 265;
+      const ticketX = (width - ticketW) / 2;
+      const ticketY = (positions.ticketY / 100) * height;
 
-    ctx.fillStyle = "#FFFFFF";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
-    ctx.shadowBlur = 35;
-    ctx.shadowOffsetY = 14;
-    ctx.beginPath();
-    ctx.roundRect(ticketX, ticketY, ticketW, ticketH, 30);
-    ctx.fill();
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+      ctx.shadowBlur = 35;
+      ctx.shadowOffsetY = 14;
+      ctx.beginPath();
+      ctx.roundRect(ticketX, ticketY, ticketW, ticketH, 30);
+      ctx.fill();
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
 
-    ctx.strokeStyle = "#CB5A3C";
-    ctx.lineWidth = 3.5;
-    ctx.setLineDash([14, 10]);
-    ctx.stroke();
-    ctx.setLineDash([]);
+      ctx.strokeStyle = "#CB5A3C";
+      ctx.lineWidth = 3.5;
+      ctx.setLineDash([14, 10]);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-    ctx.textAlign = "center";
-    const checkoutTextSize = isStory ? 30 : 26;
-    ctx.font = `bold ${checkoutTextSize}px system-ui, -apple-system, sans-serif`;
-    ctx.fillStyle = "#6B7280";
-    ctx.fillText("USE O CUPOM NO CHECKOUT:", width / 2, ticketY + (isStory ? 62 : 50));
+      ctx.textAlign = "center";
+      const checkoutTextSize = isStory ? 30 : 26;
+      ctx.font = `bold ${checkoutTextSize}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = "#6B7280";
+      ctx.fillText("USE O CUPOM NO CHECKOUT:", width / 2, ticketY + (isStory ? 62 : 50));
 
-    ctx.fillStyle = "#111827";
-    drawCenteredFittedText(couponCode.toUpperCase(), width / 2, ticketY + (isStory ? 158 : 132), ticketW - 80, isStory ? 84 : 72, "'Courier New', monospace, sans-serif", "900");
+      if (couponCode.trim()) {
+        ctx.fillStyle = "#111827";
+        drawCenteredFittedText(couponCode.toUpperCase(), width / 2, ticketY + (isStory ? 158 : 132), ticketW - 80, isStory ? 84 : 72, "'Courier New', monospace, sans-serif", "900");
+      }
 
-    ctx.fillStyle = "#374151";
-    drawCenteredFittedText(minOrderText, width / 2, ticketY + (isStory ? 232 : 194), ticketW - 60, isStory ? 36 : 32, "system-ui, -apple-system, sans-serif", "bold");
+      if (minOrderText.trim()) {
+        ctx.fillStyle = "#374151";
+        drawCenteredFittedText(minOrderText, width / 2, ticketY + (isStory ? 232 : 194), ticketW - 60, isStory ? 36 : 32, "system-ui, -apple-system, sans-serif", "bold");
+      }
 
-    const subRuleFontSize = isStory ? 28 : 24;
-    ctx.font = `600 ${subRuleFontSize}px system-ui, -apple-system, sans-serif`;
-    ctx.fillStyle = "#6B7280";
-    ctx.fillText("1 uso por cliente • Não cumulativo com outros cupons", width / 2, ticketY + (isStory ? 292 : 238));
+      const subRuleFontSize = isStory ? 28 : 24;
+      ctx.font = `600 ${subRuleFontSize}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = "#6B7280";
+      ctx.fillText("1 uso por cliente • Não cumulativo com outros cupons", width / 2, ticketY + (isStory ? 292 : 238));
+    }
 
-    // 8. Call to Action Button / Pill
-    const ctaY = (positions.ctaY / 100) * height;
-    const ctaW = isStory ? 760 : 740;
-    const ctaH = isStory ? 80 : 70;
-    const ctaX = (width - ctaW) / 2;
+    // 8. Call to Action Button / Pill (Excludable)
+    const hasCta = Boolean(showCta && callToAction.trim());
+    if (hasCta) {
+      const ctaY = (positions.ctaY / 100) * height;
+      const ctaW = isStory ? 760 : 740;
+      const ctaH = isStory ? 80 : 70;
+      const ctaX = (width - ctaW) / 2;
 
-    ctx.fillStyle = accentColor;
-    ctx.beginPath();
-    ctx.roundRect(ctaX, ctaY, ctaW, ctaH, ctaH / 2);
-    ctx.fill();
+      ctx.fillStyle = accentColor;
+      ctx.beginPath();
+      ctx.roundRect(ctaX, ctaY, ctaW, ctaH, ctaH / 2);
+      ctx.fill();
 
-    ctx.fillStyle = "#FFFFFF";
-    drawCenteredFittedText(`👉 ${callToAction.toUpperCase()}`, width / 2, ctaY + (isStory ? 52 : 45), ctaW - 60, isStory ? 36 : 32, "system-ui, -apple-system, sans-serif", "bold");
+      ctx.fillStyle = "#FFFFFF";
+      drawCenteredFittedText(`👉 ${callToAction.toUpperCase()}`, width / 2, ctaY + (isStory ? 52 : 45), ctaW - 60, isStory ? 36 : 32, "system-ui, -apple-system, sans-serif", "bold");
+    }
 
-    // 9 & 10. Link e Redes Sociais
-    const socialsBaseY = (positions.socialsY / 100) * height;
+    // 9 & 10. Link e Redes Sociais (Excludable)
+    if (showSocials) {
+      const socialsBaseY = (positions.socialsY / 100) * height;
 
-    ctx.fillStyle = "#E5E7EB";
-    drawCenteredFittedText(`deliplus.com.br/${storeSlug || "sua-loja"}`, width / 2, socialsBaseY, width - 160, isStory ? 36 : 30, "system-ui, -apple-system, sans-serif", "bold");
+      ctx.fillStyle = "#E5E7EB";
+      drawCenteredFittedText(`deliplus.com.br/${storeSlug || "sua-loja"}`, width / 2, socialsBaseY, width - 160, isStory ? 36 : 30, "system-ui, -apple-system, sans-serif", "bold");
 
-    const visibleSocials = socialAccounts.filter((s) => s.enabled).slice(0, 4);
+      const visibleSocials = socialAccounts.filter((s) => s.enabled).slice(0, 4);
 
-    if (visibleSocials.length > 0) {
-      const logoSize = isStory ? 32 : 24;
-      const fontTextSize = isStory ? 26 : 21;
-      ctx.font = `bold ${fontTextSize}px system-ui, -apple-system, sans-serif`;
+      if (visibleSocials.length > 0) {
+        const logoSize = isStory ? 32 : 24;
+        const fontTextSize = isStory ? 26 : 21;
+        ctx.font = `bold ${fontTextSize}px system-ui, -apple-system, sans-serif`;
 
-      const isMultiRow = visibleSocials.length > 2;
-      const rows = isMultiRow
-        ? [visibleSocials.slice(0, 2), visibleSocials.slice(2, 4)]
-        : [visibleSocials];
+        const isMultiRow = visibleSocials.length > 2;
+        const rows = isMultiRow
+          ? [visibleSocials.slice(0, 2), visibleSocials.slice(2, 4)]
+          : [visibleSocials];
 
-      const rowHeight = isStory ? 52 : 42;
-      const rowGap = isStory ? 12 : 8;
-      const startY = socialsBaseY + (isStory ? 30 : 22);
+        const rowHeight = isStory ? 52 : 42;
+        const rowGap = isStory ? 12 : 8;
+        const startY = socialsBaseY + (isStory ? 30 : 22);
 
-      rows.forEach((rowSocials, rIdx) => {
-        const currentY = startY + rIdx * (rowHeight + rowGap);
+        rows.forEach((rowSocials, rIdx) => {
+          const currentY = startY + rIdx * (rowHeight + rowGap);
 
-        const pillMetrics = rowSocials.map((soc) => {
-          const txt = soc.handle.trim() || soc.name;
-          const textW = ctx.measureText(txt).width;
-          const pillW = logoSize + textW + (isStory ? 36 : 28);
-          return { soc, txt, pillW };
+          const pillMetrics = rowSocials.map((soc) => {
+            const txt = soc.handle.trim() || soc.name;
+            const textW = ctx.measureText(txt).width;
+            const pillW = logoSize + textW + (isStory ? 36 : 28);
+            return { soc, txt, pillW };
+          });
+
+          const totalRowW =
+            pillMetrics.reduce((acc, p) => acc + p.pillW, 0) +
+            (rowSocials.length - 1) * (isStory ? 18 : 12);
+          let currentX = width / 2 - totalRowW / 2;
+
+          pillMetrics.forEach(({ soc, txt, pillW }) => {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(currentX, currentY, pillW, rowHeight, rowHeight / 2);
+            ctx.fill();
+            ctx.stroke();
+
+            const logoPadding = isStory ? 10 : 8;
+            const logoX = currentX + logoPadding;
+            const logoY = currentY + (rowHeight - logoSize) / 2;
+            drawBrandLogo(ctx, soc.id, logoX, logoY, logoSize);
+
+            ctx.fillStyle = "#FFFFFF";
+            ctx.textAlign = "left";
+            const textX = logoX + logoSize + (isStory ? 10 : 8);
+            const textY = currentY + rowHeight / 2 + fontTextSize * 0.35;
+            ctx.fillText(txt, textX, textY);
+            ctx.textAlign = "center";
+
+            currentX += pillW + (isStory ? 18 : 12);
+          });
         });
-
-        const totalRowW =
-          pillMetrics.reduce((acc, p) => acc + p.pillW, 0) +
-          (rowSocials.length - 1) * (isStory ? 18 : 12);
-        let currentX = width / 2 - totalRowW / 2;
-
-        pillMetrics.forEach(({ soc, txt, pillW }) => {
-          ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.roundRect(currentX, currentY, pillW, rowHeight, rowHeight / 2);
-          ctx.fill();
-          ctx.stroke();
-
-          const logoPadding = isStory ? 10 : 8;
-          const logoX = currentX + logoPadding;
-          const logoY = currentY + (rowHeight - logoSize) / 2;
-          drawBrandLogo(ctx, soc.id, logoX, logoY, logoSize);
-
-          ctx.fillStyle = "#FFFFFF";
-          ctx.textAlign = "left";
-          const textX = logoX + logoSize + (isStory ? 10 : 8);
-          const textY = currentY + rowHeight / 2 + fontTextSize * 0.35;
-          ctx.fillText(txt, textX, textY);
-          ctx.textAlign = "center";
-
-          currentX += pillW + (isStory ? 18 : 12);
-        });
-      });
+      }
     }
 
     // 11. Marca d'água DeliPlus
@@ -1050,7 +1155,13 @@ function CouponImageGeneratorContent({
     socialAccounts,
     storeName,
     storeSlug,
-    positions
+    positions,
+    showTagline,
+    showHeadline,
+    showDiscount,
+    showTicket,
+    showCta,
+    showSocials
   ]);
 
   // Synchronize snapshot for copy studio / export (only when needed, not on every drag frame!)
@@ -1374,116 +1485,132 @@ function CouponImageGeneratorContent({
               </div>
             )}
 
-            {/* THE CANVA INTERACTIVE OVERLAY: Click to Edit + Drag Layer */}
+            {/* THE CANVA INTERACTIVE OVERLAY: Click to Edit + Floating Drag Handles */}
             <div className="absolute inset-0 z-20 pointer-events-auto overflow-hidden">
               {/* 1. Header Group (Tagline & Headline) */}
-              <div
-                style={{ top: `${positions.headerGroupY}%` }}
-                onPointerDown={(e) => handleBlockPointerDown("headerGroupY", e)}
-                className={`absolute left-3 right-3 -translate-y-1/2 flex items-center justify-center group rounded-xl transition-all ${
-                  draggingKey === "headerGroupY"
-                    ? "ring-2 ring-[#CB5A3C] ring-dashed bg-black/50 cursor-grabbing"
-                    : "hover:ring-1 hover:ring-[#CB5A3C]/80 hover:ring-dashed hover:bg-black/30 cursor-pointer"
-                }`}
-              >
-                <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 pointer-events-none shadow-lg whitespace-nowrap z-30">
-                  <span className="flex items-center gap-1 text-[#CB5A3C]">
-                    <Edit3 size={11} />
-                    Clique para editar
-                  </span>
-                  <span className="text-white/50">•</span>
-                  <span className="flex items-center gap-1 text-gray-300">
-                    <Move size={11} />
-                    Arraste ↕
-                  </span>
+              {Boolean((showTagline && tagline.trim()) || (showHeadline && headline.trim())) && (
+                <div
+                  style={{ top: `${positions.headerGroupY}%` }}
+                  onPointerDown={(e) => handleBlockPointerDown("headerGroupY", e)}
+                  className="absolute left-2 right-2 -translate-y-1/2 flex items-center justify-between group cursor-pointer transition-transform"
+                >
+                  <div className="flex-1 h-12" />
+                  {/* Floating Drag Handle on right side */}
+                  <div
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full shadow-lg border border-white/20 transition-all select-none cursor-grab active:cursor-grabbing z-30 ${
+                      draggingKey === "headerGroupY"
+                        ? "bg-[#CB5A3C] text-white scale-105 opacity-100 ring-2 ring-white/80"
+                        : "bg-black/80 text-white/90 hover:bg-[#CB5A3C] hover:text-white opacity-70 group-hover:opacity-100 hover:scale-105"
+                    }`}
+                    title="Arraste para mover para cima ou para baixo"
+                  >
+                    <Move size={11} className="shrink-0" />
+                    <span className="text-[9.5px] font-bold tracking-tight">
+                      {draggingKey === "headerGroupY" ? "Movendo ↕" : "Arrastar ↕"}
+                    </span>
+                  </div>
                 </div>
-                <div className="w-full h-11" />
-              </div>
+              )}
 
-              {/* 2. Discount Highlight (Snug & centered without empty space) */}
-              <div
-                style={{ top: `${positions.discountY}%` }}
-                onPointerDown={(e) => handleBlockPointerDown("discountY", e)}
-                className={`absolute left-4 right-4 -translate-y-1/2 flex items-center justify-center group rounded-xl transition-all ${
-                  draggingKey === "discountY"
-                    ? "ring-2 ring-[#CB5A3C] ring-dashed bg-black/50 cursor-grabbing"
-                    : "hover:ring-1 hover:ring-[#CB5A3C]/80 hover:ring-dashed hover:bg-black/30 cursor-pointer"
-                }`}
-              >
-                <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 pointer-events-none shadow-lg whitespace-nowrap z-30">
-                  <span className="flex items-center gap-1 text-[#CB5A3C]">
-                    <Edit3 size={11} />
-                    Clique para trocar desconto
-                  </span>
-                  <span className="text-white/50">•</span>
-                  <span className="flex items-center gap-1 text-gray-300">
-                    <Move size={11} />
-                    Arraste ↕
-                  </span>
+              {/* 2. Discount Highlight */}
+              {Boolean(showDiscount && discountHighlight.trim()) && (
+                <div
+                  style={{ top: `${positions.discountY}%` }}
+                  onPointerDown={(e) => handleBlockPointerDown("discountY", e)}
+                  className="absolute left-2 right-2 -translate-y-1/2 flex items-center justify-between group cursor-pointer transition-transform"
+                >
+                  <div className="flex-1 h-12" />
+                  {/* Floating Drag Handle */}
+                  <div
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full shadow-lg border border-white/20 transition-all select-none cursor-grab active:cursor-grabbing z-30 ${
+                      draggingKey === "discountY"
+                        ? "bg-[#CB5A3C] text-white scale-105 opacity-100 ring-2 ring-white/80"
+                        : "bg-black/80 text-white/90 hover:bg-[#CB5A3C] hover:text-white opacity-70 group-hover:opacity-100 hover:scale-105"
+                    }`}
+                    title="Arraste para mover para cima ou para baixo"
+                  >
+                    <Move size={11} className="shrink-0" />
+                    <span className="text-[9.5px] font-bold tracking-tight">
+                      {draggingKey === "discountY" ? "Movendo ↕" : "Arrastar ↕"}
+                    </span>
+                  </div>
                 </div>
-                <div className={discountHighlight.length > 25 || discountHighlight.includes('\n') ? "w-full h-14" : "w-full h-8"} />
-              </div>
+              )}
 
               {/* 3. Coupon Ticket Voucher */}
-              <div
-                style={{ top: `${positions.ticketY}%` }}
-                onPointerDown={(e) => handleBlockPointerDown("ticketY", e)}
-                className={`absolute left-3 right-3 flex items-center justify-center group rounded-2xl transition-all ${
-                  draggingKey === "ticketY"
-                    ? "ring-2 ring-[#CB5A3C] ring-dashed bg-white/20 cursor-grabbing"
-                    : "hover:ring-1 hover:ring-[#CB5A3C]/80 hover:ring-dashed hover:bg-black/20 cursor-pointer"
-                }`}
-              >
-                <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 pointer-events-none shadow-lg whitespace-nowrap z-30">
-                  <span className="flex items-center gap-1 text-[#CB5A3C]">
-                    <Edit3 size={11} />
-                    Clique para alterar cupom/regras
-                  </span>
-                  <span className="text-white/50">•</span>
-                  <span className="flex items-center gap-1 text-gray-300">
-                    <Move size={11} />
-                    Arraste ↕
-                  </span>
+              {Boolean(showTicket && (couponCode.trim() || minOrderText.trim())) && (
+                <div
+                  style={{ top: `${positions.ticketY}%` }}
+                  onPointerDown={(e) => handleBlockPointerDown("ticketY", e)}
+                  className="absolute left-2 right-2 flex items-center justify-between group cursor-pointer transition-transform"
+                >
+                  <div className="flex-1 h-24" />
+                  {/* Floating Drag Handle (Inside ticket area, top-right) */}
+                  <div
+                    className={`absolute right-3 top-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full shadow-lg border border-white/20 transition-all select-none cursor-grab active:cursor-grabbing z-30 ${
+                      draggingKey === "ticketY"
+                        ? "bg-[#CB5A3C] text-white scale-105 opacity-100 ring-2 ring-white/80"
+                        : "bg-black/80 text-white/90 hover:bg-[#CB5A3C] hover:text-white opacity-70 group-hover:opacity-100 hover:scale-105"
+                    }`}
+                    title="Arraste para mover para cima ou para baixo"
+                  >
+                    <Move size={11} className="shrink-0" />
+                    <span className="text-[9.5px] font-bold tracking-tight">
+                      {draggingKey === "ticketY" ? "Movendo ↕" : "Arrastar ↕"}
+                    </span>
+                  </div>
                 </div>
-                <div className="w-full h-24" />
-              </div>
+              )}
 
               {/* 4. Call to Action Pill */}
-              <div
-                style={{ top: `${positions.ctaY}%` }}
-                onPointerDown={(e) => handleBlockPointerDown("ctaY", e)}
-                className={`absolute left-4 right-4 flex items-center justify-center group rounded-full transition-all ${
-                  draggingKey === "ctaY"
-                    ? "ring-2 ring-white ring-dashed bg-black/40 cursor-grabbing"
-                    : "hover:ring-1 hover:ring-white/80 hover:ring-dashed hover:bg-black/25 cursor-pointer"
-                }`}
-              >
-                <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-2 pointer-events-none shadow-lg whitespace-nowrap z-30">
-                  <span className="flex items-center gap-1 text-[#CB5A3C]">
-                    <Edit3 size={11} />
-                    Clique para editar botão
-                  </span>
-                  <span className="text-white/50">•</span>
-                  <span className="flex items-center gap-1 text-gray-300">
-                    <Move size={11} />
-                    Arraste ↕
-                  </span>
+              {Boolean(showCta && callToAction.trim()) && (
+                <div
+                  style={{ top: `${positions.ctaY}%` }}
+                  onPointerDown={(e) => handleBlockPointerDown("ctaY", e)}
+                  className="absolute left-2 right-2 flex items-center justify-between group cursor-pointer transition-transform"
+                >
+                  <div className="flex-1 h-8" />
+                  {/* Floating Drag Handle */}
+                  <div
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full shadow-lg border border-white/20 transition-all select-none cursor-grab active:cursor-grabbing z-30 ${
+                      draggingKey === "ctaY"
+                        ? "bg-[#CB5A3C] text-white scale-105 opacity-100 ring-2 ring-white/80"
+                        : "bg-black/80 text-white/90 hover:bg-[#CB5A3C] hover:text-white opacity-70 group-hover:opacity-100 hover:scale-105"
+                    }`}
+                    title="Arraste para mover para cima ou para baixo"
+                  >
+                    <Move size={11} className="shrink-0" />
+                    <span className="text-[9.5px] font-bold tracking-tight">
+                      {draggingKey === "ctaY" ? "Movendo ↕" : "Arrastar ↕"}
+                    </span>
+                  </div>
                 </div>
-                <div className="w-full h-7" />
-              </div>
+              )}
 
               {/* 5. Socials & Link (Draggable footer) */}
-              <div
-                style={{ top: `${positions.socialsY}%` }}
-                onPointerDown={(e) => handleBlockPointerDown("socialsY", e)}
-                className={`absolute left-2 right-2 flex flex-col items-center justify-center p-1 group rounded-xl transition-all ${
-                  draggingKey === "socialsY"
-                    ? "ring-2 ring-white/60 ring-dashed bg-black/40 cursor-grabbing"
-                    : "hover:ring-1 hover:ring-white/40 hover:ring-dashed hover:bg-black/25 cursor-grab"
-                }`}
-              >
-                <div className="w-full h-10" />
-              </div>
+              {showSocials && (
+                <div
+                  style={{ top: `${positions.socialsY}%` }}
+                  onPointerDown={(e) => handleBlockPointerDown("socialsY", e)}
+                  className="absolute left-2 right-2 flex items-center justify-between group cursor-grab active:cursor-grabbing transition-transform"
+                >
+                  <div className="flex-1 h-10" />
+                  {/* Floating Drag Handle */}
+                  <div
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full shadow-lg border border-white/20 transition-all select-none ${
+                      draggingKey === "socialsY"
+                        ? "bg-[#CB5A3C] text-white scale-105 opacity-100 ring-2 ring-white/80"
+                        : "bg-black/80 text-white/90 hover:bg-[#CB5A3C] hover:text-white opacity-70 group-hover:opacity-100 hover:scale-105"
+                    }`}
+                    title="Arraste para mover o rodapé"
+                  >
+                    <Move size={11} className="shrink-0" />
+                    <span className="text-[9.5px] font-bold tracking-tight">
+                      {draggingKey === "socialsY" ? "Movendo ↕" : "Arrastar ↕"}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* DIRECT EDITING POPUP MODAL (Opens instantly on click!) */}
@@ -1498,44 +1625,101 @@ function CouponImageGeneratorContent({
                   {/* EDIT TARGET 1: HEADER (TAGLINE + HEADLINE) */}
                   {activeEditTarget === "header" && (
                     <>
-                      <div className="flex items-center justify-between border-b pb-2">
+                      <div className="flex items-center justify-between border-b dark:border-[#2A382E] pb-2">
                         <span className="text-xs font-bold text-gray-900 dark:text-[#F2EFE9]">
                           Editar Título e Subtítulo
                         </span>
                         <button
                           type="button"
                           onClick={() => setActiveEditTarget(null)}
-                          className="text-gray-400 hover:text-gray-700"
+                          className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
                         >
                           <X size={16} />
                         </button>
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-semibold text-gray-600 dark:text-[#9CA79E] block mb-1">
-                          Subtítulo / Tagline
-                        </label>
-                        <input
-                          autoFocus
-                          type="text"
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[11px] font-semibold text-gray-600 dark:text-[#9CA79E]">
+                            Subtítulo / Tagline
+                          </label>
+                          {tagline.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTagline("");
+                                setShowTagline(false);
+                              }}
+                              className="text-[10px] text-red-500 hover:text-red-700 dark:hover:text-red-400 flex items-center gap-1 font-bold cursor-pointer"
+                            >
+                              <Trash2 size={10} />
+                              Limpar
+                            </button>
+                          )}
+                        </div>
+                        <textarea
+                          rows={2}
                           value={tagline}
-                          onChange={(e) => setTagline(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && setActiveEditTarget(null)}
-                          className="w-full px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-[#2A382E] bg-white dark:bg-[#161F18] text-gray-900 dark:text-[#F2EFE9] rounded-lg outline-none focus:border-[#CB5A3C]"
+                          onChange={(e) => {
+                            setTagline(e.target.value);
+                            if (!showTagline && e.target.value.trim()) setShowTagline(true);
+                          }}
+                          placeholder="Ex: PEÇA HOJE PELO NOSSO CARDÁPIO"
+                          className="w-full px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-[#2A382E] bg-white dark:bg-[#161F18] text-gray-900 dark:text-[#F2EFE9] rounded-lg outline-none focus:border-[#CB5A3C] resize-none"
                         />
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-semibold text-gray-600 dark:text-[#9CA79E] block mb-1">
-                          Título Principal
-                        </label>
-                        <input
-                          type="text"
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[11px] font-semibold text-gray-600 dark:text-[#9CA79E]">
+                            Título Principal (Quebra quantas linhas quiser)
+                          </label>
+                          {headline.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setHeadline("");
+                                setShowHeadline(false);
+                              }}
+                              className="text-[10px] text-red-500 hover:text-red-700 dark:hover:text-red-400 flex items-center gap-1 font-bold cursor-pointer"
+                            >
+                              <Trash2 size={10} />
+                              Limpar
+                            </button>
+                          )}
+                        </div>
+                        <textarea
+                          rows={3}
                           value={headline}
-                          onChange={(e) => setHeadline(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && setActiveEditTarget(null)}
-                          className="w-full px-3 py-1.5 text-xs font-bold border border-gray-300 rounded-lg outline-none focus:border-[#CB5A3C]"
+                          onChange={(e) => {
+                            setHeadline(e.target.value);
+                            if (!showHeadline && e.target.value.trim()) setShowHeadline(true);
+                          }}
+                          placeholder="Ex: DESCONTO ESPECIAL&#10;DESTA SEMANA"
+                          className="w-full px-3 py-1.5 text-xs font-bold border border-gray-300 dark:border-[#2A382E] bg-white dark:bg-[#161F18] text-gray-900 dark:text-[#F2EFE9] rounded-lg outline-none focus:border-[#CB5A3C] resize-none"
                         />
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1 border-t border-gray-100 dark:border-[#2A382E]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowTagline(false);
+                            setShowHeadline(false);
+                            setActiveEditTarget(null);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 size={12} />
+                          <span>Excluir</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveEditTarget(null)}
+                          className="flex-1 py-2 rounded-xl bg-[#2E4233] hover:bg-[#243428] dark:bg-[#25332A] dark:hover:bg-[#2E3F34] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                        >
+                          ✓ Concluir Edição
+                        </button>
                       </div>
                     </>
                   )}
@@ -1543,41 +1727,54 @@ function CouponImageGeneratorContent({
                   {/* EDIT TARGET 2: DISCOUNT HIGHLIGHT */}
                   {activeEditTarget === "discount" && (
                     <>
-                      <div className="flex items-center justify-between border-b pb-2">
+                      <div className="flex items-center justify-between border-b dark:border-[#2A382E] pb-2">
                         <span className="text-xs font-bold text-gray-900 dark:text-white">
                           Editar Destaque do Desconto
                         </span>
                         <button
                           type="button"
                           onClick={() => setActiveEditTarget(null)}
-                          className="text-gray-400 hover:text-gray-700"
+                          className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
                         >
                           <X size={16} />
                         </button>
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-semibold text-gray-600 dark:text-[#9CA79E] block mb-1">
-                          Texto do Desconto (Quebra de linha automática)
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[11px] font-semibold text-gray-600 dark:text-[#9CA79E]">
+                            Texto do Desconto (Quebra quantas linhas quiser)
+                          </label>
+                          {discountHighlight.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDiscountHighlight("");
+                                setShowDiscount(false);
+                              }}
+                              className="text-[10px] text-red-500 hover:text-red-700 dark:hover:text-red-400 flex items-center gap-1 font-bold cursor-pointer"
+                            >
+                              <Trash2 size={10} />
+                              Limpar
+                            </button>
+                          )}
+                        </div>
                         <textarea
                           autoFocus
-                          rows={2}
+                          rows={3}
                           value={discountHighlight}
-                          onChange={(e) => setDiscountHighlight(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              setActiveEditTarget(null);
-                            }
+                          onChange={(e) => {
+                            setDiscountHighlight(e.target.value);
+                            if (!showDiscount && e.target.value.trim()) setShowDiscount(true);
                           }}
+                          placeholder="Ex: FRETE GRÁTIS&#10;15% OFF HOJE&#10;PEÇA JÁ"
                           className="w-full px-3 py-2 text-sm font-black text-[#CB5A3C] text-center border border-gray-300 dark:border-[#2A382E] bg-white dark:bg-[#161F18] rounded-lg outline-none focus:border-[#CB5A3C] resize-none"
                         />
                       </div>
 
                       {/* Quick chips */}
                       <div>
-                        <span className="text-[10px] text-gray-500 font-semibold block mb-1">
+                        <span className="text-[10px] text-gray-500 dark:text-[#9CA79E] font-semibold block mb-1">
                           Atalhos Rápidos:
                         </span>
                         <div className="flex flex-wrap gap-1.5">
@@ -1585,13 +1782,37 @@ function CouponImageGeneratorContent({
                             <button
                               key={opt}
                               type="button"
-                              onClick={() => setDiscountHighlight(opt)}
-                              className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-[#25332A] hover:bg-[#FAF0ED] dark:hover:bg-[#2E3F34] hover:text-[#CB5A3C] text-[11px] font-bold text-gray-700 dark:text-white transition-colors"
+                              onClick={() => {
+                                setDiscountHighlight(opt);
+                                setShowDiscount(true);
+                              }}
+                              className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-[#25332A] hover:bg-[#FAF0ED] dark:hover:bg-[#2E3F34] hover:text-[#CB5A3C] text-[11px] font-bold text-gray-700 dark:text-white transition-colors cursor-pointer"
                             >
                               {opt}
                             </button>
                           ))}
                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1 border-t border-gray-100 dark:border-[#2A382E]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowDiscount(false);
+                            setActiveEditTarget(null);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 size={12} />
+                          <span>Excluir</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveEditTarget(null)}
+                          className="flex-1 py-2 rounded-xl bg-[#2E4233] hover:bg-[#243428] dark:bg-[#25332A] dark:hover:bg-[#2E3F34] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                        >
+                          ✓ Concluir Edição
+                        </button>
                       </div>
                     </>
                   )}
@@ -1599,14 +1820,14 @@ function CouponImageGeneratorContent({
                   {/* EDIT TARGET 3: TICKET VOUCHER */}
                   {activeEditTarget === "ticket" && (
                     <>
-                      <div className="flex items-center justify-between border-b pb-2">
+                      <div className="flex items-center justify-between border-b dark:border-[#2A382E] pb-2">
                         <span className="text-xs font-bold text-gray-900 dark:text-white">
                           Editar Cupom e Regra
                         </span>
                         <button
                           type="button"
                           onClick={() => setActiveEditTarget(null)}
-                          className="text-gray-400 hover:text-gray-700"
+                          className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
                         >
                           <X size={16} />
                         </button>
@@ -1620,9 +1841,11 @@ function CouponImageGeneratorContent({
                           autoFocus
                           type="text"
                           value={couponCode}
-                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                          onKeyDown={(e) => e.key === "Enter" && setActiveEditTarget(null)}
-                          className="w-full px-3 py-1.5 text-sm font-mono font-black text-gray-950 text-center border border-gray-300 rounded-lg outline-none focus:border-[#CB5A3C]"
+                          onChange={(e) => {
+                            setCouponCode(e.target.value.toUpperCase());
+                            if (!showTicket && e.target.value.trim()) setShowTicket(true);
+                          }}
+                          className="w-full px-3 py-1.5 text-sm font-mono font-black text-gray-950 dark:text-white bg-white dark:bg-[#161F18] text-center border border-gray-300 dark:border-[#2A382E] rounded-lg outline-none focus:border-[#CB5A3C]"
                         />
                       </div>
 
@@ -1634,9 +1857,29 @@ function CouponImageGeneratorContent({
                           type="text"
                           value={minOrderText}
                           onChange={(e) => setMinOrderText(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && setActiveEditTarget(null)}
-                          className="w-full px-3 py-1.5 text-xs font-medium text-gray-800 border border-gray-300 rounded-lg outline-none focus:border-[#CB5A3C]"
+                          className="w-full px-3 py-1.5 text-xs font-medium text-gray-800 dark:text-[#F2EFE9] bg-white dark:bg-[#161F18] border border-gray-300 dark:border-[#2A382E] rounded-lg outline-none focus:border-[#CB5A3C]"
                         />
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1 border-t border-gray-100 dark:border-[#2A382E]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowTicket(false);
+                            setActiveEditTarget(null);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 size={12} />
+                          <span>Excluir</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveEditTarget(null)}
+                          className="flex-1 py-2 rounded-xl bg-[#2E4233] hover:bg-[#243428] dark:bg-[#25332A] dark:hover:bg-[#2E3F34] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                        >
+                          ✓ Concluir Edição
+                        </button>
                       </div>
                     </>
                   )}
@@ -1644,14 +1887,14 @@ function CouponImageGeneratorContent({
                   {/* EDIT TARGET 4: CALL TO ACTION */}
                   {activeEditTarget === "cta" && (
                     <>
-                      <div className="flex items-center justify-between border-b pb-2">
+                      <div className="flex items-center justify-between border-b dark:border-[#2A382E] pb-2">
                         <span className="text-xs font-bold text-gray-900 dark:text-white">
                           Editar Chamada de Ação
                         </span>
                         <button
                           type="button"
                           onClick={() => setActiveEditTarget(null)}
-                          className="text-gray-400 hover:text-gray-700"
+                          className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
                         >
                           <X size={16} />
                         </button>
@@ -1665,27 +1908,41 @@ function CouponImageGeneratorContent({
                           autoFocus
                           type="text"
                           value={callToAction}
-                          onChange={(e) => setCallToAction(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && setActiveEditTarget(null)}
-                          className="w-full px-3 py-1.5 text-xs font-semibold text-gray-900 border border-gray-300 rounded-lg outline-none focus:border-[#CB5A3C]"
+                          onChange={(e) => {
+                            setCallToAction(e.target.value);
+                            if (!showCta && e.target.value.trim()) setShowCta(true);
+                          }}
+                          className="w-full px-3 py-1.5 text-xs font-semibold text-gray-900 dark:text-white bg-white dark:bg-[#161F18] border border-gray-300 dark:border-[#2A382E] rounded-lg outline-none focus:border-[#CB5A3C]"
                         />
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1 border-t border-gray-100 dark:border-[#2A382E]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowCta(false);
+                            setActiveEditTarget(null);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 size={12} />
+                          <span>Excluir</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveEditTarget(null)}
+                          className="flex-1 py-2 rounded-xl bg-[#2E4233] hover:bg-[#243428] dark:bg-[#25332A] dark:hover:bg-[#2E3F34] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                        >
+                          ✓ Concluir Edição
+                        </button>
                       </div>
                     </>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => setActiveEditTarget(null)}
-                    className="w-full py-2 rounded-xl bg-[#2E4233] hover:bg-[#243428] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer mt-1"
-                  >
-                    ✓ Concluir Edição
-                  </button>
                 </div>
               </div>
             )}
           </div>
-
-
         </div>
 
         {/* RIGHT: Lean & Clean Quick Inspector (No cluttered form!) */}
@@ -1693,7 +1950,7 @@ function CouponImageGeneratorContent({
           <div className="space-y-4">
             {/* 1. Fundo da Arte */}
             <div>
-              <label className="text-xs font-bold text-[#1A241E] block mb-1.5">
+              <label className="text-xs font-bold text-[#1A241E] dark:text-[#F2EFE9] block mb-1.5">
                 1. Fundo da Arte
               </label>
 
@@ -1770,11 +2027,140 @@ function CouponImageGeneratorContent({
               )}
             </div>
 
-            {/* 2. Redes Sociais no Rodapé */}
+            {/* 2. Textos e Elementos da Arte (Livre Escolha de Excluir / Restaurar) */}
+            <div className="border-t border-[#ECEAE2] dark:border-[#2A382E] pt-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#1A241E] dark:text-[#F2EFE9] flex items-center gap-1.5">
+                  <Layers size={13} className="text-[#CB5A3C]" />
+                  <span>2. Elementos da Imagem</span>
+                </label>
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">
+                  Livre escolha
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5">
+                {/* Subtitle */}
+                <button
+                  type="button"
+                  onClick={() => setShowTagline(!showTagline)}
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
+                    showTagline && tagline.trim()
+                      ? "border-[#D5D0C0] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] text-[#1A241E] dark:text-[#F2EFE9]"
+                      : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 text-gray-400 line-through"
+                  }`}
+                  title={showTagline && tagline.trim() ? "Clique para ocultar subtítulo" : "Clique para exibir subtítulo"}
+                >
+                  <span className="truncate">Subtítulo</span>
+                  {showTagline && tagline.trim() ? (
+                    <Eye size={12} className="text-[#CB5A3C] shrink-0" />
+                  ) : (
+                    <EyeOff size={12} className="shrink-0" />
+                  )}
+                </button>
+
+                {/* Headline */}
+                <button
+                  type="button"
+                  onClick={() => setShowHeadline(!showHeadline)}
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
+                    showHeadline && headline.trim()
+                      ? "border-[#D5D0C0] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] text-[#1A241E] dark:text-[#F2EFE9]"
+                      : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 text-gray-400 line-through"
+                  }`}
+                  title={showHeadline && headline.trim() ? "Clique para ocultar título" : "Clique para exibir título"}
+                >
+                  <span className="truncate">Título</span>
+                  {showHeadline && headline.trim() ? (
+                    <Eye size={12} className="text-[#CB5A3C] shrink-0" />
+                  ) : (
+                    <EyeOff size={12} className="shrink-0" />
+                  )}
+                </button>
+
+                {/* Discount */}
+                <button
+                  type="button"
+                  onClick={() => setShowDiscount(!showDiscount)}
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
+                    showDiscount && discountHighlight.trim()
+                      ? "border-[#D5D0C0] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] text-[#1A241E] dark:text-[#F2EFE9]"
+                      : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 text-gray-400 line-through"
+                  }`}
+                  title={showDiscount && discountHighlight.trim() ? "Clique para ocultar desconto" : "Clique para exibir desconto"}
+                >
+                  <span className="truncate">Desconto</span>
+                  {showDiscount && discountHighlight.trim() ? (
+                    <Eye size={12} className="text-[#CB5A3C] shrink-0" />
+                  ) : (
+                    <EyeOff size={12} className="shrink-0" />
+                  )}
+                </button>
+
+                {/* Ticket */}
+                <button
+                  type="button"
+                  onClick={() => setShowTicket(!showTicket)}
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
+                    showTicket
+                      ? "border-[#D5D0C0] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] text-[#1A241E] dark:text-[#F2EFE9]"
+                      : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 text-gray-400 line-through"
+                  }`}
+                  title={showTicket ? "Clique para ocultar cupom ticket" : "Clique para exibir cupom ticket"}
+                >
+                  <span className="truncate">Cupom Ticket</span>
+                  {showTicket ? (
+                    <Eye size={12} className="text-[#CB5A3C] shrink-0" />
+                  ) : (
+                    <EyeOff size={12} className="shrink-0" />
+                  )}
+                </button>
+
+                {/* CTA Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowCta(!showCta)}
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
+                    showCta && callToAction.trim()
+                      ? "border-[#D5D0C0] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] text-[#1A241E] dark:text-[#F2EFE9]"
+                      : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 text-gray-400 line-through"
+                  }`}
+                  title={showCta && callToAction.trim() ? "Clique para ocultar botão CTA" : "Clique para exibir botão CTA"}
+                >
+                  <span className="truncate">Botão CTA</span>
+                  {showCta && callToAction.trim() ? (
+                    <Eye size={12} className="text-[#CB5A3C] shrink-0" />
+                  ) : (
+                    <EyeOff size={12} className="shrink-0" />
+                  )}
+                </button>
+
+                {/* Socials / Footer */}
+                <button
+                  type="button"
+                  onClick={() => setShowSocials(!showSocials)}
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
+                    showSocials
+                      ? "border-[#D5D0C0] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A] text-[#1A241E] dark:text-[#F2EFE9]"
+                      : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 text-gray-400 line-through"
+                  }`}
+                  title={showSocials ? "Clique para ocultar rodapé" : "Clique para exibir rodapé"}
+                >
+                  <span className="truncate">Rodapé / Link</span>
+                  {showSocials ? (
+                    <Eye size={12} className="text-[#CB5A3C] shrink-0" />
+                  ) : (
+                    <EyeOff size={12} className="shrink-0" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* 3. Redes Sociais no Rodapé */}
             <div className="border-t border-[#ECEAE2] dark:border-[#2A382E] pt-3.5 space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-[#1A241E] dark:text-[#F2EFE9]">
-                  2. Redes Sociais no Rodapé
+                  3. Redes Sociais no Rodapé
                 </label>
                 <span className="text-[11px] font-bold text-gray-500">
                   {enabledSocialsCount}/4 ativas
@@ -1839,12 +2225,12 @@ function CouponImageGeneratorContent({
               </div>
             </div>
 
-            {/* 3. Cor de Destaque Interativa */}
-            <div className="border-t border-[#ECEAE2] pt-3.5 space-y-2">
+            {/* 4. Cor de Destaque Interativa */}
+            <div className="border-t border-[#ECEAE2] dark:border-[#2A382E] pt-3.5 space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-[#1A241E] flex items-center gap-1.5">
+                <label className="text-xs font-bold text-[#1A241E] dark:text-[#F2EFE9] flex items-center gap-1.5">
                   <Sliders size={13} className="text-[#CB5A3C]" />
-                  <span>3. Cor da Identidade</span>
+                  <span>4. Cor da Identidade</span>
                 </label>
 
                 <div className="flex items-center gap-1.5 bg-[#FAF8F0] dark:bg-[#25332A] border border-[#E3E1D9] dark:border-[#2A382E] px-2 py-0.5 rounded-lg">
