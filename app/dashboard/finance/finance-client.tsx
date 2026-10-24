@@ -544,7 +544,7 @@ export function FinanceClient({
   };
 
   return (
-    <div className="w-full h-full min-h-screen lg:min-h-0 lg:h-full lg:max-h-full flex flex-col justify-between bg-[#FAF9F5] px-3.5 sm:px-6 lg:px-7 pt-3 pb-3 sm:pb-3.5 lg:pb-3.5 text-[#1C201A] font-sans antialiased overflow-x-hidden">
+    <div className="w-full h-full min-h-screen lg:min-h-0 lg:h-full lg:max-h-full flex flex-col justify-between bg-[#FAF9F5] dark:bg-[#131A15] px-3.5 sm:px-6 lg:px-7 pt-3 pb-3 sm:pb-3.5 lg:pb-3.5 text-[#1C201A] dark:text-[#F2EFE9] font-sans antialiased overflow-x-hidden">
       <div className="w-full flex-1 min-h-0 flex flex-col justify-between gap-2.5 sm:gap-3 lg:gap-3">
         {/* Success Alert when fees are updated */}
         {savedSuccessAlert && (
@@ -581,7 +581,7 @@ export function FinanceClient({
                 align="left"
               />
             </div>
-            <p className="text-xs sm:text-[13px] text-[#1C201A] mt-0.5">
+            <p className="text-xs sm:text-[13px] text-[#1C201A] dark:text-[#9CA79E] mt-0.5">
               Gestão de vendas dos pedidos, taxas de operadoras e faturamento
             </p>
           </div>
@@ -591,7 +591,7 @@ export function FinanceClient({
             <div className="relative">
               <button
                 onClick={() => setIsPeriodOpen(!isPeriodOpen)}
-                className="flex items-center gap-2 bg-white border border-[#E5E6E1] hover:border-[#D0D2C8] rounded-xl px-3.5 py-2 text-xs font-medium text-[#1C201A] shadow-2xs transition-all cursor-pointer"
+                className="flex items-center gap-2 bg-white dark:bg-[#1B241E] border border-[#E5E6E1] dark:border-[#2A382E] hover:border-[#D0D2C8] dark:hover:border-[#3B4D40] rounded-xl px-3.5 py-2 text-xs font-medium text-[#1C201A] dark:text-[#F2EFE9] shadow-2xs transition-all cursor-pointer"
               >
                 <Calendar className="w-3.5 h-3.5 text-[#4A5547]" strokeWidth={1.8} />
                 <span>{selectedPeriod}</span>
@@ -599,7 +599,7 @@ export function FinanceClient({
               </button>
 
               {isPeriodOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white border border-[#E5E6E1] rounded-xl shadow-lg z-50 py-1 text-xs">
+                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-[#1B241E] border border-[#E5E6E1] dark:border-[#2A382E] rounded-xl shadow-lg z-50 py-1 text-xs">
                   {[
                     "Dia (Hoje)",
                     "Esta semana",
@@ -640,7 +640,7 @@ export function FinanceClient({
         {/* --- ROW 1: 5 KPI CARDS (PROPORÇÃO EQUILIBRADA QUE PREENCHE A ALTURA DA TELA) --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 lg:gap-3.5 shrink-0">
           {/* Card 1: Faturamento bruto */}
-          <div className="bg-white rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
+          <div className="bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
             <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
               <span>Faturamento bruto</span>
               <HelpTooltip
@@ -652,7 +652,7 @@ export function FinanceClient({
             </div>
 
             <div className="mt-1.5">
-              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] tracking-tight leading-none mb-1.5">
+              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] dark:text-[#F2EFE9] tracking-tight leading-none mb-1.5">
                 {formatBRL(metrics.totalGross)}
               </div>
               <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
@@ -660,13 +660,13 @@ export function FinanceClient({
                   <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                   +12,4%
                 </span>
-                <span className="text-[#2D332B] font-medium">vs mês anterior</span>
+                <span className="text-[#2D332B] dark:text-[#9CA79E] font-medium">vs mês anterior</span>
               </div>
             </div>
           </div>
 
           {/* Card 2: Taxas bancárias */}
-          <div className="bg-white rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
+          <div className="bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
             <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
               <span>Taxas bancárias</span>
               <HelpTooltip
@@ -678,20 +678,20 @@ export function FinanceClient({
             </div>
 
             <div className="mt-1.5">
-              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] tracking-tight leading-none mb-1.5">
+              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] dark:text-[#F2EFE9] tracking-tight leading-none mb-1.5">
                 {formatBRL(metrics.totalFees)}
               </div>
               <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#FDF2EC] text-[#CB5A3C] font-bold">
                   {(metrics.totalGross > 0 ? (metrics.totalFees / metrics.totalGross) * 100 : 2.07).toFixed(2).replace(".", ",")}%
                 </span>
-                <span className="text-[#2D332B] font-medium">taxa média retida</span>
+                <span className="text-[#2D332B] dark:text-[#9CA79E] font-medium">taxa média retida</span>
               </div>
             </div>
           </div>
 
           {/* Card 3: Receita líquida */}
-          <div className="bg-white rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
+          <div className="bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
             <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
               <span>Receita líquida</span>
               <HelpTooltip
@@ -703,7 +703,7 @@ export function FinanceClient({
             </div>
 
             <div className="mt-1.5">
-              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] tracking-tight leading-none mb-1.5">
+              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] dark:text-[#F2EFE9] tracking-tight leading-none mb-1.5">
                 {formatBRL(metrics.totalNet)}
               </div>
               <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
@@ -711,13 +711,13 @@ export function FinanceClient({
                   <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                   +13,1%
                 </span>
-                <span className="text-[#2D332B] font-medium">após taxas</span>
+                <span className="text-[#2D332B] dark:text-[#9CA79E] font-medium">após taxas</span>
               </div>
             </div>
           </div>
 
           {/* Card 4: Ticket médio */}
-          <div className="bg-white rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
+          <div className="bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
             <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
               <span>Ticket médio</span>
               <HelpTooltip
@@ -729,7 +729,7 @@ export function FinanceClient({
             </div>
 
             <div className="mt-1.5">
-              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] tracking-tight leading-none mb-1.5">
+              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] dark:text-[#F2EFE9] tracking-tight leading-none mb-1.5">
                 {formatBRL(metrics.avgTicket)}
               </div>
               <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
@@ -737,13 +737,13 @@ export function FinanceClient({
                   <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                   +8,6%
                 </span>
-                <span className="text-[#2D332B] font-medium">por pedido</span>
+                <span className="text-[#2D332B] dark:text-[#9CA79E] font-medium">por pedido</span>
               </div>
             </div>
           </div>
 
           {/* Card 5: Margem líquida */}
-          <div className="bg-white rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
+          <div className="bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
             <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
               <span>Margem líquida</span>
               <HelpTooltip
@@ -765,7 +765,7 @@ export function FinanceClient({
                   <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                   Efetiva
                 </span>
-                <span className="text-[#2D332B] font-medium">convertida em caixa</span>
+                <span className="text-[#2D332B] dark:text-[#9CA79E] font-medium">convertida em caixa</span>
               </div>
             </div>
           </div>
@@ -774,7 +774,7 @@ export function FinanceClient({
         {/* --- ROW 2: GRÁFICO DE BARRAS & FORMAS DE PAGAMENTO --- */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-3 lg:gap-3.5 items-stretch shrink-0">
           {/* Card: Evolução da receita - Spans 7 cols */}
-          <div className="lg:col-span-7 bg-white rounded-[20px] p-3.5 sm:p-4 lg:p-4.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+          <div className="lg:col-span-7 bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 lg:p-4.5 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
             <div>
               {/* Header */}
               <div className="flex items-center justify-between mb-1.5">
@@ -790,7 +790,7 @@ export function FinanceClient({
                       align="left"
                     />
                   </div>
-                  <p className="text-[11px] sm:text-[11.5px] text-[#1C201A] mt-0.5">
+                  <p className="text-[11px] sm:text-[11.5px] text-[#1C201A] dark:text-[#9CA79E] mt-0.5">
                     Comparativo diário de vendas, receita líquida e taxas
                   </p>
                 </div>
@@ -817,7 +817,7 @@ export function FinanceClient({
             <div className="w-full select-none mt-1">
               <div className="relative w-full h-[145px] sm:h-[155px] lg:h-[162px] flex">
                 {/* Y-axis Labels Column */}
-                <div className="w-12 sm:w-14 shrink-0 flex flex-col justify-between text-right pr-2 pb-5 text-[9px] sm:text-[9.5px] font-semibold text-[#1C201A]/80">
+                <div className="w-12 sm:w-14 shrink-0 flex flex-col justify-between text-right pr-2 pb-5 text-[9px] sm:text-[9.5px] font-semibold text-[#1C201A]/80 dark:text-[#9CA79E]">
                   <span className="leading-none">R$ 2.500</span>
                   <span className="leading-none">R$ 2.000</span>
                   <span className="leading-none">R$ 1.500</span>
@@ -888,7 +888,7 @@ export function FinanceClient({
                           {/* Date Label beneath the bars */}
                           <span
                             className={`absolute -bottom-5 text-[9px] sm:text-[9.5px] font-sans font-semibold transition-colors ${
-                              isHovered ? "text-[#1C201A] font-bold" : "text-[#1C201A]/80"
+                              isHovered ? "text-[#1C201A] dark:text-[#FF7D4F] font-bold" : "text-[#1C201A]/80 dark:text-[#9CA79E]"
                             }`}
                           >
                             {d.date}
@@ -943,7 +943,7 @@ export function FinanceClient({
           </div>
 
           {/* Card: Faturamento por forma de pagamento & Configuração de Taxas - Spans 5 cols */}
-          <div className="lg:col-span-5 bg-white rounded-[20px] p-3.5 sm:p-4 lg:p-4.5 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+          <div className="lg:col-span-5 bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 lg:p-4.5 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
             <div>
               {/* Header with Settings Button (Desktop: solid button, Mobile: elegant orange link) */}
               <div className="flex items-center justify-between gap-2 mb-2">
@@ -1049,11 +1049,11 @@ export function FinanceClient({
                 {/* Legend List */}
                 <div className="space-y-1.5 text-xs lg:text-[12px] flex-1 w-full pl-0 sm:pl-2">
                   {/* Crédito */}
-                  <div className="flex items-center justify-between py-0.5 border-b border-[#F5F6F0]">
+                  <div className="flex items-center justify-between py-0.5 border-b border-[#F5F6F0] dark:border-[#2A382E]">
                     <div className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#2563EB] shrink-0"></span>
                       <div>
-                        <div className="font-medium text-[#1C201A] leading-tight">
+                        <div className="font-medium text-[#1C201A] dark:text-[#F2EFE9] leading-tight">
                           Crédito{" "}
                           <span className="text-[10px] text-[#7A8275] font-normal">
                             ({feeSettings.credit}% taxa)
@@ -1062,17 +1062,17 @@ export function FinanceClient({
                         <div className="text-[10px] text-[#82887D]">{donutSegments.credPct}%</div>
                       </div>
                     </div>
-                    <div className="font-semibold text-[#1C201A] text-right">
+                    <div className="font-semibold text-[#1C201A] dark:text-[#F2EFE9] text-right">
                       {formatBRL(metrics.methodsSummary.Crédito.total)}
                     </div>
                   </div>
 
                   {/* Débito */}
-                  <div className="flex items-center justify-between py-0.5 border-b border-[#F5F6F0]">
+                  <div className="flex items-center justify-between py-0.5 border-b border-[#F5F6F0] dark:border-[#2A382E]">
                     <div className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#059669] shrink-0"></span>
                       <div>
-                        <div className="font-medium text-[#1C201A] leading-tight">
+                        <div className="font-medium text-[#1C201A] dark:text-[#F2EFE9] leading-tight">
                           Débito{" "}
                           <span className="text-[10px] text-[#7A8275] font-normal">
                             ({feeSettings.debit}% taxa)
@@ -1081,17 +1081,17 @@ export function FinanceClient({
                         <div className="text-[10px] text-[#82887D]">{donutSegments.debPct}%</div>
                       </div>
                     </div>
-                    <div className="font-semibold text-[#1C201A] text-right">
+                    <div className="font-semibold text-[#1C201A] dark:text-[#F2EFE9] text-right">
                       {formatBRL(metrics.methodsSummary.Débito.total)}
                     </div>
                   </div>
 
                   {/* PIX */}
-                  <div className="flex items-center justify-between py-0.5 border-b border-[#F5F6F0]">
+                  <div className="flex items-center justify-between py-0.5 border-b border-[#F5F6F0] dark:border-[#2A382E]">
                     <div className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#CB5A3C] shrink-0"></span>
                       <div>
-                        <div className="font-medium text-[#1C201A] leading-tight">
+                        <div className="font-medium text-[#1C201A] dark:text-[#F2EFE9] leading-tight">
                           PIX{" "}
                           <span className="text-[10px] text-[#7A8275] font-normal">
                             ({feeSettings.pix}% taxa)
@@ -1100,7 +1100,7 @@ export function FinanceClient({
                         <div className="text-[10px] text-[#82887D]">{donutSegments.pixPct}%</div>
                       </div>
                     </div>
-                    <div className="font-semibold text-[#1C201A] text-right">
+                    <div className="font-semibold text-[#1C201A] dark:text-[#F2EFE9] text-right">
                       {formatBRL(metrics.methodsSummary.PIX.total)}
                     </div>
                   </div>
@@ -1110,7 +1110,7 @@ export function FinanceClient({
                     <div className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#D97706] shrink-0"></span>
                       <div>
-                        <div className="font-medium text-[#1C201A] leading-tight">
+                        <div className="font-medium text-[#1C201A] dark:text-[#F2EFE9] leading-tight">
                           Dinheiro{" "}
                           <span className="text-[10px] text-[#7A8275] font-normal">
                             (0% taxa)
@@ -1119,7 +1119,7 @@ export function FinanceClient({
                         <div className="text-[10px] text-[#82887D]">{donutSegments.dinPct}%</div>
                       </div>
                     </div>
-                    <div className="font-semibold text-[#1C201A] text-right">
+                    <div className="font-semibold text-[#1C201A] dark:text-[#F2EFE9] text-right">
                       {formatBRL(metrics.methodsSummary.Dinheiro.total)}
                     </div>
                   </div>
@@ -1129,19 +1129,19 @@ export function FinanceClient({
 
             {/* Footer with visible average fee badge */}
             <div className="pt-2 border-t border-[#F2F3EE] flex items-center justify-between">
-              <div className="inline-flex items-center gap-2 bg-[#EAF2E8] border border-[#CFE0CE] px-3 py-1 rounded-xl text-xs">
+              <div className="inline-flex items-center gap-2 bg-[#EAF2E8] dark:bg-[#1E3324] border border-[#CFE0CE] dark:border-[#2E543A] px-3 py-1 rounded-xl text-xs">
                 <span className="w-2 h-2 rounded-full bg-[#2E4233]" />
-                <span className="font-bold text-[#2E4233]">
+                <span className="font-bold text-[#2E4233] dark:text-[#86EFAC]">
                   Taxa média: {(metrics.totalGross > 0 ? (metrics.totalFees / metrics.totalGross) * 100 : 0).toFixed(2)}%
                 </span>
-                <span className="text-[10.5px] text-[#2E4233]/70 font-medium">(ponderada pelo volume)</span>
+                <span className="text-[10.5px] text-[#2E4233]/70 dark:text-[#86EFAC]/70 font-medium">(ponderada pelo volume)</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* --- ROW 3: TRANSAÇÕES (PAGINAÇÃO FIXA DE 4 EM 4, SEM SCROLLBAR NO DESKTOP, CARDS NO MOBILE) --- */}
-        <div className="w-full flex-1 min-h-0 bg-white rounded-[20px] p-3.5 sm:p-4 lg:p-4 border border-[#ECECE8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+        <div className="w-full flex-1 min-h-0 bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 lg:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           {/* Header Controls */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0 mb-1.5 sm:mb-2">
             <div>
@@ -1149,7 +1149,7 @@ export function FinanceClient({
                 <h2 className="text-[14px] sm:text-[15px] lg:text-[15.5px] font-semibold text-[#CB5A3C]">
                   Transações dos Pedidos
                 </h2>
-                <span className="text-[11px] bg-[#EAF2E8] text-[#2E4233] border border-[#CFE0CE] font-bold px-2.5 py-0.5 rounded-full">
+                <span className="text-[11px] bg-[#EAF2E8] dark:bg-[#1E3324] text-[#2E4233] dark:text-[#86EFAC] border border-[#CFE0CE] dark:border-[#2E543A] font-bold px-2.5 py-0.5 rounded-full">
                   {filteredTransactions.length} pedidos
                 </span>
                 <HelpTooltip
@@ -1159,7 +1159,7 @@ export function FinanceClient({
                   align="left"
                 />
               </div>
-              <p className="text-[11px] sm:text-[11.5px] text-[#1C201A] mt-0.5">
+              <p className="text-[11px] sm:text-[11.5px] text-[#1C201A] dark:text-[#9CA79E] mt-0.5">
                 Valores calculados automaticamente a partir dos pedidos concluídos na cozinha
               </p>
             </div>
@@ -1172,7 +1172,7 @@ export function FinanceClient({
                   placeholder="Buscar pedido, cliente..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-[#F8F9F5] border border-[#E5E6E1] focus:border-[#4A6B3A] focus:outline-none rounded-xl pl-7.5 pr-2.5 py-1.5 text-xs text-[#1C201A] placeholder-[#9CA3AF] w-full sm:w-52 transition-all"
+                  className="bg-[#F8F9F5] dark:bg-[#222C25] border border-[#E5E6E1] dark:border-[#2A382E] focus:border-[#4A6B3A] dark:focus:border-[#FF7D4F] focus:outline-none rounded-xl pl-7.5 pr-2.5 py-1.5 text-xs text-[#1C201A] dark:text-[#F2EFE9] placeholder-[#9CA3AF] dark:placeholder-[#9CA79E] w-full sm:w-52 transition-all"
                 />
                 <Search className="w-3.5 h-3.5 text-[#9CA3AF] absolute left-2.5 top-1/2 -translate-y-1/2" />
               </div>
@@ -1182,7 +1182,7 @@ export function FinanceClient({
                 <select
                   value={methodFilter}
                   onChange={(e) => setMethodFilter(e.target.value)}
-                  className="appearance-none bg-[#F8F9F5] border border-[#E5E6E1] rounded-xl pl-3 pr-7 py-1.5 text-xs text-[#1C201A] focus:outline-none focus:border-[#4A6B3A] cursor-pointer"
+                  className="appearance-none bg-[#F8F9F5] dark:bg-[#222C25] border border-[#E5E6E1] dark:border-[#2A382E] rounded-xl pl-3 pr-7 py-1.5 text-xs text-[#1C201A] dark:text-[#F2EFE9] focus:outline-none focus:border-[#4A6B3A] cursor-pointer"
                 >
                   <option value="Todos">Todos os meios</option>
                   <option value="Crédito">Crédito</option>
@@ -1199,18 +1199,18 @@ export function FinanceClient({
           <div className="hidden md:flex flex-col flex-1 justify-between min-h-0 overflow-hidden">
             <table className="w-full text-left border-collapse text-xs lg:text-[13px] table-fixed">
               <thead>
-                <tr className="border-b border-[#E5E6E1]">
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[10%]">Pedido</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[15%]">Data</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[18%]">Cliente</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[18%]">Forma de pagamento</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[13%]">Faturamento bruto</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[12%]">Taxa bancária</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[14%]">Receita líquida</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] text-[12px] lg:text-[12.5px] w-[8%] text-center">Status</th>
+                <tr className="border-b border-[#E5E6E1] dark:border-[#2A382E]">
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[10%]">Pedido</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[15%]">Data</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[18%]">Cliente</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[18%]">Forma de pagamento</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[13%]">Faturamento bruto</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[12%]">Taxa bancária</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[14%]">Receita líquida</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[8%] text-center">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F2F3EE]">
+              <tbody className="divide-y divide-[#F2F3EE] dark:divide-[#233026]">
                 {paginatedTransactions.length === 0 ? (
                   <tr className="h-[42px]">
                     <td colSpan={8} className="py-2 text-center text-xs text-[#7A8275]">
@@ -1222,14 +1222,14 @@ export function FinanceClient({
                     <tr
                       key={tx.id}
                       onClick={() => setSelectedOrderDetails(tx)}
-                      className="h-[42px] hover:bg-[#FAF9F5] transition-colors cursor-pointer group"
+                      className="h-[42px] hover:bg-[#FAF9F5] dark:hover:bg-[#222C25] transition-colors cursor-pointer group"
                     >
-                      <td className="py-1.5 font-semibold text-[#1C201A] group-hover:text-[#4A6B3A] transition-colors truncate">
+                      <td className="py-1.5 font-semibold text-[#1C201A] dark:text-[#F2EFE9] group-hover:text-[#4A6B3A] dark:group-hover:text-[#FF7D4F] transition-colors truncate">
                         {tx.id}
                       </td>
-                      <td className="py-1.5 text-[#4B5563] text-[11.5px] lg:text-[12px] truncate">{tx.date}</td>
-                      <td className="py-1.5 text-[#1C201A] truncate">{tx.customer}</td>
-                      <td className="py-1.5 text-[#4B5563] truncate">
+                      <td className="py-1.5 text-[#4B5563] dark:text-[#9CA79E] text-[11.5px] lg:text-[12px] truncate">{tx.date}</td>
+                      <td className="py-1.5 text-[#1C201A] dark:text-[#F2EFE9] truncate">{tx.customer}</td>
+                      <td className="py-1.5 text-[#4B5563] dark:text-[#9CA79E] truncate">
                         <span className="inline-flex items-center gap-1.5">
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${
@@ -1245,13 +1245,13 @@ export function FinanceClient({
                           <span className="truncate">{tx.brand ? `${tx.method} • ${tx.brand}` : tx.method}</span>
                         </span>
                       </td>
-                      <td className="py-1.5 font-medium text-[#1C201A] truncate">
+                      <td className="py-1.5 font-medium text-[#1C201A] dark:text-[#F2EFE9] truncate">
                         {formatBRL(tx.gross)}
                       </td>
-                      <td className="py-1.5 text-[#6B7280] truncate">
+                      <td className="py-1.5 text-[#6B7280] dark:text-[#9CA79E] truncate">
                         {tx.fees === 0 ? "R$ 0,00" : `- ${formatBRL(Math.abs(tx.fees))}`}
                       </td>
-                      <td className="py-1.5 font-medium text-[#1C201A] truncate">
+                      <td className="py-1.5 font-medium text-[#1C201A] dark:text-[#F2EFE9] truncate">
                         {formatBRL(tx.net)}
                       </td>
                       <td className="py-1.5 text-center">
@@ -1355,14 +1355,14 @@ export function FinanceClient({
           <div className="shrink-0 pt-2 sm:pt-2.5 border-t border-[#F0F1ED] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#7A8275]">
             <span>
               Exibindo{" "}
-              <strong className="text-[#1C201A]">
+              <strong className="text-[#1C201A] dark:text-[#F2EFE9]">
                 {filteredTransactions.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1}
               </strong>{" "}
               a{" "}
-              <strong className="text-[#1C201A]">
+              <strong className="text-[#1C201A] dark:text-[#F2EFE9]">
                 {Math.min(currentPage * ITEMS_PER_PAGE, filteredTransactions.length)}
               </strong>{" "}
-              de <strong className="text-[#1C201A]">{filteredTransactions.length}</strong> pedidos
+              de <strong className="text-[#1C201A] dark:text-[#F2EFE9]">{filteredTransactions.length}</strong> pedidos
             </span>
 
             <div className="flex items-center gap-1.5">
@@ -1381,7 +1381,7 @@ export function FinanceClient({
                   className={`w-6.5 h-6.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     currentPage === i + 1
                       ? "bg-[#CB5A3C] text-white shadow-xs"
-                      : "border border-[#E5E6E1] text-[#1C201A] hover:bg-[#FEF2EE] hover:text-[#CB5A3C]"
+                      : "border border-[#E5E6E1] dark:border-[#2A382E] text-[#1C201A] dark:text-[#F2EFE9] bg-white dark:bg-[#222C25] hover:bg-[#FEF2EE] dark:hover:bg-[#2A382E] hover:text-[#CB5A3C] dark:hover:text-[#FF7D4F]"
                   }`}
                 >
                   {i + 1}
@@ -1453,7 +1453,7 @@ export function FinanceClient({
                 <div className="flex items-center gap-2.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></span>
                   <div>
-                    <div className="text-xs sm:text-sm font-medium text-[#1C201A]">Cartão de Crédito</div>
+                    <div className="text-xs sm:text-sm font-medium text-[#1C201A] dark:text-[#F2EFE9]">Cartão de Crédito</div>
                     <div className="text-[11px] text-[#7A8275]">Taxa cobrada em transações à vista ou rotativo</div>
                   </div>
                 </div>
@@ -1478,7 +1478,7 @@ export function FinanceClient({
                 <div className="flex items-center gap-2.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#059669]"></span>
                   <div>
-                    <div className="text-xs sm:text-sm font-medium text-[#1C201A]">Cartão de Débito</div>
+                    <div className="text-xs sm:text-sm font-medium text-[#1C201A] dark:text-[#F2EFE9]">Cartão de Débito</div>
                     <div className="text-[11px] text-[#7A8275]">Taxa cobrada em compras no débito</div>
                   </div>
                 </div>
@@ -1503,7 +1503,7 @@ export function FinanceClient({
                 <div className="flex items-center gap-2.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#CB5A3C]"></span>
                   <div>
-                    <div className="text-xs sm:text-sm font-medium text-[#1C201A]">PIX</div>
+                    <div className="text-xs sm:text-sm font-medium text-[#1C201A] dark:text-[#F2EFE9]">PIX</div>
                     <div className="text-[11px] text-[#7A8275]">Taxa de gateway ou conta PJ</div>
                   </div>
                 </div>
@@ -1528,7 +1528,7 @@ export function FinanceClient({
                 <div className="flex items-center gap-2.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#D97706]"></span>
                   <div>
-                    <div className="text-xs sm:text-sm font-medium text-[#1C201A]">Dinheiro em Espécie</div>
+                    <div className="text-xs sm:text-sm font-medium text-[#1C201A] dark:text-[#F2EFE9]">Dinheiro em Espécie</div>
                     <div className="text-[11px] text-[#7A8275]">Sem taxa de banco (0%)</div>
                   </div>
                 </div>

@@ -180,15 +180,15 @@ export const TOUR_NEW_ITEM_MODAL_STEPS: TourStep[] = [
 
 export function getCategoryBadgeStyle(catName: string): { bg: string; text: string } {
   const lower = catName.toLowerCase()
-  if (lower.includes("bowl")) return { bg: "bg-[#EBF5ED]", text: "text-[#477A55]" }
-  if (lower.includes("bebid")) return { bg: "bg-[#FDF4E7]", text: "text-[#BA732F]" }
-  if (lower.includes("sobrem")) return { bg: "bg-[#F7EDF9]", text: "text-[#8E5296]" }
-  if (lower.includes("entrad")) return { bg: "bg-[#EFF6FF]", text: "text-[#2563EB]" }
-  if (lower.includes("promo") || lower.includes("oferta")) return { bg: "bg-[#FDF2F0]", text: "text-[#CB5A3C]" }
-  if (lower.includes("mais pedido") || lower.includes("destaque")) return { bg: "bg-[#FEF3C7]", text: "text-[#B45309]" }
-  if (lower.includes("organ") || lower.includes("vegan")) return { bg: "bg-[#DCFCE7]", text: "text-[#15803D]" }
-  if (lower.includes("gluten") || lower.includes("glúten")) return { bg: "bg-[#F1F5F9]", text: "text-[#475569]" }
-  return { bg: "bg-gray-100", text: "text-gray-700" }
+  if (lower.includes("bowl")) return { bg: "bg-[#EBF5ED] dark:bg-[#1A2E20] dark:border dark:border-[#2E543A]", text: "text-[#477A55] dark:text-[#86EFAC]" }
+  if (lower.includes("bebid")) return { bg: "bg-[#FDF4E7] dark:bg-[#342410] dark:border dark:border-[#5C3F20]", text: "text-[#BA732F] dark:text-[#FBBF24]" }
+  if (lower.includes("sobrem")) return { bg: "bg-[#F7EDF9] dark:bg-[#2F1835] dark:border dark:border-[#522D5A]", text: "text-[#8E5296] dark:text-[#E879F9]" }
+  if (lower.includes("entrad")) return { bg: "bg-[#EFF6FF] dark:bg-[#16214A] dark:border dark:border-[#1E3A8A]", text: "text-[#2563EB] dark:text-[#93C5FD]" }
+  if (lower.includes("promo") || lower.includes("oferta")) return { bg: "bg-[#FDF2F0] dark:bg-[#381812] dark:border dark:border-[#6B2A1E]", text: "text-[#CB5A3C] dark:text-[#FF7D4F]" }
+  if (lower.includes("mais pedido") || lower.includes("destaque")) return { bg: "bg-[#FEF3C7] dark:bg-[#352305] dark:border dark:border-[#6B470A]", text: "text-[#B45309] dark:text-[#FCD34D]" }
+  if (lower.includes("organ") || lower.includes("vegan")) return { bg: "bg-[#DCFCE7] dark:bg-[#11311C] dark:border dark:border-[#1F5C34]", text: "text-[#15803D] dark:text-[#86EFAC]" }
+  if (lower.includes("gluten") || lower.includes("glúten")) return { bg: "bg-[#F1F5F9] dark:bg-[#1A2433] dark:border dark:border-[#334155]", text: "text-[#475569] dark:text-[#CBD5E1]" }
+  return { bg: "bg-gray-100 dark:bg-[#222C25] dark:border dark:border-[#2A382E]", text: "text-gray-700 dark:text-[#F2EFE9]" }
 }
 
 export function getItemCategories(item: MenuItem): string[] {
@@ -1313,7 +1313,7 @@ export default function MenuClient({
       {/* Header Area (Orange title matching DeliPlus logo & Estoque) */}
       <div className="flex flex-col mb-3 shrink-0">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] tracking-tight">Cardápio</h1>
+          <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] dark:text-[#FF7D4F] tracking-tight">Cardápio</h1>
           
           {/* Tooltip Icon & Popover */}
           <div className="relative group inline-block">
@@ -1348,7 +1348,7 @@ export default function MenuClient({
               setShowTourPrompt(false); recordTourProgress("menu_tour", { dismissed: true });
               setTourStep(0)
             }}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] hover:border-[#2E4233] text-[#2E4233] text-xs font-semibold hover:bg-white shadow-2xs transition-all cursor-pointer group ml-1"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FAF8F0] dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#2E4233] dark:hover:border-[#FF7D4F] text-[#2E4233] dark:text-[#F2EFE9] hover:bg-white dark:hover:bg-[#25332A] shadow-2xs transition-all cursor-pointer group ml-1"
             title="Abrir o tutorial interativo do Cardápio"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#CB5A3C] group-hover:scale-110 transition-transform" />
@@ -1356,7 +1356,7 @@ export default function MenuClient({
             <span className="sm:hidden">Tutorial</span>
           </button>
         </div>
-        <p className="text-[#2E4233] text-sm md:text-base font-medium mt-0.5">
+        <p className="text-[#2E4233] dark:text-[#9CA79E] text-sm md:text-base font-medium mt-0.5">
           Gerencie os produtos, preços e disponibilidade do seu cardápio.
         </p>
       </div>
@@ -1369,8 +1369,8 @@ export default function MenuClient({
             onClick={() => { setAvailabilityFilter("todos"); setCurrentPage(1); }}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer ${
               availabilityFilter === "todos" 
-                ? "bg-[#2E4233] text-white" 
-                : "bg-white border border-[#E9E4D4] text-gray-500 hover:bg-[#F8F6EF]"
+                ? "bg-[#2E4233] dark:bg-[#E76F41] text-white" 
+                : "bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
             }`}
           >
             Todos
@@ -1381,8 +1381,8 @@ export default function MenuClient({
             onClick={() => { setAvailabilityFilter("disponiveis"); setCurrentPage(1); }}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer ${
               availabilityFilter === "disponiveis" 
-                ? "bg-[#2E4233] text-white" 
-                : "bg-white border border-[#E9E4D4] text-gray-500 hover:bg-[#F8F6EF]"
+                ? "bg-[#2E4233] dark:bg-[#E76F41] text-white" 
+                : "bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
             }`}
           >
             Disponíveis
@@ -1393,8 +1393,8 @@ export default function MenuClient({
             onClick={() => { setAvailabilityFilter("promocao"); setCurrentPage(1); }}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer ${
               availabilityFilter === "promocao" 
-                ? "bg-[#2E4233] text-white" 
-                : "bg-white border border-[#E9E4D4] text-gray-500 hover:bg-[#F8F6EF]"
+                ? "bg-[#2E4233] dark:bg-[#E76F41] text-white" 
+                : "bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
             }`}
           >
             Em promoção
@@ -1407,8 +1407,8 @@ export default function MenuClient({
               onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
               className={`px-3.5 py-1.5 border rounded-full text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors cursor-pointer ${
                 selectedCategory !== "all" 
-                  ? "bg-[#2E4233] text-white border-[#2E4233] shadow-sm" 
-                  : "bg-white border-[#E9E4D4] text-gray-500 hover:bg-[#F8F6EF]"
+                  ? "bg-[#2E4233] dark:bg-[#E76F41] text-white border-[#2E4233] dark:border-[#E76F41] shadow-sm" 
+                  : "bg-white dark:bg-[#1B241E] border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
               }`}
             >
               {selectedCategory !== "all" 
@@ -1418,7 +1418,7 @@ export default function MenuClient({
             </button>
             
             {isCategoryMenuOpen && (
-              <div className="absolute top-full left-0 mt-1.5 w-52 bg-white border border-[#E9E4D4] rounded-xl shadow-xl z-50 overflow-hidden py-1 max-h-60 overflow-y-auto">
+              <div className="absolute top-full left-0 mt-1.5 w-52 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl shadow-xl z-50 overflow-hidden py-1 max-h-60 overflow-y-auto">
                 {categories.map((cat) => (
                   <button 
                     key={cat.id}
@@ -1428,10 +1428,10 @@ export default function MenuClient({
                       setIsCategoryMenuOpen(false); 
                       setCurrentPage(1); 
                     }}
-                    className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-gray-50 flex items-center justify-between transition-colors cursor-pointer ${
+                    className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-gray-50 dark:hover:bg-[#222C25] flex items-center justify-between transition-colors cursor-pointer ${
                       selectedCategory === cat.id 
                         ? "text-[#CB5A3C] font-bold bg-orange-50/40" 
-                        : "text-gray-700"
+                        : "text-gray-700 dark:text-[#F2EFE9]"
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate pr-2">
@@ -1459,7 +1459,7 @@ export default function MenuClient({
               placeholder="Buscar no cardápio" 
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-9 pr-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all shadow-sm"
+              className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs dark:text-[#F2EFE9] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all shadow-sm"
             />
           </div>
           <button 
@@ -1474,11 +1474,11 @@ export default function MenuClient({
       </div>
 
       {/* Main Table Container: Stretches to fill available screen height without outer scrollbar */}
-      <div className="hidden md:flex flex-col flex-1 h-full min-h-0 bg-white border border-[#E9E4D4] rounded-2xl shadow-sm overflow-hidden justify-between">
+      <div className="hidden md:flex flex-col flex-1 h-full min-h-0 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-sm overflow-hidden justify-between">
         <div className="w-full overflow-x-auto overflow-y-hidden">
           <table className="w-full text-left text-[14px]">
-            <thead className="bg-[#FAF8F0] border-b border-[#E9E4D4]">
-              <tr className="text-[14px] font-semibold text-[#2E4233]">
+            <thead className="bg-[#FAF8F0] dark:bg-[#222C25] border-b border-[#E9E4D4] dark:border-[#2A382E]">
+              <tr className="text-[14px] font-semibold text-[#2E4233] dark:text-[#F2EFE9]">
                 <th className="px-4 py-2.5 w-[76px]">Foto</th>
                 <th className="px-4 py-2.5 w-[24%]">Produto</th>
                 <th className="px-3 py-2.5 text-center w-[14%] whitespace-nowrap">Adicionais</th>
@@ -1489,15 +1489,15 @@ export default function MenuClient({
                 <th className="px-4 py-2.5 text-right w-[4%] min-w-[56px]">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E9E4D4] border-b border-[#E9E4D4]">
+            <tbody className="divide-y divide-[#E9E4D4] dark:divide-[#233026] border-b border-[#E9E4D4] dark:border-[#233026]">
               {paginatedItems.map((item, itemIdx) => {
                 const isPaused = !item.isAvailable
                 return (
                   <tr
                     key={item.id}
                     data-product-row={item.id}
-                    className={`border-b border-[#E9E4D4] hover:bg-gray-50/60 transition-colors ${
-                      isPaused ? "bg-stone-50/30" : ""
+                    className={`border-b border-[#E9E4D4] dark:border-[#233026] hover:bg-gray-50/60 dark:hover:bg-[#222C25] transition-colors ${
+                      isPaused ? "bg-stone-50/30 dark:bg-black/20" : ""
                     }`}
                   >
                     {/* Foto Thumbnail com Menu: Ampliar / Trocar */}
@@ -1565,14 +1565,14 @@ export default function MenuClient({
                     <td id={itemIdx === 0 ? "tour-product-info" : undefined} className={`px-4 py-2 align-middle transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
                       <div 
                         onClick={(e) => handleOpenProductModal(item, e)}
-                        className="group/prod flex flex-col pr-2 cursor-pointer p-1.5 -m-1.5 rounded-xl hover:bg-[#FAF8F0] transition-colors"
+                        className="group/prod flex flex-col pr-2 cursor-pointer p-1.5 -m-1.5 rounded-xl hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
                         title="Toque ou clique para editar nome, descrição e categorias"
                       >
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-[#2E4233] text-[15px] leading-tight group-hover/prod:underline decoration-[#2E4233]/40 underline-offset-2">
+                          <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[15px] leading-tight group-hover/prod:underline decoration-[#2E4233]/40 dark:decoration-[#F2EFE9]/40 underline-offset-2">
                             {item.name}
                           </span>
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                           {getItemCategories(item).map((cat, idx) => {
                             const style = getCategoryBadgeStyle(cat)
                             return (
@@ -1585,7 +1585,7 @@ export default function MenuClient({
                             )
                           })}
                         </div>
-                        <span className="text-[12px] text-gray-500 leading-relaxed line-clamp-1 mt-1">
+                        <span className="text-[12px] text-gray-500 dark:text-[#9CA79E] leading-relaxed line-clamp-1 mt-1">
                           {item.description}
                         </span>
                       </div>
@@ -1597,7 +1597,7 @@ export default function MenuClient({
                         <button
                           type="button"
                           onClick={(e) => handleOpenAdicionaisModal(item, e)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] hover:border-[#CB5A3C] hover:bg-white text-[#2E4233] text-xs font-semibold shadow-2xs transition-all cursor-pointer group"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF8F0] dark:bg-[#222C25] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#CB5A3C] hover:bg-white dark:hover:bg-[#2A382E] text-[#2E4233] dark:text-[#F2EFE9] text-xs font-semibold shadow-2xs transition-all cursor-pointer group"
                           title="Clique para gerenciar os adicionais deste prato"
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0"></span>
@@ -1608,7 +1608,7 @@ export default function MenuClient({
                         <button
                           type="button"
                           onClick={(e) => handleOpenAdicionaisModal(item, e)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#FAF8F0] border-2 border-[#CB5A3C]/70 hover:border-[#CB5A3C] hover:bg-[#CB5A3C] text-[#CB5A3C] hover:text-white text-xs font-bold transition-all cursor-pointer shadow-2xs group"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#FAF8F0] dark:bg-[#222C25] border-2 border-[#CB5A3C]/70 dark:border-[#CB5A3C]/50 hover:border-[#CB5A3C] hover:bg-[#CB5A3C] text-[#CB5A3C] dark:text-[#FF7D4F] hover:text-white text-xs font-bold transition-all cursor-pointer shadow-2xs group"
                           title="Clique para cadastrar adicionais para este prato"
                         >
                           <Plus className="w-3.5 h-3.5 text-[#CB5A3C] group-hover:text-white transition-colors stroke-[2.5]" />
@@ -1630,18 +1630,18 @@ export default function MenuClient({
                             if (e.key === "Enter") saveInlineEdit(item, "originalPrice")
                             if (e.key === "Escape") setInlineEditingCell(null)
                           }}
-                          className="w-28 px-2.5 py-1 text-[14px] font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                          className="w-28 px-2.5 py-1 text-[14px] font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border-2 border-[#2E4233] dark:border-[#FF7D4F] rounded-lg shadow-sm focus:outline-none"
                         />
                       ) : (
                         <div
                           onClick={(e) => startInlineEdit(item, "originalPrice", e)}
-                          className="group/orig inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] transition-colors"
+                          className="group/orig inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
                           title="Toque ou clique para alterar o preço original"
                         >
-                          <span className="text-[14px] font-medium text-gray-700 group-hover/orig:text-[#2E4233]">
+                          <span className="text-[14px] font-medium text-gray-700 dark:text-[#F2EFE9] group-hover/orig:text-[#2E4233] dark:group-hover/orig:text-[#FF7D4F]">
                             {item.originalPrice}
                           </span>
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                           {inlineSuccessCellId === `${item.id}-originalPrice` && (
                             <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
                           )}
@@ -1654,15 +1654,15 @@ export default function MenuClient({
                       <div className="flex flex-col items-start gap-0.5">
                         {item.promoPrice ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[14.5px] font-bold text-[#CB5A3C]">
+                            <span className="text-[14.5px] font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">
                               {item.promoPrice}
                             </span>
-                            <span className="text-[10px] font-bold bg-[#FDF2F0] text-[#CB5A3C] border border-[#CB5A3C]/20 px-1.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold bg-[#FDF2F0] dark:bg-[#CB5A3C]/20 text-[#CB5A3C] dark:text-[#FF7D4F] border border-[#CB5A3C]/20 dark:border-[#CB5A3C]/40 px-1.5 py-0.5 rounded-full">
                               -{getDiscountPercentage(item.originalPrice, item.promoPrice)}%
                             </span>
                           </div>
                         ) : (
-                          <span className="text-[13px] text-gray-400 font-medium">
+                          <span className="text-[13px] text-gray-400 dark:text-[#9CA79E] font-medium">
                             Sem promoção
                           </span>
                         )}
@@ -1672,7 +1672,7 @@ export default function MenuClient({
                             e.stopPropagation()
                             router.push(`/dashboard/marketing/promotions?editProduct=${item.id}`)
                           }}
-                          className="text-[11.5px] font-semibold text-[#CB5A3C] underline decoration-[#CB5A3C]/60 hover:decoration-[#CB5A3C] hover:text-[#b0482e] transition-all cursor-pointer text-left"
+                          className="text-[11.5px] font-semibold text-[#CB5A3C] dark:text-[#FF7D4F] underline decoration-[#CB5A3C]/60 hover:decoration-[#CB5A3C] hover:text-[#b0482e] dark:hover:text-[#FFA07A] transition-all cursor-pointer text-left"
                         >
                           Editar Promoção
                         </button>
@@ -1690,7 +1690,7 @@ export default function MenuClient({
                         />
                         <span
                           className={`text-[11px] font-semibold mt-0.5 transition-colors ${
-                            item.isAvailable ? "text-[#2E4233]" : "text-[#CB5A3C]"
+                            item.isAvailable ? "text-[#2E4233] dark:text-[#34D399]" : "text-[#CB5A3C] dark:text-[#FF7D4F]"
                           }`}
                         >
                           {item.isAvailable ? "Disponível" : "Pausado"}
@@ -1713,36 +1713,36 @@ export default function MenuClient({
                             if (e.key === "Enter") saveInlineEdit(item, "dailyLimit")
                             if (e.key === "Escape") setInlineEditingCell(null)
                           }}
-                          className="w-20 px-2 py-1 text-center text-[13.5px] font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                          className="w-20 px-2 py-1 text-center text-[13.5px] font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border-2 border-[#2E4233] dark:border-[#FF7D4F] rounded-lg shadow-sm focus:outline-none"
                         />
                       ) : (
                         <div
                           onClick={(e) => startInlineEdit(item, "dailyLimit", e)}
-                          className="group/qty inline-flex flex-col items-center justify-center cursor-pointer py-1 px-2 -mx-1 rounded-lg hover:bg-[#FAF8F0] transition-colors"
+                          className="group/qty inline-flex flex-col items-center justify-center cursor-pointer py-1 px-2 -mx-1 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
                           title="Toque ou clique para alterar o limite de quantidade diária"
                         >
                           <div className="flex items-center gap-1">
                             {item.dailyLimit !== null ? (
                               item.remaining === 0 ? (
-                                <span className="text-[13.5px] font-bold text-[#CB5A3C]">
+                                <span className="text-[13.5px] font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">
                                   0 restantes
                                 </span>
                               ) : (
-                                <span className="text-[13.5px] font-bold text-[#16A34A]">
+                                <span className="text-[13.5px] font-bold text-[#16A34A] dark:text-[#34D399]">
                                   {item.remaining ?? item.dailyLimit} restantes
                                 </span>
                               )
                             ) : (
-                              <span className="text-[13px] text-gray-400 font-medium">
+                              <span className="text-[13px] text-gray-400 dark:text-[#9CA79E] font-medium">
                                 Sem limite
                               </span>
                             )}
-                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                             {inlineSuccessCellId === `${item.id}-dailyLimit` && (
                               <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
                             )}
                           </div>
-                          <span className="text-[11px] text-gray-400 font-medium">
+                          <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">
                             {item.dailyLimit !== null ? `Limite: ${item.dailyLimit} un.` : "Ilimitado"}
                           </span>
                         </div>
@@ -1828,8 +1828,8 @@ export default function MenuClient({
         </div>
 
         {/* Pagination Controls pinned at bottom (Centered) */}
-        <div className="relative flex justify-center items-center px-6 py-2.5 border-t border-[#E9E4D4] bg-[#FAF8F0]/30 shrink-0 min-h-[44px]">
-          <span className="hidden sm:inline-block absolute left-6 text-xs text-gray-500 font-medium">
+        <div className="relative flex justify-center items-center px-6 py-2.5 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/30 dark:bg-[#1B241E]/30 shrink-0 min-h-[44px]">
+          <span className="hidden sm:inline-block absolute left-6 text-xs text-gray-500 dark:text-[#9CA79E] font-medium">
             Mostrando {filteredItems.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)} de {filteredItems.length} itens
           </span>
 
@@ -1936,10 +1936,10 @@ export default function MenuClient({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1 min-w-0">
-                          <span className="font-bold text-[#2E4233] text-sm truncate group-hover/mprod:underline">
+                          <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-sm truncate group-hover/mprod:underline">
                             {item.name}
                           </span>
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                         </div>
                         <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
                           {getItemCategories(item).map((cat, idx) => {
@@ -1955,7 +1955,7 @@ export default function MenuClient({
                           })}
                         </div>
                       </div>
-                      <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.description}</p>
+                      <p className="text-xs text-gray-500 dark:text-[#9CA79E] line-clamp-1 mt-0.5">{item.description}</p>
                     </div>
 
                     {/* Preços e Quantidade */}
@@ -1983,7 +1983,7 @@ export default function MenuClient({
                               className="flex items-center gap-1 cursor-pointer"
                               title="Toque para editar preço original"
                             >
-                              <span className="text-xs font-bold text-[#2E4233]">{item.originalPrice}</span>
+                              <span className="text-xs font-bold text-[#2E4233] dark:text-[#F2EFE9]">{item.originalPrice}</span>
                               <ChevronDown className="w-3 h-3 text-[#2E4233] shrink-0" />
                               {inlineSuccessCellId === `${item.id}-originalPrice` && (
                                 <Check className="w-3 h-3 text-[#16A34A] shrink-0" />
@@ -1999,7 +1999,7 @@ export default function MenuClient({
                               {item.promoPrice} (-{getDiscountPercentage(item.originalPrice, item.promoPrice)}%)
                             </span>
                           ) : (
-                            <span className="text-[11px] text-gray-400 font-medium">Sem promoção</span>
+                            <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">Sem promoção</span>
                           )}
                           <button
                             type="button"
@@ -2049,7 +2049,7 @@ export default function MenuClient({
                                 </span>
                               )
                             ) : (
-                              <span className="text-[11px] text-gray-400 font-medium">
+                              <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">
                                 Sem limite
                               </span>
                             )}
@@ -2075,7 +2075,7 @@ export default function MenuClient({
                     />
                     <span
                       className={`text-xs font-semibold transition-colors ${
-                        item.isAvailable ? "text-[#2E4233]" : "text-[#CB5A3C]"
+                        item.isAvailable ? "text-[#2E4233] dark:text-[#34D399]" : "text-[#CB5A3C] dark:text-[#FF7D4F]"
                       }`}
                     >
                       {item.isAvailable ? "Disponível" : "Pausado"}
@@ -2288,7 +2288,7 @@ export default function MenuClient({
                     <label className="text-[13px] font-semibold text-gray-700">
                       Categorias / Tags
                     </label>
-                    <span className="text-[11px] text-gray-400 font-medium">
+                    <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">
                       Campo livre · Separe por vírgulas
                     </span>
                   </div>
@@ -2360,7 +2360,7 @@ export default function MenuClient({
 
                   {/* Sugestões rápidas de categoria */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] text-gray-400 font-medium">Sugestões:</span>
+                    <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">Sugestões:</span>
                     {["Bowls", "Bebidas", "Sobremesas", "Entradas", "Mais pedido", "Vegano", "Destaque", "Fitness"].map((sug) => {
                       const alreadyHas = formCategories.some((c) => c.toLowerCase() === sug.toLowerCase())
                       if (alreadyHas) return null
@@ -2864,7 +2864,7 @@ export default function MenuClient({
 
                     {/* Sugestões rápidas de categoria com + em laranja e fundo verde suave */}
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[11px] text-gray-400 font-medium">Sugestões:</span>
+                      <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">Sugestões:</span>
                       {["Bowls", "Bebidas", "Sobremesas", "Entradas", "Mais pedido", "Vegano", "Orgânico", "Destaque"].map((sug) => {
                         const alreadyHas = prodModalCategories.some((c) => c.toLowerCase() === sug.toLowerCase())
                         if (alreadyHas) return null
@@ -3655,7 +3655,7 @@ export default function MenuClient({
                     ? `NOVO ITEM: ${activeTourCurrentIndex + 1}/${activeTourTotalSteps}`
                     : `PASSO ${activeTourCurrentIndex + 1} DE ${activeTourTotalSteps}`}
                 </span>
-                <span className="text-[11px] text-gray-400 font-medium">
+                <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">
                   {modalTourType ? "Modo Interativo" : "Tutorial Cardápio"}
                 </span>
               </div>

@@ -1,13 +1,17 @@
 import { DashboardSidebar } from '@/components/dashboard/sidebar'
 import { DashboardLayoutClient } from '@/components/dashboard/dashboard-layout-client'
 import { getDashboardOverview } from '@/lib/dashboard/dashboard-overview'
+import { listAccessibleStoreLinks } from '@/lib/stores/accessible-store-links'
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const result = await getDashboardOverview().catch(() => null)
+  const [result, linksResult] = await Promise.all([
+    getDashboardOverview().catch(() => null),
+    listAccessibleStoreLinks().catch(() => null),
+  ])
   
   // If the user has 0 stores (or if the query fails/auth fails, which will be handled by pages),
   // they should NOT see the dashboard sidebar or shell.
@@ -24,8 +28,10 @@ export default async function DashboardLayout({
     )
   }
 
+  const stores = linksResult?.status === 'success' ? linksResult.stores : []
+
   return (
-    <DashboardLayoutClient sidebar={<DashboardSidebar />}>
+    <DashboardLayoutClient sidebar={<DashboardSidebar initialStores={stores} />}>
       {children}
     </DashboardLayoutClient>
   )

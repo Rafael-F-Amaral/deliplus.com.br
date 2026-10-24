@@ -93,12 +93,12 @@ function CardHelpTooltip({
   return (
     <div className="relative group inline-block">
       <div
-        className="w-4.5 h-4.5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[11px] font-extrabold leading-none shadow-2xs cursor-help hover:scale-105 transition-transform shrink-0"
+        className="w-4.5 h-4.5 rounded-full bg-[#2E4233] dark:bg-[#25332A] dark:border dark:border-[#2A382E] text-white flex items-center justify-center text-[11px] font-extrabold leading-none shadow-2xs cursor-help hover:scale-105 transition-transform shrink-0"
         aria-label={`Ajuda: ${title}`}
       >
         ?
       </div>
-      <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left">
+      <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] dark:bg-[#17211A] dark:border dark:border-[#2A382E] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left">
         <p className="text-[12px] font-bold text-white mb-1">
           {title}
         </p>
@@ -341,13 +341,13 @@ function MatrizComparativaModalContent() {
   return (
     <div className="space-y-3.5 text-xs">
       {/* Interactive Period Selector Filter */}
-      <div className="bg-[#FAF8F0] p-2.5 rounded-xl border border-[#E9E4D4]">
+      <div className="bg-[#FAF8F0] dark:bg-[#25332A] p-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E]">
         <div className="flex items-center justify-between gap-1 mb-2">
-          <span className="text-[11px] font-bold text-[#1F2E22] uppercase tracking-wider flex items-center gap-1.5">
+          <span className="text-[11px] font-bold text-[#1F2E22] dark:text-[#F2EFE9] uppercase tracking-wider flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-[#CB5A3C]" />
             Filtrar por Mês ou Semana:
           </span>
-          <span className="text-[10px] font-semibold text-[#CB5A3C] bg-[#FDF0E9] px-2 py-0.5 rounded-full">
+          <span className="text-[10px] font-semibold text-[#CB5A3C] dark:text-[#FF7D4F] bg-[#FDF0E9] dark:bg-[#CB5A3C]/20 px-2 py-0.5 rounded-full">
             {activeData.dateRange}
           </span>
         </div>
@@ -369,7 +369,7 @@ function MatrizComparativaModalContent() {
               className={`py-1.5 px-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer text-center ${
                 selectedPeriod === p.id
                   ? "bg-[#CB5A3C] text-white shadow-xs"
-                  : "bg-white text-[#2E4233] border border-[#E9E4D4] hover:border-[#CB5A3C]"
+                  : "bg-white dark:bg-[#1B241E] text-[#2E4233] dark:text-[#9CA79E] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#CB5A3C] dark:hover:text-[#F2EFE9]"
               }`}
             >
               {p.label}
@@ -380,16 +380,16 @@ function MatrizComparativaModalContent() {
 
       {/* 3 Executive Summary KPI Cards */}
       <div className="grid grid-cols-3 gap-2">
-        <div className="bg-[#FAF8F0] p-2.5 rounded-xl border border-[#E9E4D4]">
-          <span className="text-[10px] text-[#525B4E] block">Pedidos no Período</span>
-          <span className="font-bold text-[#1F2E22] text-sm sm:text-base">{activeData.totalOrders} pedidos</span>
+        <div className="bg-[#FAF8F0] dark:bg-[#25332A] p-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E]">
+          <span className="text-[10px] text-[#525B4E] dark:text-[#9CA79E] block">Pedidos no Período</span>
+          <span className="font-bold text-[#1F2E22] dark:text-[#F2EFE9] text-sm sm:text-base">{activeData.totalOrders} pedidos</span>
         </div>
-        <div className="bg-[#FAF8F0] p-2.5 rounded-xl border border-[#E9E4D4]">
-          <span className="text-[10px] text-[#525B4E] block">Faturamento</span>
+        <div className="bg-[#FAF8F0] dark:bg-[#25332A] p-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E]">
+          <span className="text-[10px] text-[#525B4E] dark:text-[#9CA79E] block">Faturamento</span>
           <span className="font-bold text-[#CB5A3C] text-sm sm:text-base">{activeData.totalRevenue}</span>
         </div>
-        <div className="bg-[#FAF8F0] p-2.5 rounded-xl border border-[#E9E4D4]">
-          <span className="text-[10px] text-[#525B4E] block">Dia Mais Forte</span>
+        <div className="bg-[#FAF8F0] dark:bg-[#25332A] p-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E]">
+          <span className="text-[10px] text-[#525B4E] dark:text-[#9CA79E] block">Dia Mais Forte</span>
           <span className="font-bold text-[#15803D] text-xs sm:text-sm truncate block">{activeData.peakDay}</span>
         </div>
       </div>
@@ -401,16 +401,16 @@ function MatrizComparativaModalContent() {
             key={i}
             className={`p-2 rounded-xl border transition-all ${
               d.isPeak
-                ? "bg-[#FDF0E9]/70 border-[#F4D6C7]"
+                ? "bg-[#FDF0E9]/70 dark:bg-[#CB5A3C]/20 border-[#F4D6C7] dark:border-[#CB5A3C]/40"
                 : d.isCalm
-                ? "bg-[#FAF8F0]/70 border-[#E9E4D4]"
-                : "bg-white border-[#F0ECE1]"
+                ? "bg-[#FAF8F0]/70 dark:bg-[#25332A]/70 border-[#E9E4D4] dark:border-[#2A382E]"
+                : "bg-white dark:bg-[#1B241E] border-[#F0ECE1] dark:border-[#2A382E]"
             }`}
           >
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="font-bold text-xs sm:text-sm text-[#111827]">
+                  <span className="font-bold text-xs sm:text-sm text-[#111827] dark:text-[#F2EFE9]">
                     {d.name}
                   </span>
                   {d.tag && (
@@ -433,7 +433,7 @@ function MatrizComparativaModalContent() {
               </div>
 
               <div className="text-right shrink-0">
-                <span className="font-bold text-xs sm:text-sm text-[#1F2E22]">
+                <span className="font-bold text-xs sm:text-sm text-[#1F2E22] dark:text-[#F2EFE9]">
                   {d.orders} pedidos
                 </span>
                 <span className="text-[10px] font-semibold text-[#CB5A3C] block">
@@ -443,7 +443,7 @@ function MatrizComparativaModalContent() {
             </div>
 
             {/* Visual Proportional Bar */}
-            <div className="w-full bg-[#EFECE3] h-2 rounded-full overflow-hidden mt-1.5">
+            <div className="w-full bg-[#EFECE3] dark:bg-[#131A15] h-2 rounded-full overflow-hidden mt-1.5">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${
                   d.isPeak ? "bg-[#CB5A3C]" : "bg-[#2E4233]"
@@ -472,9 +472,9 @@ function CurvaAbcModalContent() {
   return (
     <div className="space-y-3.5">
       {/* Executive Highlight Banner */}
-      <div className="bg-[#FAF8F0] p-3 rounded-xl border border-[#E9E4D4] flex items-center justify-between gap-3">
+      <div className="bg-[#FAF8F0] dark:bg-[#25332A] p-3 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-between gap-3">
         <div>
-          <span className="font-bold text-xs sm:text-sm text-[#111827] block">
+          <span className="font-bold text-xs sm:text-sm text-[#111827] dark:text-[#F2EFE9] block">
             Top 2 produtos concentram 49,3% do faturamento
           </span>
           <p className="text-[11px] text-[#525B4E] mt-0.5">
@@ -493,7 +493,7 @@ function CurvaAbcModalContent() {
           <div
             key={item.rank}
             className={`p-2.5 rounded-xl border transition-all ${
-              item.isTop ? "bg-[#FDF0E9]/60 border-[#F4D6C7]" : "bg-white border-[#E9E4D4]"
+              item.isTop ? "bg-[#FDF0E9]/60 border-[#F4D6C7]" : "bg-white dark:bg-[#1B241E] border-[#E9E4D4] dark:border-[#2A382E]"
             }`}
           >
             <div className="flex items-center justify-between gap-2">
@@ -510,7 +510,7 @@ function CurvaAbcModalContent() {
                   {item.rank}
                 </span>
                 <div className="min-w-0">
-                  <span className="text-sm sm:text-base font-bold text-[#111827] block truncate">
+                  <span className="text-sm sm:text-base font-bold text-[#111827] dark:text-[#F2EFE9] block truncate">
                     {item.name}
                   </span>
                   <div className="flex items-center gap-1.5 mt-0.5">
@@ -526,7 +526,7 @@ function CurvaAbcModalContent() {
                 <span className="text-sm sm:text-base font-bold text-[#CB5A3C] block">
                   {item.revenue}
                 </span>
-                <span className="text-xs font-bold text-[#1F2E22]">
+                <span className="text-xs font-bold text-[#1F2E22] dark:text-[#F2EFE9]">
                   {item.qty} unidades <span className="text-[10px] text-[#525B4E] font-normal">({item.share}% do total)</span>
                 </span>
               </div>
@@ -536,7 +536,7 @@ function CurvaAbcModalContent() {
             <div className="w-full bg-[#EFECE3] h-2 rounded-full overflow-hidden mt-2">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${
-                  item.rank === 1 ? "bg-[#CB5A3C]" : "bg-[#2E4233]"
+                  item.rank === 1 ? "bg-[#CB5A3C] dark:bg-[#FF7D4F]" : "bg-[#2E4233] dark:bg-emerald-600"
                 }`}
                 style={{ width: `${item.share * 3.8}%` }}
               />
@@ -562,18 +562,18 @@ function RepeticaoModalContent() {
     <div className="space-y-3.5">
       {/* 3 Executive Retention Metric Cards */}
       <div className="grid grid-cols-3 gap-2">
-        <div className="bg-[#FAF8F0] p-2.5 rounded-xl border border-[#E9E4D4]">
-          <span className="text-[10px] text-[#525B4E] block">Clientes Cadastrados</span>
-          <span className="font-bold text-[#1F2E22] text-sm sm:text-base">1.239 únicos</span>
+        <div className="bg-[#FAF8F0] dark:bg-[#25332A] p-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E]">
+          <span className="text-[10px] text-[#525B4E] dark:text-[#9CA79E] block">Clientes Cadastrados</span>
+          <span className="font-bold text-[#1F2E22] dark:text-[#F2EFE9] text-sm sm:text-base">1.239 únicos</span>
           <span className="text-[9px] text-[#15803D] font-bold block mt-0.5">100% WhatsApp ID</span>
         </div>
-        <div className="bg-[#FAF8F0] p-2.5 rounded-xl border border-[#E9E4D4]">
-          <span className="text-[10px] text-[#525B4E] block">Clientes Fiéis (Recompra)</span>
+        <div className="bg-[#FAF8F0] dark:bg-[#25332A] p-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E]">
+          <span className="text-[10px] text-[#525B4E] dark:text-[#9CA79E] block">Clientes Fiéis (Recompra)</span>
           <span className="font-bold text-[#CB5A3C] text-sm sm:text-base">389 clientes</span>
           <span className="text-[9px] text-[#CB5A3C] font-bold block mt-0.5">31,4% de retenção</span>
         </div>
-        <div className="bg-[#FAF8F0] p-2.5 rounded-xl border border-[#E9E4D4]">
-          <span className="text-[10px] text-[#525B4E] block">Ciclo Médio de Retorno</span>
+        <div className="bg-[#FAF8F0] dark:bg-[#25332A] p-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E]">
+          <span className="text-[10px] text-[#525B4E] dark:text-[#9CA79E] block">Ciclo Médio de Retorno</span>
           <span className="font-bold text-[#2E4233] text-sm sm:text-base">11 dias</span>
           <span className="text-[9px] text-[#525B4E] font-medium block mt-0.5">Entre um pedido e outro</span>
         </div>
@@ -585,7 +585,7 @@ function RepeticaoModalContent() {
           <div
             key={item.rank}
             className={`p-2.5 rounded-xl border transition-all ${
-              item.rank === 1 ? "bg-[#FDF0E9]/60 border-[#F4D6C7]" : "bg-white border-[#E9E4D4]"
+              item.rank === 1 ? "bg-[#FDF0E9]/60 dark:bg-[#CB5A3C]/20 border-[#F4D6C7] dark:border-[#CB5A3C]/40" : "bg-white dark:bg-[#1B241E] border-[#E9E4D4] dark:border-[#2A382E]"
             }`}
           >
             <div className="flex items-center justify-between gap-2">
@@ -601,7 +601,7 @@ function RepeticaoModalContent() {
                   <span className="text-xs sm:text-sm font-bold text-[#111827] block truncate">
                     {item.name}
                   </span>
-                  <span className="text-[10px] text-[#525B4E] block">
+                  <span className="text-[10px] text-[#525B4E] dark:text-[#9CA79E] block">
                     {item.cadence} • {item.repeatBuyers} de {item.buyers} clientes repetiram
                   </span>
                 </div>
@@ -796,23 +796,23 @@ export function ReportsView() {
   const activeHour = hoveredHourIndex !== null ? hoveredHourIndex : selectedHourIndex
 
   return (
-    <div className="w-full flex-1 min-h-0 flex flex-col bg-[#FAF8F0] text-[#2E4233] px-3.5 sm:px-6 lg:px-7 py-3 sm:py-3.5 font-sans overflow-y-auto lg:overflow-hidden pb-28 lg:pb-3.5">
+    <div className="w-full flex-1 min-h-0 flex flex-col bg-[#FAF8F0] dark:bg-[#131A15] text-[#2E4233] dark:text-[#F2EFE9] px-3.5 sm:px-6 lg:px-7 py-3 sm:py-3.5 font-sans overflow-y-auto lg:overflow-hidden pb-28 lg:pb-3.5 transition-colors duration-150">
       <div className="w-full flex-1 flex flex-col min-h-0 gap-3 sm:gap-3.5">
 
         {/* Top Header: Standardized to Cardápio, Pedidos, Estoque (3xl md:4xl font-serif text-[#CB5A3C]) */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
           <div className="flex flex-col">
             <div className="flex items-center gap-2.5">
-              <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] tracking-tight">
+              <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] dark:text-[#FF7D4F] tracking-tight">
                 Relatórios
               </h1>
 
               {/* Tooltip Icon & Popover (Identical to Cardápio & Pedidos) */}
               <div className="relative group inline-block">
-                <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
+                <div className="w-5 h-5 rounded-full bg-[#2E4233] dark:bg-[#25332A] dark:border dark:border-[#2A382E] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                   ?
                 </div>
-                <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] dark:bg-[#17211A] dark:border dark:border-[#2A382E] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
                   <p className="text-[13px] text-white mb-2 leading-relaxed">
                     <span className="font-extrabold text-white">Dica:</span> Acompanhe métricas gerais de vendas, horários de maior fluxo e taxa de repetição da sua loja.
                   </p>
@@ -833,7 +833,7 @@ export function ReportsView() {
                 </div>
               </div>
             </div>
-            <p className="text-[#2E4233] text-xs sm:text-sm font-medium mt-0.5">
+            <p className="text-[#2E4233] dark:text-[#9CA79E] text-xs sm:text-sm font-medium mt-0.5">
               Inteligência de vendas, recorrência de clientes e horários de pico.
             </p>
           </div>
@@ -843,7 +843,7 @@ export function ReportsView() {
             <button
               type="button"
               onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#E9E4D4] hover:border-[#CB5A3C] text-[#2E4233] text-xs font-semibold transition-all cursor-pointer shadow-xs hover:shadow-sm"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#CB5A3C] text-[#2E4233] dark:text-[#F2EFE9] text-xs font-semibold transition-all cursor-pointer shadow-xs hover:shadow-sm"
               title="Abrir calendário e selecionar dias"
             >
               <Calendar className="w-3.5 h-3.5 text-[#CB5A3C]" />
@@ -878,21 +878,21 @@ export function ReportsView() {
 
             {/* Interactive Calendar Dropdown / Popover (Stylized & Premium) */}
             {isCalendarOpen && (
-              <div className="absolute top-full right-0 mt-2 z-50 bg-white border border-[#E9E4D4] rounded-2xl shadow-2xl p-4 w-[330px] sm:w-[460px] animate-in fade-in zoom-in-95 duration-150">
-                <div className="flex items-center justify-between pb-3 border-b border-[#F0ECE1]">
+              <div className="absolute top-full right-0 mt-2 z-50 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-2xl p-4 w-[330px] sm:w-[460px] animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-3 border-b border-[#F0ECE1] dark:border-[#2A382E]">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-full bg-[#CB5A3C]/10 flex items-center justify-center text-[#CB5A3C] shrink-0">
                       <Calendar className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-[#1F2E22] leading-tight">Filtrar Período</h4>
+                      <h4 className="text-sm font-bold text-[#1F2E22] dark:text-[#F2EFE9] leading-tight">Filtrar Período</h4>
                       <p className="text-[11px] text-[#717A6D]">Selecione um atalho rápido ou navegue pelos dias</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsCalendarOpen(false)}
-                    className="text-gray-400 hover:text-gray-700 p-1.5 rounded-full hover:bg-[#FAF8F0] transition-colors cursor-pointer"
+                    className="text-gray-400 hover:text-gray-700 p-1.5 rounded-full hover:bg-[#FAF8F0] dark:hover:bg-[#25332A] text-gray-400 dark:text-[#9CA79E] hover:text-gray-700 dark:hover:text-[#F2EFE9] transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -900,7 +900,7 @@ export function ReportsView() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 pt-3">
                   {/* Quick presets list */}
-                  <div className="sm:col-span-4 space-y-1 sm:border-r sm:border-[#F0ECE1] sm:pr-3">
+                  <div className="sm:col-span-4 space-y-1 sm:border-r sm:border-[#F0ECE1] dark:sm:border-[#2A382E] sm:pr-3">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
                       Atalhos rápidos
                     </span>
@@ -925,8 +925,8 @@ export function ReportsView() {
                           }}
                           className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                             isActive
-                              ? "bg-[#FAF8F0] text-[#CB5A3C] font-semibold border-l-2 border-[#CB5A3C]"
-                              : "text-[#525B4E] hover:bg-[#FAF8F0] hover:text-[#1F2E22]"
+                              ? "bg-[#FAF8F0] dark:bg-[#25332A] text-[#CB5A3C] dark:text-[#FF7D4F] font-semibold border-l-2 border-[#CB5A3C]"
+                              : "text-[#525B4E] dark:text-[#9CA79E] hover:bg-[#FAF8F0] dark:hover:bg-[#25332A] hover:text-[#1F2E22] dark:hover:text-[#F2EFE9]"
                           }`}
                         >
                           {item.label}
@@ -939,11 +939,11 @@ export function ReportsView() {
                   <div className="sm:col-span-8 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-[#1F2E22] flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-[#1F2E22] dark:text-[#F2EFE9] flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full bg-[#CB5A3C]" />
                           Maio de 2026
                         </span>
-                        <span className="text-[10px] font-semibold text-[#CB5A3C] bg-[#FDF0E9] border border-[#F4D6C7] px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-semibold text-[#CB5A3C] dark:text-[#FF7D4F] bg-[#FDF0E9] dark:bg-[#CB5A3C]/20 border border-[#F4D6C7] dark:border-[#CB5A3C]/40 px-2 py-0.5 rounded-full">
                           Pico dia 25
                         </span>
                       </div>
@@ -982,10 +982,10 @@ export function ReportsView() {
                               }}
                               className={`h-6.5 w-full rounded-md text-[10px] font-semibold flex items-center justify-center transition-all cursor-pointer relative ${
                                 isSelected
-                                  ? "bg-[#2E4233] text-white font-bold shadow-xs scale-105"
+                                  ? "bg-[#2E4233] dark:bg-[#CB5A3C] text-white font-bold shadow-xs scale-105"
                                   : isPeak
-                                  ? "bg-[#FDF0E9] text-[#CB5A3C] font-bold border border-[#F4D6C7] hover:bg-[#FCE3D6]"
-                                  : "text-gray-700 hover:bg-[#FAF8F0] hover:text-[#CB5A3C]"
+                                  ? "bg-[#FDF0E9] dark:bg-[#CB5A3C]/20 text-[#CB5A3C] dark:text-[#FF7D4F] font-bold border border-[#F4D6C7] dark:border-[#CB5A3C]/40 hover:bg-[#FCE3D6] dark:hover:bg-[#CB5A3C]/30"
+                                  : "text-gray-700 dark:text-[#F2EFE9] hover:bg-[#FAF8F0] dark:hover:bg-[#25332A] hover:text-[#CB5A3C]"
                               }`}
                               title={isPeak ? `Dia 25 (Pico de Vendas: R$ 2.350)` : `Selecionar dia ${dayStr}/05`}
                             >
@@ -1000,7 +1000,7 @@ export function ReportsView() {
                     </div>
 
                     {/* Date range inputs */}
-                    <div className="mt-3 pt-2.5 border-t border-[#F0ECE1]">
+                    <div className="mt-3 pt-2.5 border-t border-[#F0ECE1] dark:border-[#2A382E]">
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-[9px] font-semibold text-[#717A6D] uppercase tracking-wider mb-0.5">De</label>
@@ -1008,7 +1008,7 @@ export function ReportsView() {
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="w-full text-xs px-2 py-1 rounded-lg border border-[#E9E4D4] bg-[#FAF8F0] text-[#1F2E22] font-mono focus:outline-none focus:border-[#CB5A3C] focus:bg-white transition-all"
+                            className="w-full text-xs px-2 py-1 rounded-lg border border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#131A15] text-[#1F2E22] dark:text-[#F2EFE9] font-mono focus:outline-none focus:border-[#CB5A3C] focus:bg-white dark:focus:bg-[#1B241E] transition-all"
                           />
                         </div>
                         <div>
@@ -1017,7 +1017,7 @@ export function ReportsView() {
                             type="date"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
-                            className="w-full text-xs px-2 py-1 rounded-lg border border-[#E9E4D4] bg-[#FAF8F0] text-[#1F2E22] font-mono focus:outline-none focus:border-[#CB5A3C] focus:bg-white transition-all"
+                            className="w-full text-xs px-2 py-1 rounded-lg border border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#131A15] text-[#1F2E22] dark:text-[#F2EFE9] font-mono focus:outline-none focus:border-[#CB5A3C] focus:bg-white dark:focus:bg-[#1B241E] transition-all"
                           />
                         </div>
                       </div>
@@ -1052,64 +1052,64 @@ export function ReportsView() {
         {/* Row 1: 3 Balanced Metric Cards (Shrink-0: Crisp & Stable) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3 shrink-0">
           {/* Card 1: Vendas */}
-          <div className="bg-white border border-[#E9E4D4] rounded-xl p-2.5 sm:p-3 shadow-xs flex flex-col justify-between">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-2.5 sm:p-3 shadow-xs flex flex-col justify-between transition-colors">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#CB5A3C] uppercase tracking-wider">Vendas</span>
-              <span className="text-xs text-[#525B4E] bg-[#FAF8F0] border border-[#E9E4D4] px-2.5 py-0.5 rounded-lg font-medium">
-                Ticket Médio: <strong className="text-[#1F2E22] font-bold">R$ 23,04</strong>
+              <span className="text-xs font-bold text-[#CB5A3C] dark:text-[#FF7D4F] uppercase tracking-wider">Vendas</span>
+              <span className="text-xs text-[#525B4E] dark:text-[#9CA79E] bg-[#FAF8F0] dark:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E] px-2.5 py-0.5 rounded-lg font-medium">
+                Ticket Médio: <strong className="text-[#1F2E22] dark:text-[#F2EFE9] font-bold">R$ 23,04</strong>
               </span>
             </div>
             <div className="mt-1">
-              <div className="text-xl sm:text-2xl font-medium text-[#1F2E22] tracking-tight">
+              <div className="text-xl sm:text-2xl font-medium text-[#1F2E22] dark:text-[#F2EFE9] tracking-tight">
                 R$ 28.756,40
               </div>
               <div className="flex items-center gap-2 mt-1.5 text-xs">
-                <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[#15803D] bg-[#DCFCE7] border border-[#BBF7D0] px-2 py-0.5 rounded-full shadow-2xs">
+                <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[#15803D] dark:text-emerald-400 bg-[#DCFCE7] dark:bg-emerald-950/40 border border-[#BBF7D0] dark:border-emerald-800/40 px-2 py-0.5 rounded-full shadow-2xs">
                   <span className="text-sm leading-none font-bold">↑</span>
                   <span>+18,6%</span>
                 </span>
-                <span className="text-[#525B4E] font-medium">vs. mês anterior</span>
+                <span className="text-[#525B4E] dark:text-[#9CA79E] font-medium">vs. mês anterior</span>
               </div>
             </div>
           </div>
 
           {/* Card 2: Pedidos */}
-          <div className="bg-white border border-[#E9E4D4] rounded-xl p-2.5 sm:p-3 shadow-xs flex flex-col justify-between">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-2.5 sm:p-3 shadow-xs flex flex-col justify-between transition-colors">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#CB5A3C] uppercase tracking-wider">Pedidos</span>
-              <span className="text-xs text-[#525B4E] bg-[#FAF8F0] border border-[#E9E4D4] px-2.5 py-0.5 rounded-lg font-medium">
+              <span className="text-xs font-bold text-[#CB5A3C] dark:text-[#FF7D4F] uppercase tracking-wider">Pedidos</span>
+              <span className="text-xs text-[#525B4E] dark:text-[#9CA79E] bg-[#FAF8F0] dark:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E] px-2.5 py-0.5 rounded-lg font-medium">
                 Média / Dia: <strong className="text-[#CB5A3C] font-bold">40,2</strong>
               </span>
             </div>
             <div className="mt-1">
-              <div className="text-xl sm:text-2xl font-medium text-[#1F2E22] tracking-tight">
+              <div className="text-xl sm:text-2xl font-medium text-[#1F2E22] dark:text-[#F2EFE9] tracking-tight">
                 1.248
               </div>
               <div className="flex items-center gap-2 mt-1.5 text-xs">
-                <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[#15803D] bg-[#DCFCE7] border border-[#BBF7D0] px-2 py-0.5 rounded-full shadow-2xs">
+                <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[#15803D] dark:text-emerald-400 bg-[#DCFCE7] dark:bg-emerald-950/40 border border-[#BBF7D0] dark:border-emerald-800/40 px-2 py-0.5 rounded-full shadow-2xs">
                   <span className="text-sm leading-none font-bold">↑</span>
                   <span>+15,2%</span>
                 </span>
-                <span className="text-[#525B4E] font-medium">vs. mês anterior</span>
+                <span className="text-[#525B4E] dark:text-[#9CA79E] font-medium">vs. mês anterior</span>
               </div>
             </div>
           </div>
 
           {/* Card 3: Novos clientes via WhatsApp */}
-          <div className="bg-white border border-[#E9E4D4] rounded-xl p-2.5 sm:p-3 shadow-xs flex flex-col justify-between">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-2.5 sm:p-3 shadow-xs flex flex-col justify-between transition-colors">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#CB5A3C] uppercase tracking-wider">Novos clientes</span>
+              <span className="text-xs font-bold text-[#CB5A3C] dark:text-[#FF7D4F] uppercase tracking-wider">Novos clientes</span>
             </div>
             <div className="mt-1">
-              <div className="text-xl sm:text-2xl font-medium text-[#1F2E22] tracking-tight">
+              <div className="text-xl sm:text-2xl font-medium text-[#1F2E22] dark:text-[#F2EFE9] tracking-tight">
                 342
               </div>
               <div className="flex items-center gap-2 mt-1.5 text-xs">
-                <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[#15803D] bg-[#DCFCE7] border border-[#BBF7D0] px-2 py-0.5 rounded-full shadow-2xs">
+                <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[#15803D] dark:text-emerald-400 bg-[#DCFCE7] dark:bg-emerald-950/40 border border-[#BBF7D0] dark:border-emerald-800/40 px-2 py-0.5 rounded-full shadow-2xs">
                   <span className="text-sm leading-none font-bold">↑</span>
                   <span>+22,1%</span>
                 </span>
-                <span className="text-[#525B4E] font-medium">vs. mês anterior</span>
+                <span className="text-[#525B4E] dark:text-[#9CA79E] font-medium">vs. mês anterior</span>
               </div>
             </div>
           </div>
@@ -1119,11 +1119,11 @@ export function ReportsView() {
         <div className="flex flex-col lg:grid lg:grid-cols-3 gap-2.5 sm:gap-3 flex-none lg:flex-[1.35] min-h-0">
 
           {/* Card 1: Vendas ao longo do tempo */}
-          <div className="bg-white border border-[#E9E4D4] rounded-xl p-2.5 sm:p-3.5 shadow-xs flex flex-col justify-between min-h-0 h-full">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-2.5 sm:p-3.5 shadow-xs flex flex-col justify-between min-h-0 h-full transition-colors">
             <div className="shrink-0">
               <div className="flex items-center justify-between gap-1">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <h3 className="text-base sm:text-lg font-bold text-[#CB5A3C] truncate">Vendas ao longo do tempo</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-[#CB5A3C] dark:text-[#FF7D4F] truncate">Vendas ao longo do tempo</h3>
                   <CardHelpTooltip
                     title="Vendas ao longo do tempo"
                     description="Acompanhe a curva diária de faturamento da sua loja no mês. Identifique picos de vendas e períodos de menor movimento para programar promoções."
@@ -1133,14 +1133,14 @@ export function ReportsView() {
               </div>
 
               {/* Status Strip: Clear un-abbreviated labels */}
-              <div className="mt-1.5 min-h-[30px] flex items-center justify-between rounded-lg px-2.5 py-1 text-xs transition-all border border-[#E9E4D4] bg-[#FAF8F0]">
+              <div className="mt-1.5 min-h-[30px] flex items-center justify-between rounded-lg px-2.5 py-1 text-xs transition-all border border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#25332A]">
                 {hoveredPointIndex !== null ? (
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-1.5">
                       <span className="bg-[#CB5A3C] text-white text-[10px] font-bold px-1.5 py-0.2 rounded">
                         {SALES_TIMELINE[hoveredPointIndex].dateStr}
                       </span>
-                      <span className="font-semibold text-[#1F2E22] text-[11px] truncate">
+                      <span className="font-semibold text-[#1F2E22] dark:text-[#F2EFE9] text-[11px] truncate">
                         {SALES_TIMELINE[hoveredPointIndex].fullDate}
                       </span>
                     </div>
@@ -1148,7 +1148,7 @@ export function ReportsView() {
                       <span className="text-xs font-bold text-[#CB5A3C]">
                         R$ {SALES_TIMELINE[hoveredPointIndex].value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
-                      <span className="text-[10px] font-medium text-[#1F2E22] bg-white px-2 py-0.5 rounded-full border border-[#E9E4D4]">
+                      <span className="text-[10px] font-medium text-[#1F2E22] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] px-2 py-0.5 rounded-full border border-[#E9E4D4] dark:border-[#2A382E]">
                         {SALES_TIMELINE[hoveredPointIndex].orders} pedidos
                       </span>
                     </div>
@@ -1156,18 +1156,18 @@ export function ReportsView() {
                 ) : (
                   <div className="flex items-center justify-between w-full text-xs">
                     <div className="flex items-center gap-1">
-                      <span className="text-[#525B4E]">Total:</span>
-                      <strong className="text-[#1F2E22] font-bold text-xs sm:text-sm">R$ 28.756,40</strong>
+                      <span className="text-[#525B4E] dark:text-[#9CA79E]">Total:</span>
+                      <strong className="text-[#1F2E22] dark:text-[#F2EFE9] font-bold text-xs sm:text-sm">R$ 28.756,40</strong>
                     </div>
-                    <div className="h-3 w-px bg-[#E9E4D4]" />
+                    <div className="h-3 w-px bg-[#E9E4D4] dark:bg-[#2A382E]" />
                     <div className="flex items-center gap-1">
-                      <span className="text-[#525B4E]">Pico:</span>
+                      <span className="text-[#525B4E] dark:text-[#9CA79E]">Pico:</span>
                       <strong className="text-[#CB5A3C] font-bold text-xs sm:text-sm">25/Mai (R$ 2.350)</strong>
                     </div>
                     <div className="h-3 w-px bg-[#E9E4D4] hidden sm:block" />
                     <div className="hidden sm:flex items-center gap-1">
-                      <span className="text-[#525B4E]">Média:</span>
-                      <strong className="text-[#1F2E22] font-semibold text-xs sm:text-sm">R$ 927/dia</strong>
+                      <span className="text-[#525B4E] dark:text-[#9CA79E]">Média:</span>
+                      <strong className="text-[#1F2E22] dark:text-[#F2EFE9] font-semibold text-xs sm:text-sm">R$ 927/dia</strong>
                     </div>
                   </div>
                 )}
@@ -1218,7 +1218,7 @@ export function ReportsView() {
                       textAnchor="end"
                       fontSize="12"
                       fontWeight="600"
-                      fill="#1F2E22"
+                      className="fill-[#1F2E22] dark:fill-[#F2EFE9]"
                       fontFamily="sans-serif"
                     >
                       {grid.label}
@@ -1228,7 +1228,7 @@ export function ReportsView() {
                       y1={grid.y}
                       x2="585"
                       y2={grid.y}
-                      stroke={idx === 5 ? "#CEC7B6" : "#E2DCD0"}
+                      className={idx === 5 ? "stroke-[#CEC7B6] dark:stroke-[#3E5244]" : "stroke-[#E2DCD0] dark:stroke-[#2A382E]"}
                       strokeWidth={idx === 5 ? "1.5" : "1"}
                       strokeDasharray={idx === 5 ? "0" : "4 4"}
                     />
@@ -1245,7 +1245,8 @@ export function ReportsView() {
                 <path
                   d={splineLineD}
                   fill="none"
-                  stroke="#2E4233"
+                  stroke="currentColor"
+                  className="text-[#2E4233] dark:text-emerald-400"
                   strokeWidth="3.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -1308,7 +1309,7 @@ export function ReportsView() {
                       y1="195"
                       x2={chartPoints[item.dayIdx].x}
                       y2="201"
-                      stroke="#717A6D"
+                      className="stroke-[#717A6D] dark:stroke-[#4B5E50]"
                       strokeWidth="1.5"
                     />
                     <text
@@ -1317,7 +1318,7 @@ export function ReportsView() {
                       textAnchor={item.anchor}
                       fontSize="12"
                       fontWeight={item.dayIdx === 24 ? "700" : "600"}
-                      fill={item.dayIdx === 24 ? "#CB5A3C" : "#1F2E22"}
+                      className={item.dayIdx === 24 ? "fill-[#CB5A3C] dark:fill-[#FF7D4F]" : "fill-[#1F2E22] dark:fill-[#F2EFE9]"}
                       fontFamily="sans-serif"
                     >
                       {item.label}
@@ -1329,11 +1330,11 @@ export function ReportsView() {
           </div>
 
           {/* Card 2: Produtos mais vendidos */}
-          <div className="bg-white border border-[#E9E4D4] rounded-xl p-2.5 sm:p-3.5 shadow-xs flex flex-col justify-between min-h-0 h-full">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-2.5 sm:p-3.5 shadow-xs flex flex-col justify-between min-h-0 h-full transition-colors">
             <div className="shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <h3 className="text-base sm:text-lg font-bold text-[#CB5A3C]">Produtos mais vendidos</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">Produtos mais vendidos</h3>
                   <CardHelpTooltip
                     title="Produtos mais vendidos"
                     description="Ranking dos itens mais pedidos da cozinha e seu volume total de saída no período (Curva ABC)."
@@ -1354,26 +1355,26 @@ export function ReportsView() {
               ].map((item) => (
                 <div
                   key={item.rank}
-                  className="p-1 sm:p-1.5 rounded-lg hover:bg-[#FAF8F0] transition-colors border border-transparent hover:border-[#E9E4D4] flex flex-col justify-center"
+                  className="p-1 sm:p-1.5 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#25332A] transition-colors border border-transparent hover:border-[#E9E4D4] dark:hover:border-[#2A382E] flex flex-col justify-center"
                 >
                   <div className="flex items-center justify-between gap-1.5">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-semibold text-xs sm:text-sm text-[#111827] truncate">
+                      <span className="font-semibold text-xs sm:text-sm text-[#111827] dark:text-[#F2EFE9] truncate">
                         {item.name}
                       </span>
                     </div>
 
                     <div className="text-right shrink-0 flex items-center gap-1">
-                      <span className="text-xs sm:text-sm font-bold text-[#1F2E22]">
+                      <span className="text-xs sm:text-sm font-bold text-[#1F2E22] dark:text-[#F2EFE9]">
                         {item.revenue}
                       </span>
-                      <span className="text-[10px] text-[#525B4E] font-medium">
+                      <span className="text-[10px] text-[#525B4E] dark:text-[#9CA79E] font-medium">
                         • {item.count} unidades
                       </span>
                     </div>
                   </div>
 
-                  <div className="w-full bg-[#EFECE3] h-1.5 rounded-full overflow-hidden mt-1">
+                  <div className="w-full bg-[#EFECE3] dark:bg-[#131A15] h-1.5 rounded-full overflow-hidden mt-1">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
                         item.rank === 1 ? "bg-[#CB5A3C]" : "bg-[#2E4233]"
@@ -1387,12 +1388,12 @@ export function ReportsView() {
           </div>
 
           {/* Card 3: Pedidos por horário */}
-          <div className="bg-white border border-[#E9E4D4] rounded-xl p-2.5 sm:p-3.5 shadow-xs flex flex-col justify-between min-h-0 h-full">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-2.5 sm:p-3.5 shadow-xs flex flex-col justify-between min-h-0 h-full transition-colors">
             <div className="shrink-0">
               {/* Header */}
               <div className="flex items-center justify-between gap-1 mb-1">
                 <div className="flex items-center gap-1.5">
-                  <h3 className="text-base sm:text-lg font-bold text-[#CB5A3C] whitespace-nowrap">
+                  <h3 className="text-base sm:text-lg font-bold text-[#CB5A3C] dark:text-[#FF7D4F] whitespace-nowrap">
                     Pedidos por horário
                   </h3>
                   <CardHelpTooltip
@@ -1404,7 +1405,7 @@ export function ReportsView() {
               </div>
 
               {/* Day Selector Pills */}
-              <div className="flex items-center gap-1 bg-[#F3EFE3]/80 p-0.5 rounded-full border border-[#E9E4D4] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex items-center gap-1 bg-[#F3EFE3]/80 dark:bg-[#222C25] p-0.5 rounded-full border border-[#E9E4D4] dark:border-[#2A382E] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {(
                   [
                     { id: "todos", label: "Média" },
@@ -1427,7 +1428,7 @@ export function ReportsView() {
                     className={`px-2 py-0.5 text-xs font-semibold rounded-full transition-all cursor-pointer whitespace-nowrap ${
                       selectedDay === d.id
                         ? "bg-[#CB5A3C] text-white shadow-xs"
-                        : "text-gray-700 hover:text-[#CB5A3C] hover:bg-white/80"
+                        : "text-gray-700 dark:text-[#9CA79E] hover:text-[#CB5A3C] dark:hover:text-[#F2EFE9] hover:bg-white/80 dark:hover:bg-[#2A382E]"
                     }`}
                   >
                     {d.label}
@@ -1436,14 +1437,14 @@ export function ReportsView() {
               </div>
 
               {/* Interactive Hour Status Bar */}
-              <div className="mt-1.5 min-h-[30px] flex items-center justify-between text-xs px-2.5 py-1 rounded-lg bg-[#FAF8F0] border border-[#E9E4D4] transition-all">
+              <div className="mt-1.5 min-h-[30px] flex items-center justify-between text-xs px-2.5 py-1 rounded-lg bg-[#FAF8F0] dark:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E] transition-all">
                 {activeHour !== null ? (
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-1.5">
                       <span className="bg-[#CB5A3C] text-white text-[10px] font-bold px-1.5 py-0.2 rounded">
                         {activeHour < 10 ? `0${activeHour}` : activeHour}h às {activeHour < 9 ? `0${activeHour + 1}` : activeHour + 1}h
                       </span>
-                      <span className="font-bold text-[#1F2E22] text-xs">
+                      <span className="font-bold text-[#1F2E22] dark:text-[#F2EFE9] text-xs">
                         {activeDayData.hours[activeHour]} {activeDayData.hours[activeHour] === 1 ? "pedido" : "pedidos"}
                       </span>
                       {activeDayData.hours[activeHour] === Math.max(...activeDayData.hours) && activeDayData.hours[activeHour] > 0 && (
@@ -1452,7 +1453,7 @@ export function ReportsView() {
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] text-[#525B4E] font-medium">
+                    <span className="text-[10px] text-[#525B4E] dark:text-[#9CA79E] font-medium">
                       {activeDayData.totalOrders > 0
                         ? `${((activeDayData.hours[activeHour] / activeDayData.totalOrders) * 100).toFixed(1)}% do dia`
                         : "0%"}
@@ -1461,7 +1462,7 @@ export function ReportsView() {
                 ) : (
                   <div className="flex items-center justify-between w-full text-[#525B4E] text-xs">
                     <span>Passe o mouse ou toque nas barras</span>
-                    <span className="font-semibold text-[#1F2E22]">{activeDayData.totalOrders} pedidos</span>
+                    <span className="font-semibold text-[#1F2E22] dark:text-[#F2EFE9]">{activeDayData.totalOrders} pedidos</span>
                   </div>
                 )}
               </div>
@@ -1478,10 +1479,10 @@ export function ReportsView() {
                     { val: 0, y: 136 },
                   ].map((grid, idx) => (
                     <g key={idx}>
-                      <text x="0" y={grid.y + 4} fontSize="11" fontWeight="600" fill="#1F2E22" fontFamily="sans-serif">
+                      <text x="0" y={grid.y + 4} fontSize="11" fontWeight="600" className="fill-[#1F2E22] dark:fill-[#F2EFE9]" fontFamily="sans-serif">
                         {grid.val}
                       </text>
-                      <line x1="26" y1={grid.y} x2="340" y2={grid.y} stroke="#E2DCD0" strokeWidth="1" />
+                      <line x1="26" y1={grid.y} x2="340" y2={grid.y} className="stroke-[#E2DCD0] dark:stroke-[#2A382E]" strokeWidth="1" />
                     </g>
                   ))}
 
@@ -1518,7 +1519,7 @@ export function ReportsView() {
                           rx="3"
                           fill={isCurrentActive || isPeak ? "#CB5A3C" : "#2E4233"}
                           opacity={activeHour !== null ? (isCurrentActive ? 1 : 0.4) : 1}
-                          className="transition-all duration-200 pointer-events-none"
+                          className={`transition-all duration-200 pointer-events-none ${isCurrentActive || isPeak ? "fill-[#CB5A3C]" : "fill-[#2E4233] dark:fill-emerald-600/70"}`}
                         />
                         {isCurrentActive && val > 0 && (
                           <g className="pointer-events-none">
@@ -1549,7 +1550,7 @@ export function ReportsView() {
                 </svg>
               </div>
 
-              <div className="shrink-0 flex justify-between pl-8 pr-1 text-[11px] font-semibold text-[#1F2E22] mt-0.5">
+              <div className="shrink-0 flex justify-between pl-8 pr-1 text-[11px] font-semibold text-[#1F2E22] dark:text-[#F2EFE9] mt-0.5">
                 <span>00h</span>
                 <span>03h</span>
                 <span>06h</span>
@@ -1568,11 +1569,11 @@ export function ReportsView() {
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-2.5 sm:gap-3 flex-none lg:flex-1 min-h-0">
 
           {/* Card 1: Canais de venda */}
-          <div className="bg-white border border-[#E9E4D4] rounded-xl p-3 sm:p-4 shadow-xs flex flex-col justify-between min-h-0 h-full">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-3 sm:p-4 shadow-xs flex flex-col justify-between min-h-0 h-full transition-colors">
             <div className="shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <h3 className="text-base sm:text-lg font-bold text-[#CB5A3C]">Canais de venda</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">Canais de venda</h3>
                   <CardHelpTooltip
                     title="Canais de venda"
                     description="Mostra a divisão do faturamento entre pedidos entregues a domicílio (Delivery) e pedidos retirados presencialmente no balcão da sua loja."
@@ -1596,11 +1597,11 @@ export function ReportsView() {
                     cy="80"
                     r="54"
                     fill="transparent"
-                    stroke="#2E4233"
+                    stroke="currentColor"
+                    className="text-[#2E4233] dark:text-emerald-500 transition-all duration-300 cursor-pointer"
                     strokeWidth={hoveredChannel === "delivery" ? "22" : "18"}
                     strokeDasharray="258 340"
                     strokeDashoffset="0"
-                    className="transition-all duration-300 cursor-pointer"
                     onMouseEnter={() => setHoveredChannel("delivery")}
                     opacity={hoveredChannel === "retirada" ? 0.35 : 1}
                   />
@@ -1633,7 +1634,7 @@ export function ReportsView() {
                     </>
                   ) : hoveredChannel === "delivery" ? (
                     <>
-                      <span className="text-xl sm:text-2xl font-bold text-[#2E4233] leading-none transition-all">
+                      <span className="text-xl sm:text-2xl font-bold text-[#2E4233] dark:text-emerald-400 leading-none transition-all">
                         77,0%
                       </span>
                       <span className="text-[10px] font-semibold text-[#2E4233] mt-1 uppercase tracking-wider">
@@ -1642,7 +1643,7 @@ export function ReportsView() {
                     </>
                   ) : (
                     <>
-                      <span className="text-xl sm:text-2xl font-bold text-[#1F2E22] leading-none">
+                      <span className="text-xl sm:text-2xl font-bold text-[#1F2E22] dark:text-[#F2EFE9] leading-none">
                         1.248
                       </span>
                       <span className="text-[10px] text-[#525B4E] font-medium mt-1 uppercase tracking-wider">
@@ -1658,39 +1659,39 @@ export function ReportsView() {
                 <div 
                   className={`p-2.5 rounded-xl transition-all cursor-pointer border ${
                     hoveredChannel === "delivery" 
-                      ? "bg-[#FAF8F0] border-[#2E4233] shadow-xs" 
-                      : "bg-[#FAF8F0]/40 border-[#E9E4D4] hover:bg-[#FAF8F0] hover:border-[#2E4233]"
+                      ? "bg-[#FAF8F0] dark:bg-[#25332A] border-[#2E4233] dark:border-emerald-500 shadow-xs" 
+                      : "bg-[#FAF8F0]/40 dark:bg-[#25332A]/40 border-[#E9E4D4] dark:border-[#2A382E] hover:bg-[#FAF8F0] dark:hover:bg-[#25332A] hover:border-[#2E4233] dark:hover:border-emerald-500"
                   }`}
                   onMouseEnter={() => setHoveredChannel("delivery")}
                   onMouseLeave={() => setHoveredChannel(null)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#2E4233] shrink-0" />
-                      <span className="text-[#1F2E22] font-bold text-xs sm:text-sm truncate">Delivery (Entrega)</span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#2E4233] dark:bg-emerald-500 shrink-0" />
+                      <span className="text-[#1F2E22] dark:text-[#F2EFE9] font-bold text-xs sm:text-sm truncate">Delivery (Entrega)</span>
                     </div>
-                    <span className="text-[11px] font-bold text-[#2E4233] bg-[#DCFCE7] border border-[#BBF7D0] px-2 py-0.5 rounded-full shrink-0">
+                    <span className="text-[11px] font-bold text-[#2E4233] dark:text-emerald-400 bg-[#DCFCE7] dark:bg-emerald-950/40 border border-[#BBF7D0] dark:border-emerald-800/40 px-2 py-0.5 rounded-full shrink-0">
                       77,0%
                     </span>
                   </div>
                   <div className="mt-1.5 flex items-baseline justify-between text-xs">
-                    <span className="font-bold text-[#1F2E22] text-sm sm:text-base">
+                    <span className="font-bold text-[#1F2E22] dark:text-[#F2EFE9] text-sm sm:text-base">
                       R$ 22.142,40
                     </span>
                     <span className="text-[#525B4E] text-xs font-medium">
                       961 pedidos
                     </span>
                   </div>
-                  <div className="w-full bg-[#E9E4D4] h-1.5 rounded-full overflow-hidden mt-1.5">
-                    <div className="h-full bg-[#2E4233] rounded-full transition-all duration-300" style={{ width: "77%" }} />
+                  <div className="w-full bg-[#E9E4D4] dark:bg-[#131A15] h-1.5 rounded-full overflow-hidden mt-1.5">
+                    <div className="h-full bg-[#2E4233] dark:bg-emerald-500 rounded-full transition-all duration-300" style={{ width: "77%" }} />
                   </div>
                 </div>
 
                 <div 
                   className={`p-2.5 rounded-xl transition-all cursor-pointer border ${
                     hoveredChannel === "retirada" 
-                      ? "bg-[#FDF0E9] border-[#CB5A3C] shadow-xs" 
-                      : "bg-[#FDF0E9]/30 border-[#F4D6C7] hover:bg-[#FDF0E9] hover:border-[#CB5A3C]"
+                      ? "bg-[#FDF0E9] dark:bg-[#CB5A3C]/20 border-[#CB5A3C] shadow-xs" 
+                      : "bg-[#FDF0E9]/30 dark:bg-[#CB5A3C]/10 border-[#F4D6C7] dark:border-[#CB5A3C]/30 hover:bg-[#FDF0E9] dark:hover:bg-[#CB5A3C]/20 hover:border-[#CB5A3C]"
                   }`}
                   onMouseEnter={() => setHoveredChannel("retirada")}
                   onMouseLeave={() => setHoveredChannel(null)}
@@ -1698,9 +1699,9 @@ export function ReportsView() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#CB5A3C] shrink-0" />
-                      <span className="text-[#1F2E22] font-bold text-xs sm:text-sm truncate">Retirada no Balcão</span>
+                      <span className="text-[#1F2E22] dark:text-[#F2EFE9] font-bold text-xs sm:text-sm truncate">Retirada no Balcão</span>
                     </div>
-                    <span className="text-[11px] font-bold text-[#CB5A3C] bg-[#FDF0E9] border border-[#F4D6C7] px-2 py-0.5 rounded-full shrink-0">
+                    <span className="text-[11px] font-bold text-[#CB5A3C] dark:text-[#FF7D4F] bg-[#FDF0E9] dark:bg-[#CB5A3C]/20 border border-[#F4D6C7] dark:border-[#CB5A3C]/40 px-2 py-0.5 rounded-full shrink-0">
                       23,0%
                     </span>
                   </div>
@@ -1712,7 +1713,7 @@ export function ReportsView() {
                       287 pedidos
                     </span>
                   </div>
-                  <div className="w-full bg-[#F4D6C7]/60 h-1.5 rounded-full overflow-hidden mt-1.5">
+                  <div className="w-full bg-[#F4D6C7]/60 dark:bg-[#131A15] h-1.5 rounded-full overflow-hidden mt-1.5">
                     <div className="h-full bg-[#CB5A3C] rounded-full transition-all duration-300" style={{ width: "23%" }} />
                   </div>
                 </div>
@@ -1721,11 +1722,11 @@ export function ReportsView() {
           </div>
 
           {/* Card 2: Taxa de recompra */}
-          <div className="bg-white border border-[#E9E4D4] rounded-xl p-3 sm:p-4 shadow-xs flex flex-col justify-between min-h-0 h-full">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-3 sm:p-4 shadow-xs flex flex-col justify-between min-h-0 h-full transition-colors">
             <div className="shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <h3 className="text-base sm:text-lg font-bold text-[#CB5A3C]">Taxa de recompra</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">Taxa de recompra</h3>
                   <CardHelpTooltip
                     title="Taxa de recompra"
                     description="Percentual de clientes cadastrados pelo WhatsApp que voltam a comprar os mesmos produtos favoritos na sua loja."
@@ -1745,7 +1746,8 @@ export function ReportsView() {
                     cy="60"
                     r="46"
                     fill="transparent"
-                    stroke="#F0ECE1"
+                    stroke="currentColor"
+                    className="text-[#F0ECE1] dark:text-[#25332A]"
                     strokeWidth="12"
                   />
                   <circle
@@ -1753,7 +1755,8 @@ export function ReportsView() {
                     cy="60"
                     r="46"
                     fill="transparent"
-                    stroke="#2E4233"
+                    stroke="currentColor"
+                    className="text-[#2E4233] dark:text-emerald-500"
                     strokeWidth="12"
                     strokeDasharray="91 289"
                     strokeDashoffset="0"
@@ -1761,7 +1764,7 @@ export function ReportsView() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-1">
-                  <span className="text-2xl sm:text-3xl font-medium sm:font-semibold text-[#1F2E22] tracking-tight leading-none">
+                  <span className="text-2xl sm:text-3xl font-medium sm:font-semibold text-[#1F2E22] dark:text-[#F2EFE9] tracking-tight leading-none">
                     31,4%
                   </span>
                   <span className="text-[11px] font-semibold text-[#525B4E] mt-1 leading-tight">
@@ -1781,11 +1784,11 @@ export function ReportsView() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 mt-1">
-                  <div className="p-2 sm:p-2.5 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4]">
+                  <div className="p-2 sm:p-2.5 rounded-xl bg-[#FAF8F0] dark:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]">
                     <span className="text-[11px] text-[#525B4E] block font-medium truncate">
                       Clientes com Recompra
                     </span>
-                    <span className="text-base sm:text-lg font-bold text-[#1F2E22] block mt-0.5">
+                    <span className="text-base sm:text-lg font-bold text-[#1F2E22] dark:text-[#F2EFE9] block mt-0.5">
                       389 clientes
                     </span>
                     <span className="text-[10px] text-[#717A6D] block mt-0.5">
@@ -1793,11 +1796,11 @@ export function ReportsView() {
                     </span>
                   </div>
 
-                  <div className="p-2 sm:p-2.5 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4]">
+                  <div className="p-2 sm:p-2.5 rounded-xl bg-[#FAF8F0] dark:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]">
                     <span className="text-[11px] text-[#525B4E] block font-medium truncate">
                       Base Cadastrada
                     </span>
-                    <span className="text-base sm:text-lg font-bold text-[#1F2E22] block mt-0.5">
+                    <span className="text-base sm:text-lg font-bold text-[#1F2E22] dark:text-[#F2EFE9] block mt-0.5">
                       1.239 clientes
                     </span>
                     <span className="text-[10px] text-[#717A6D] block mt-0.5">
@@ -1816,14 +1819,14 @@ export function ReportsView() {
       {/* Rich Detail Slideover / Modal with Next Action Ideas */}
       {modal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl border border-[#E9E4D4] p-5 sm:p-6 max-w-lg w-full shadow-2xl relative animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex items-start justify-between pb-3 border-b border-[#F0ECE1] mb-3.5">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] p-5 sm:p-6 max-w-lg w-full shadow-2xl relative animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex items-start justify-between pb-3 border-b border-[#F0ECE1] dark:border-[#2A382E] mb-3.5">
               <div>
-                <h3 className="text-lg sm:text-xl font-serif text-[#CB5A3C] tracking-tight">
+                <h3 className="text-lg sm:text-xl font-serif text-[#CB5A3C] dark:text-[#FF7D4F] tracking-tight">
                   {modal.title}
                 </h3>
                 {modal.subtitle && (
-                  <span className="text-xs sm:text-sm font-semibold text-black block mt-1">
+                  <span className="text-xs sm:text-sm font-semibold text-black dark:text-[#F2EFE9] block mt-1">
                     {modal.subtitle}
                   </span>
                 )}
@@ -1837,19 +1840,19 @@ export function ReportsView() {
               </button>
             </div>
 
-            <div className="text-sm text-[#2E4233]">
+            <div className="text-sm text-[#2E4233] dark:text-[#F2EFE9]">
               {modal.content}
             </div>
 
             {/* Strategic Next Action Idea Box */}
             {modal.actionIdea && (
-              <div className="mt-4 p-3 bg-[#FAF8F0] border border-[#E9E4D4] rounded-xl flex items-start gap-2.5">
+              <div className="mt-4 p-3 bg-[#FAF8F0] dark:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl flex items-start gap-2.5">
                 <Lightbulb className="w-4.5 h-4.5 text-[#CB5A3C] shrink-0 mt-0.5" />
                 <div className="text-xs">
                   <span className="font-bold text-[#CB5A3C] block mb-0.5">
                     💡 Ideia para próxima ação:
                   </span>
-                  <p className="text-[#2E4233] leading-relaxed">
+                  <p className="text-[#2E4233] dark:text-[#F2EFE9] leading-relaxed">
                     {modal.actionIdea}
                   </p>
                 </div>
@@ -1860,7 +1863,7 @@ export function ReportsView() {
               <button
                 type="button"
                 onClick={() => setModal({ isOpen: false, title: "", content: null })}
-                className="bg-[#2E4233] hover:bg-[#1E2D22] text-white text-xs font-semibold px-4 py-1.5 rounded-full transition-colors cursor-pointer shadow-xs"
+                className="bg-[#CB5A3C] hover:bg-[#B34B30] text-white text-xs font-semibold px-4 py-1.5 rounded-full transition-colors cursor-pointer shadow-xs"
               >
                 Fechar detalhes
               </button>

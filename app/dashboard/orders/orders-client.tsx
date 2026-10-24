@@ -1335,7 +1335,7 @@ export default function OrdersClient({
   }
 
   return (
-    <div className="flex w-full h-full max-h-full overflow-hidden relative bg-[#FAF8F0]">
+    <div className="flex w-full h-full max-h-full overflow-hidden relative bg-[#FAF8F0] dark:bg-[#131A15]">
       {/* Main Content Area */}
       <div
         className={cn(
@@ -1345,16 +1345,16 @@ export default function OrdersClient({
         {/* Page Header (Orange title matching DeliPlus logo & Estoque/Cardápio) */}
         <div className="flex flex-col mb-2 sm:mb-2.5 shrink-0">
           <div className="flex items-center gap-2.5">
-            <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] tracking-tight">
+            <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] dark:text-[#FF7D4F] tracking-tight">
               Pedidos
             </h1>
 
             {/* Tooltip Icon & Popover */}
             <div className="relative group inline-block">
-              <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
+              <div className="w-5 h-5 rounded-full bg-[#2E4233] dark:bg-[#222C25] dark:border dark:border-[#2A382E] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                 ?
               </div>
-              <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+              <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] dark:bg-[#17211A] dark:border dark:border-[#2A382E] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
                 <p className="text-[13px] text-white mb-2 leading-relaxed">
                   <span className="font-extrabold text-white">Dica:</span> Acompanhe e gerencie todos os pedidos em tempo real da sua operação de delivery e retirada.
                 </p>
@@ -1375,7 +1375,7 @@ export default function OrdersClient({
               </div>
             </div>
           </div>
-          <p className="text-[#2E4233] text-sm md:text-base font-medium mt-0.5">
+          <p className="text-[#2E4233] dark:text-[#9CA79E] text-sm md:text-base font-medium mt-0.5">
             Acompanhe e gerencie em tempo real os pedidos de delivery e retirada.
           </p>
         </div>
@@ -1385,7 +1385,7 @@ export default function OrdersClient({
           {/* Left Column: Controls + Orders Table Container */}
           <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
             {/* Controls Row: Filters & Search (Aligned directly above the Table) */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 mb-2.5 shrink-0 z-30 relative bg-white/40 sm:bg-transparent p-1.5 sm:p-0 rounded-2xl">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 mb-2.5 shrink-0 relative z-10 bg-white/40 dark:bg-[#1B241E]/40 sm:bg-transparent p-1.5 sm:p-0 rounded-2xl">
               <div className="w-full sm:w-auto flex flex-col">
                 <div 
                   ref={filterScrollRef}
@@ -1393,7 +1393,7 @@ export default function OrdersClient({
                   className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-1 sm:pb-0 relative flex-nowrap"
                 >
                   {/* Grupo 1: Fases de Preparo / Produção (Cozinha) */}
-                  <div className="flex items-center gap-1 bg-[#F3EFE3]/80 p-0.5 rounded-full border border-[#E9E4D4] shrink-0 shadow-2xs">
+                  <div className="flex items-center gap-1 bg-[#F3EFE3]/80 dark:bg-[#1B241E] p-0.5 rounded-full border border-[#E9E4D4] dark:border-[#2A382E] shrink-0 shadow-2xs">
                     {KITCHEN_STATUS_OPTIONS.map((option) => (
                       <button
                         key={option.value}
@@ -1415,7 +1415,7 @@ export default function OrdersClient({
                   </div>
 
                   {/* Separador vertical nítido entre os dois grupos */}
-                  <div className="h-5 w-px bg-[#D6D0BC] shrink-0 mx-0.5 hidden sm:block" />
+                  <div className="h-5 w-px bg-[#D6D0BC] dark:bg-[#2A382E] shrink-0 mx-0.5 hidden sm:block" />
 
                   {/* Grupo 2: Modalidade e Data */}
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -1427,7 +1427,7 @@ export default function OrdersClient({
                           setTypeFilter(e.target.value as 'Todos' | 'Delivery' | 'Retirada')
                           setCurrentPage(1)
                         }}
-                        className="appearance-none bg-white border border-[#E9E4D4] rounded-full pl-2.5 pr-6 py-1 text-xs font-semibold text-gray-600 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
+                        className="appearance-none bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-full pl-2.5 pr-6 py-1 text-xs font-semibold text-gray-600 dark:text-[#F2EFE9] hover:border-gray-400 dark:hover:border-[#3B4D40] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
                       >
                         <option value="Todos">Modalidade</option>
                         <option value="Delivery">Delivery</option>
@@ -1444,7 +1444,7 @@ export default function OrdersClient({
                           setDateFilter(e.target.value)
                           setCurrentPage(1)
                         }}
-                        className="appearance-none bg-white border border-[#E9E4D4] rounded-full pl-5.5 pr-5 py-1 text-xs font-semibold text-gray-600 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
+                        className="appearance-none bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-full pl-5.5 pr-5 py-1 text-xs font-semibold text-gray-600 dark:text-[#F2EFE9] hover:border-gray-400 dark:hover:border-[#3B4D40] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
                       >
                         <option value="Hoje">Hoje</option>
                         <option value="Ontem">Ontem</option>
@@ -1458,7 +1458,7 @@ export default function OrdersClient({
                 </div>
 
                 {/* Barra de rolagem visível no mobile para sinalizar opções ocultas */}
-                <div className="w-full h-1 bg-[#FAF8F0] border border-[#E9E4D4]/80 rounded-full overflow-hidden sm:hidden mt-1">
+                <div className="w-full h-1 bg-[#FAF8F0] dark:bg-[#131A15] border border-[#E9E4D4]/80 dark:border-[#2A382E] rounded-full overflow-hidden sm:hidden mt-1">
                   {(() => {
                     const hasOverflow = filterScroll.scrollWidth > filterScroll.clientWidth && filterScroll.clientWidth > 0
                     const thumbWidth = hasOverflow ? Math.max(25, (filterScroll.clientWidth / filterScroll.scrollWidth) * 100) : 40
@@ -1490,7 +1490,7 @@ export default function OrdersClient({
                       setCurrentPage(1)
                     }}
                     placeholder="Buscar pedido por nº ou cliente..."
-                    className="w-full pl-9 pr-8 py-2 bg-white border-2 border-[#D6D0C2] hover:border-[#CB5A3C]/70 focus:border-[#CB5A3C] rounded-xl text-xs font-semibold text-[#1C2C22] placeholder:text-[#8C827A] placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 transition-all shadow-xs"
+                    className="w-full pl-9 pr-8 py-2 bg-white dark:bg-[#1B241E] border-2 border-[#D6D0C2] dark:border-[#2A382E] hover:border-[#CB5A3C]/70 dark:hover:border-[#FF7D4F]/70 focus:border-[#CB5A3C] dark:focus:border-[#FF7D4F] rounded-xl text-xs font-semibold text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-[#8C827A] dark:placeholder:text-[#9CA79E] placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 transition-all shadow-xs"
                   />
                   {searchQuery && (
                     <button
@@ -1510,16 +1510,16 @@ export default function OrdersClient({
             </div>
 
             {/* Orders Table Container */}
-            <div className="bg-white rounded-2xl border border-[#E9E4D4] shadow-sm overflow-hidden flex-1 min-h-0 flex flex-col justify-between">
+            <div className="bg-white dark:bg-[#1B241E] rounded-2xl border border-[#E9E4D4] dark:border-[#2A382E] shadow-sm overflow-hidden flex-1 min-h-0 flex flex-col justify-between">
           <div ref={tableAreaRef} className="overflow-x-auto overflow-y-hidden flex-1">
             <table className="w-full h-full min-h-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-[#E9E4D4] bg-[#FAF8F0]/80 text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                <tr className="border-b border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/80 dark:bg-[#222C25] text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-[#9CA79E]">
                   <th
                     onClick={() => handleSort('id')}
                     className={cn(
                       "py-2.5 pl-3.5 sm:pl-4 pr-1 whitespace-nowrap cursor-pointer select-none group transition-colors",
-                      sortField === 'id' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
+                      sortField === 'id' ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
                     )}
                     title="Organizar por número do pedido"
                   >
@@ -1540,7 +1540,7 @@ export default function OrdersClient({
                     onClick={() => handleSort('client')}
                     className={cn(
                       "py-2.5 px-1.5 whitespace-nowrap cursor-pointer select-none group transition-colors",
-                      sortField === 'client' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
+                      sortField === 'client' ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
                     )}
                     title="Organizar por nome do cliente"
                   >
@@ -1562,7 +1562,7 @@ export default function OrdersClient({
                     onClick={() => handleSort('time')}
                     className={cn(
                       "py-2.5 px-1.5 whitespace-nowrap cursor-pointer select-none group transition-colors",
-                      sortField === 'time' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
+                      sortField === 'time' ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
                     )}
                     title="Organizar por horário"
                   >
@@ -1583,7 +1583,7 @@ export default function OrdersClient({
                     onClick={() => handleSort('type')}
                     className={cn(
                       "py-2.5 px-1.5 whitespace-nowrap cursor-pointer select-none group transition-colors",
-                      sortField === 'type' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
+                      sortField === 'type' ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
                     )}
                     title="Organizar por tipo (Delivery / Retirada)"
                   >
@@ -1604,7 +1604,7 @@ export default function OrdersClient({
                     onClick={() => handleSort('total')}
                     className={cn(
                       "py-2.5 px-1.5 whitespace-nowrap cursor-pointer select-none group transition-colors",
-                      sortField === 'total' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
+                      sortField === 'total' ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
                     )}
                     title="Organizar por valor total"
                   >
@@ -1625,7 +1625,7 @@ export default function OrdersClient({
                     onClick={() => handleSort('status')}
                     className={cn(
                       "py-2.5 px-1 text-center whitespace-nowrap cursor-pointer select-none group transition-colors",
-                      sortField === 'status' ? "text-[#CB5A3C]" : "hover:text-[#1C2C22]"
+                      sortField === 'status' ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
                     )}
                     title="Organizar por status (agrupar iguais)"
                   >
@@ -1648,10 +1648,10 @@ export default function OrdersClient({
                   <th className="py-2.5 pr-3 pl-1 w-6 select-none"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E9E4D4]/60">
+              <tbody className="divide-y divide-[#E9E4D4]/60 dark:divide-[#233026]">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-gray-500 text-sm">
+                    <td colSpan={8} className="py-12 text-center text-gray-500 dark:text-[#9CA79E] text-sm">
                       Nenhum pedido encontrado para os filtros selecionados.
                     </td>
                   </tr>
@@ -1669,21 +1669,21 @@ export default function OrdersClient({
                         onClick={() => setSelectedOrderId(order.id)}
                         title="Clique para ver os detalhes deste pedido"
                         className={cn(
-                          "cursor-pointer transition-colors relative group select-none bg-white hover:bg-[#FAF8F0]/80",
-                          isSelected && "bg-[#FAF5E9] shadow-[inset_3px_0_0_0_#CB5A3C]"
+                          "cursor-pointer transition-colors relative group select-none bg-white dark:bg-[#1B241E] hover:bg-[#FAF8F0]/80 dark:hover:bg-[#222C25]",
+                          isSelected && "bg-[#FAF5E9] dark:bg-[#243128] shadow-[inset_3px_0_0_0_#CB5A3C] dark:shadow-[inset_3px_0_0_0_#FF7D4F]"
                         )}
                       >
                         {/* Order ID with Urgent Stripe */}
                         <td className="py-2 pl-3.5 sm:pl-4 pr-1 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
                             {isNovo && (
-                              <span className="w-1.5 h-5 rounded-full bg-[#CB5A3C] shrink-0" />
+                              <span className="w-1.5 h-5 rounded-full bg-[#CB5A3C] dark:bg-[#FF7D4F] shrink-0" />
                             )}
                             <div>
                               <span
                                 className={cn(
                                   "font-bold text-[13px] transition-colors",
-                                  isSelected ? "text-[#CB5A3C]" : "text-[#1C2C22] group-hover:text-[#CB5A3C]"
+                                  isSelected ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "text-[#1C2C22] dark:text-[#F2EFE9] group-hover:text-[#CB5A3C] dark:group-hover:text-[#FF7D4F]"
                                 )}
                               >
                                 {order.id}
@@ -1694,7 +1694,7 @@ export default function OrdersClient({
 
                         {/* Cliente */}
                         <td className="py-2 px-1.5 whitespace-nowrap">
-                          <div className="font-semibold text-xs text-[#1C2C22] leading-tight mb-1">
+                          <div className="font-semibold text-xs text-[#1C2C22] dark:text-[#F2EFE9] leading-tight mb-1">
                             {order.client}
                           </div>
                           <a
@@ -1712,18 +1712,18 @@ export default function OrdersClient({
 
                         {/* Horário */}
                         <td className="py-2 px-1.5 whitespace-nowrap">
-                          <div className="text-xs font-medium text-[#1C2C22]">{order.time}</div>
-                          <div className="text-[10px] text-gray-400">{order.date}</div>
+                          <div className="text-xs font-medium text-[#1C2C22] dark:text-[#F2EFE9]">{order.time}</div>
+                          <div className="text-[10px] text-gray-400 dark:text-[#9CA79E]">{order.date}</div>
                         </td>
 
                         {/* Tipo */}
                         <td className="py-2 px-1.5 whitespace-nowrap">
                           {order.type === 'Delivery' ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-800 border border-sky-200/60">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 dark:bg-sky-950/50 text-sky-800 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/40">
                               Delivery
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/60">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
                               Retirada
                             </span>
                           )}
@@ -1731,12 +1731,12 @@ export default function OrdersClient({
 
                         {/* Total */}
                         <td className="py-2 px-1.5 whitespace-nowrap">
-                          <div className="text-sm font-bold text-[#1C2C22] leading-tight">{order.total}</div>
-                          <div className="text-[10px] text-gray-600 font-medium mt-0.5 leading-tight truncate max-w-[110px]" title={order.paymentMethod}>
+                          <div className="text-sm font-bold text-[#1C2C22] dark:text-[#F2EFE9] leading-tight">{order.total}</div>
+                          <div className="text-[10px] text-gray-600 dark:text-[#9CA79E] font-medium mt-0.5 leading-tight truncate max-w-[110px]" title={order.paymentMethod}>
                             {order.paymentMethod}
                           </div>
                           {order.paymentMethod === 'Em Dinheiro' && order.changeFor && (
-                            <div className="text-[10px] text-amber-800 font-semibold mt-0.5 leading-tight">
+                            <div className="text-[10px] text-amber-800 dark:text-amber-400 font-semibold mt-0.5 leading-tight">
                               {order.changeFor}
                             </div>
                           )}
@@ -1745,32 +1745,32 @@ export default function OrdersClient({
                         {/* Status */}
                         <td className="py-2 px-1 text-center whitespace-nowrap">
                           {isNovo && (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2EE] text-[#CB5A3C] border border-[#FADCD5]">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2EE] dark:bg-[#CB5A3C]/20 text-[#CB5A3C] dark:text-white border border-[#FADCD5] dark:border-[#CB5A3C]/40">
                               Novo
                             </span>
                           )}
                           {isPreparo && (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FFFBEB] dark:bg-amber-950/50 text-[#D97706] dark:text-white border border-[#FDE68A] dark:border-amber-800/40">
                               Em preparo
                             </span>
                           )}
                           {isPronto && (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FAF5FF] dark:bg-purple-950/50 text-[#7C3AED] dark:text-white border border-[#E9D5FF] dark:border-purple-800/40">
                               {order.type === 'Retirada' ? 'Pronto p/ retirar' : 'Pronto'}
                             </span>
                           )}
                           {isEntrega && (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F0F9FF] text-[#0284C7] border border-[#BAE6FD]">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F0F9FF] dark:bg-sky-950/50 text-[#0284C7] dark:text-white border border-[#BAE6FD] dark:border-sky-800/40">
                               Em entrega
                             </span>
                           )}
                           {order.status === 'Concluído' && (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-stone-100 text-stone-600 border border-stone-200">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#ECFDF5] dark:bg-emerald-950/60 text-[#059669] dark:text-white border border-[#A7F3D0] dark:border-emerald-800/40">
                               Concluído
                             </span>
                           )}
                           {order.status === 'Cancelado' && (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FCA5A5]">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2F2] dark:bg-red-950/50 text-[#DC2626] dark:text-white border border-[#FCA5A5] dark:border-red-800/40">
                               Cancelado
                             </span>
                           )}
@@ -1784,7 +1784,7 @@ export default function OrdersClient({
                             <button
                               type="button"
                               onClick={(e) => handleOpenPrint(order, e)}
-                              className="inline-flex items-center justify-center px-2 py-1 rounded-lg text-xs font-bold text-[#1C2C22] bg-[#FAF8F0] hover:bg-[#F3EEDD] border border-[#E9E4D4] hover:border-[#2E4233]/40 shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95"
+                              className="inline-flex items-center justify-center px-2 py-1 rounded-lg text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] bg-[#FAF8F0] dark:bg-[#222C25] hover:bg-[#F3EEDD] dark:hover:bg-[#2A382E] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#2E4233]/40 dark:hover:border-[#FF7D4F]/40 shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95"
                               title="Imprimir comanda térmica 80mm"
                             >
                               <span className="font-semibold text-[11px]">Imprimir</span>
@@ -1792,7 +1792,7 @@ export default function OrdersClient({
                             <button
                               type="button"
                               onClick={() => setSelectedOrderId(order.id)}
-                              className="inline-flex items-center justify-center px-2 py-1 rounded-lg text-xs font-bold text-[#CB5A3C] bg-white hover:bg-[#FEF2EE] border border-[#CB5A3C]/40 hover:border-[#CB5A3C] shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95"
+                              className="inline-flex items-center justify-center px-2 py-1 rounded-lg text-xs font-bold text-[#CB5A3C] dark:text-[#FF7D4F] bg-white dark:bg-[#1B241E] hover:bg-[#FEF2EE] dark:hover:bg-[#25332A] border border-[#CB5A3C]/40 dark:border-[#FF7D4F]/40 hover:border-[#CB5A3C] dark:hover:border-[#FF7D4F] shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95"
                               title="Abrir detalhes deste pedido"
                             >
                               <span className="font-bold text-[11px]">+ Detalhes</span>
@@ -1824,16 +1824,16 @@ export default function OrdersClient({
                   Array.from({ length: Math.max(0, itemsPerPage - paginatedOrders.length) }).map((_, idx) => (
                     <tr
                       key={`empty-slot-${idx}`}
-                      className="border-b border-[#E9E4D4]/40 h-[46px] select-none pointer-events-none"
+                      className="border-b border-[#E9E4D4]/40 dark:border-[#233026] h-[46px] select-none pointer-events-none"
                     >
-                      <td className="py-2.5 pl-3.5 sm:pl-4 pr-1"><span className="text-xs text-gray-200 font-medium">—</span></td>
-                      <td className="py-2.5 px-1.5"><span className="text-xs text-gray-200 font-medium">—</span></td>
-                      <td className="py-2.5 px-1.5"><span className="text-xs text-gray-200 font-medium">—</span></td>
-                      <td className="py-2.5 px-1.5"><span className="text-xs text-gray-200 font-medium">—</span></td>
-                      <td className="py-2.5 px-1.5"><span className="text-xs text-gray-200 font-medium">—</span></td>
-                      <td className="py-2.5 px-1 text-center"><span className="text-xs text-gray-200 font-medium">—</span></td>
-                      <td className="py-2.5 px-1.5 text-center"><span className="text-xs text-gray-200 font-medium">—</span></td>
-                      <td className="py-2.5 px-1.5 text-center"><span className="text-xs text-gray-200 font-medium">—</span></td>
+                      <td className="py-2.5 pl-3.5 sm:pl-4 pr-1"><span className="text-xs text-gray-200 dark:text-[#2A382E] font-medium">—</span></td>
+                      <td className="py-2.5 px-1.5"><span className="text-xs text-gray-200 dark:text-[#2A382E] font-medium">—</span></td>
+                      <td className="py-2.5 px-1.5"><span className="text-xs text-gray-200 dark:text-[#2A382E] font-medium">—</span></td>
+                      <td className="py-2.5 px-1.5"><span className="text-xs text-gray-200 dark:text-[#2A382E] font-medium">—</span></td>
+                      <td className="py-2.5 px-1.5"><span className="text-xs text-gray-200 dark:text-[#2A382E] font-medium">—</span></td>
+                      <td className="py-2.5 px-1 text-center"><span className="text-xs text-gray-200 dark:text-[#2A382E] font-medium">—</span></td>
+                      <td className="py-2.5 px-1.5 text-center"><span className="text-xs text-gray-200 dark:text-[#2A382E] font-medium">—</span></td>
+                      <td className="py-2.5 px-1.5 text-center"><span className="text-xs text-gray-200 dark:text-[#2A382E] font-medium">—</span></td>
                       <td className="py-2.5 pr-3 pl-1 w-6"></td>
                     </tr>
                   ))}
@@ -1842,8 +1842,8 @@ export default function OrdersClient({
           </div>
 
           {/* Pagination Controls pinned at bottom (Centered with item count) */}
-          <div className="relative flex justify-center items-center px-6 py-2.5 border-t border-[#E9E4D4] bg-[#FAF8F0]/30 shrink-0 min-h-[44px]">
-            <span className="hidden sm:inline-block absolute left-6 text-xs text-gray-500 font-medium">
+          <div className="relative flex justify-center items-center px-6 py-2.5 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/30 dark:bg-[#1B241E]/30 shrink-0 min-h-[44px]">
+            <span className="hidden sm:inline-block absolute left-6 text-xs text-gray-500 dark:text-[#9CA79E] font-medium">
               Mostrando {filteredOrders.length > 0 ? (safeCurrentPage - 1) * itemsPerPage + 1 : 0}–{Math.min(safeCurrentPage * itemsPerPage, filteredOrders.length)} de {filteredOrders.length} pedidos
             </span>
 
@@ -1879,7 +1879,7 @@ export default function OrdersClient({
 
         <aside
           className={cn(
-            "bg-white rounded-2xl border border-[#E9E4D4] shadow-sm flex flex-col overflow-hidden flex-1 min-h-0",
+            "bg-white dark:bg-[#1B241E] rounded-2xl border border-[#E9E4D4] dark:border-[#2A382E] shadow-sm flex flex-col overflow-hidden flex-1 min-h-0",
             // Mobile / Tablet: modal drawer overlay when an order is selected
             selectedOrderId && "max-lg:fixed max-lg:inset-y-0 max-lg:right-0 max-lg:w-full sm:max-lg:w-[420px] max-lg:z-50 max-lg:shadow-2xl max-lg:flex max-lg:rounded-none max-lg:animate-in max-lg:slide-in-from-right max-lg:duration-200"
           )}
@@ -1887,44 +1887,44 @@ export default function OrdersClient({
           {activeOrder ? (
             <>
               {/* Drawer Header (Aligned with Table Container header) */}
-              <div className="px-4 py-2.5 sm:px-5 sm:py-3 border-b border-[#E9E4D4] bg-[#FAF8F0]/80 flex items-center justify-between shrink-0 min-h-[48px]">
+              <div className="px-4 py-2.5 sm:px-5 sm:py-3 border-b border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/80 dark:bg-[#222C25] flex items-center justify-between shrink-0 min-h-[48px]">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-lg sm:text-xl font-serif font-bold text-[#1C2C22] leading-none">
+                    <h2 className="text-lg sm:text-xl font-serif font-bold text-[#1C2C22] dark:text-[#F2EFE9] leading-none">
                       Pedido {activeOrder.id}
                     </h2>
                     {activeOrder.status === 'Novo' && (
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2EE] text-[#CB5A3C] border border-[#FADCD5]">
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2EE] dark:bg-[#CB5A3C]/20 text-[#CB5A3C] dark:text-white border border-[#FADCD5] dark:border-[#CB5A3C]/40">
                         Novo
                       </span>
                     )}
                     {activeOrder.status === 'Em preparo' && (
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]">
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FFFBEB] dark:bg-amber-950/50 text-[#D97706] dark:text-white border border-[#FDE68A] dark:border-amber-800/40">
                         Em preparo
                       </span>
                     )}
                     {activeOrder.status === 'Pronto' && (
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]">
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FAF5FF] dark:bg-purple-950/50 text-[#7C3AED] dark:text-white border border-[#E9D5FF] dark:border-purple-800/40">
                         {activeOrder.type === 'Retirada' ? 'Pronto p/ retirar' : 'Pronto'}
                       </span>
                     )}
                     {activeOrder.status === 'Em entrega' && (
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F0F9FF] text-[#0284C7] border border-[#BAE6FD]">
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F0F9FF] dark:bg-sky-950/50 text-[#0284C7] dark:text-white border border-[#BAE6FD] dark:border-sky-800/40">
                         Em entrega
                       </span>
                     )}
                     {activeOrder.status === 'Concluído' && (
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F3F4F6] text-gray-700 border border-gray-300">
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#ECFDF5] dark:bg-emerald-950/60 text-[#059669] dark:text-white border border-[#A7F3D0] dark:border-emerald-800/40">
                         Concluído
                       </span>
                     )}
                     {activeOrder.status === 'Cancelado' && (
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FCA5A5]">
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2F2] dark:bg-red-950/50 text-[#DC2626] dark:text-white border border-[#FCA5A5] dark:border-red-800/40">
                         Cancelado
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-gray-500 font-medium mt-1">
+                  <p className="text-[11px] text-gray-500 dark:text-[#9CA79E] font-medium mt-1">
                     Recebido às {activeOrder.time} • {activeOrder.date}
                   </p>
                 </div>
@@ -1934,7 +1934,7 @@ export default function OrdersClient({
                   onClick={() => setSelectedOrderId(null)}
                   aria-label="Fechar"
                   title="Fechar detalhes"
-                  className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer shrink-0 ml-2"
+                  className="w-7 h-7 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2A382E] flex items-center justify-center text-gray-400 dark:text-[#9CA79E] hover:text-gray-700 dark:hover:text-[#F2EFE9] transition-colors cursor-pointer shrink-0 ml-2"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1944,13 +1944,13 @@ export default function OrdersClient({
             <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
               {/* Section: Cliente */}
               <div>
-                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-1.5">
+                <h3 className="text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] uppercase tracking-wider mb-1.5">
                   Cliente
                 </h3>
-                <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-2.5 flex items-center justify-between">
+                <div className="bg-[#FAF8F0]/60 dark:bg-[#1F2B23] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-2.5 flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-sm text-[#1C2C22]">{activeOrder.client}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{activeOrder.phone}</div>
+                    <div className="font-bold text-sm text-[#1C2C22] dark:text-[#F2EFE9]">{activeOrder.client}</div>
+                    <div className="text-xs text-gray-500 dark:text-[#9CA79E] mt-0.5">{activeOrder.phone}</div>
                   </div>
                   <a
                     href={getWhatsAppUrl(activeOrder, storeName)}
@@ -1966,7 +1966,7 @@ export default function OrdersClient({
 
               {/* Section: Modalidade de Entrega */}
               <div>
-                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-1.5">
+                <h3 className="text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] uppercase tracking-wider mb-1.5">
                   {activeOrder.type === 'Delivery' ? (
                     <>
                       ENTREGA <span className="text-[#CB5A3C]">(DELIVERY)</span>
@@ -1977,18 +1977,18 @@ export default function OrdersClient({
                     </>
                   )}
                 </h3>
-                <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-2.5">
-                  <div className="font-semibold text-xs text-[#1C2C22] mb-0.5">
+                <div className="bg-[#FAF8F0]/60 dark:bg-[#1F2B23] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-2.5">
+                  <div className="font-semibold text-xs text-[#1C2C22] dark:text-[#F2EFE9] mb-0.5">
                     {activeOrder.type === 'Delivery' ? 'Endereço de entrega' : 'Local de retirada'}
                   </div>
-                  <p className="text-xs text-gray-600 leading-relaxed">{activeOrder.address}</p>
+                  <p className="text-xs text-gray-600 dark:text-[#9CA79E] leading-relaxed">{activeOrder.address}</p>
                 </div>
               </div>
 
               {/* Section: Itens do pedido */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider">
+                  <h3 className="text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] uppercase tracking-wider">
                     Itens do pedido ({activeOrder.itemsDetail.length})
                   </h3>
                 </div>
@@ -2008,26 +2008,26 @@ export default function OrdersClient({
                         {visibleItems.map((item, idx) => (
                           <div
                             key={idx}
-                            className="p-2.5 rounded-xl border border-[#E9E4D4] bg-white flex items-start gap-2.5 shadow-xs"
+                            className="p-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] bg-white dark:bg-[#222C25] flex items-start gap-2.5 shadow-xs"
                           >
-                            <div className="w-7 h-7 rounded-lg bg-[#FAF8F0] border border-[#E9E4D4] text-[#1C2C22] font-bold text-xs flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-lg bg-[#FAF8F0] dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-[#1C2C22] dark:text-[#F2EFE9] font-bold text-xs flex items-center justify-center shrink-0">
                               {item.qty}x
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2">
-                                <span className="font-semibold text-xs text-[#1C2C22] truncate">
+                                <span className="font-semibold text-xs text-[#1C2C22] dark:text-[#F2EFE9] truncate">
                                   {item.name}
                                 </span>
-                                <span className="font-bold text-xs text-[#1C2C22] shrink-0">
+                                <span className="font-bold text-xs text-[#1C2C22] dark:text-[#F2EFE9] shrink-0">
                                   {item.price}
                                 </span>
                               </div>
                               {item.details && (
-                                <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{item.details}</p>
+                                <p className="text-[11px] text-gray-500 dark:text-[#9CA79E] mt-0.5 leading-snug">{item.details}</p>
                               )}
                               {/* Adicionais integrados ao prato, visualmente separados */}
                               {item.complements && item.complements.length > 0 && (
-                                <div className="mt-2 pt-2 border-t border-[#E9E4D4]/70 flex flex-col gap-1">
+                                <div className="mt-2 pt-2 border-t border-[#E9E4D4]/70 dark:border-[#2A382E] flex flex-col gap-1">
                                   <span className="text-[10px] font-bold text-[#CB5A3C] uppercase tracking-wider flex items-center gap-1">
                                     <span>+ Adicionais ({item.complements.length}):</span>
                                   </span>
@@ -2035,9 +2035,9 @@ export default function OrdersClient({
                                     {item.complements.map((comp, cIdx) => (
                                       <div
                                         key={cIdx}
-                                        className="flex items-center justify-between text-[11px] bg-[#FAF8F0] px-2.5 py-1 rounded-lg border border-[#E9E4D4]/60"
+                                        className="flex items-center justify-between text-[11px] bg-[#FAF8F0] dark:bg-[#1B241E] px-2.5 py-1 rounded-lg border border-[#E9E4D4]/60 dark:border-[#2A382E]"
                                       >
-                                        <span className="font-semibold text-[#1C2C22]">
+                                        <span className="font-semibold text-[#1C2C22] dark:text-[#F2EFE9]">
                                           + {comp.name}
                                         </span>
                                         <span className="font-bold text-[#CB5A3C]">
@@ -2055,7 +2055,7 @@ export default function OrdersClient({
 
                       {/* Pagination (3 em 3 itens, só se tiver mais de 3 itens) */}
                       {activeOrder.itemsDetail.length > 3 && (
-                        <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-[#E9E4D4]/60">
+                        <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-[#E9E4D4]/60 dark:border-[#2A382E]">
                           <span className="text-[11px] text-gray-500 font-medium">
                             Pág. {safeDrawerPage} de {totalDrawerPages} ({activeOrder.itemsDetail.length} itens)
                           </span>
@@ -2086,10 +2086,10 @@ export default function OrdersClient({
               {/* Section: Observações */}
               {activeOrder.obs && (
                 <div>
-                  <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-1.5">
+                  <h3 className="text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] uppercase tracking-wider mb-1.5">
                     Observações do Cliente
                   </h3>
-                  <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 text-xs text-amber-900 leading-relaxed font-medium">
+                  <div className="bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/40 rounded-xl p-2.5 text-xs text-amber-900 dark:text-amber-300 leading-relaxed font-medium">
                     {activeOrder.obs}
                   </div>
                 </div>
@@ -2097,13 +2097,13 @@ export default function OrdersClient({
 
               {/* Section: Pagamento */}
               <div>
-                <h3 className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider mb-1.5">
+                <h3 className="text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] uppercase tracking-wider mb-1.5">
                   Pagamento
                 </h3>
-                <div className="bg-[#FAF8F0]/60 border border-[#E9E4D4] rounded-xl p-2.5 flex items-center justify-between text-xs">
+                <div className="bg-[#FAF8F0]/60 dark:bg-[#1F2B23] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-2.5 flex items-center justify-between text-xs">
                   <div>
-                    <span className="font-semibold text-[#1C2C22]">{activeOrder.paymentMethod}</span>
-                    <div className="text-[11px] text-gray-600 mt-0.5">
+                    <span className="font-semibold text-[#1C2C22] dark:text-[#F2EFE9]">{activeOrder.paymentMethod}</span>
+                    <div className="text-[11px] text-gray-600 dark:text-[#9CA79E] mt-0.5">
                       {activeOrder.paymentMethod === 'Em Dinheiro' && activeOrder.changeFor
                         ? activeOrder.changeFor
                         : 'Cobrar na entrega / retirada'}
@@ -2117,7 +2117,7 @@ export default function OrdersClient({
             </div>
 
             {/* Drawer Bottom Actions: Ação Rápida + Voltar Status + Alterar Pedido + Cancelar Pedido */}
-            <div className="p-3 bg-[#FAF8F0] border-t border-[#E9E4D4] shrink-0 space-y-2">
+            <div className="p-3 bg-[#FAF8F0] dark:bg-[#1B241E] border-t border-[#E9E4D4] dark:border-[#2A382E] shrink-0 space-y-2">
               {/* Ação Rápida Principal */}
               {activeOrder.status === 'Novo' && (
                 <button
@@ -2133,7 +2133,7 @@ export default function OrdersClient({
                 <button
                   type="button"
                   onClick={() => handleAdvanceStatus(activeOrder.id)}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#1E3A2B] hover:bg-[#162B20] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] dark:bg-[#8B5CF6] dark:hover:bg-[#7C3AED] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                 >
                   <Check className="w-4 h-4 stroke-[2.5]" />
                   <span>Marcar como Pronto</span>
@@ -2144,7 +2144,7 @@ export default function OrdersClient({
                   <button
                     type="button"
                     onClick={() => handleAdvanceStatus(activeOrder.id)}
-                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#1C2C22] hover:bg-black shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                   >
                     <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
                     <span>Concluir retirada do balcão</span>
@@ -2164,14 +2164,14 @@ export default function OrdersClient({
                 <button
                   type="button"
                   onClick={() => handleAdvanceStatus(activeOrder.id)}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#1C2C22] hover:bg-black shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                 >
                   <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
                   <span>Confirmar entrega e concluir</span>
                 </button>
               )}
               {activeOrder.status === 'Concluído' && (
-                <div className="w-full py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-200 text-center flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-800">
+                <div className="w-full py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 text-center flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
                   <Check className="w-4 h-4 stroke-[2.5] text-emerald-600" />
                   <span>Pedido Concluído com Sucesso</span>
                 </div>
@@ -2184,10 +2184,10 @@ export default function OrdersClient({
                   <button
                     type="button"
                     onClick={() => handleRevertStatus(activeOrder.id)}
-                    className="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold text-[#1C2C22] bg-white hover:bg-gray-100 border-2 border-[#D6D0C2] shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    className="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] bg-white dark:bg-[#25332A] hover:bg-gray-100 dark:hover:bg-[#2E3F34] border-2 border-[#D6D0C2] dark:border-[#3E5244] shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                     title="Voltar status anterior do pedido"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 text-gray-500" />
+                    <RotateCcw className="w-3.5 h-3.5 text-gray-500 dark:text-[#9CA79E]" />
                     <span>
                       Voltar para{" "}
                       {activeOrder.status === 'Em preparo'
@@ -2232,10 +2232,10 @@ export default function OrdersClient({
                   <button
                     type="button"
                     onClick={() => handleRevertStatus(activeOrder.id)}
-                    className="py-1.5 px-3 rounded-lg text-xs font-bold text-[#1C2C22] bg-white hover:bg-gray-100 border border-[#E9E4D4] shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
+                    className="py-1.5 px-3 rounded-lg text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] bg-white dark:bg-[#222C25] hover:bg-gray-100 dark:hover:bg-[#2A382E] border border-[#E9E4D4] dark:border-[#2A382E] shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
                     title="Reativar pedido como Novo"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 text-gray-500" />
+                    <RotateCcw className="w-3.5 h-3.5 text-gray-500 dark:text-[#9CA79E]" />
                     <span>Reativar</span>
                   </button>
                 </div>
@@ -2244,14 +2244,14 @@ export default function OrdersClient({
           </>
         ) : (
           /* Centered Empty State when no order is selected */
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none bg-white">
-            <div className="w-16 h-16 rounded-2xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-center text-[#2E4233] mb-4 shadow-xs">
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none bg-white dark:bg-[#1B241E]">
+            <div className="w-16 h-16 rounded-2xl bg-[#FAF8F0] dark:bg-[#222C25] border border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-center text-[#2E4233] dark:text-[#FF7D4F] mb-4 shadow-xs">
               <ClipboardList className="w-8 h-8 text-[#CB5A3C]" />
             </div>
-            <h3 className="font-serif text-lg font-bold text-[#1C2C22] mb-1.5">
+            <h3 className="font-serif text-lg font-bold text-[#1C2C22] dark:text-[#F2EFE9] mb-1.5">
               Nenhum pedido selecionado
             </h3>
-            <p className="text-xs text-gray-500 max-w-[240px] leading-relaxed">
+            <p className="text-xs text-gray-500 dark:text-[#9CA79E] max-w-[240px] leading-relaxed">
               Selecione um pedido na tabela ao lado para visualizar os itens, endereço, observações e dados do cliente.
             </p>
           </div>
@@ -2272,9 +2272,9 @@ export default function OrdersClient({
   {/* Modal de Cancelamento de Pedido estilizado no padrão DeliPlus */}
   {orderToCancel && (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150">
+      <div className="bg-white dark:bg-[#1B241E] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150">
         {/* Modal Header */}
-        <div className="p-4 bg-[#FAF8F0] border-b border-[#E9E4D4] flex items-center justify-between">
+        <div className="p-4 bg-[#FAF8F0] dark:bg-[#222C25] border-b border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-between">
           <h3 className="font-serif text-lg font-bold text-[#1C2C22]">
             Cancelar Pedido {orderToCancel.id}
           </h3>
@@ -2288,24 +2288,24 @@ export default function OrdersClient({
         </div>
 
         {/* Modal Body */}
-        <div className="p-4 flex flex-col gap-3 bg-white">
-          <p className="text-sm font-semibold text-[#1C2C22]">
+        <div className="p-4 flex flex-col gap-3 bg-white dark:bg-[#1B241E]">
+          <p className="text-sm font-semibold text-[#1C2C22] dark:text-[#F2EFE9]">
             Tem certeza que deseja cancelar este pedido?
           </p>
-          <p className="text-xs text-gray-500 leading-relaxed">
+          <p className="text-xs text-gray-500 dark:text-[#9CA79E] leading-relaxed">
             Esta ação alterará o status do pedido para <strong className="text-red-600 font-bold">Cancelado</strong> no sistema e no banco de dados. Esta alteração não pode ser desfeita.
           </p>
 
-          <div className="bg-[#FAF8F0] border border-[#E9E4D4] rounded-xl p-3 flex flex-col gap-1.5 text-xs">
-            <div className="flex justify-between text-gray-600">
+          <div className="bg-[#FAF8F0] dark:bg-[#222C25] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-3 flex flex-col gap-1.5 text-xs">
+            <div className="flex justify-between text-gray-600 dark:text-[#9CA79E]">
               <span>Cliente:</span>
-              <span className="font-semibold text-[#1C2C22]">{orderToCancel.client}</span>
+              <span className="font-semibold text-[#1C2C22] dark:text-[#F2EFE9]">{orderToCancel.client}</span>
             </div>
-            <div className="flex justify-between text-gray-600">
+            <div className="flex justify-between text-gray-600 dark:text-[#9CA79E]">
               <span>Modalidade:</span>
-              <span className="font-semibold text-[#1C2C22]">{orderToCancel.type}</span>
+              <span className="font-semibold text-[#1C2C22] dark:text-[#F2EFE9]">{orderToCancel.type}</span>
             </div>
-            <div className="flex justify-between text-gray-600">
+            <div className="flex justify-between text-gray-600 dark:text-[#9CA79E]">
               <span>Valor Total:</span>
               <span className="font-bold text-[#CB5A3C]">{orderToCancel.total}</span>
             </div>
@@ -2313,12 +2313,12 @@ export default function OrdersClient({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-3 bg-[#FAF8F0] border-t border-[#E9E4D4] flex items-center justify-end gap-2">
+        <div className="p-3 bg-[#FAF8F0] dark:bg-[#222C25] border-t border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={() => setOrderToCancel(null)}
             disabled={isCanceling}
-            className="py-2 px-3.5 rounded-xl text-xs font-bold text-[#1C2C22] bg-white border border-[#E9E4D4] hover:bg-[#F3EEDD] shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+            className="py-2 px-3.5 rounded-xl text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:bg-[#F3EEDD] dark:hover:bg-[#2A382E] shadow-2xs transition-all cursor-pointer disabled:opacity-50"
           >
             Voltar
           </button>
@@ -2446,7 +2446,7 @@ export default function OrdersClient({
                 onClick={() => {
                   if (typeof window !== 'undefined') window.print()
                 }}
-                className="flex-1 bg-[#1E3A2B] hover:bg-[#162B20] text-white text-xs font-semibold gap-1.5"
+                className="flex-1 bg-[#CB5A3C] hover:bg-[#B34B30] text-white text-xs font-semibold gap-1.5"
               >
                 <Printer className="w-3.5 h-3.5" />
                 Imprimir Cupom
@@ -2459,14 +2459,14 @@ export default function OrdersClient({
       {/* Edit Order Items Modal */}
       {isEditModalOpen && editingOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] border border-[#E9E4D4]">
+          <div className="bg-white dark:bg-[#1B241E] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] border border-[#E9E4D4] dark:border-[#2A382E]">
             {/* Modal Header */}
-            <div className="px-5 py-3.5 bg-[#FAF8F0] border-b border-[#E9E4D4] flex items-center justify-between shrink-0">
+            <div className="px-5 py-3.5 bg-[#FAF8F0] dark:bg-[#222C25] border-b border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-between shrink-0">
               <div>
-                <h3 className="font-serif text-lg font-bold text-[#1C2C22] leading-none">
+                <h3 className="font-serif text-lg font-bold text-[#1C2C22] dark:text-[#F2EFE9] leading-none">
                   Editar Itens do Pedido {editingOrder.id}
                 </h3>
-                <p className="text-xs text-gray-500 font-medium mt-1">
+                <p className="text-xs text-gray-500 dark:text-[#9CA79E] font-medium mt-1">
                   Adicione novos produtos ou exclua itens existentes do pedido.
                 </p>
               </div>
@@ -2483,11 +2483,11 @@ export default function OrdersClient({
             <div className="p-5 overflow-y-auto flex-1 space-y-4">
               {/* List of current items */}
               <div>
-                <label className="text-xs font-bold text-[#1C2C22] uppercase tracking-wider block mb-2">
+                <label className="text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] uppercase tracking-wider block mb-2">
                   Itens no Pedido ({editableItems.length})
                 </label>
                 {editableItems.length === 0 ? (
-                  <div className="p-4 rounded-xl border border-dashed border-gray-300 text-center text-xs text-gray-500 bg-[#FAF8F0]/40">
+                  <div className="p-4 rounded-xl border border-dashed border-gray-300 dark:border-[#2A382E] text-center text-xs text-gray-500 dark:text-[#9CA79E] bg-[#FAF8F0]/40 dark:bg-[#1B241E]/40">
                     Nenhum item restante no pedido. Adicione itens abaixo antes de salvar.
                   </div>
                 ) : (
@@ -2495,35 +2495,35 @@ export default function OrdersClient({
                     {editableItems.map((item, idx) => (
                       <div
                         key={idx}
-                        className="p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 flex flex-col gap-2 shadow-2xs"
+                        className="p-3 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/30 dark:bg-[#222C25] flex flex-col gap-2 shadow-2xs"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-xs text-[#1C2C22] truncate">
+                            <div className="font-semibold text-xs text-[#1C2C22] dark:text-[#F2EFE9] truncate">
                               {item.name}
                             </div>
-                            <div className="text-[11px] text-gray-500 font-medium">
+                            <div className="text-[11px] text-gray-500 dark:text-[#9CA79E] font-medium">
                               {item.price} cada
                             </div>
                           </div>
 
                           {/* Quantity Stepper */}
-                          <div className="flex items-center gap-1 bg-white border border-[#E9E4D4] rounded-lg p-0.5 shadow-2xs">
+                          <div className="flex items-center gap-1 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-lg p-0.5 shadow-2xs">
                             <button
                               type="button"
                               onClick={() => handleUpdateItemQty(idx, -1)}
-                              className="w-6 h-6 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 hover:text-black cursor-pointer text-xs"
+                              className="w-6 h-6 rounded flex items-center justify-center text-gray-600 dark:text-[#9CA79E] hover:bg-gray-100 dark:hover:bg-[#2A382E] hover:text-black dark:hover:text-[#F2EFE9] cursor-pointer text-xs"
                               title="Diminuir quantidade"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
-                            <span className="w-6 text-center text-xs font-bold text-[#1C2C22]">
+                            <span className="w-6 text-center text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9]">
                               {item.qty}
                             </span>
                             <button
                               type="button"
                               onClick={() => handleUpdateItemQty(idx, 1)}
-                              className="w-6 h-6 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 hover:text-black cursor-pointer text-xs"
+                              className="w-6 h-6 rounded flex items-center justify-center text-gray-600 dark:text-[#9CA79E] hover:bg-gray-100 dark:hover:bg-[#2A382E] hover:text-black dark:hover:text-[#F2EFE9] cursor-pointer text-xs"
                               title="Aumentar quantidade"
                             >
                               <Plus className="w-3 h-3" />
@@ -2544,7 +2544,7 @@ export default function OrdersClient({
                         {/* Complements of this item */}
                         {item.complements && item.complements.length > 0 && (
                           <div className="pt-2 border-t border-[#E9E4D4]/60 flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mr-1">
+                            <span className="text-[10px] font-bold text-gray-500 dark:text-[#9CA79E] uppercase tracking-wider mr-1">
                               Adicionais:
                             </span>
                             {item.complements.map((comp, cIdx) => (
@@ -2572,8 +2572,8 @@ export default function OrdersClient({
               </div>
 
               {/* Add New Item Section */}
-              <div className="p-3.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-2.5">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-[#1C2C22] uppercase tracking-wider">
+              <div className="p-3.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/50 dark:bg-[#222C25] space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] uppercase tracking-wider">
                   <Plus className="w-3.5 h-3.5 text-[#CB5A3C]" />
                   <span>Adicionar Produto ao Pedido</span>
                 </div>
@@ -2582,7 +2582,7 @@ export default function OrdersClient({
                   <select
                     value={selectedCatalogProdId}
                     onChange={(e) => handleSelectCatalogProduct(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs text-[#1C2C22] dark:text-[#F2EFE9] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
                   >
                     <option value="">Selecione um produto do cardápio...</option>
                     {catalogProducts.map(p => (
@@ -2598,7 +2598,7 @@ export default function OrdersClient({
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
                     placeholder="Nome do produto"
-                    className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-gray-400 dark:placeholder:text-[#9CA79E] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
                   />
 
                   <div className="flex gap-2">
@@ -2625,7 +2625,7 @@ export default function OrdersClient({
                       type="button"
                       onClick={handleAddNewItem}
                       disabled={!newItemName.trim()}
-                      className="bg-[#2E4233] hover:bg-[#1E3A2B] text-white text-xs font-bold px-3 shrink-0 rounded-xl disabled:opacity-50"
+                      className="bg-[#CB5A3C] hover:bg-[#B34B30] text-white text-xs font-bold px-3 shrink-0 rounded-xl disabled:opacity-50"
                     >
                       <Plus className="w-3.5 h-3.5 mr-1" />
                       Adicionar
@@ -2636,8 +2636,8 @@ export default function OrdersClient({
 
               {/* Add Complement Section */}
               {editableItems.length > 0 && (
-                <div className="p-3.5 rounded-xl border border-amber-200/80 bg-amber-50/40 space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 uppercase tracking-wider">
+                <div className="p-3.5 rounded-xl border border-amber-200/80 dark:border-amber-800/40 bg-amber-50/40 dark:bg-amber-950/20 space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider">
                     <Plus className="w-3.5 h-3.5 text-[#CB5A3C]" />
                     <span>Adicionar Adicional a um Item</span>
                   </div>
@@ -2645,7 +2645,7 @@ export default function OrdersClient({
                   <div className="space-y-2">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <div>
-                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                        <label className="text-[10px] font-bold text-gray-500 dark:text-[#9CA79E] uppercase tracking-wider block mb-1">
                           Item do pedido:
                         </label>
                         <select
@@ -2662,7 +2662,7 @@ export default function OrdersClient({
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                        <label className="text-[10px] font-bold text-gray-500 dark:text-[#9CA79E] uppercase tracking-wider block mb-1">
                           Adicional do cardápio:
                         </label>
                         <select
@@ -2715,14 +2715,14 @@ export default function OrdersClient({
               )}
 
               {/* Recalculated Total Banner */}
-              <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 flex items-center justify-between text-xs">
-                <span className="font-medium text-amber-900">Total recalculado do pedido:</span>
-                <span className="font-bold text-sm text-[#1C2C22]">{calculatedTotal}</span>
+              <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/40 flex items-center justify-between text-xs">
+                <span className="font-medium text-amber-900 dark:text-amber-300">Total recalculado do pedido:</span>
+                <span className="font-bold text-sm text-[#1C2C22] dark:text-[#F2EFE9]">{calculatedTotal}</span>
               </div>
             </div>
 
             {/* Modal Actions */}
-            <div className="p-4 bg-white border-t border-[#E9E4D4] flex gap-2">
+            <div className="p-4 bg-white dark:bg-[#222C25] border-t border-[#E9E4D4] dark:border-[#2A382E] flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => setIsEditModalOpen(false)}
@@ -2732,7 +2732,7 @@ export default function OrdersClient({
               </Button>
               <Button
                 onClick={handleSaveEditedOrder}
-                className="flex-1 bg-[#1E3A2B] hover:bg-[#162B20] text-white text-xs font-semibold gap-1.5"
+                className="flex-1 bg-[#CB5A3C] hover:bg-[#B34B30] text-white text-xs font-semibold gap-1.5"
               >
                 <Check className="w-3.5 h-3.5" />
                 Salvar Alterações
@@ -2749,7 +2749,7 @@ export default function OrdersClient({
           onClick={() => setItemToDeleteFromOrder(null)}
         >
           <div 
-            className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col items-center text-center border border-[#E9E4D4] animate-in zoom-in-95 duration-150 relative"
+            className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col items-center text-center border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150 relative"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -2764,16 +2764,16 @@ export default function OrdersClient({
               <Trash2 className="w-7 h-7 text-[#CB5A3C]" />
             </div>
 
-            <h3 className="font-bold text-[#1C2C22] text-lg mb-1">Excluir item do pedido?</h3>
-            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Tem certeza que deseja remover <span className="font-bold text-[#1C2C22]">&quot;{itemToDeleteFromOrder.name}&quot;</span> deste pedido? O valor total será recalculado automaticamente.
+            <h3 className="font-bold text-[#1C2C22] dark:text-[#F2EFE9] text-lg mb-1">Excluir item do pedido?</h3>
+            <p className="text-sm text-gray-500 dark:text-[#9CA79E] mb-6 leading-relaxed">
+              Tem certeza que deseja remover <span className="font-bold text-[#1C2C22] dark:text-[#F2EFE9]">&quot;{itemToDeleteFromOrder.name}&quot;</span> deste pedido? O valor total será recalculado automaticamente.
             </p>
 
             <div className="flex w-full gap-3">
               <button
                 type="button"
                 onClick={() => setItemToDeleteFromOrder(null)}
-                className="flex-1 py-2.5 rounded-xl border border-[#E9E4D4] text-[14px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-[14px] font-semibold text-gray-600 dark:text-[#9CA79E] hover:bg-gray-50 dark:hover:bg-[#222C25] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
