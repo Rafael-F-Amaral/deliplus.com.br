@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -368,6 +368,13 @@ export type Database = {
             foreignKeyName: "campaigns_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "campaigns_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -404,6 +411,76 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "categories_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "categories_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          min_order_cents: number
+          status: string
+          store_id: string
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          min_order_cents?: number
+          status?: string
+          store_id: string
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          min_order_cents?: number
+          status?: string
+          store_id?: string
+          updated_at?: string
+          uses_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "coupons_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -456,6 +533,13 @@ export type Database = {
             foreignKeyName: "customers_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -490,6 +574,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_categories_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
           {
             foreignKeyName: "inventory_categories_store_id_fkey"
             columns: ["store_id"]
@@ -548,6 +639,13 @@ export type Database = {
             foreignKeyName: "inventory_items_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "inventory_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -555,25 +653,34 @@ export type Database = {
       }
       order_items: {
         Row: {
+          complements: Json
+          details: string | null
           id: string
+          name: string
           order_id: string
-          product_id: string
+          product_id: string | null
           quantity: number
           total_price_cents: number
           unit_price_cents: number
         }
         Insert: {
+          complements?: Json
+          details?: string | null
           id?: string
+          name?: string
           order_id: string
-          product_id: string
+          product_id?: string | null
           quantity?: number
           total_price_cents?: number
           unit_price_cents?: number
         }
         Update: {
+          complements?: Json
+          details?: string | null
           id?: string
+          name?: string
           order_id?: string
-          product_id?: string
+          product_id?: string | null
           quantity?: number
           total_price_cents?: number
           unit_price_cents?: number
@@ -587,49 +694,110 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
             isOneToOne: false
-            referencedRelation: "products"
+            referencedRelation: "orders_live"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "order_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "vw_menu_items"
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
       }
       orders: {
         Row: {
+          accepted_at: string | null
+          canceled_at: string | null
+          change_for_cents: number | null
           channel: string
+          completed_at: string | null
           created_at: string
           customer_id: string | null
+          customer_name: string
+          customer_phone: string
+          delivery_address: string | null
+          delivery_fee_cents: number
+          delivery_type: string
+          discount_cents: number
+          dispatched_at: string | null
+          display_id: string | null
           id: string
+          is_urgent: boolean
+          notes: string | null
+          order_number: number | null
+          payment_method: string
+          ready_at: string | null
           status: string
           store_id: string
+          subtotal_cents: number
           total_amount_cents: number
           updated_at: string
         }
         Insert: {
+          accepted_at?: string | null
+          canceled_at?: string | null
+          change_for_cents?: number | null
           channel?: string
+          completed_at?: string | null
           created_at?: string
           customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string
+          delivery_address?: string | null
+          delivery_fee_cents?: number
+          delivery_type?: string
+          discount_cents?: number
+          dispatched_at?: string | null
+          display_id?: string | null
           id?: string
+          is_urgent?: boolean
+          notes?: string | null
+          order_number?: number | null
+          payment_method?: string
+          ready_at?: string | null
           status?: string
           store_id: string
+          subtotal_cents?: number
           total_amount_cents?: number
           updated_at?: string
         }
         Update: {
+          accepted_at?: string | null
+          canceled_at?: string | null
+          change_for_cents?: number | null
           channel?: string
+          completed_at?: string | null
           created_at?: string
           customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string
+          delivery_address?: string | null
+          delivery_fee_cents?: number
+          delivery_type?: string
+          discount_cents?: number
+          dispatched_at?: string | null
+          display_id?: string | null
           id?: string
+          is_urgent?: boolean
+          notes?: string | null
+          order_number?: number | null
+          payment_method?: string
+          ready_at?: string | null
           status?: string
           store_id?: string
+          subtotal_cents?: number
           total_amount_cents?: number
           updated_at?: string
         }
@@ -640,6 +808,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
           },
           {
             foreignKeyName: "orders_store_id_fkey"
@@ -670,6 +845,77 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      product_complements: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price_cents: number
+          product_id: string
+          sort_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price_cents?: number
+          product_id: string
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          product_id?: string
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_complements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_complements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_complements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "product_complements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -744,6 +990,172 @@ export type Database = {
             foreignKeyName: "products_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_delivery_settings: {
+        Row: {
+          accept_card: boolean
+          accept_cash: boolean
+          accept_meal_voucher: boolean
+          accept_pix: boolean
+          accepts_delivery: boolean
+          accepts_pickup: boolean
+          address: string
+          banner_url: string | null
+          bio: string
+          business_hours: Json
+          category: string
+          created_at: string
+          default_prep_max: number
+          default_prep_min: number
+          delivery_fee_cents: number
+          free_delivery_above_cents: number | null
+          instagram: string
+          is_open_override: boolean | null
+          logo_url: string | null
+          min_order_cents: number
+          need_change_option: boolean
+          phone: string
+          pix_key: string
+          pix_key_type: string
+          printer_settings: Json
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          accept_card?: boolean
+          accept_cash?: boolean
+          accept_meal_voucher?: boolean
+          accept_pix?: boolean
+          accepts_delivery?: boolean
+          accepts_pickup?: boolean
+          address?: string
+          banner_url?: string | null
+          bio?: string
+          business_hours?: Json
+          category?: string
+          created_at?: string
+          default_prep_max?: number
+          default_prep_min?: number
+          delivery_fee_cents?: number
+          free_delivery_above_cents?: number | null
+          instagram?: string
+          is_open_override?: boolean | null
+          logo_url?: string | null
+          min_order_cents?: number
+          need_change_option?: boolean
+          phone?: string
+          pix_key?: string
+          pix_key_type?: string
+          printer_settings?: Json
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          accept_card?: boolean
+          accept_cash?: boolean
+          accept_meal_voucher?: boolean
+          accept_pix?: boolean
+          accepts_delivery?: boolean
+          accepts_pickup?: boolean
+          address?: string
+          banner_url?: string | null
+          bio?: string
+          business_hours?: Json
+          category?: string
+          created_at?: string
+          default_prep_max?: number
+          default_prep_min?: number
+          delivery_fee_cents?: number
+          free_delivery_above_cents?: number | null
+          instagram?: string
+          is_open_override?: boolean | null
+          logo_url?: string | null
+          min_order_cents?: number
+          need_change_option?: boolean
+          phone?: string
+          pix_key?: string
+          pix_key_type?: string
+          printer_settings?: Json
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_delivery_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "store_delivery_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_marketing_settings: {
+        Row: {
+          banner_color: string
+          banner_enabled: boolean
+          banner_text: string
+          created_at: string
+          loyalty_enabled: boolean
+          loyalty_goal_orders: number
+          loyalty_reward_cents: number
+          loyalty_reward_text: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          banner_color?: string
+          banner_enabled?: boolean
+          banner_text?: string
+          created_at?: string
+          loyalty_enabled?: boolean
+          loyalty_goal_orders?: number
+          loyalty_reward_cents?: number
+          loyalty_reward_text?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          banner_color?: string
+          banner_enabled?: boolean
+          banner_text?: string
+          created_at?: string
+          loyalty_enabled?: boolean
+          loyalty_goal_orders?: number
+          loyalty_reward_cents?: number
+          loyalty_reward_text?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_marketing_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "store_marketing_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -887,7 +1299,7 @@ export type Database = {
       }
     }
     Views: {
-      vw_inventory_alerts: {
+      inventory_alerts: {
         Row: {
           category_color_bg: string | null
           category_color_text: string | null
@@ -915,12 +1327,19 @@ export type Database = {
             foreignKeyName: "inventory_items_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "inventory_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
       }
-      vw_inventory_summary: {
+      inventory_summaries: {
         Row: {
           avg_cost_cents: number | null
           store_id: string | null
@@ -932,13 +1351,39 @@ export type Database = {
             foreignKeyName: "inventory_items_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "inventory_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
       }
-      vw_menu_items: {
+      marketing_summaries: {
         Row: {
+          active_coupons_count: number | null
+          banner_color: string | null
+          banner_enabled: boolean | null
+          banner_text: string | null
+          loyalty_enabled: boolean | null
+          loyalty_goal_orders: number | null
+          loyalty_reward_cents: number | null
+          store_id: string | null
+          store_name: string | null
+          store_slug: string | null
+          total_coupon_uses: number | null
+          total_coupons_count: number | null
+        }
+        Relationships: []
+      }
+      menu_items: {
+        Row: {
+          adicionais: Json | null
+          adicionais_count: number | null
           category_id: string | null
           category_name: string | null
           category_sort_order: number | null
@@ -974,12 +1419,19 @@ export type Database = {
             foreignKeyName: "products_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
       }
-      vw_menu_summary: {
+      menu_summaries: {
         Row: {
           active_products: number | null
           out_of_stock_products: number | null
@@ -991,6 +1443,90 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_summaries: {
+        Row: {
+          avg_ticket_today_cents: number | null
+          orders_canceled: number | null
+          orders_completed: number | null
+          orders_dispatched: number | null
+          orders_new: number | null
+          orders_preparing: number | null
+          orders_ready: number | null
+          orders_today: number | null
+          store_id: string | null
+          total_orders: number | null
+          total_sales_today_cents: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders_live: {
+        Row: {
+          accepted_at: string | null
+          canceled_at: string | null
+          change_for_cents: number | null
+          completed_at: string | null
+          created_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          delivery_address: string | null
+          delivery_fee_cents: number | null
+          delivery_type: string | null
+          discount_cents: number | null
+          dispatched_at: string | null
+          display_id: string | null
+          id: string | null
+          is_urgent: boolean | null
+          items_count: number | null
+          items_detail: Json | null
+          notes: string | null
+          order_number: number | null
+          payment_method: string | null
+          ready_at: string | null
+          status: string | null
+          store_id: string | null
+          subtotal_cents: number | null
+          total_amount_cents: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_summaries"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "orders_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -1117,6 +1653,20 @@ export type Database = {
           attempt: Json
           outcome: string
         }[]
+      }
+      create_public_order: {
+        Args: {
+          p_change_for_cents?: number
+          p_customer_name: string
+          p_customer_phone: string
+          p_delivery_address?: string
+          p_delivery_type?: string
+          p_items?: Json
+          p_notes?: string
+          p_payment_method?: string
+          p_store_slug: string
+        }
+        Returns: Json
       }
       create_store_draft: {
         Args: { p_name: string; p_organization_id: string; p_slug: string }

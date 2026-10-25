@@ -226,6 +226,40 @@ delivery_zones
 store_delivery_settings
 ```
 
+#### store_delivery_settings
+
+Represents delivery rules, operational schedules, profile metadata, and payment options for a Store.
+
+Fields include:
+```text
+store_id                  UUID PK -> stores(id) on delete cascade
+min_order_cents           integer not null default 0
+default_prep_min          integer not null default 30
+default_prep_max          integer not null default 50
+delivery_fee_cents        integer not null default 500
+free_delivery_above_cents integer nullable
+accepts_delivery          boolean not null default true
+accepts_pickup            boolean not null default true
+is_open_override          boolean nullable (manual open/close toggle)
+phone                     text not null default ''
+instagram                 text not null default ''
+address                   text not null default ''
+bio                       text not null default ''
+category                  text not null default 'Restaurante'
+logo_url                  text nullable
+banner_url                text nullable
+pix_key                   text not null default ''
+pix_key_type              text not null default 'cpf'
+accept_cash               boolean not null default true
+need_change_option        boolean not null default true
+accept_card               boolean not null default true
+accept_pix                boolean not null default true
+accept_meal_voucher       boolean not null default false
+business_hours            jsonb not null (weekly schedule seg-dom)
+printer_settings          jsonb not null (auto_print, paper_width, copies, sound_alerts)
+created_at, updated_at    timestamptz
+```
+
 Do not design geographic complexity before requirements are known.
 
 ### orders
@@ -554,6 +588,34 @@ Never rely on JavaScript binary floating-point for authoritative money calculati
 ## Timestamps
 
 Use timezone-aware timestamps for persisted system events. Display/localization belongs at application boundaries.
+
+## Naming and View Conventions
+
+To maintain a consistent, secure, and clean architecture across the PostgreSQL schema and PostgREST API:
+
+### 1. Base Tables (`BASE TABLE`)
+- **Language & Casing**: Lowercase English in `snake_case`.
+- **Plural Domain Entities**: Always use plural nouns (`organizations`, `stores`, `products`, `categories`, `orders`, `customers`, `inventory_items`).
+- **Compound Domain Entities**: `order_items`, `product_complements`, `store_memberships`, `store_delivery_settings`.
+- **System / Lifecycle Records**: `stripe_webhook_events`, `billing_checkout_attempts`, `user_tour_progress`.
+- **Forbidden**: Hungarian notation prefixes (`tbl_`, `tb_`, `t_`).
+
+### 2. Views (`VIEW`)
+- **Forbidden**: Hungarian notation prefixes (`vw_`, `view_`, `v_`). PostgREST exposes views directly in the REST API; implementation details must not leak into consumer contracts.
+- **Domain Projections**: Named as domain relations or projections:
+  - `menu_items`: Rich projection of products with categories, computed discounts, and aggregated JSON complements.
+  - `orders_live`: Real-time operational feed of orders with aggregated items and complements.
+  - `inventory_alerts`: Items currently below their minimum stock threshold.
+  - `order_summaries`: Consolidated daily metrics per store.
+  - `menu_summaries`: Consolidated catalog metrics per store.
+  - `inventory_summaries`: Consolidated inventory value and count metrics per store.
+  - `report_sales_daily`: Daily timeline of orders, gross revenue, delivery vs pickup breakdown, and average ticket.
+  - `report_orders_by_hour`: Hourly distribution across 24h intervals with day-of-week classification.
+  - `report_top_products`: Ranked product volume, gross revenue, category mapping, and ABC curve data.
+  - `report_customer_retention`: WhatsApp customer order counts, spending, first/last purchase dates, and repurchase status.
+  - `report_sales_channels`: Delivery vs pickup revenue and order volume distribution.
+- **Mandatory Security Rule**:
+  Every view MUST be created with `WITH (security_invoker = true)` so that the invoking user's Row Level Security (RLS) is evaluated, preventing unauthorized tenant data access and eliminating the `UNRESTRICTED` security warning in Supabase Studio.
 
 ## Schema change checklist
 

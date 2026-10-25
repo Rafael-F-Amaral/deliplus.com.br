@@ -15,6 +15,12 @@ function formatBRL(cents: number | null | undefined): string {
   })
 }
 
+function normalizeImageUrl(url: string | null | undefined): string {
+  if (!url) return ""
+  const activeSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:64321"
+  return url.replace(/https?:\/\/(?:localhost|127\.0\.0\.1):(54321|64321)/g, activeSupabaseUrl)
+}
+
 export default async function CardapioPage() {
   const { userId } = await auth()
   let storeId = await getActiveStoreId().catch(() => null)
@@ -50,7 +56,7 @@ export default async function CardapioPage() {
     try {
       const [storeRes, itemsRes, categoriesRes, tourRes] = await Promise.all([
         supabase.from("stores").select("id, name, slug").eq("id", storeId).maybeSingle(),
-        supabase.from("vw_menu_items").select("*").eq("store_id", storeId).order("category_sort_order", { ascending: true }).order("name", { ascending: true }),
+        supabase.from("menu_items" as any).select("*").eq("store_id", storeId).order("category_sort_order", { ascending: true }).order("name", { ascending: true }),
         supabase.from("categories").select("id, name, sort_order").eq("store_id", storeId).order("sort_order", { ascending: true }).order("name", { ascending: true }),
         (userId || process.env.NODE_ENV === "development")
           ? supabase.from("user_tour_progress").select("completed, dismissed").eq("clerk_user_id", userId || "dev_user_rafael").eq("tour_key", "menu_tour").maybeSingle()
@@ -77,7 +83,7 @@ export default async function CardapioPage() {
 
       if (itemsRes.data && itemsRes.data.length > 0) {
         console.log("CardapioPage fetched rows:", itemsRes.data.length)
-        initialItems = itemsRes.data.map((row) => {
+        initialItems = (itemsRes.data as any[]).map((row: any) => {
           const mainCat = row.category_name || "Geral"
           const badgeStyle = getCategoryBadgeStyle(mainCat)
           const tags: string[] = Array.isArray(row.tags) && row.tags.length > 0 ? row.tags : [mainCat]
@@ -98,7 +104,7 @@ export default async function CardapioPage() {
             categories: tags,
             categoryBg: badgeStyle.bg,
             categoryText: badgeStyle.text,
-            image: row.image_url || "",
+            image: normalizeImageUrl(row.image_url),
             description: row.description || "",
             originalPrice: formatBRL(row.price_cents),
             promoPrice: row.promo_price_cents ? formatBRL(row.promo_price_cents) : null,
@@ -110,7 +116,19 @@ export default async function CardapioPage() {
             promoSchedule: promoScheduleText,
             promoIndefinite: Boolean(row.promo_indefinite),
             promoStartDate: row.promo_start_date || undefined,
-            promoEndDate: row.promo_end_date || undefined
+            promoEndDate: row.promo_end_date || undefined,
+            adicionais: Array.isArray(row.adicionais)
+              ? (row.adicionais as Array<Record<string, unknown>>).map((ad) => ({
+                  id: String(ad.id || ""),
+                  name: String(ad.name || ""),
+                  description: String(ad.description || ""),
+                  price: formatBRL(typeof ad.price_cents === "number" ? ad.price_cents : 0),
+                  priceCents: typeof ad.price_cents === "number" ? ad.price_cents : 0,
+                  image: normalizeImageUrl(String(ad.image_url || "")),
+                  isActive: ad.is_active !== false,
+                  sortOrder: typeof ad.sort_order === "number" ? ad.sort_order : 0
+                }))
+              : []
           } as MenuItem
         })
       }

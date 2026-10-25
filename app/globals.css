@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Theme: https://tweakcn.com/themes/cmi0kusqy000004jlhzfjfpim */
+/* Theme: DeliPlus Design System */
 
 :root {
   --background: oklch(1 0 0);
@@ -60,39 +60,40 @@
   --spacing: 0.25rem;
 }
 
+/* Paleta Oficial DeliPlus Dark Mode: Deep Pine & Warm Terracotta */
 .dark {
-  --background: oklch(0.1450 0 0);
-  --foreground: oklch(0.9401 0 0);
-  --card: oklch(0.1913 0 0);
-  --card-foreground: oklch(0.9401 0 0);
-  --popover: oklch(0.2178 0 0);
-  --popover-foreground: oklch(0.9401 0 0);
-  --primary: oklch(0.8223 0.1648 86.7192);
-  --primary-foreground: oklch(0 0 0);
-  --secondary: oklch(0.2690 0 0);
-  --secondary-foreground: oklch(0.9401 0 0);
-  --muted: oklch(0.2690 0 0);
-  --muted-foreground: oklch(0.6830 0 0);
-  --accent: oklch(0.9508 0.0657 91.1875);
-  --accent-foreground: oklch(0.1913 0 0);
-  --destructive: oklch(0.6453 0.2404 27.3106);
-  --destructive-foreground: oklch(1.0000 0 0);
-  --border: oklch(0.2478 0 0);
-  --input: oklch(0.3407 0 0);
-  --ring: oklch(0.8223 0.1648 86.7192);
-  --chart-1: oklch(0.8223 0.1648 86.7192);
-  --chart-2: oklch(0.7204 0.1473 60.6715);
-  --chart-3: oklch(0.6693 0.1427 250.8035);
-  --chart-4: oklch(0.6762 0.3056 327.4089);
-  --chart-5: oklch(0.6759 0.1634 150.2272);
-  --sidebar: oklch(0.2050 0 0);
-  --sidebar-foreground: oklch(0.9401 0 0);
-  --sidebar-primary: oklch(0.8223 0.1648 86.7192);
-  --sidebar-primary-foreground: oklch(0 0 0);
-  --sidebar-accent: oklch(0.3019 0.0263 91.8088);
-  --sidebar-accent-foreground: oklch(0.8223 0.1648 86.7192);
-  --sidebar-border: oklch(0.3012 0 0);
-  --sidebar-ring: oklch(0.8223 0.1648 86.7192);
+  --background: #131A15;
+  --foreground: #F2EFE9;
+  --card: #1B241E;
+  --card-foreground: #F2EFE9;
+  --popover: #1B241E;
+  --popover-foreground: #F2EFE9;
+  --primary: #E76F41;
+  --primary-foreground: #FFFFFF;
+  --secondary: #222C25;
+  --secondary-foreground: #F2EFE9;
+  --muted: #1E2721;
+  --muted-foreground: #9CA79E;
+  --accent: #25332A;
+  --accent-foreground: #FF7D4F;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #2A382E;
+  --input: #243027;
+  --ring: #E76F41;
+  --chart-1: #E76F41;
+  --chart-2: #34D399;
+  --chart-3: #60A5FA;
+  --chart-4: #FBBF24;
+  --chart-5: #A78BFA;
+  --sidebar: #17211A;
+  --sidebar-foreground: #F2EFE9;
+  --sidebar-primary: #E76F41;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #233126;
+  --sidebar-accent-foreground: #FF7D4F;
+  --sidebar-border: #233026;
+  --sidebar-ring: #E76F41;
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -101,16 +102,16 @@
   --shadow-y: 1px;
   --shadow-blur: 3px;
   --shadow-spread: 0px;
-  --shadow-opacity: 0.01;
-  --shadow-color: oklch(0 0 0);
-  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.01);
-  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.01);
-  --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.01), 0 1px 2px -1px hsl(0 0% 0% / 0.01);
-  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.01), 0 1px 2px -1px hsl(0 0% 0% / 0.01);
-  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.01), 0 2px 4px -1px hsl(0 0% 0% / 0.01);
-  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.01), 0 4px 6px -1px hsl(0 0% 0% / 0.01);
-  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.01), 0 8px 10px -1px hsl(0 0% 0% / 0.01);
-  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.03);
+  --shadow-opacity: 0.05;
+  --shadow-color: #000000;
+  --shadow-2xs: 0 1px 3px 0px rgba(0, 0, 0, 0.2);
+  --shadow-xs: 0 1px 3px 0px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
+  --shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 4px -1px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 8px 10px -1px rgba(0, 0, 0, 0.35);
+  --shadow-2xl: 0 12px 20px -2px rgba(0, 0, 0, 0.4);
 }
 
 @theme inline {
@@ -169,13 +170,13 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
     @apply bg-background text-foreground;
-    }
+  }
   html {
     @apply font-sans;
-    }
+  }
 }
 
 /* Force Clerk Card to stretch full width of our container */
@@ -198,7 +199,7 @@
   display: none !important;
 }
 
-/* Esconder o icone nativo > do boto do Clerk */
+/* Esconder o icone nativo > do botao do Clerk */
 .cl-formButtonPrimary svg {
   display: none !important;
 }
@@ -222,8 +223,53 @@
   background: transparent !important;
 }
 
-
 ::selection {
   background-color: #CB5A3C;
   color: white;
+}
+
+/* Custom filter container: browser scrollbars completely hidden */
+.filter-scrollbar {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.filter-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* Hide scrollbars globally across the entire site */
+html, body, div, main, aside, section, * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Safeguard for thermal printing comandas (80mm) - ALWAYS black & white */
+@media print {
+  * {
+    background: transparent !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-color: #cccccc !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
 }

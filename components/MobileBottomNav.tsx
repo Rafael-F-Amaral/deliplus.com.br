@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { Home, ShoppingBag, BookOpen, Users, MoreHorizontal } from "lucide-react";
+import { Home, ShoppingBag, BookOpen, Megaphone, MoreHorizontal } from "lucide-react";
 
 export function MobileBottomNav({ activePath }: { activePath: string }) {
   const items = [
     { label: "Visão geral", icon: Home, href: "/visao-geral" },
     { label: "Pedidos", icon: ShoppingBag, href: "/pedidos" },
     { label: "Cardápio", icon: BookOpen, href: "/cardapio" },
-    { label: "Clientes", icon: Users, href: "/clientes" },
+    { label: "Marketing", icon: Megaphone, href: "/marketing" },
     { label: "Mais", icon: MoreHorizontal, href: "#" },
   ];
 

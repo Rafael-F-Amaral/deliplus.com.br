@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import {
   Search,
   PlusCircle,
@@ -17,7 +18,8 @@ import {
   Maximize2,
   Camera,
   Sparkles,
-  Play
+  Play,
+  Plus
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -30,8 +32,20 @@ import {
   applyPromoDiscount,
   removePromoDiscount,
   recordTourProgress,
-  uploadMenuProductImage
+  uploadMenuProductImage,
+  saveProductComplements
 } from "./actions"
+
+export interface ProductAdicional {
+  id: string
+  name: string
+  description?: string
+  price: string
+  priceCents: number
+  image?: string
+  isActive: boolean
+  sortOrder?: number
+}
 
 export interface MenuItem {
   id: string
@@ -55,6 +69,7 @@ export interface MenuItem {
   promoEndDate?: string
   campaignId?: string
   campaignName?: string
+  adicionais?: ProductAdicional[]
 }
 
 export interface TourStep {
@@ -165,15 +180,15 @@ export const TOUR_NEW_ITEM_MODAL_STEPS: TourStep[] = [
 
 export function getCategoryBadgeStyle(catName: string): { bg: string; text: string } {
   const lower = catName.toLowerCase()
-  if (lower.includes("bowl")) return { bg: "bg-[#EBF5ED]", text: "text-[#477A55]" }
-  if (lower.includes("bebid")) return { bg: "bg-[#FDF4E7]", text: "text-[#BA732F]" }
-  if (lower.includes("sobrem")) return { bg: "bg-[#F7EDF9]", text: "text-[#8E5296]" }
-  if (lower.includes("entrad")) return { bg: "bg-[#EFF6FF]", text: "text-[#2563EB]" }
-  if (lower.includes("promo") || lower.includes("oferta")) return { bg: "bg-[#FDF2F0]", text: "text-[#CB5A3C]" }
-  if (lower.includes("mais pedido") || lower.includes("destaque")) return { bg: "bg-[#FEF3C7]", text: "text-[#B45309]" }
-  if (lower.includes("organ") || lower.includes("vegan")) return { bg: "bg-[#DCFCE7]", text: "text-[#15803D]" }
-  if (lower.includes("gluten") || lower.includes("glúten")) return { bg: "bg-[#F1F5F9]", text: "text-[#475569]" }
-  return { bg: "bg-gray-100", text: "text-gray-700" }
+  if (lower.includes("bowl")) return { bg: "bg-[#EBF5ED] dark:bg-[#1A2E20] dark:border dark:border-[#2E543A]", text: "text-[#477A55] dark:text-[#86EFAC]" }
+  if (lower.includes("bebid")) return { bg: "bg-[#FDF4E7] dark:bg-[#342410] dark:border dark:border-[#5C3F20]", text: "text-[#BA732F] dark:text-[#FBBF24]" }
+  if (lower.includes("sobrem")) return { bg: "bg-[#F7EDF9] dark:bg-[#2F1835] dark:border dark:border-[#522D5A]", text: "text-[#8E5296] dark:text-[#E879F9]" }
+  if (lower.includes("entrad")) return { bg: "bg-[#EFF6FF] dark:bg-[#16214A] dark:border dark:border-[#1E3A8A]", text: "text-[#2563EB] dark:text-[#93C5FD]" }
+  if (lower.includes("promo") || lower.includes("oferta")) return { bg: "bg-[#FDF2F0] dark:bg-[#381812] dark:border dark:border-[#6B2A1E]", text: "text-[#CB5A3C] dark:text-[#FF7D4F]" }
+  if (lower.includes("mais pedido") || lower.includes("destaque")) return { bg: "bg-[#FEF3C7] dark:bg-[#352305] dark:border dark:border-[#6B470A]", text: "text-[#B45309] dark:text-[#FCD34D]" }
+  if (lower.includes("organ") || lower.includes("vegan")) return { bg: "bg-[#DCFCE7] dark:bg-[#11311C] dark:border dark:border-[#1F5C34]", text: "text-[#15803D] dark:text-[#86EFAC]" }
+  if (lower.includes("gluten") || lower.includes("glúten")) return { bg: "bg-[#F1F5F9] dark:bg-[#1A2433] dark:border dark:border-[#334155]", text: "text-[#475569] dark:text-[#CBD5E1]" }
+  return { bg: "bg-gray-100 dark:bg-[#222C25] dark:border dark:border-[#2A382E]", text: "text-gray-700 dark:text-[#F2EFE9]" }
 }
 
 export function getItemCategories(item: MenuItem): string[] {
@@ -267,6 +282,7 @@ export default function MenuClient({
   initialCategories = [],
   tourAlreadyDismissed = false
 }: MenuClientProps) {
+  const router = useRouter()
   const [items, setItems] = useState<MenuItem[]>(initialItems)
 
   // Filters & Search
@@ -334,6 +350,24 @@ export default function MenuClient({
   const [prodModalDesc, setProdModalDesc] = useState("")
   const [prodModalCategories, setProdModalCategories] = useState<string[]>([])
   const [prodModalNewCat, setProdModalNewCat] = useState("")
+
+  // Modal Adicionais (Gerenciar complementos e adicionais do prato)
+  const [adicionaisModalItem, setAdicionaisModalItem] = useState<MenuItem | null>(null)
+  const [adicionaisList, setAdicionaisList] = useState<ProductAdicional[]>([])
+  const [adicionaisPage, setAdicionaisPage] = useState(1)
+  const ADICIONAIS_PER_PAGE = 3
+  const [editingAdicionalId, setEditingAdicionalId] = useState<string | null>(null)
+  const [adicionalName, setAdicionalName] = useState("")
+  const [adicionalPrice, setAdicionalPrice] = useState("")
+  const [adicionalDesc, setAdicionalDesc] = useState("")
+  const [adicionalImage, setAdicionalImage] = useState("")
+  const [adicionalErrors, setAdicionalErrors] = useState<{ name?: boolean; price?: boolean; desc?: boolean }>({})
+  const [shakeKey, setShakeKey] = useState(0)
+  const [isSavingAdicionais, setIsSavingAdicionais] = useState(false)
+  const [isUploadingAdicionalPhoto, setIsUploadingAdicionalPhoto] = useState(false)
+  const [isDraggingAdicionalPhoto, setIsDraggingAdicionalPhoto] = useState(false)
+  const [adicionalToDelete, setAdicionalToDelete] = useState<ProductAdicional | null>(null)
+  const adicionalFileInputRef = useRef<HTMLInputElement | null>(null)
 
   // Toast notification
   const [notification, setNotification] = useState<string | null>(null)
@@ -1097,8 +1131,176 @@ export default function MenuClient({
     setTimeout(() => setNotification(null), 3000)
   }
 
+  // Helper para capitalizar primeira letra do nome/descrição
+  const autoCapitalizeFirstLetter = (str: string): string => {
+    if (!str) return ""
+    const trimmed = str.trimStart()
+    const leading = str.slice(0, str.length - trimmed.length)
+    if (!trimmed) return str
+    return leading + trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
+  }
+
+  // Upload de foto do adicional para o Supabase Storage
+  const handleAdicionalPhotoFile = async (file: File) => {
+    if (!file) return
+    try {
+      setIsUploadingAdicionalPhoto(true)
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await uploadMenuProductImage(fd)
+      if (res?.publicUrl) {
+        setAdicionalImage(res.publicUrl)
+      }
+    } catch (err) {
+      console.error("Erro ao enviar foto do adicional:", err)
+      alert("Falha ao enviar imagem. Verifique o arquivo e tente novamente.")
+    } finally {
+      setIsUploadingAdicionalPhoto(false)
+    }
+  }
+
+  // Abrir Modal de Adicionais
+  const handleOpenAdicionaisModal = (item: MenuItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setAdicionaisModalItem(item)
+    setAdicionaisList(item.adicionais ? [...item.adicionais] : [])
+    setAdicionaisPage(1)
+    setEditingAdicionalId(null)
+    setAdicionalName("")
+    setAdicionalPrice("")
+    setAdicionalDesc("")
+    setAdicionalImage("")
+    setAdicionalErrors({})
+  }
+
+  // Adicionar ou Atualizar Adicional na Lista
+  const handleAddOrUpdateAdicional = () => {
+    const isNameMissing = !adicionalName.trim()
+    const isPriceMissing = !adicionalPrice.trim()
+    const isDescMissing = !adicionalDesc.trim()
+
+    if (isNameMissing || isPriceMissing || isDescMissing) {
+      setAdicionalErrors({
+        name: isNameMissing,
+        price: isPriceMissing,
+        desc: isDescMissing
+      })
+      setShakeKey((prev) => prev + 1)
+      return
+    }
+
+    setAdicionalErrors({})
+
+    const formattedName = autoCapitalizeFirstLetter(adicionalName.trim())
+    const formattedDesc = autoCapitalizeFirstLetter(adicionalDesc.trim())
+
+    const priceNum = Math.round(parseCurrency(adicionalPrice) * 100)
+    const priceFormatted = formatCurrency(priceNum / 100)
+
+    if (editingAdicionalId) {
+      setAdicionaisList((prev) =>
+        prev.map((a) => {
+          if (a.id === editingAdicionalId) {
+            return {
+              ...a,
+              name: formattedName,
+              description: formattedDesc || undefined,
+              price: priceFormatted,
+              priceCents: priceNum,
+              image: adicionalImage.trim() || undefined
+            }
+          }
+          return a
+        })
+      )
+      setEditingAdicionalId(null)
+    } else {
+      const newAd: ProductAdicional = {
+        id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        name: formattedName,
+        description: formattedDesc || undefined,
+        price: priceFormatted,
+        priceCents: priceNum,
+        image: adicionalImage.trim() || undefined,
+        isActive: true,
+        sortOrder: adicionaisList.length + 1
+      }
+      setAdicionaisList((prev) => {
+        const next = [...prev, newAd]
+        setAdicionaisPage(Math.ceil(next.length / ADICIONAIS_PER_PAGE))
+        return next
+      })
+    }
+
+    setAdicionalName("")
+    setAdicionalPrice("")
+    setAdicionalDesc("")
+    setAdicionalImage("")
+  }
+
+
+  // Deletar adicional da lista
+  const handleDeleteAdicional = (id: string) => {
+    setAdicionaisList((prev) => {
+      const filtered = prev.filter((a) => a.id !== id)
+      const newTotal = Math.max(1, Math.ceil(filtered.length / ADICIONAIS_PER_PAGE))
+      setAdicionaisPage((p) => Math.min(p, newTotal))
+      return filtered
+    })
+    if (editingAdicionalId === id) {
+      setEditingAdicionalId(null)
+      setAdicionalName("")
+      setAdicionalPrice("")
+      setAdicionalDesc("")
+      setAdicionalImage("")
+    }
+  }
+
+  // Salvar alterações de adicionais no Supabase
+  const handleSaveAllAdicionais = async () => {
+    if (!adicionaisModalItem) return
+    setIsSavingAdicionais(true)
+
+    try {
+      const complementsToSave = adicionaisList.map((a, idx) => ({
+        id: a.id.startsWith("temp-") ? undefined : a.id,
+        name: a.name,
+        description: a.description,
+        priceCents: a.priceCents || Math.round(parseCurrency(a.price) * 100),
+        imageUrl: a.image,
+        isActive: a.isActive,
+        sortOrder: idx + 1
+      }))
+
+      const res = await saveProductComplements(adicionaisModalItem.id, complementsToSave)
+      if (res.success) {
+        setItems((prev) =>
+          prev.map((it) => {
+            if (it.id === adicionaisModalItem.id) {
+              return {
+                ...it,
+                adicionais: [...adicionaisList]
+              }
+            }
+            return it
+          })
+        )
+        setNotification("Adicionais salvos com sucesso!")
+        setTimeout(() => setNotification(null), 3000)
+        setAdicionaisModalItem(null)
+      } else {
+        alert("Erro ao salvar adicionais: " + (res.error || "Tente novamente."))
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Tente novamente."
+      alert("Falha ao salvar adicionais: " + msg)
+    } finally {
+      setIsSavingAdicionais(false)
+    }
+  }
+
   return (
-    <div className="flex flex-col w-full h-full max-h-full max-w-[1400px] mx-auto p-3 md:px-6 pt-3 md:pt-5 pb-3 overflow-hidden justify-between font-sans">
+    <div className="flex flex-col w-full h-full max-h-full px-4 sm:px-6 pt-3 md:pt-4 pb-3 max-lg:pb-[84px] overflow-hidden justify-between font-sans transition-all min-w-0">
       
       {/* Toast Notification */}
       {notification && (
@@ -1111,18 +1313,18 @@ export default function MenuClient({
       {/* Header Area (Orange title matching DeliPlus logo & Estoque) */}
       <div className="flex flex-col mb-3 shrink-0">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] tracking-tight">Cardápio</h1>
+          <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] dark:text-[#FF7D4F] tracking-tight">Cardápio</h1>
           
           {/* Tooltip Icon & Popover */}
           <div className="relative group inline-block">
             <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
               ?
             </div>
-            <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-              <p className="text-[13px] text-white mb-2 leading-relaxed">
-                <span className="font-extrabold text-white">Dica:</span> Aqui você gerencia os pratos, bebidas e itens do cardápio visíveis para seus clientes.
+            <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+              <p className="text-[13px] text-white dark:text-[#1C2C22] mb-2 leading-relaxed">
+                <span className="font-extrabold text-white dark:text-[#2E4233]">Dica:</span> Aqui você gerencia os pratos, bebidas e itens do cardápio visíveis para seus clientes.
               </p>
-              <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white">
+              <div className="flex flex-col gap-2 pt-2 border-t border-white/10 dark:border-[#E5DFD1] text-[12px] text-white/90 dark:text-[#1C2C22]">
                 <div className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
                   <span>Ative ou pause a disponibilidade de itens em tempo real pelo switch.</span>
@@ -1146,7 +1348,7 @@ export default function MenuClient({
               setShowTourPrompt(false); recordTourProgress("menu_tour", { dismissed: true });
               setTourStep(0)
             }}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] hover:border-[#2E4233] text-[#2E4233] text-xs font-semibold hover:bg-white shadow-2xs transition-all cursor-pointer group ml-1"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FAF8F0] dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#2E4233] dark:hover:border-[#FF7D4F] text-[#2E4233] dark:text-[#F2EFE9] hover:bg-white dark:hover:bg-[#25332A] shadow-2xs transition-all cursor-pointer group ml-1"
             title="Abrir o tutorial interativo do Cardápio"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#CB5A3C] group-hover:scale-110 transition-transform" />
@@ -1154,7 +1356,7 @@ export default function MenuClient({
             <span className="sm:hidden">Tutorial</span>
           </button>
         </div>
-        <p className="text-[#2E4233] text-sm md:text-base font-medium mt-0.5">
+        <p className="text-[#2E4233] dark:text-[#9CA79E] text-sm md:text-base font-medium mt-0.5">
           Gerencie os produtos, preços e disponibilidade do seu cardápio.
         </p>
       </div>
@@ -1167,8 +1369,8 @@ export default function MenuClient({
             onClick={() => { setAvailabilityFilter("todos"); setCurrentPage(1); }}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer ${
               availabilityFilter === "todos" 
-                ? "bg-[#2E4233] text-white" 
-                : "bg-white border border-[#E9E4D4] text-gray-500 hover:bg-[#F8F6EF]"
+                ? "bg-[#2E4233] dark:bg-[#E76F41] text-white" 
+                : "bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
             }`}
           >
             Todos
@@ -1179,8 +1381,8 @@ export default function MenuClient({
             onClick={() => { setAvailabilityFilter("disponiveis"); setCurrentPage(1); }}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer ${
               availabilityFilter === "disponiveis" 
-                ? "bg-[#2E4233] text-white" 
-                : "bg-white border border-[#E9E4D4] text-gray-500 hover:bg-[#F8F6EF]"
+                ? "bg-[#2E4233] dark:bg-[#E76F41] text-white" 
+                : "bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
             }`}
           >
             Disponíveis
@@ -1191,8 +1393,8 @@ export default function MenuClient({
             onClick={() => { setAvailabilityFilter("promocao"); setCurrentPage(1); }}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer ${
               availabilityFilter === "promocao" 
-                ? "bg-[#2E4233] text-white" 
-                : "bg-white border border-[#E9E4D4] text-gray-500 hover:bg-[#F8F6EF]"
+                ? "bg-[#2E4233] dark:bg-[#E76F41] text-white" 
+                : "bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
             }`}
           >
             Em promoção
@@ -1205,8 +1407,8 @@ export default function MenuClient({
               onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
               className={`px-3.5 py-1.5 border rounded-full text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors cursor-pointer ${
                 selectedCategory !== "all" 
-                  ? "bg-[#2E4233] text-white border-[#2E4233] shadow-sm" 
-                  : "bg-white border-[#E9E4D4] text-gray-500 hover:bg-[#F8F6EF]"
+                  ? "bg-[#2E4233] dark:bg-[#E76F41] text-white border-[#2E4233] dark:border-[#E76F41] shadow-sm" 
+                  : "bg-white dark:bg-[#1B241E] border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
               }`}
             >
               {selectedCategory !== "all" 
@@ -1216,7 +1418,7 @@ export default function MenuClient({
             </button>
             
             {isCategoryMenuOpen && (
-              <div className="absolute top-full left-0 mt-1.5 w-52 bg-white border border-[#E9E4D4] rounded-xl shadow-xl z-50 overflow-hidden py-1 max-h-60 overflow-y-auto">
+              <div className="absolute top-full left-0 mt-1.5 w-52 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl shadow-xl z-50 overflow-hidden py-1 max-h-60 overflow-y-auto">
                 {categories.map((cat) => (
                   <button 
                     key={cat.id}
@@ -1226,10 +1428,10 @@ export default function MenuClient({
                       setIsCategoryMenuOpen(false); 
                       setCurrentPage(1); 
                     }}
-                    className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-gray-50 flex items-center justify-between transition-colors cursor-pointer ${
+                    className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-gray-50 dark:hover:bg-[#222C25] flex items-center justify-between transition-colors cursor-pointer ${
                       selectedCategory === cat.id 
                         ? "text-[#CB5A3C] font-bold bg-orange-50/40" 
-                        : "text-gray-700"
+                        : "text-gray-700 dark:text-[#F2EFE9]"
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate pr-2">
@@ -1251,13 +1453,13 @@ export default function MenuClient({
         {/* Search Bar & + Novo Item button */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="relative w-full sm:w-[240px]">
-            <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-[#CB5A3C] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input 
               type="text" 
               placeholder="Buscar no cardápio" 
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-9 pr-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all shadow-sm"
+              className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs dark:text-[#F2EFE9] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all shadow-sm"
             />
           </div>
           <button 
@@ -1272,29 +1474,30 @@ export default function MenuClient({
       </div>
 
       {/* Main Table Container: Stretches to fill available screen height without outer scrollbar */}
-      <div className="hidden md:flex flex-col flex-1 h-full min-h-0 bg-white border border-[#E9E4D4] rounded-2xl shadow-sm overflow-hidden justify-between">
+      <div className="hidden md:flex flex-col flex-1 h-full min-h-0 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-sm overflow-hidden justify-between">
         <div className="w-full overflow-x-auto overflow-y-hidden">
           <table className="w-full text-left text-[14px]">
-            <thead className="bg-[#FAF8F0] border-b border-[#E9E4D4]">
-              <tr className="text-[14px] font-semibold text-[#2E4233]">
-                <th className="px-4 py-2.5 w-[80px]">Foto</th>
-                <th className="px-4 py-2.5">Produto</th>
-                <th className="px-4 py-2.5 text-left w-[120px] whitespace-nowrap">Preço original</th>
-                <th className="px-4 py-2.5 text-left w-[140px] whitespace-nowrap">Preço promocional</th>
-                <th className="px-3 py-2.5 text-center w-[110px] whitespace-nowrap">Disponibilidade</th>
-                <th className="px-4 py-2.5 text-center w-[130px] whitespace-nowrap">Quantidade</th>
-                <th className="px-4 py-2.5 text-right w-[60px]">Ações</th>
+            <thead className="bg-[#FAF8F0] dark:bg-[#222C25] border-b border-[#E9E4D4] dark:border-[#2A382E]">
+              <tr className="text-[14px] font-semibold text-[#2E4233] dark:text-[#F2EFE9]">
+                <th className="px-4 py-2.5 w-[76px]">Foto</th>
+                <th className="px-4 py-2.5 w-[24%]">Produto</th>
+                <th className="px-3 py-2.5 text-center w-[14%] whitespace-nowrap">Adicionais</th>
+                <th className="px-4 py-2.5 text-left w-[13%] whitespace-nowrap">Preço original</th>
+                <th className="px-4 py-2.5 text-left w-[17%] whitespace-nowrap">Preço promocional</th>
+                <th className="px-3 py-2.5 text-center w-[14%] whitespace-nowrap">Disponibilidade</th>
+                <th className="px-4 py-2.5 text-center w-[14%] whitespace-nowrap">Quantidade</th>
+                <th className="px-4 py-2.5 text-right w-[4%] min-w-[56px]">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E9E4D4] border-b border-[#E9E4D4]">
+            <tbody className="divide-y divide-[#E9E4D4] dark:divide-[#233026] border-b border-[#E9E4D4] dark:border-[#233026]">
               {paginatedItems.map((item, itemIdx) => {
                 const isPaused = !item.isAvailable
                 return (
                   <tr
                     key={item.id}
                     data-product-row={item.id}
-                    className={`border-b border-[#E9E4D4] hover:bg-gray-50/60 transition-colors ${
-                      isPaused ? "bg-stone-50/30" : ""
+                    className={`border-b border-[#E9E4D4] dark:border-[#233026] hover:bg-gray-50/60 dark:hover:bg-[#222C25] transition-colors ${
+                      isPaused ? "bg-stone-50/30 dark:bg-black/20" : ""
                     }`}
                   >
                     {/* Foto Thumbnail com Menu: Ampliar / Trocar */}
@@ -1362,14 +1565,14 @@ export default function MenuClient({
                     <td id={itemIdx === 0 ? "tour-product-info" : undefined} className={`px-4 py-2 align-middle transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
                       <div 
                         onClick={(e) => handleOpenProductModal(item, e)}
-                        className="group/prod flex flex-col pr-2 cursor-pointer p-1.5 -m-1.5 rounded-xl hover:bg-[#FAF8F0] transition-colors"
+                        className="group/prod flex flex-col pr-2 cursor-pointer p-1.5 -m-1.5 rounded-xl hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
                         title="Toque ou clique para editar nome, descrição e categorias"
                       >
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-[#2E4233] text-[15px] leading-tight group-hover/prod:underline decoration-[#2E4233]/40 underline-offset-2">
+                          <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[15px] leading-tight group-hover/prod:underline decoration-[#2E4233]/40 dark:decoration-[#F2EFE9]/40 underline-offset-2">
                             {item.name}
                           </span>
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                           {getItemCategories(item).map((cat, idx) => {
                             const style = getCategoryBadgeStyle(cat)
                             return (
@@ -1382,10 +1585,36 @@ export default function MenuClient({
                             )
                           })}
                         </div>
-                        <span className="text-[12px] text-gray-500 leading-relaxed line-clamp-1 mt-1 max-w-[360px]">
+                        <span className="text-[12px] text-gray-500 dark:text-[#9CA79E] leading-relaxed line-clamp-1 mt-1">
                           {item.description}
                         </span>
                       </div>
+                    </td>
+
+                    {/* Adicionais do Produto */}
+                    <td className={`px-3 py-2 align-middle text-center transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
+                      {item.adicionais && item.adicionais.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenAdicionaisModal(item, e)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF8F0] dark:bg-[#222C25] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#CB5A3C] hover:bg-white dark:hover:bg-[#2A382E] text-[#2E4233] dark:text-[#F2EFE9] text-xs font-semibold shadow-2xs transition-all cursor-pointer group"
+                          title="Clique para gerenciar os adicionais deste prato"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0"></span>
+                          <span>{item.adicionais.length} {item.adicionais.length === 1 ? "adicional" : "adicionais"}</span>
+                          <ChevronDown className="w-3.5 h-3.5 text-[#CB5A3C] group-hover:translate-y-0.5 transition-transform shrink-0" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenAdicionaisModal(item, e)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#FAF8F0] dark:bg-[#222C25] border-2 border-[#CB5A3C]/70 dark:border-[#CB5A3C]/50 hover:border-[#CB5A3C] hover:bg-[#CB5A3C] text-[#CB5A3C] dark:text-[#FF7D4F] hover:text-white text-xs font-bold transition-all cursor-pointer shadow-2xs group"
+                          title="Clique para cadastrar adicionais para este prato"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-[#CB5A3C] group-hover:text-white transition-colors stroke-[2.5]" />
+                          <span className="font-bold">Adicionar</span>
+                        </button>
+                      )}
                     </td>
 
                     {/* Preço original com edição inline automática */}
@@ -1401,18 +1630,18 @@ export default function MenuClient({
                             if (e.key === "Enter") saveInlineEdit(item, "originalPrice")
                             if (e.key === "Escape") setInlineEditingCell(null)
                           }}
-                          className="w-28 px-2.5 py-1 text-[14px] font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                          className="w-28 px-2.5 py-1 text-[14px] font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border-2 border-[#2E4233] dark:border-[#FF7D4F] rounded-lg shadow-sm focus:outline-none"
                         />
                       ) : (
                         <div
                           onClick={(e) => startInlineEdit(item, "originalPrice", e)}
-                          className="group/orig inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] transition-colors"
+                          className="group/orig inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
                           title="Toque ou clique para alterar o preço original"
                         >
-                          <span className="text-[14px] font-medium text-gray-700 group-hover/orig:text-[#2E4233]">
+                          <span className="text-[14px] font-medium text-gray-700 dark:text-[#F2EFE9] group-hover/orig:text-[#2E4233] dark:group-hover/orig:text-[#FF7D4F]">
                             {item.originalPrice}
                           </span>
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                           {inlineSuccessCellId === `${item.id}-originalPrice` && (
                             <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
                           )}
@@ -1421,32 +1650,29 @@ export default function MenuClient({
                     </td>
 
                     {/* Preço promocional em Laranja da Logo com link sublinhado "Editar Promoção" */}
-                    <td id={itemIdx === 0 ? "tour-promo-action" : undefined} className={`px-4 py-2 align-middle text-left whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
+                    <td id={itemIdx === 0 ? "tour-promo-action" : undefined} className="px-4 py-2 align-middle text-left whitespace-nowrap opacity-100">
                       <div className="flex flex-col items-start gap-0.5">
                         {item.promoPrice ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[14.5px] font-bold text-[#CB5A3C]">
+                            <span className="text-[14.5px] font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">
                               {item.promoPrice}
                             </span>
-                            <span className="text-[10px] font-bold bg-[#FDF2F0] text-[#CB5A3C] border border-[#CB5A3C]/20 px-1.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold bg-[#FDF2F0] dark:bg-[#CB5A3C]/20 text-[#CB5A3C] dark:text-[#FF7D4F] border border-[#CB5A3C]/20 dark:border-[#CB5A3C]/40 px-1.5 py-0.5 rounded-full">
                               -{getDiscountPercentage(item.originalPrice, item.promoPrice)}%
                             </span>
                           </div>
                         ) : (
-                          <span className="text-[13px] text-gray-400 font-medium">
+                          <span className="text-[13px] text-gray-400 dark:text-[#9CA79E] font-medium">
                             Sem promoção
                           </span>
                         )}
                         <button
                           type="button"
                           onClick={(e) => {
-                            handleOpenDiscountModal(item, e)
-                            if (tourStep === 4) {
-                              setModalTourType("promo")
-                              setModalTourStep(0)
-                            }
+                            e.stopPropagation()
+                            router.push(`/dashboard/marketing/promotions?editProduct=${item.id}`)
                           }}
-                          className="text-[11.5px] font-semibold text-[#CB5A3C] underline decoration-[#CB5A3C]/60 hover:decoration-[#CB5A3C] hover:text-[#b0482e] transition-all cursor-pointer text-left"
+                          className="text-[11.5px] font-semibold text-[#CB5A3C] dark:text-[#FF7D4F] underline decoration-[#CB5A3C]/60 hover:decoration-[#CB5A3C] hover:text-[#b0482e] dark:hover:text-[#FFA07A] transition-all cursor-pointer text-left"
                         >
                           Editar Promoção
                         </button>
@@ -1464,7 +1690,7 @@ export default function MenuClient({
                         />
                         <span
                           className={`text-[11px] font-semibold mt-0.5 transition-colors ${
-                            item.isAvailable ? "text-[#2E4233]" : "text-[#CB5A3C]"
+                            item.isAvailable ? "text-[#2E4233] dark:text-[#34D399]" : "text-[#CB5A3C] dark:text-[#FF7D4F]"
                           }`}
                         >
                           {item.isAvailable ? "Disponível" : "Pausado"}
@@ -1487,36 +1713,36 @@ export default function MenuClient({
                             if (e.key === "Enter") saveInlineEdit(item, "dailyLimit")
                             if (e.key === "Escape") setInlineEditingCell(null)
                           }}
-                          className="w-20 px-2 py-1 text-center text-[13.5px] font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                          className="w-20 px-2 py-1 text-center text-[13.5px] font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border-2 border-[#2E4233] dark:border-[#FF7D4F] rounded-lg shadow-sm focus:outline-none"
                         />
                       ) : (
                         <div
                           onClick={(e) => startInlineEdit(item, "dailyLimit", e)}
-                          className="group/qty inline-flex flex-col items-center justify-center cursor-pointer py-1 px-2 -mx-1 rounded-lg hover:bg-[#FAF8F0] transition-colors"
+                          className="group/qty inline-flex flex-col items-center justify-center cursor-pointer py-1 px-2 -mx-1 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
                           title="Toque ou clique para alterar o limite de quantidade diária"
                         >
                           <div className="flex items-center gap-1">
                             {item.dailyLimit !== null ? (
                               item.remaining === 0 ? (
-                                <span className="text-[13.5px] font-bold text-[#CB5A3C]">
+                                <span className="text-[13.5px] font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">
                                   0 restantes
                                 </span>
                               ) : (
-                                <span className="text-[13.5px] font-bold text-[#16A34A]">
+                                <span className="text-[13.5px] font-bold text-[#16A34A] dark:text-[#34D399]">
                                   {item.remaining ?? item.dailyLimit} restantes
                                 </span>
                               )
                             ) : (
-                              <span className="text-[13px] text-gray-400 font-medium">
+                              <span className="text-[13px] text-gray-400 dark:text-[#9CA79E] font-medium">
                                 Sem limite
                               </span>
                             )}
-                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                             {inlineSuccessCellId === `${item.id}-dailyLimit` && (
                               <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
                             )}
                           </div>
-                          <span className="text-[11px] text-gray-400 font-medium">
+                          <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">
                             {item.dailyLimit !== null ? `Limite: ${item.dailyLimit} un.` : "Ilimitado"}
                           </span>
                         </div>
@@ -1558,6 +1784,11 @@ export default function MenuClient({
                       <span className="text-[14px] text-gray-300 font-medium">—</span>
                     </td>
 
+                    {/* Adicionais */}
+                    <td className="px-3 py-2 align-middle text-center">
+                      <span className="text-[14px] text-gray-300 font-medium">—</span>
+                    </td>
+
                     {/* Preço original */}
                     <td className="px-4 py-2 align-middle text-left whitespace-nowrap">
                       <span className="text-[14px] text-gray-300 font-medium">—</span>
@@ -1587,7 +1818,7 @@ export default function MenuClient({
 
               {filteredItems.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500 text-sm">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500 text-sm">
                     Nenhum item encontrado no cardápio.
                   </td>
                 </tr>
@@ -1597,29 +1828,27 @@ export default function MenuClient({
         </div>
 
         {/* Pagination Controls pinned at bottom (Centered) */}
-        <div className="relative flex justify-center items-center px-6 py-2.5 border-t border-[#E9E4D4] bg-[#FAF8F0]/30 shrink-0 min-h-[44px]">
-          <span className="hidden sm:inline-block absolute left-6 text-xs text-gray-500 font-medium">
+        <div className="relative flex justify-center items-center px-6 py-2.5 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/30 dark:bg-[#1B241E]/30 shrink-0 min-h-[44px]">
+          <span className="hidden sm:inline-block absolute left-6 text-xs text-gray-500 dark:text-[#9CA79E] font-medium">
             Mostrando {filteredItems.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)} de {filteredItems.length} itens
           </span>
 
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-1.5">
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
-                    currentPage === i + 1 
-                      ? "bg-[#CB5A3C] text-white shadow-sm" 
-                      : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex justify-center items-center gap-1.5">
+            {Array.from({ length: Math.max(1, totalPages) }).map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setCurrentPage(i + 1)}
+                className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                  currentPage === i + 1 
+                    ? "bg-[#CB5A3C] text-white shadow-sm" 
+                    : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -1707,10 +1936,10 @@ export default function MenuClient({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1 min-w-0">
-                          <span className="font-bold text-[#2E4233] text-sm truncate group-hover/mprod:underline">
+                          <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-sm truncate group-hover/mprod:underline">
                             {item.name}
                           </span>
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                         </div>
                         <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
                           {getItemCategories(item).map((cat, idx) => {
@@ -1726,7 +1955,7 @@ export default function MenuClient({
                           })}
                         </div>
                       </div>
-                      <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.description}</p>
+                      <p className="text-xs text-gray-500 dark:text-[#9CA79E] line-clamp-1 mt-0.5">{item.description}</p>
                     </div>
 
                     {/* Preços e Quantidade */}
@@ -1754,7 +1983,7 @@ export default function MenuClient({
                               className="flex items-center gap-1 cursor-pointer"
                               title="Toque para editar preço original"
                             >
-                              <span className="text-xs font-bold text-[#2E4233]">{item.originalPrice}</span>
+                              <span className="text-xs font-bold text-[#2E4233] dark:text-[#F2EFE9]">{item.originalPrice}</span>
                               <ChevronDown className="w-3 h-3 text-[#2E4233] shrink-0" />
                               {inlineSuccessCellId === `${item.id}-originalPrice` && (
                                 <Check className="w-3 h-3 text-[#16A34A] shrink-0" />
@@ -1770,16 +1999,13 @@ export default function MenuClient({
                               {item.promoPrice} (-{getDiscountPercentage(item.originalPrice, item.promoPrice)}%)
                             </span>
                           ) : (
-                            <span className="text-[11px] text-gray-400 font-medium">Sem promoção</span>
+                            <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">Sem promoção</span>
                           )}
                           <button
                             type="button"
                             onClick={(e) => {
-                              handleOpenDiscountModal(item, e)
-                              if (tourStep === 4) {
-                                setModalTourType("promo")
-                                setModalTourStep(0)
-                              }
+                              e.stopPropagation()
+                              router.push(`/dashboard/marketing/promotions?editProduct=${item.id}`)
                             }}
                             className="text-[11px] font-semibold text-[#CB5A3C] underline decoration-[#CB5A3C]/60 hover:decoration-[#CB5A3C] mt-0.5 cursor-pointer text-left"
                           >
@@ -1823,7 +2049,7 @@ export default function MenuClient({
                                 </span>
                               )
                             ) : (
-                              <span className="text-[11px] text-gray-400 font-medium">
+                              <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">
                                 Sem limite
                               </span>
                             )}
@@ -1849,7 +2075,7 @@ export default function MenuClient({
                     />
                     <span
                       className={`text-xs font-semibold transition-colors ${
-                        item.isAvailable ? "text-[#2E4233]" : "text-[#CB5A3C]"
+                        item.isAvailable ? "text-[#2E4233] dark:text-[#34D399]" : "text-[#CB5A3C] dark:text-[#FF7D4F]"
                       }`}
                     >
                       {item.isAvailable ? "Disponível" : "Pausado"}
@@ -1887,24 +2113,22 @@ export default function MenuClient({
         </div>
 
         {/* Mobile Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 p-2.5 border-t border-[#E9E4D4] bg-[#FAF8F0]/30 shrink-0">
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setCurrentPage(i + 1)}
-                className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors ${
-                  currentPage === i + 1 
-                    ? "bg-[#CB5A3C] text-white shadow-sm" 
-                    : "bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex justify-center items-center gap-2 p-2.5 border-t border-[#E9E4D4] bg-[#FAF8F0]/30 shrink-0">
+          {Array.from({ length: Math.max(1, totalPages) }).map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setCurrentPage(i + 1)}
+              className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors ${
+                currentPage === i + 1 
+                  ? "bg-[#CB5A3C] text-white shadow-sm" 
+                  : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ==================== MODAL: EDITOR DE ITEM ==================== */}
@@ -2064,7 +2288,7 @@ export default function MenuClient({
                     <label className="text-[13px] font-semibold text-gray-700">
                       Categorias / Tags
                     </label>
-                    <span className="text-[11px] text-gray-400 font-medium">
+                    <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">
                       Campo livre · Separe por vírgulas
                     </span>
                   </div>
@@ -2136,7 +2360,7 @@ export default function MenuClient({
 
                   {/* Sugestões rápidas de categoria */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] text-gray-400 font-medium">Sugestões:</span>
+                    <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">Sugestões:</span>
                     {["Bowls", "Bebidas", "Sobremesas", "Entradas", "Mais pedido", "Vegano", "Destaque", "Fitness"].map((sug) => {
                       const alreadyHas = formCategories.some((c) => c.toLowerCase() === sug.toLowerCase())
                       if (alreadyHas) return null
@@ -2528,8 +2752,8 @@ export default function MenuClient({
             {/* Header */}
             <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
               <div>
-                <h3 className="font-bold text-[#2E4233] text-base">Editar Produto</h3>
-                <p className="text-xs text-gray-500 font-medium">Nome, descrição e categorias (mín. 1, máx. 3)</p>
+                <h3 className="font-serif font-bold text-[#CB5A3C] text-lg">Editar Produto</h3>
+                <p className="text-xs text-black font-medium">Nome, descrição e categorias (mín. 1, máx. 3)</p>
               </div>
               <button
                 type="button"
@@ -2544,7 +2768,7 @@ export default function MenuClient({
             <form onSubmit={handleSaveProductModal} className="p-5 flex flex-col gap-4 overflow-y-auto">
               {/* Nome do Produto */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-gray-700">
+                <label className="text-xs font-bold text-[#CB5A3C]">
                   Nome do Produto <span className="text-[#CB5A3C]">*</span>
                 </label>
                 <input
@@ -2553,13 +2777,13 @@ export default function MenuClient({
                   value={prodModalName}
                   onChange={(e) => setProdModalName(e.target.value)}
                   placeholder="Ex: Bowl Salmão Grelhado"
-                  className="w-full px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-sm font-semibold text-[#2E4233] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all"
+                  className="w-full px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-sm font-semibold text-[#2E4233] focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all"
                 />
               </div>
 
               {/* Descrição */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-gray-700">
+                <label className="text-xs font-bold text-[#CB5A3C]">
                   Descrição
                 </label>
                 <textarea
@@ -2567,14 +2791,14 @@ export default function MenuClient({
                   value={prodModalDesc}
                   onChange={(e) => setProdModalDesc(e.target.value)}
                   placeholder="Descreva os ingredientes, modo de preparo ou especificações..."
-                  className="w-full px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all resize-none"
+                  className="w-full px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all resize-none"
                 />
               </div>
 
               {/* Categorias (Travadas em mínimo 1 e máximo 3) */}
               <div className="flex flex-col gap-2 pt-2 border-t border-[#E9E4D4]/60">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-gray-700">
+                  <label className="text-xs font-bold text-[#CB5A3C]">
                     Categorias ({prodModalCategories.length}/3)
                   </label>
                   <span className="text-[11px] font-medium text-gray-400">
@@ -2627,20 +2851,20 @@ export default function MenuClient({
                           }
                         }}
                         placeholder="Digitar nova tag ou escolher abaixo..."
-                        className="flex-1 px-3 py-1.5 border border-[#E9E4D4] rounded-xl text-xs focus:outline-none focus:border-[#2E4233]"
+                        className="flex-1 px-3 py-1.5 border border-[#E9E4D4] rounded-xl text-xs focus:outline-none focus:border-[#CB5A3C]"
                       />
                       <button
                         type="button"
                         onClick={() => handleAddCatToProdModal(prodModalNewCat)}
-                        className="px-3 py-1.5 bg-[#2E4233] text-white text-xs font-semibold rounded-xl hover:bg-[#233327] transition-colors cursor-pointer"
+                        className="px-3 py-1.5 bg-[#CB5A3C] text-white text-xs font-bold rounded-xl hover:bg-[#b0482e] transition-colors cursor-pointer"
                       >
                         + Adicionar
                       </button>
                     </div>
 
-                    {/* Sugestões rápidas de categoria */}
+                    {/* Sugestões rápidas de categoria com + em laranja e fundo verde suave */}
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[11px] text-gray-400 font-medium">Sugestões:</span>
+                      <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">Sugestões:</span>
                       {["Bowls", "Bebidas", "Sobremesas", "Entradas", "Mais pedido", "Vegano", "Orgânico", "Destaque"].map((sug) => {
                         const alreadyHas = prodModalCategories.some((c) => c.toLowerCase() === sug.toLowerCase())
                         if (alreadyHas) return null
@@ -2649,9 +2873,10 @@ export default function MenuClient({
                             key={sug}
                             type="button"
                             onClick={() => handleAddCatToProdModal(sug)}
-                            className="px-2 py-0.5 bg-white border border-[#E9E4D4] hover:border-[#2E4233] text-gray-600 hover:text-[#2E4233] rounded-md text-[11px] font-medium transition-colors cursor-pointer"
+                            className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-800 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer inline-flex items-center"
                           >
-                            + {sug}
+                            <span className="text-[#CB5A3C] font-bold mr-1">+</span>
+                            <span>{sug}</span>
                           </button>
                         )
                       })}
@@ -2675,12 +2900,397 @@ export default function MenuClient({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#b0482e] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
                 >
                   Salvar Alterações
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL: GERENCIAR ADICIONAIS DO PRODUTO ==================== */}
+      {adicionaisModalItem && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setAdicionaisModalItem(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150 max-h-[90vh] relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0] rounded-t-2xl">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-serif font-bold text-[#CB5A3C] text-lg">
+                    {adicionaisModalItem.name}
+                  </h3>
+                  {/* Tooltip Icon & Popover no padrão DeliPlus */}
+                  <div className="relative group inline-block">
+                    <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
+                      ?
+                    </div>
+                    <div className="absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-3rem)] p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[120] pointer-events-none">
+                      <p className="text-[12px] text-white dark:text-[#1C2C22] leading-relaxed">
+                        <span className="font-extrabold text-white dark:text-[#2E4233]">Dica:</span> Cadastre e gerencie os adicionais e complementos deste prato.
+                      </p>
+                      <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-white/10 dark:border-[#E5DFD1] text-[11px] text-white/90 dark:text-[#1C2C22]">
+                        <div className="flex items-start gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
+                          <span>Os adicionais configurados aqui poderão ser escolhidos pelo cliente no pedido.</span>
+                        </div>
+                        <div className="flex items-start gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
+                          <span>Você pode definir valores adicionais ou oferecer itens como cortesia (R$ 0,00).</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-black font-medium mt-0.5">
+                  Cadastre e gerencie os adicionais e complementos deste prato
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdicionaisModalItem(null)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 flex flex-col gap-4 overflow-y-auto">
+              {/* Formulário: Adicionar Adicional (No topo conforme solicitado) */}
+              <div className="p-3.5 bg-[#FAF8F0]/70 rounded-xl border border-[#E9E4D4] flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#CB5A3C]">
+                    Novo Adicional
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="sm:col-span-2 flex flex-col gap-1">
+                    <label className="text-[11px] font-semibold text-gray-700">
+                      Nome do Adicional <span className="text-[#CB5A3C]">*</span>
+                    </label>
+                    <input
+                      key={adicionalErrors.name ? `err-name-${shakeKey}` : 'ok-name'}
+                      type="text"
+                      value={adicionalName}
+                      onChange={(e) => {
+                        setAdicionalName(autoCapitalizeFirstLetter(e.target.value))
+                        if (adicionalErrors.name) setAdicionalErrors((p) => ({ ...p, name: false }))
+                      }}
+                      onBlur={() => setAdicionalName(autoCapitalizeFirstLetter(adicionalName))}
+                      placeholder="Ex: Queijo Extra, Molho Especial..."
+                      className={`w-full px-3 py-1.5 border rounded-lg text-xs font-medium transition-all ${
+                        adicionalErrors.name
+                          ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 animate-shake"
+                          : "border-[#E9E4D4] focus:outline-none focus:border-[#CB5A3C]"
+                      }`}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-semibold text-gray-700">
+                      Valor adicional <span className="text-[#CB5A3C]">*</span>
+                    </label>
+                    <input
+                      key={adicionalErrors.price ? `err-price-${shakeKey}` : 'ok-price'}
+                      type="text"
+                      value={adicionalPrice}
+                      onChange={(e) => {
+                        setAdicionalPrice(formatCurrencyInput(e.target.value))
+                        if (adicionalErrors.price) setAdicionalErrors((p) => ({ ...p, price: false }))
+                      }}
+                      placeholder="R$ 0,00"
+                      className={`w-full px-3 py-1.5 border rounded-lg text-xs font-bold transition-all ${
+                        adicionalErrors.price
+                          ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 text-red-600 animate-shake"
+                          : "border-[#E9E4D4] text-[#CB5A3C] focus:outline-none focus:border-[#CB5A3C]"
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-gray-700">
+                    Descrição do adicional <span className="text-[#CB5A3C]">*</span>
+                  </label>
+                  <input
+                    key={adicionalErrors.desc ? `err-desc-${shakeKey}` : 'ok-desc'}
+                    type="text"
+                    value={adicionalDesc}
+                    onChange={(e) => {
+                      setAdicionalDesc(autoCapitalizeFirstLetter(e.target.value))
+                      if (adicionalErrors.desc) setAdicionalErrors((p) => ({ ...p, desc: false }))
+                    }}
+                    onBlur={() => setAdicionalDesc(autoCapitalizeFirstLetter(adicionalDesc))}
+                    placeholder="Ex: Porção de 50g artesanal feita na casa"
+                    className={`w-full px-3 py-1.5 border rounded-lg text-xs transition-all ${
+                      adicionalErrors.desc
+                        ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 text-gray-800 animate-shake"
+                        : "border-[#E9E4D4] text-gray-700 focus:outline-none focus:border-[#CB5A3C]"
+                    }`}
+                  />
+                </div>
+
+                {/* Foto do Adicional: Drag & Drop + Buscar no Computador + URL */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-semibold text-gray-700 flex items-center justify-between">
+                    <span>Foto do adicional (opcional)</span>
+                    {adicionalImage && (
+                      <button
+                        type="button"
+                        onClick={() => setAdicionalImage("")}
+                        className="text-[10px] text-red-600 hover:underline cursor-pointer"
+                      >
+                        Remover foto
+                      </button>
+                    )}
+                  </label>
+
+                  <input
+                    type="file"
+                    ref={adicionalFileInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleAdicionalPhotoFile(e.target.files[0])
+                      }
+                    }}
+                  />
+
+                  {adicionalImage ? (
+                    <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-[#E9E4D4]">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#E9E4D4] bg-[#FAF8F0] shrink-0">
+                        <img src={adicionalImage} alt="Foto selecionada" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-[#2E4233] truncate">Foto adicionada</p>
+                        <p className="text-[10px] text-gray-400 truncate">{adicionalImage}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => adicionalFileInputRef.current?.click()}
+                        className="text-xs font-bold text-[#CB5A3C] hover:underline cursor-pointer shrink-0"
+                      >
+                        Trocar
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        setIsDraggingAdicionalPhoto(true)
+                      }}
+                      onDragLeave={() => setIsDraggingAdicionalPhoto(false)}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        setIsDraggingAdicionalPhoto(false)
+                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                          handleAdicionalPhotoFile(e.dataTransfer.files[0])
+                        }
+                      }}
+                      onClick={() => adicionalFileInputRef.current?.click()}
+                      className={`p-3.5 rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center text-center ${
+                        isDraggingAdicionalPhoto
+                          ? "border-[#CB5A3C] bg-[#FCD8CC]"
+                          : "border-[#CB5A3C]/40 bg-[#FDE7DE] hover:border-[#CB5A3C] hover:bg-[#FCD8CC]"
+                      }`}
+                    >
+                      <Upload className={`w-5 h-5 mb-1 ${isDraggingAdicionalPhoto ? "text-[#CB5A3C]" : "text-[#CB5A3C]"}`} />
+                      <p className="text-xs font-semibold text-gray-700">
+                        {isUploadingAdicionalPhoto
+                          ? "Enviando imagem..."
+                          : "Arraste uma foto aqui ou clique para buscar no computador"}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">PNG, JPG ou WEBP (até 5MB)</p>
+                    </div>
+                  )}
+
+                  {/* Botão de Incluir Adicional no formulário */}
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={handleAddOrUpdateAdicional}
+                      className="px-5 py-2 bg-[#CB5A3C] hover:bg-[#b0482e] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow active:scale-95 flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{editingAdicionalId ? "Salvar Adicional" : "Incluir Adicional"}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lista de Adicionais Atuais (Embaixo conforme solicitado) */}
+              {(() => {
+                const adicionaisTotalPages = Math.max(1, Math.ceil(adicionaisList.length / ADICIONAIS_PER_PAGE));
+                const paginatedAdicionais = adicionaisList.slice(
+                  (adicionaisPage - 1) * ADICIONAIS_PER_PAGE,
+                  adicionaisPage * ADICIONAIS_PER_PAGE
+                );
+
+                return (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#CB5A3C]">
+                        Adicionais Cadastrados ({adicionaisList.length})
+                      </span>
+                    </div>
+
+                    {adicionaisList.length === 0 ? (
+                      <div className="p-4 bg-[#FDE7DE] rounded-xl border-2 border-dashed border-[#CB5A3C]/40 text-center text-xs text-[#8A3822] font-semibold">
+                        Nenhum adicional cadastrado ainda. Use o formulário acima para adicionar opções.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {paginatedAdicionais.map((ad, idx) => (
+                          <div
+                            key={ad.id || idx}
+                            className="flex items-center justify-between p-2.5 rounded-xl border-2 border-[#CB5A3C]/40 bg-white hover:border-[#CB5A3C] transition-all shadow-2xs gap-3"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {/* Foto do Adicional */}
+                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#E9E4D4] bg-[#FAF8F0] shrink-0 flex items-center justify-center">
+                                {ad.image ? (
+                                  <img src={ad.image} alt={ad.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <Camera className="w-4 h-4 text-gray-400" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-xs text-[#2E4233] truncate">
+                                    {ad.name}
+                                  </span>
+                                  <span className="text-xs font-bold text-[#CB5A3C] shrink-0">
+                                    {ad.price}
+                                  </span>
+                                </div>
+                                {ad.description && (
+                                  <p className="text-[11px] text-gray-500 truncate">{ad.description}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Ação: Excluir */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setAdicionalToDelete(ad)}
+                                className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-colors cursor-pointer"
+                                title="Excluir adicional"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Pagination Controls no padrão DeliPlus (3 em 3 adicionais) */}
+                    {adicionaisTotalPages > 1 && (
+                      <div className="flex items-center justify-between pt-2.5 border-t border-[#ECEAE2] text-[11px] text-[#637267]">
+                        <span className="font-medium text-[#637267]">
+                          {(adicionaisPage - 1) * ADICIONAIS_PER_PAGE + 1}–{Math.min(adicionaisPage * ADICIONAIS_PER_PAGE, adicionaisList.length)} de {adicionaisList.length} adicionais
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: adicionaisTotalPages }).map((_, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setAdicionaisPage(i + 1)}
+                              className={`w-6 h-6 rounded-md text-[11px] font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                                adicionaisPage === i + 1
+                                  ? "bg-[#CB5A3C] text-white shadow-xs"
+                                  : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
+                              }`}
+                            >
+                              {i + 1}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3.5 border-t border-[#E9E4D4] flex items-center justify-end gap-2 bg-[#FAF8F0]/40 rounded-b-2xl">
+              <button
+                type="button"
+                onClick={() => setAdicionaisModalItem(null)}
+                className="px-4 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveAllAdicionais}
+                disabled={isSavingAdicionais}
+                className="px-5 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#b0482e] disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+              >
+                {isSavingAdicionais ? "Salvando..." : "Salvar Alterações"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação: Excluir Adicional no Padrão DeliPlus */}
+      {adicionalToDelete && (
+        <div 
+          className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setAdicionalToDelete(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col items-center text-center border border-[#E9E4D4] animate-in zoom-in-95 duration-150 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setAdicionalToDelete(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-14 h-14 rounded-full bg-[#FDF2F0] border-2 border-[#F5D8D1] flex items-center justify-center mb-3 shadow-sm">
+              <Trash2 className="w-7 h-7 text-[#CB5A3C]" />
+            </div>
+
+            <h3 className="font-bold text-[#2E4233] text-lg mb-1">Excluir adicional?</h3>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              Tem certeza que deseja excluir o adicional <span className="font-bold text-gray-800">&quot;{adicionalToDelete.name}&quot;</span> deste prato? Esta ação não pode ser desfeita.
+            </p>
+
+            <div className="flex w-full gap-3">
+              <button
+                type="button"
+                onClick={() => setAdicionalToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-[#E9E4D4] text-[14px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleDeleteAdicional(adicionalToDelete.id)
+                  setAdicionalToDelete(null)
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-[14px] font-semibold text-white shadow-sm transition-all cursor-pointer active:scale-95"
+              >
+                Excluir
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2741,25 +3351,25 @@ export default function MenuClient({
                   {/* Comparativo de Preços: Original e Promocional juntos */}
                   <div className="p-3.5 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-between gap-3 shadow-xs">
                     <div className="flex flex-col">
-                      <span className="text-[11px] text-gray-500 font-medium">Preço Original</span>
-                      <span className="text-sm font-semibold text-gray-400 line-through">
+                      <span className="text-xs font-bold text-[#111827]">Preço Original</span>
+                      <span className="text-base font-extrabold text-red-600 line-through decoration-red-600 decoration-2">
                         {discountModalItem.originalPrice}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FDF2F0] border border-[#CB5A3C]/20">
-                      <span className="text-xs font-bold text-[#CB5A3C]">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 shadow-2xs">
+                      <span className="text-xs font-extrabold text-[#059669]">
                         -{pct > 0 ? pct : 0}%
                       </span>
                     </div>
 
                     <div className="flex flex-col items-end">
-                      <span className="text-[11px] text-gray-500 font-medium">Preço Promocional</span>
-                      <span className="text-xl font-extrabold text-[#CB5A3C]">
+                      <span className="text-xs font-bold text-[#111827]">Preço Promocional</span>
+                      <span className="text-2xl font-black text-[#059669]">
                         {formatCurrency(calculatedPromo)}
                       </span>
                       {savings > 0 && (
-                        <span className="text-[10.5px] font-semibold text-[#2E4233]">
+                        <span className="text-[11px] font-semibold text-[#059669]">
                           Economia de {formatCurrency(savings)}
                         </span>
                       )}
@@ -2768,9 +3378,9 @@ export default function MenuClient({
 
                   {/* Campo Porcentagem de Desconto */}
                   <div id="tour-promo-modal-calc" className="flex flex-col gap-2 p-1 rounded-xl">
-                    <label className="text-xs font-semibold text-gray-700 flex justify-between">
+                    <label className="text-xs font-bold text-[#111827] flex justify-between">
                       <span>Porcentagem de Desconto:</span>
-                      <span className="text-[#CB5A3C] font-bold">{pct > 0 ? `${pct}%` : "0%"}</span>
+                      <span className="text-[#059669] font-extrabold">{pct > 0 ? `${pct}%` : "0%"}</span>
                     </label>
                     
                     <div className="relative">
@@ -2783,29 +3393,11 @@ export default function MenuClient({
                         onChange={(e) => setDiscountPercentInput(e.target.value)}
                         placeholder="Ex: 15"
                         autoFocus={promoIsActive}
-                        className="w-full border border-[#E9E4D4] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#CB5A3C] focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all"
+                        className="w-full border border-[#E9E4D4] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#059669] focus:outline-none focus:ring-2 focus:ring-[#059669]/20 focus:border-[#059669] transition-all"
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">
                         %
                       </span>
-                    </div>
-
-                    {/* Atalhos rápidos de % (Botões na cor verde Deli) */}
-                    <div className="flex items-center gap-1.5 pt-0.5">
-                      {[5, 10, 15, 20, 25, 30].map((quickPct) => (
-                        <button
-                          key={quickPct}
-                          type="button"
-                          onClick={() => setDiscountPercentInput(quickPct.toString())}
-                          className={`flex-1 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
-                            pct === quickPct
-                              ? "bg-[#2E4233] text-white border-[#2E4233]"
-                              : "bg-white text-gray-600 border-[#E9E4D4] hover:bg-[#FAF8F0] hover:text-[#2E4233]"
-                          }`}
-                        >
-                          {quickPct}%
-                        </button>
-                      ))}
                     </div>
                   </div>
 
@@ -3063,7 +3655,7 @@ export default function MenuClient({
                     ? `NOVO ITEM: ${activeTourCurrentIndex + 1}/${activeTourTotalSteps}`
                     : `PASSO ${activeTourCurrentIndex + 1} DE ${activeTourTotalSteps}`}
                 </span>
-                <span className="text-[11px] text-gray-400 font-medium">
+                <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">
                   {modalTourType ? "Modo Interativo" : "Tutorial Cardápio"}
                 </span>
               </div>
@@ -3163,7 +3755,7 @@ export default function MenuClient({
                   <button
                     type="button"
                     onClick={handlePrevTour}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-xs font-semibold text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] transition-colors cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                     <span>Anterior</span>

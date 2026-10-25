@@ -120,14 +120,8 @@ export function DashboardHeader() {
 
   return (
     <header className="h-14 lg:h-16 border-b border-[#ECE7D8] dark:border-[#2A382E] bg-[#FAF8F0]/90 dark:bg-[#131A15]/90 backdrop-blur-md px-4 lg:px-7 flex items-center justify-between shrink-0 relative z-40 transition-colors duration-150">
-      {/* Left side: Store Status Indicator */}
-      <div className="flex items-center gap-2.5">
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-[#1B241E] border border-[#E3E1D9] dark:border-[#2A382E] shadow-xs transition-colors">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className="text-xs font-semibold text-[#2E4233] dark:text-[#F2EFE9]">{storeName}</span>
-          <span className="text-[11px] font-medium text-gray-600 dark:text-[#9CA79E] hidden sm:inline">• Operação Ativa</span>
-        </div>
-      </div>
+      {/* Empty Left Spacer */}
+      <div className="flex-1" />
 
       {/* Right side: Trio [Theme Toggle] [Notification Bell] [User Profile] */}
       <div className="flex items-center gap-2 sm:gap-3">

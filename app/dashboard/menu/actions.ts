@@ -397,3 +397,76 @@ export async function uploadMenuProductImage(formData: FormData): Promise<{ publ
 
   return { publicUrl }
 }
+
+export interface ComplementInput {
+  id?: string
+  name: string
+  description?: string
+  priceCents: number
+  imageUrl?: string
+  isActive?: boolean
+  sortOrder?: number
+}
+
+/**
+ * Salva a lista completa de adicionais (complementos) de um produto no Supabase.
+ */
+export async function saveProductComplements(
+  productId: string,
+  complements: ComplementInput[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { storeId, supabase } = await resolveActionContext()
+
+    // 1. Obter IDs dos adicionais enviados que já existem no banco
+    const existingIds = complements.filter(c => c.id && !c.id.startsWith("temp-")).map(c => c.id as string)
+
+    // 2. Remover adicionais que foram excluídos
+    if (existingIds.length > 0) {
+      await supabase
+        .from("product_complements")
+        .delete()
+        .eq("product_id", productId)
+        .eq("store_id", storeId)
+        .not("id", "in", `(${existingIds.join(",")})`)
+    } else {
+      await supabase
+        .from("product_complements")
+        .delete()
+        .eq("product_id", productId)
+        .eq("store_id", storeId)
+    }
+
+    // 3. Upsert dos adicionais
+    const rowsToUpsert = complements.map((c, idx) => ({
+      ...(c.id && !c.id.startsWith("temp-") ? { id: c.id } : {}),
+      store_id: storeId,
+      product_id: productId,
+      name: c.name.trim(),
+      description: c.description?.trim() || null,
+      price_cents: Math.max(0, c.priceCents || 0),
+      image_url: c.imageUrl?.trim() || null,
+      is_active: c.isActive !== false,
+      sort_order: idx + 1,
+      updated_at: new Date().toISOString()
+    }))
+
+    if (rowsToUpsert.length > 0) {
+      const { error: upsertErr } = await supabase
+        .from("product_complements")
+        .upsert(rowsToUpsert)
+
+      if (upsertErr) {
+        console.error("Erro ao fazer upsert em product_complements:", upsertErr)
+        return { success: false, error: upsertErr.message }
+      }
+    }
+
+    revalidatePath("/dashboard/menu")
+    return { success: true }
+  } catch (err: unknown) {
+    console.error("Erro em saveProductComplements:", err)
+    const errorMsg = err instanceof Error ? err.message : "Erro desconhecido"
+    return { success: false, error: errorMsg }
+  }
+}

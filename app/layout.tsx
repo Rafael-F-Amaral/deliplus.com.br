@@ -38,11 +38,10 @@ export default function RootLayout({
         fontMono.variable,
         "font-sans",
         figtree.variable,
-        playfair.variable,
         playfair.variable
       )}
     >
-      <body suppressHydrationWarning>
+      <body suppressHydrationWarning className="bg-background text-foreground transition-colors duration-150">
         <ClerkProvider 
           localization={{
             ...ptBR,
@@ -53,9 +52,10 @@ export default function RootLayout({
             formButtonPrimary: "Entrar no painel",
             formFieldAction__forgotPassword: "Esqueci minha senha"
           }}
-          
         >
-          {children}
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
         </ClerkProvider>
       </body>
     </html>

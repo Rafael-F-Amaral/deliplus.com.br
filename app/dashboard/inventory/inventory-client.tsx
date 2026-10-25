@@ -485,23 +485,23 @@ export default function InventoryClient({
   };
 
   return (
-    <div className="flex flex-col w-full h-full max-h-full max-w-[1400px] mx-auto p-3 md:px-6 pt-3 md:pt-5 pb-3 overflow-hidden justify-between">
+    <div className="flex flex-col w-full h-full max-h-full px-4 sm:px-6 pt-3 md:pt-4 pb-3 max-lg:pb-[84px] overflow-hidden justify-between font-sans transition-all min-w-0">
       
       {/* Header Area (Unstuck from top, orange title) */}
       <div className="flex flex-col mb-3 shrink-0">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] tracking-tight">Estoque</h1>
+          <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] dark:text-[#FF7D4F] tracking-tight">Estoque</h1>
           
           {/* Tooltip Icon & Popover */}
           <div className="relative group inline-block">
             <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
               ?
             </div>
-            <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-              <p className="text-[13px] text-white mb-2 leading-relaxed">
-                <span className="font-extrabold text-white">Dica:</span> Esta página gerencia todos os insumos, produtos e custos da sua operação.
+            <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+              <p className="text-[13px] text-white dark:text-[#1C2C22] mb-2 leading-relaxed">
+                <span className="font-extrabold text-white dark:text-[#2E4233]">Dica:</span> Esta página gerencia todos os insumos, produtos e custos da sua operação.
               </p>
-              <div className="flex flex-col gap-2 pt-2 border-t border-white/10 text-[12px] text-white">
+              <div className="flex flex-col gap-2 pt-2 border-t border-white/10 dark:border-[#E5DFD1] text-[12px] text-white/90 dark:text-[#1C2C22]">
                 <div className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
                   <span>Acompanhe o estoque atual e receba alertas automáticos de reposição.</span>
@@ -518,61 +518,61 @@ export default function InventoryClient({
             </div>
           </div>
         </div>
-        <p className="text-[#2E4233] text-sm md:text-base font-medium mt-0.5">Gerencie produtos e custos do seu estabelecimento.</p>
+        <p className="text-[#2E4233] dark:text-[#9CA79E] text-sm md:text-base font-medium mt-0.5">Gerencie produtos e custos do seu estabelecimento.</p>
       </div>
 
       {/* Summary Cards Row (Full Width Below Title) */}
       <div className="flex flex-col mb-3 shrink-0">
-        <div className="hidden md:flex flex-row rounded-2xl bg-white border border-[#E9E4D4] shadow-sm divide-x divide-[#E9E4D4]">
+        <div className="hidden md:flex flex-row rounded-2xl bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] shadow-sm divide-x divide-[#E9E4D4] dark:divide-[#2A382E]">
           <div className="flex-1 p-3 px-5 flex flex-col gap-0.5">
-            <div className="flex items-center gap-1.5 text-gray-500 mb-0.5">
+            <div className="flex items-center gap-1.5 text-gray-500 dark:text-[#9CA79E] mb-0.5">
               <SvgIcon path="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" className="w-4 h-4 text-[#CB5A3C]" />
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Valor em estoque</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-[#9CA79E] uppercase tracking-wider">Valor em estoque</span>
             </div>
-            <span className="text-2xl font-bold text-[#2E4233]">{formatCurrency(totalValue)}</span>
+            <span className="text-2xl font-bold text-[#2E4233] dark:text-[#F2EFE9]">{formatCurrency(totalValue)}</span>
           </div>
           
           <div className="flex-1 p-3 px-5 flex flex-col gap-0.5">
-            <div className="flex items-center gap-1.5 text-gray-500 mb-0.5">
+            <div className="flex items-center gap-1.5 text-gray-500 dark:text-[#9CA79E] mb-0.5">
               <SvgIcon path="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" className="w-4 h-4 text-[#CB5A3C]" />
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Itens cadastrados</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-[#9CA79E] uppercase tracking-wider">Itens cadastrados</span>
             </div>
-            <span className="text-2xl font-bold text-[#2E4233]">{totalItems}</span>
+            <span className="text-2xl font-bold text-[#2E4233] dark:text-[#F2EFE9]">{totalItems}</span>
           </div>
 
           <div className="flex-1 p-3 px-5 flex flex-col gap-0.5">
-            <div className="flex items-center gap-1.5 text-gray-500 mb-0.5">
+            <div className="flex items-center gap-1.5 text-gray-500 dark:text-[#9CA79E] mb-0.5">
               <SvgIcon path="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" className="w-4 h-4 text-[#CB5A3C]" />
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Estoque baixo</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-[#9CA79E] uppercase tracking-wider">Estoque baixo</span>
             </div>
-            <span className="text-2xl font-bold text-[#2E4233]">{lowStockCount}</span>
+            <span className="text-2xl font-bold text-[#2E4233] dark:text-[#F2EFE9]">{lowStockCount}</span>
           </div>
         </div>
 
         {/* Mobile Summary Grid */}
         <div className="md:hidden flex flex-col gap-2 w-full">
-          <div className="bg-white border border-[#E9E4D4] rounded-xl p-3 shadow-sm flex flex-col gap-0.5">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-3 shadow-sm flex flex-col gap-0.5">
             <div className="flex items-center gap-1.5 mb-0.5">
               <SvgIcon path="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" className="w-4 h-4 text-[#CB5A3C]" />
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Valor em estoque</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-[#9CA79E] uppercase tracking-wider">Valor em estoque</span>
             </div>
-            <span className="text-xl font-bold text-[#2E4233]">{formatCurrency(totalValue)}</span>
+            <span className="text-xl font-bold text-[#2E4233] dark:text-[#F2EFE9]">{formatCurrency(totalValue)}</span>
           </div>
           
           <div className="flex gap-2">
-            <div className="flex-1 bg-white border border-[#E9E4D4] rounded-xl p-3 shadow-sm flex flex-col gap-0.5">
+            <div className="flex-1 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-3 shadow-sm flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <SvgIcon path="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" className="w-4 h-4 text-[#CB5A3C]" />
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Itens</span>
+                <span className="text-[10px] font-bold text-gray-400 dark:text-[#9CA79E] uppercase tracking-wider">Itens</span>
               </div>
-              <span className="text-base font-bold text-[#2E4233]">{totalItems}</span>
+              <span className="text-base font-bold text-[#2E4233] dark:text-[#F2EFE9]">{totalItems}</span>
             </div>
-            <div className="flex-1 bg-white border border-[#E9E4D4] rounded-xl p-3 shadow-sm flex flex-col gap-0.5">
+            <div className="flex-1 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-3 shadow-sm flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <SvgIcon path="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" className="w-4 h-4 text-[#CB5A3C]" />
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Estoque baixo</span>
+                <span className="text-[10px] font-bold text-gray-400 dark:text-[#9CA79E] uppercase tracking-wider">Estoque baixo</span>
               </div>
-              <span className="text-base font-bold text-[#2E4233]">{lowStockCount}</span>
+              <span className="text-base font-bold text-[#2E4233] dark:text-[#F2EFE9]">{lowStockCount}</span>
             </div>
           </div>
         </div>
@@ -589,13 +589,13 @@ export default function InventoryClient({
             <div className="flex items-center gap-2 w-full sm:w-auto overflow-visible relative">
               <button 
                 onClick={() => { setFilterMode('todos'); setCurrentPage(1); }}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors ${filterMode === 'todos' ? 'bg-[#2E4233] text-white' : 'bg-white border border-[#E9E4D4] text-gray-500 hover:bg-[#F8F6EF]'}`}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors ${filterMode === 'todos' ? 'bg-[#2E4233] dark:bg-[#E76F41] text-white' : 'bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]'}`}
               >
                 Todos
               </button>
               <button 
                 onClick={() => { setFilterMode('baixo'); setCurrentPage(1); }}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors ${filterMode === 'baixo' ? 'bg-[#2E4233] text-white' : 'bg-white border border-[#E9E4D4] text-gray-500 hover:bg-[#F8F6EF]'}`}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors ${filterMode === 'baixo' ? 'bg-[#2E4233] dark:bg-[#E76F41] text-white' : 'bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]'}`}
               >
                 Baixo estoque
               </button>
@@ -609,7 +609,7 @@ export default function InventoryClient({
                   placeholder="Buscar produto" 
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                  className="w-full pl-9 pr-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all shadow-sm"
+                  className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs dark:text-[#F2EFE9] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all shadow-sm"
                 />
               </div>
               <button onClick={() => setIsNewProductModalOpen(true)} className="flex shrink-0 items-center justify-center gap-1.5 px-3.5 py-1.5 bg-[#2E4233] hover:bg-[#233327] text-white rounded-xl font-semibold text-xs transition-all duration-300 shadow-sm">
@@ -620,23 +620,23 @@ export default function InventoryClient({
           </div>
 
           {/* Desktop Table (Larger fonts, no subtitle, Geral hidden, reliable 3 dots) */}
-          <div className="hidden md:flex flex-col flex-1 h-full min-h-0 bg-white border border-[#E9E4D4] rounded-2xl shadow-sm overflow-hidden justify-between">
+          <div className="hidden md:flex flex-col flex-1 h-full min-h-0 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-sm overflow-hidden justify-between">
             <div className="w-full overflow-x-auto overflow-y-hidden">
               <table className="w-full text-left text-[14px]">
-                <thead className="bg-[#FAF8F0] border-b border-[#E9E4D4]">
-                  <tr className="text-[14px] font-semibold text-[#2E4233]">
+                <thead className="bg-[#FAF8F0] dark:bg-[#222C25] border-b border-[#E9E4D4] dark:border-[#2A382E]">
+                  <tr className="text-[14px] font-semibold text-[#2E4233] dark:text-[#F2EFE9]">
                     <th className="px-6 py-2.5">
                       <button 
                         type="button" 
                         onClick={() => handleSort('name')} 
-                        className="flex items-center gap-1.5 hover:text-[#233327] transition-colors group cursor-pointer"
+                        className="flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
                         title="Ordenar por produto (ordem alfabética)"
                       >
                         <span>Produto</span>
                         {sortField === 'name' ? (
-                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                         ) : (
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                         )}
                       </button>
                     </th>
@@ -644,14 +644,14 @@ export default function InventoryClient({
                       <button 
                         type="button" 
                         onClick={() => handleSort('quantity')} 
-                        className="flex items-center gap-1.5 hover:text-[#233327] transition-colors group cursor-pointer"
+                        className="flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
                         title="Ordenar por quantidade (maior para menor)"
                       >
                         <span>Quantidade</span>
                         {sortField === 'quantity' ? (
-                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                         ) : (
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                         )}
                       </button>
                     </th>
@@ -659,14 +659,14 @@ export default function InventoryClient({
                       <button 
                         type="button" 
                         onClick={() => handleSort('unit')} 
-                        className="flex items-center gap-1.5 hover:text-[#233327] transition-colors group cursor-pointer"
+                        className="flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
                         title="Ordenar por unidade de medição"
                       >
                         <span>Unidade</span>
                         {sortField === 'unit' ? (
-                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                         ) : (
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                         )}
                       </button>
                     </th>
@@ -674,14 +674,14 @@ export default function InventoryClient({
                       <button 
                         type="button" 
                         onClick={() => handleSort('unit_cost')} 
-                        className="flex items-center gap-1.5 hover:text-[#233327] transition-colors group cursor-pointer"
+                        className="flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
                         title="Ordenar por custo unitário (maior para menor)"
                       >
                         <span>Custo unitário</span>
                         {sortField === 'unit_cost' ? (
-                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                         ) : (
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                         )}
                       </button>
                     </th>
@@ -689,18 +689,18 @@ export default function InventoryClient({
                       <button 
                         type="button" 
                         onClick={() => handleSort('stock_value')} 
-                        className="flex items-center gap-1.5 hover:text-[#233327] transition-colors group cursor-pointer"
+                        className="flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
                         title="Ordenar por valor total em estoque (maior para menor)"
                       >
                         <span>Valor em estoque</span>
                         {sortField === 'stock_value' ? (
-                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                         ) : (
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                         )}
                       </button>
                     </th>
-                    <th className="px-6 py-2.5 text-right font-semibold text-[#2E4233]">Ações</th>
+                    <th className="px-6 py-2.5 text-right font-semibold text-[#2E4233] dark:text-[#F2EFE9]">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E9E4D4] border-b border-[#E9E4D4]">
@@ -710,7 +710,7 @@ export default function InventoryClient({
                     const formatted = formatQuantity(product.quantity, product.unit);
                     
                     return (
-                      <tr key={product.id} className="border-b border-[#E9E4D4] hover:bg-gray-50/50 transition-colors">
+                      <tr key={product.id} className="border-b border-[#E9E4D4] dark:border-[#233026] hover:bg-gray-50/50 dark:hover:bg-[#222C25] transition-colors">
                         {/* Produto: Nome clicável para edição rápida com salvamento automático */}
                         <td className="px-6 py-2.5">
                           {editingCell?.id === product.id && editingCell?.field === 'name' ? (
@@ -729,13 +729,13 @@ export default function InventoryClient({
                           ) : (
                             <div 
                               onClick={() => startInlineEdit(product, 'name')}
-                              className="group/name inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] transition-colors"
+                              className="group/name inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
                               title="Toque ou clique para editar o nome"
                             >
-                              <span className="font-bold text-[#2E4233] text-[15px] group-hover/name:underline decoration-[#2E4233]/40 underline-offset-2">
+                              <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[15px] group-hover/name:underline decoration-[#2E4233]/40 dark:decoration-[#F2EFE9]/40 underline-offset-2">
                                 {product.name}
                               </span>
-                              <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                              <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                               {saveSuccessCellId === `${product.id}-name` && (
                                 <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
                               )}
@@ -761,13 +761,13 @@ export default function InventoryClient({
                           ) : (
                             <div 
                               onClick={() => startInlineEdit(product, 'quantity')}
-                              className="group/qty inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] transition-colors"
+                              className="group/qty inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
                               title="Toque ou clique para alterar a quantidade"
                             >
-                              <span className={`font-bold text-[15px] ${isLowStock ? 'text-[#CB5A3C]' : 'text-[#2E4233]'}`}>
+                              <span className={`font-bold text-[15px] ${isLowStock ? 'text-[#CB5A3C] dark:text-[#FF7D4F]' : 'text-[#2E4233] dark:text-[#F2EFE9]'}`}>
                                 {formatted.qty}
                               </span>
-                              <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                              <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                               {saveSuccessCellId === `${product.id}-quantity` && (
                                 <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
                               )}
@@ -781,7 +781,7 @@ export default function InventoryClient({
                             <select
                               value={product.unit === 'un' ? 'unidades' : product.unit}
                               onChange={(e) => handleUnitChange(product, e.target.value)}
-                              className="appearance-none font-medium text-gray-700 text-[14px] bg-transparent hover:bg-[#FAF8F0] border border-transparent hover:border-[#E9E4D4] rounded-lg pl-2 pr-6 py-1 cursor-pointer focus:outline-none focus:bg-white focus:border-[#2E4233] transition-colors"
+                              className="appearance-none font-medium text-gray-700 dark:text-[#F2EFE9] text-[14px] bg-transparent hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] border border-transparent hover:border-[#E9E4D4] dark:hover:border-[#2A382E] rounded-lg pl-2 pr-6 py-1 cursor-pointer focus:outline-none focus:bg-white dark:focus:bg-[#1B241E] focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-colors"
                               title="Selecione a unidade de medida"
                             >
                               <option value="unidades">unidades</option>
@@ -793,7 +793,7 @@ export default function InventoryClient({
                               <option value="caixas">caixas</option>
                               <option value="pacotes">pacotes</option>
                             </select>
-                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] absolute right-1.5 pointer-events-none transition-colors" />
+                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] absolute right-1.5 pointer-events-none transition-colors" />
                             {saveSuccessCellId === `${product.id}-unit` && (
                               <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 ml-1 animate-in fade-in" />
                             )}
@@ -818,13 +818,13 @@ export default function InventoryClient({
                           ) : (
                             <div 
                               onClick={() => startInlineEdit(product, 'unit_cost')}
-                              className="group/cost inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] transition-colors"
+                              className="group/cost inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
                               title="Toque ou clique para alterar o custo unitário"
                             >
-                              <span className="font-medium text-gray-600 text-[14px]">
+                              <span className="font-medium text-gray-600 dark:text-[#9CA79E] text-[14px]">
                                 {formatCurrency(product.unit_cost_cents / 100)}
                               </span>
-                              <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                              <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                               {saveSuccessCellId === `${product.id}-unit_cost` && (
                                 <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
                               )}
@@ -833,7 +833,7 @@ export default function InventoryClient({
                         </td>
 
                         {/* Valor em estoque: Calculado dinamicamente */}
-                        <td className="px-6 py-2.5 font-bold text-[#2E4233] text-[14px]">
+                        <td className="px-6 py-2.5 font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[14px]">
                           {formatCurrency(stockValue)}
                         </td>
                         
@@ -864,8 +864,8 @@ export default function InventoryClient({
             </div>
 
             {/* Pagination Controls pinned at bottom (Centered with item count) */}
-            <div className="relative flex justify-center items-center px-6 py-2.5 border-t border-[#E9E4D4] bg-[#FAF8F0]/30 shrink-0 min-h-[44px]">
-              <span className="hidden sm:inline-block absolute left-6 text-xs text-gray-500 font-medium">
+            <div className="relative flex justify-center items-center px-6 py-2.5 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/30 dark:bg-[#1B241E]/30 shrink-0 min-h-[44px]">
+              <span className="hidden sm:inline-block absolute left-6 text-xs text-gray-500 dark:text-[#9CA79E] font-medium">
                 Mostrando {sortedProducts.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–{Math.min(currentPage * ITEMS_PER_PAGE, sortedProducts.length)} de {sortedProducts.length} itens
               </span>
 
@@ -879,7 +879,7 @@ export default function InventoryClient({
                       className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
                         currentPage === i + 1 
                           ? 'bg-[#CB5A3C] text-white shadow-sm' 
-                          : 'bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]'
+                          : 'bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]'
                       }`}
                     >
                       {i + 1}
@@ -921,8 +921,8 @@ export default function InventoryClient({
                           className="flex items-center gap-1.5 cursor-pointer py-0.5"
                           title="Toque para editar o nome"
                         >
-                          <span className="font-bold text-[#2E4233] text-[15px]">{product.name}</span>
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                          <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[15px]">{product.name}</span>
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                           {saveSuccessCellId === `${product.id}-name` && (
                             <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0" />
                           )}
@@ -962,10 +962,10 @@ export default function InventoryClient({
                             onClick={() => startInlineEdit(product, 'quantity')}
                             className="flex items-center gap-1 cursor-pointer"
                           >
-                            <span className={`font-bold text-sm ${isLowStock ? 'text-[#CB5A3C]' : 'text-[#2E4233]'}`}>
+                            <span className={`font-bold text-sm ${isLowStock ? 'text-[#CB5A3C] dark:text-[#FF7D4F]' : 'text-[#2E4233] dark:text-[#F2EFE9]'}`}>
                               {formatted.qty}
                             </span>
-                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                           </div>
                         )}
                       </div>
@@ -1013,10 +1013,10 @@ export default function InventoryClient({
                             onClick={() => startInlineEdit(product, 'unit_cost')}
                             className="flex items-center gap-1 cursor-pointer"
                           >
-                            <span className="font-bold text-[#2E4233] text-xs">
+                            <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-xs">
                               {formatCurrency((product.unit_cost_cents / 100))}
                             </span>
-                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] shrink-0" />
+                            <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                           </div>
                         )}
                       </div>
@@ -1047,7 +1047,7 @@ export default function InventoryClient({
                       className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
                         currentPage === i + 1 
                           ? 'bg-[#CB5A3C] text-white shadow-sm' 
-                          : 'bg-white text-gray-600 hover:bg-gray-100 border border-[#E9E4D4]'
+                          : 'bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]'
                       }`}
                     >
                       {i + 1}
@@ -1074,23 +1074,23 @@ export default function InventoryClient({
 
         {/* Right Side: Alerta de Reposição (Larger font, proportional, no modal on card click) */}
         <div className="hidden lg:flex flex-col w-[300px] shrink-0 h-full min-h-0">
-          <div className="bg-white border border-[#E9E4D4] rounded-2xl shadow-sm flex flex-col h-full min-h-0 justify-between relative">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-sm flex flex-col h-full min-h-0 justify-between relative">
             <div className="flex flex-col flex-1 min-h-0">
-              <div className="flex items-center justify-between p-4 border-b border-[#E9E4D4] bg-[#FAF8F0] shrink-0 rounded-t-2xl relative z-10 overflow-visible">
+              <div className="flex items-center justify-between p-4 border-b border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#222C25] shrink-0 rounded-t-2xl relative z-10 overflow-visible">
                 <div className="flex items-center gap-2">
                   <SvgIcon path="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" className="w-4 h-4 text-[#CB5A3C]" />
-                  <h3 className="font-serif font-bold text-[#2E4233] text-[17px]">Reposição</h3>
+                  <h3 className="font-serif font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[17px]">Reposição</h3>
                   
                   {/* Tooltip for Reposição */}
                   <div className="relative group inline-block">
                     <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                       ?
                     </div>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[240px] p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left">
-                      <p className="text-[12px] font-bold text-white mb-2 leading-relaxed">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[240px] p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left">
+                      <p className="text-[12px] font-bold text-white dark:text-[#2E4233] mb-2 leading-relaxed">
                         Dica:
                       </p>
-                      <div className="flex flex-col gap-2 text-[11px] text-white/95 leading-snug">
+                      <div className="flex flex-col gap-2 text-[11px] text-white/90 dark:text-[#1C2C22] leading-snug">
                         <div className="flex items-start gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
                           <span>Produtos que atingiram ou estão abaixo do estoque mínimo.</span>
@@ -1111,12 +1111,12 @@ export default function InventoryClient({
                   const formatted = formatQuantity(product.quantity, product.unit);
 
                   return (
-                    <div key={`alert-${product.id}`} className="flex flex-col shrink-0 gap-1 p-2.5 bg-white border border-[#F5D8D1] rounded-xl shadow-sm relative overflow-hidden">
+                    <div key={`alert-${product.id}`} className="flex flex-col shrink-0 gap-1 p-2.5 bg-white dark:bg-[#222C25] border border-[#F5D8D1] dark:border-[#2A382E] rounded-xl shadow-sm relative overflow-hidden">
                       <div className="absolute top-0 left-0 bottom-0 w-1 bg-[#CB5A3C]"></div>
                       <div className="pl-2">
-                        <span className="font-bold text-[#2E4233] text-[14px] truncate block">{product.name}</span>
+                        <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[14px] truncate block">{product.name}</span>
                       </div>
-                      <span className="text-[13px] text-gray-500 pl-2 mt-0.5 font-medium">
+                      <span className="text-[13px] text-gray-500 dark:text-[#9CA79E] pl-2 mt-0.5 font-medium">
                         Restam apenas <span className="text-[#CB5A3C] font-bold">{formatted.qty} {formatted.unit}</span>
                       </span>
                     </div>
@@ -1135,10 +1135,10 @@ export default function InventoryClient({
             </div>
 
             {/* Button at bottom of Reposição card (Pinned to bottom baseline) */}
-            <div className="p-3.5 bg-white border-t border-[#E9E4D4] shrink-0">
+            <div className="p-3.5 bg-white dark:bg-[#1B241E] border-t border-[#E9E4D4] dark:border-[#2A382E] shrink-0">
               <button 
                 onClick={() => setIsShoppingListOpen(true)}
-                className="w-full py-2.5 bg-[#2E4233] hover:bg-[#233327] text-white rounded-xl font-bold text-[13px] transition-all shadow-sm flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-[#2E4233] dark:bg-[#E76F41] hover:bg-[#233327] dark:hover:bg-[#B84E32] text-white rounded-xl font-bold text-[13px] transition-all shadow-sm flex items-center justify-center gap-2"
               >
                 <SvgIcon path="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 012-2h2a2 2 0 012 2" className="w-4 h-4" />
                 Lista de Compras
@@ -1162,11 +1162,11 @@ export default function InventoryClient({
                   <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                     ?
                   </div>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[250px] p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left">
-                    <p className="text-[12px] font-bold text-white mb-2 leading-relaxed">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[250px] p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left">
+                    <p className="text-[12px] font-bold text-white dark:text-[#2E4233] mb-2 leading-relaxed">
                       Dica de cadastro:
                     </p>
-                    <div className="flex flex-col gap-2 text-[11px] text-white/95 leading-snug">
+                    <div className="flex flex-col gap-2 text-[11px] text-white/90 dark:text-[#1C2C22] leading-snug">
                       <div className="flex items-start gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
                         <span>Cadastre insumos, produtos acabados ou embalagens.</span>
@@ -1367,11 +1367,11 @@ export default function InventoryClient({
                     <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
                       ?
                     </div>
-                    <div className="absolute top-full left-0 mt-2 w-[270px] p-3.5 bg-[#2E4233] text-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left">
-                      <p className="text-[12px] font-bold text-white mb-2 leading-relaxed">
+                    <div className="absolute top-full left-0 mt-2 w-[270px] p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left">
+                      <p className="text-[12px] font-bold text-white dark:text-[#2E4233] mb-2 leading-relaxed">
                         Dica da Lista de Compras:
                       </p>
-                      <div className="flex flex-col gap-2 text-[11px] text-white/95 leading-snug">
+                      <div className="flex flex-col gap-2 text-[11px] text-white/90 dark:text-[#1C2C22] leading-snug">
                         <div className="flex items-start gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
                           <span>Produtos com estoque em estado crítico são sugeridos automaticamente.</span>
