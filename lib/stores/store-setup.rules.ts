@@ -13,6 +13,7 @@ export const RESERVED_STORE_SLUGS = [
   "onboarding",
   "sign-in",
   "sign-up",
+  "sso-callback",
   "pricing",
   "trpc",
 ] as const

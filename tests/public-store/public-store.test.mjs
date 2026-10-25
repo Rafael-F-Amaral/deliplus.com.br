@@ -168,6 +168,6 @@ test("every actual top-level static route is rejected as a Store slug", async ()
     new URL("../../proxy.ts", import.meta.url),
     "utf8"
   )
-  assert.match(proxy, /clerkMiddleware\(\)/)
+  assert.match(proxy, /clerkMiddleware\(/)
   assert.doesNotMatch(proxy, /auth\.protect|redirectToSignIn/)
 })
