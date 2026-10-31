@@ -56,7 +56,9 @@ export async function updateStoreProfile(data: {
   // Atualizar nome na tabela stores
   const { error: storeError } = await supabase
     .from("stores")
-    .update({ name: trimmedName })
+    .update({
+      name: trimmedName,
+    })
     .eq("id", storeId);
 
   if (storeError) {
@@ -85,6 +87,8 @@ export async function updateStoreProfile(data: {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
+  revalidatePath("/casa-noma");
+  revalidatePath("/[storeSlug]", "page");
   return { success: true };
 }
 
@@ -141,6 +145,8 @@ export async function updateDeliverySettings(data: {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
+  revalidatePath("/casa-noma");
+  revalidatePath("/[storeSlug]", "page");
   return { success: true };
 }
 
@@ -161,6 +167,8 @@ export async function toggleStoreOpenStatus(isOpen: boolean) {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
+  revalidatePath("/casa-noma");
+  revalidatePath("/[storeSlug]", "page");
   return { success: true };
 }
 

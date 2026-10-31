@@ -126,7 +126,7 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     promo_price_cents: 3290,
     in_promo: true,
     discount_percentage: 18,
-    image_url: "https://images.unsplash.com/photo-1621996346565-e3d5d6281691?auto=format&fit=crop&w=600&h=450&q=80",
+    image_url: "https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=600&h=450&q=80",
     tags: ["Vegetariano", "Mais pedido"],
     is_featured: true,
     free_delivery_eligible: true,

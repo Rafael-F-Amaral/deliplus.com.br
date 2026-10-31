@@ -38,15 +38,15 @@ export function OrderConfirmedScreen() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-0 md:p-4 backdrop-blur-xs">
-      <div className="relative flex h-full w-full max-w-5xl flex-col overflow-hidden bg-white shadow-2xl md:h-auto md:max-h-[92vh] md:rounded-2xl">
+      <div className="relative flex h-full w-full max-w-5xl flex-col overflow-hidden bg-white dark:bg-[#17211A] text-[#1F2922] dark:text-[#F2EFE9] border dark:border-[#2A382E] shadow-2xl md:h-auto md:max-h-[92vh] md:rounded-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#ECE7DE] bg-white px-6 py-4">
+        <div className="flex items-center justify-between border-b border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] px-6 py-4">
           <div className="font-serif text-2xl font-bold tracking-tight text-[#1A261D]">
             Deliplus
           </div>
           <button
             onClick={closeModal}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#5D645E] hover:bg-[#F4EFE6]"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[#5D645E] dark:text-[#9CA79E] hover:bg-[#F4EFE6] dark:hover:bg-[#253528]"
           >
             <X className="h-5 w-5" />
           </button>
@@ -62,7 +62,7 @@ export function OrderConfirmedScreen() {
                 <CheckCircle2 className="h-9 w-9" />
               </div>
 
-              <h2 className="mt-4 font-serif text-3xl font-bold tracking-tight text-[#1A261D] md:text-4xl">
+              <h2 className="mt-4 font-serif text-3xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9] md:text-4xl">
                 Pedido confirmado!
               </h2>
 
@@ -73,7 +73,7 @@ export function OrderConfirmedScreen() {
                 </span>
               </div>
 
-              <p className="mt-1 text-xs text-[#6B736E] md:text-sm">
+              <p className="mt-1 text-xs text-[#6B736E] dark:text-[#9CA79E] md:text-sm">
                 Recebemos seu pedido e já estamos preparando tudo com muito carinho.
               </p>
             </div>
@@ -81,13 +81,13 @@ export function OrderConfirmedScreen() {
             {/* Info Cards Grid */}
             <div className="mt-6 space-y-3">
               {/* Time ETA Card */}
-              <div className="flex items-start gap-3.5 rounded-2xl border border-[#ECE7DE] bg-[#FAF8F5] p-4 text-xs">
+              <div className="flex items-start gap-3.5 rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#131A15] p-4 text-xs">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F0EBE1] text-[#1B2A20]">
                   <Clock className="h-4 w-4" />
                 </div>
                 <div>
                   <span className="text-[#6D746F]">Chega entre</span>
-                  <div className="text-sm font-bold text-[#1C261F]">
+                  <div className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                     {lastOrder.estimated_delivery_time}
                   </div>
                   <span className="text-[#88908B]">Hoje, 27 de maio</span>
@@ -95,13 +95,13 @@ export function OrderConfirmedScreen() {
               </div>
 
               {/* Payment Approved Card */}
-              <div className="flex items-start gap-3.5 rounded-2xl border border-[#ECE7DE] bg-[#FAF8F5] p-4 text-xs">
+              <div className="flex items-start gap-3.5 rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#131A15] p-4 text-xs">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E5F3EA] text-[#2E9B4F]">
                   <CreditCard className="h-4 w-4" />
                 </div>
                 <div>
                   <span className="text-[#6D746F]">Pagamento</span>
-                  <div className="text-sm font-bold text-[#1C261F]">
+                  <div className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                     Pagamento aprovado
                   </div>
                   <span className="text-[#88908B]">
@@ -111,12 +111,12 @@ export function OrderConfirmedScreen() {
               </div>
 
               {/* Delivery Address Card */}
-              <div className="flex items-start gap-3.5 rounded-2xl border border-[#ECE7DE] bg-[#FAF8F5] p-4 text-xs">
+              <div className="flex items-start gap-3.5 rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#131A15] p-4 text-xs">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F0EBE1] text-[#1B2A20]">
                   <MapPin className="h-4 w-4" />
                 </div>
                 <div className="text-[#4A534B]">
-                  <span className="font-bold text-[#1C261F]">
+                  <span className="font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                     Endereço de entrega
                   </span>
                   <p className="mt-0.5 font-medium text-[#1C261F]">
@@ -144,7 +144,7 @@ export function OrderConfirmedScreen() {
             <div className="mt-6 space-y-2.5">
               <button
                 onClick={() => openModal("order-tracking")}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1B2A20] py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#283E30]"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1B2A20] dark:bg-[#2E4233] py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#283E30] dark:hover:bg-[#3B5441]"
               >
                 <Bike className="h-4 w-4" />
                 <span>Acompanhar pedido</span>
@@ -152,7 +152,7 @@ export function OrderConfirmedScreen() {
 
               <button
                 onClick={closeModal}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#CB5A3C] bg-white py-3 text-sm font-bold text-[#CB5A3C] transition hover:bg-[#FFF5F2]"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#CB5A3C] bg-white dark:bg-[#1B241E] py-3 text-sm font-bold text-[#CB5A3C] transition hover:bg-[#FFF5F2] dark:hover:bg-[#2A1E19]"
               >
                 <UtensilsCrossed className="h-4 w-4" />
                 <span>Voltar ao cardápio</span>
@@ -160,7 +160,7 @@ export function OrderConfirmedScreen() {
             </div>
 
             {/* Help / WhatsApp Contact Card */}
-            <div className="mt-6 flex items-center justify-between rounded-xl border border-[#ECE7DE] bg-[#FAF8F5] p-3.5 text-xs">
+            <div className="mt-6 flex items-center justify-between rounded-xl border border-[#ECE7DE] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#131A15] p-3.5 text-xs">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-[#1B2A20]">
                   <Store className="h-4 w-4" />
@@ -186,18 +186,18 @@ export function OrderConfirmedScreen() {
           </div>
 
           {/* Right Column: Order Items Summary & Eco Notice */}
-          <div className="border-t border-[#ECE7DE] bg-[#FAF8F5] p-6 md:col-span-5 md:border-l md:border-t-0 md:p-8">
+          <div className="border-t border-[#ECE7DE] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#141C16] p-6 md:col-span-5 md:border-l md:border-t-0 md:p-8">
             <h3 className="font-serif text-lg font-bold text-[#1C261F]">
               Resumo do pedido
             </h3>
 
             {/* Store Header */}
-            <div className="my-4 flex items-center gap-3 rounded-xl bg-white p-3 shadow-2xs">
+            <div className="my-4 flex items-center gap-3 rounded-xl bg-white dark:bg-[#1B241E] p-3 border dark:border-[#2A382E] shadow-2xs">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#E5E0D5] bg-[#FAF8F5]">
                 <Leaf className="h-5 w-5 text-[#5A7C65]" />
               </div>
               <div className="text-xs">
-                <span className="font-bold text-[#1C261F]">{store.name}</span>
+                <span className="font-bold text-[#1C261F] dark:text-[#F2EFE9]">{store.name}</span>
                 <p className="text-[#7F8681]">
                   {lastOrder.items.length}{" "}
                   {lastOrder.items.length === 1 ? "item" : "itens"}
@@ -206,7 +206,7 @@ export function OrderConfirmedScreen() {
             </div>
 
             {/* Items with Customizations */}
-            <div className="divide-y divide-[#ECE7DE]">
+            <div className="divide-y divide-[#ECE7DE] dark:divide-[#2A382E]">
               {lastOrder.items.map((it) => (
                 <div key={it.id} className="py-3 text-xs">
                   <div className="flex items-start justify-between">
@@ -217,7 +217,7 @@ export function OrderConfirmedScreen() {
                         className="h-12 w-12 shrink-0 rounded-lg object-cover"
                       />
                       <div>
-                        <span className="font-bold text-[#1C261F]">
+                        <span className="font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                           {it.name}
                         </span>
                         <div className="mt-0.5 text-[11px] text-[#69716B]">
@@ -237,7 +237,7 @@ export function OrderConfirmedScreen() {
                         </ul>
                       </div>
                     </div>
-                    <span className="font-bold text-[#1C261F]">
+                    <span className="font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                       {formatCurrency(it.unit_price_cents * it.quantity)}
                     </span>
                   </div>
@@ -246,24 +246,24 @@ export function OrderConfirmedScreen() {
             </div>
 
             {/* Financial Summary */}
-            <div className="mt-4 space-y-2 border-t border-[#ECE7DE] pt-4 text-xs">
-              <div className="flex justify-between text-[#68706A]">
+            <div className="mt-4 space-y-2 border-t border-[#ECE7DE] dark:border-[#2A382E] pt-4 text-xs">
+              <div className="flex justify-between text-[#68706A] dark:text-[#9CA79E]">
                 <span>Subtotal</span>
-                <span className="font-medium text-[#1C261F]">
+                <span className="font-medium text-[#1C261F] dark:text-[#F2EFE9]">
                   {formatCurrency(lastOrder.subtotal_cents)}
                 </span>
               </div>
-              <div className="flex justify-between text-[#68706A]">
+              <div className="flex justify-between text-[#68706A] dark:text-[#9CA79E]">
                 <span>Taxa de entrega</span>
-                <span className="font-medium text-[#1C261F]">
+                <span className="font-medium text-[#1C261F] dark:text-[#F2EFE9]">
                   {lastOrder.delivery_fee_cents === 0
                     ? "Grátis"
                     : formatCurrency(lastOrder.delivery_fee_cents)}
                 </span>
               </div>
-              <div className="flex justify-between pt-2 text-sm font-bold text-[#1C261F]">
+              <div className="flex justify-between pt-2 text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                 <span>Total</span>
-                <span className="text-base text-[#1C261F]">
+                <span className="text-base text-[#1C261F] dark:text-[#4ADE80]">
                   {formatCurrency(lastOrder.total_cents)}
                 </span>
               </div>

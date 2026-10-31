@@ -1,3 +1,4 @@
+// Storefront Checkout Payment Modal (Pix, Cartão, Dinheiro)
 "use client"
 
 import React, { useState, useEffect } from "react"
@@ -12,6 +13,7 @@ import {
   Clock,
   Lock,
   Tag,
+  ArrowLeft,
 } from "lucide-react"
 import { PaymentMethodType } from "@/types/storefront"
 
@@ -19,6 +21,7 @@ export function CheckoutPaymentModal() {
   const {
     activeModal,
     closeModal,
+    openModal,
     items,
     subtotalCents,
     deliveryFeeCents,
@@ -88,21 +91,21 @@ export function CheckoutPaymentModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-0 md:p-4 backdrop-blur-xs">
-      <div className="relative flex h-full w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl md:h-auto md:max-h-[92vh] md:rounded-2xl">
+      <div className="relative flex h-full w-full max-w-6xl flex-col overflow-hidden bg-white dark:bg-[#17211A] text-[#1F2922] dark:text-[#F2EFE9] shadow-2xl md:h-auto md:max-h-[92vh] md:rounded-2xl border dark:border-[#2A382E]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#ECE7DE] bg-white px-6 py-4">
-          <div className="font-serif text-2xl font-bold tracking-tight text-[#1A261D]">
+        <div className="flex items-center justify-between border-b border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] px-6 py-4">
+          <div className="font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
             Deliplus
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden items-center gap-1.5 text-xs text-[#2E6B3E] sm:flex">
+            <div className="hidden items-center gap-1.5 text-xs text-[#2E6B3E] dark:text-emerald-400 sm:flex">
               <ShieldCheck className="h-4 w-4" />
               <span>Pagamento Seguro com Criptografia de Ponta a Ponta</span>
             </div>
             <button
               onClick={closeModal}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-[#5D645E] hover:bg-[#F4EFE6]"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[#5D645E] dark:text-[#9CA79E] hover:bg-[#F4EFE6] dark:hover:bg-[#253528]"
             >
               <X className="h-5 w-5" />
             </button>
@@ -112,11 +115,11 @@ export function CheckoutPaymentModal() {
         {/* Modal Body: 3 Columns Grid */}
         <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-12">
           {/* Column 1: Payment Method Selection */}
-          <div className="border-b border-[#ECE7DE] p-6 lg:col-span-4 lg:border-b-0 lg:border-r lg:p-7">
-            <h2 className="font-serif text-2xl font-bold text-[#1C261F]">
+          <div className="border-b border-[#ECE7DE] dark:border-[#2A382E] p-6 lg:col-span-4 lg:border-b-0 lg:border-r lg:p-7">
+            <h2 className="font-serif text-2xl font-bold text-[#1C261F] dark:text-[#F2EFE9]">
               Forma de pagamento
             </h2>
-            <p className="mt-1 text-xs text-[#6B736E]">
+            <p className="mt-1 text-xs text-[#6B736E] dark:text-[#9CA79E]">
               Escolha a forma de pagamento que prefere para finalizar seu pedido.
             </p>
 
@@ -126,8 +129,8 @@ export function CheckoutPaymentModal() {
                 onClick={() => setPaymentMethod("pix")}
                 className={`flex cursor-pointer items-center justify-between rounded-2xl border p-4 transition ${
                   paymentMethod === "pix"
-                    ? "border-[#1B2A20] bg-[#FAF8F5] ring-1 ring-[#1B2A20]"
-                    : "border-[#ECE7DE] bg-white hover:border-[#D5CDBD]"
+                    ? "border-[#1B2A20] bg-[#FAF8F5] dark:border-emerald-500/50 dark:bg-[#253528] ring-1 ring-[#1B2A20] dark:ring-emerald-500/50"
+                    : "border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] hover:border-[#D5CDBD] dark:hover:border-[#384D3E]"
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -142,8 +145,8 @@ export function CheckoutPaymentModal() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[#1C261F]">Pix</h3>
-                    <p className="text-xs text-[#2E6B3E] font-medium">
+                    <h3 className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">Pix</h3>
+                    <p className="text-xs text-[#2E6B3E] dark:text-emerald-400 font-medium">
                       Aprovação imediata
                     </p>
                   </div>
@@ -152,8 +155,8 @@ export function CheckoutPaymentModal() {
                 <div
                   className={`flex h-5 w-5 items-center justify-center rounded-full border ${
                     paymentMethod === "pix"
-                      ? "border-[#1B2A20] bg-[#1B2A20] text-white"
-                      : "border-[#C5BEB3]"
+                      ? "border-[#1B2A20] bg-[#1B2A20] dark:bg-emerald-500 dark:border-emerald-500 text-white"
+                      : "border-[#C5BEB3] dark:border-[#3A4B3E]"
                   }`}
                 >
                   {paymentMethod === "pix" && <Check className="h-3 w-3" />}
@@ -165,27 +168,27 @@ export function CheckoutPaymentModal() {
                 onClick={() => setPaymentMethod("credit_card")}
                 className={`flex cursor-pointer items-center justify-between rounded-2xl border p-4 transition ${
                   paymentMethod === "credit_card"
-                    ? "border-[#1B2A20] bg-[#FAF8F5] ring-1 ring-[#1B2A20]"
-                    : "border-[#ECE7DE] bg-white hover:border-[#D5CDBD]"
+                    ? "border-[#1B2A20] bg-[#FAF8F5] dark:border-emerald-500/50 dark:bg-[#253528] ring-1 ring-[#1B2A20] dark:ring-emerald-500/50"
+                    : "border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] hover:border-[#D5CDBD] dark:hover:border-[#384D3E]"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F5EFE6] text-[#1B2A20]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F5EFE6] dark:bg-[#253528] text-[#1B2A20] dark:text-[#4ADE80]">
                     <CreditCard className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[#1C261F]">
+                    <h3 className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                       Cartão de crédito
                     </h3>
-                    <p className="text-xs text-[#6B736E]">Pagamento seguro</p>
+                    <p className="text-xs text-[#6B736E] dark:text-[#9CA79E]">Pagamento seguro</p>
                   </div>
                 </div>
 
                 <div
                   className={`flex h-5 w-5 items-center justify-center rounded-full border ${
                     paymentMethod === "credit_card"
-                      ? "border-[#1B2A20] bg-[#1B2A20] text-white"
-                      : "border-[#C5BEB3]"
+                      ? "border-[#1B2A20] bg-[#1B2A20] dark:bg-emerald-500 dark:border-emerald-500 text-white"
+                      : "border-[#C5BEB3] dark:border-[#3A4B3E]"
                   }`}
                 >
                   {paymentMethod === "credit_card" && <Check className="h-3 w-3" />}
@@ -197,27 +200,27 @@ export function CheckoutPaymentModal() {
                 onClick={() => setPaymentMethod("cash")}
                 className={`flex cursor-pointer items-center justify-between rounded-2xl border p-4 transition ${
                   paymentMethod === "cash"
-                    ? "border-[#1B2A20] bg-[#FAF8F5] ring-1 ring-[#1B2A20]"
-                    : "border-[#ECE7DE] bg-white hover:border-[#D5CDBD]"
+                    ? "border-[#1B2A20] bg-[#FAF8F5] dark:border-emerald-500/50 dark:bg-[#253528] ring-1 ring-[#1B2A20] dark:ring-emerald-500/50"
+                    : "border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] hover:border-[#D5CDBD] dark:hover:border-[#384D3E]"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F5EFE6] text-[#1B2A20]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F5EFE6] dark:bg-[#253528] text-[#1B2A20] dark:text-[#4ADE80]">
                     <Banknote className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[#1C261F]">
+                    <h3 className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                       Dinheiro na entrega
                     </h3>
-                    <p className="text-xs text-[#6B736E]">Pagamento ao receber</p>
+                    <p className="text-xs text-[#6B736E] dark:text-[#9CA79E]">Pagamento ao receber</p>
                   </div>
                 </div>
 
                 <div
                   className={`flex h-5 w-5 items-center justify-center rounded-full border ${
                     paymentMethod === "cash"
-                      ? "border-[#1B2A20] bg-[#1B2A20] text-white"
-                      : "border-[#C5BEB3]"
+                      ? "border-[#1B2A20] bg-[#1B2A20] dark:bg-emerald-500 dark:border-emerald-500 text-white"
+                      : "border-[#C5BEB3] dark:border-[#3A4B3E]"
                   }`}
                 >
                   {paymentMethod === "cash" && <Check className="h-3 w-3" />}
@@ -227,8 +230,8 @@ export function CheckoutPaymentModal() {
 
             {/* Need Change input if cash selected */}
             {paymentMethod === "cash" && (
-              <div className="mt-4 rounded-xl border border-[#ECE7DE] bg-[#FAF8F5] p-3 text-xs">
-                <label className="mb-1 block font-semibold text-[#1C261F]">
+              <div className="mt-4 rounded-xl border border-[#ECE7DE] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#131A15] p-3 text-xs">
+                <label className="mb-1 block font-semibold text-[#1C261F] dark:text-[#F2EFE9]">
                   Precisa de troco para quanto? (Opcional)
                 </label>
                 <input
@@ -236,7 +239,7 @@ export function CheckoutPaymentModal() {
                   value={changeFor}
                   onChange={(e) => setChangeFor(e.target.value)}
                   placeholder="Ex: R$ 100,00"
-                  className="w-full rounded-lg border border-[#DED7CB] bg-white p-2 text-sm text-[#1F2921]"
+                  className="w-full rounded-lg border border-[#DED7CB] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] p-2 text-sm text-[#1F2921] dark:text-[#F2EFE9]"
                 />
               </div>
             )}
@@ -244,33 +247,33 @@ export function CheckoutPaymentModal() {
             {/* Coupon Box */}
             <form onSubmit={handleApplyCoupon} className="mt-6 flex gap-2">
               <div className="relative flex-1">
-                <Tag className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#7F8681]" />
+                <Tag className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#7F8681] dark:text-[#9CA79E]" />
                 <input
                   type="text"
                   value={couponInput}
                   onChange={(e) => setCouponInput(e.target.value)}
                   placeholder="Cupom de desconto"
-                  className="w-full rounded-xl border border-[#DED7CB] bg-[#FAF8F5] py-2.5 pl-8 pr-3 text-xs text-[#1F2921] outline-hidden focus:border-[#1B2A20] focus:bg-white focus:ring-1 focus:ring-[#1B2A20]"
+                  className="w-full rounded-xl border border-[#DED7CB] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#131A15] py-2.5 pl-8 pr-3 text-xs text-[#1F2921] dark:text-[#F2EFE9] outline-hidden focus:border-[#1B2A20] dark:focus:border-emerald-500 focus:bg-white dark:focus:bg-[#131A15] focus:ring-1 focus:ring-[#1B2A20]"
                 />
               </div>
               <button
                 type="submit"
-                className="rounded-xl border border-[#DED7CB] bg-white px-4 py-2.5 text-xs font-bold text-[#1F2921] transition hover:bg-[#F5F2EB]"
+                className="rounded-xl border border-[#DED7CB] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] px-4 py-2.5 text-xs font-bold text-[#1F2921] dark:text-[#F2EFE9] transition hover:bg-[#F5F2EB] dark:hover:bg-[#253528]"
               >
                 Aplicar
               </button>
             </form>
             {couponMessage && (
-              <p className="mt-1 text-xs text-[#2E6B3E] font-medium">
+              <p className="mt-1 text-xs text-[#2E6B3E] dark:text-emerald-400 font-medium">
                 {couponMessage}
               </p>
             )}
 
             {/* Security Notice */}
-            <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-[#E2DDD3] bg-[#F7F4EE] p-3 text-xs text-[#525B54]">
-              <ShieldCheck className="h-4 w-4 shrink-0 text-[#2E6B3E]" />
+            <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-[#E2DDD3] dark:border-[#2A382E] bg-[#F7F4EE] dark:bg-[#1F2B22] p-3 text-xs text-[#525B54] dark:text-[#9CA79E]">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-[#2E6B3E] dark:text-emerald-400" />
               <div>
-                <span className="font-bold text-[#1C261F]">
+                <span className="font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                   Pagamento seguro.
                 </span>{" "}
                 <span>
@@ -284,19 +287,19 @@ export function CheckoutPaymentModal() {
           <div className="flex flex-col items-center justify-center p-6 text-center lg:col-span-5 lg:p-8">
             {paymentMethod === "pix" ? (
               <div className="flex w-full max-w-sm flex-col items-center">
-                <h3 className="font-serif text-2xl font-bold text-[#1C261F]">
+                <h3 className="font-serif text-2xl font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                   Pix
                 </h3>
-                <div className="mt-1 flex items-center gap-1.5 text-xs text-[#2E6B3E]">
+                <div className="mt-1 flex items-center gap-1.5 text-xs text-[#2E6B3E] dark:text-emerald-400">
                   <ShieldCheck className="h-3.5 w-3.5" />
                   <span>Pagamento seguro</span>
                 </div>
-                <p className="mt-2 text-xs text-[#68706A]">
+                <p className="mt-2 text-xs text-[#68706A] dark:text-[#9CA79E]">
                   Escaneie o QR Code com o app do seu banco ou copie o código Pix para pagar.
                 </p>
 
                 {/* QR Code Container */}
-                <div className="relative my-5 rounded-2xl border border-[#E5E0D5] bg-white p-4 shadow-sm">
+                <div className="relative my-5 rounded-2xl border border-[#E5E0D5] dark:border-[#2A382E] bg-white p-4 shadow-sm">
                   {/* High Quality SVG Pix QR Code */}
                   <div className="relative flex h-52 w-52 items-center justify-center bg-[#FDFDFD]">
                     <svg
@@ -351,22 +354,22 @@ export function CheckoutPaymentModal() {
                   </div>
                 </div>
 
-                <span className="text-xs text-[#808782]">
+                <span className="text-xs text-[#808782] dark:text-[#9CA79E]">
                   ou copie o código Pix
                 </span>
 
                 {/* Copy paste input */}
-                <div className="mt-2 flex w-full items-center rounded-xl border border-[#DED7CB] bg-[#FAF8F5] p-2 text-xs">
-                  <span className="flex-1 truncate font-mono text-[#4A534C]">
+                <div className="mt-2 flex w-full items-center rounded-xl border border-[#DED7CB] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#131A15] p-2 text-xs">
+                  <span className="flex-1 truncate font-mono text-[#4A534C] dark:text-[#D5DDD7]">
                     {store.pix_key.slice(0, 36)}...
                   </span>
                   <button
                     onClick={handleCopyPix}
-                    className="ml-2 flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 font-semibold text-[#1B2A20] shadow-xs hover:bg-[#F2ECE1]"
+                    className="ml-2 flex items-center gap-1 rounded-lg bg-white dark:bg-[#1B241E] px-2.5 py-1 font-semibold text-[#1B2A20] dark:text-[#F2EFE9] border dark:border-[#2A382E] shadow-xs hover:bg-[#F2ECE1] dark:hover:bg-[#253528]"
                   >
                     {copied ? (
                       <>
-                        <Check className="h-3.5 w-3.5 text-[#2E6B3E]" />
+                        <Check className="h-3.5 w-3.5 text-[#2E6B3E] dark:text-emerald-400" />
                         <span>Copiado!</span>
                       </>
                     ) : (
@@ -379,32 +382,32 @@ export function CheckoutPaymentModal() {
                 </div>
 
                 {/* Expiration Timer */}
-                <div className="mt-4 flex items-center gap-1.5 text-xs text-[#CB5A3C]">
+                <div className="mt-4 flex items-center gap-1.5 text-xs text-[#CB5A3C] dark:text-[#FF7D4F]">
                   <Clock className="h-3.5 w-3.5" />
                   <span>Expira em {formatTimer(timeLeft)}</span>
                 </div>
               </div>
             ) : paymentMethod === "credit_card" ? (
               <div className="flex max-w-sm flex-col items-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#FAF5EE] text-[#1B2A20]">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#FAF5EE] dark:bg-[#253528] text-[#1B2A20] dark:text-[#4ADE80]">
                   <CreditCard className="h-8 w-8" />
                 </div>
-                <h3 className="mt-4 font-serif text-xl font-bold text-[#1C261F]">
+                <h3 className="mt-4 font-serif text-xl font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                   Cartão na entrega
                 </h3>
-                <p className="mt-1 text-xs text-[#68706A]">
+                <p className="mt-1 text-xs text-[#68706A] dark:text-[#9CA79E]">
                   O entregador levará a maquininha até seu endereço. Aceitamos as principais bandeiras (Visa, Mastercard, Elo, Amex).
                 </p>
               </div>
             ) : (
               <div className="flex max-w-sm flex-col items-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#FAF5EE] text-[#1B2A20]">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#FAF5EE] dark:bg-[#253528] text-[#1B2A20] dark:text-[#4ADE80]">
                   <Banknote className="h-8 w-8" />
                 </div>
-                <h3 className="mt-4 font-serif text-xl font-bold text-[#1C261F]">
+                <h3 className="mt-4 font-serif text-xl font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                   Dinheiro na entrega
                 </h3>
-                <p className="mt-1 text-xs text-[#68706A]">
+                <p className="mt-1 text-xs text-[#68706A] dark:text-[#9CA79E]">
                   O pagamento será realizado no ato da entrega diretamente com o entregador parceiro.
                 </p>
               </div>
@@ -412,13 +415,13 @@ export function CheckoutPaymentModal() {
           </div>
 
           {/* Column 3: Order Summary & Confirm */}
-          <div className="border-t border-[#ECE7DE] bg-[#FAF8F5] p-6 lg:col-span-3 lg:border-l lg:border-t-0 lg:p-7">
-            <h3 className="font-serif text-base font-bold text-[#1C261F]">
+          <div className="border-t border-[#ECE7DE] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#141C16] p-6 lg:col-span-3 lg:border-l lg:border-t-0 lg:p-7">
+            <h3 className="font-serif text-base font-bold text-[#1C261F] dark:text-[#F2EFE9]">
               Resumo do pedido
             </h3>
 
             {/* Compact items list */}
-            <div className="my-3 max-h-52 divide-y divide-[#ECE7DE] overflow-y-auto">
+            <div className="my-3 max-h-52 divide-y divide-[#ECE7DE] dark:divide-[#2A382E] overflow-y-auto">
               {items.map((it) => (
                 <div key={it.id} className="flex items-center justify-between py-2 text-xs">
                   <div className="flex items-center gap-2 overflow-hidden">
@@ -427,11 +430,11 @@ export function CheckoutPaymentModal() {
                       alt={it.name}
                       className="h-8 w-8 shrink-0 rounded object-cover"
                     />
-                    <span className="truncate text-[#1C261F] font-medium">
+                    <span className="truncate text-[#1C261F] dark:text-[#F2EFE9] font-medium">
                       {it.name}
                     </span>
                   </div>
-                  <div className="ml-2 shrink-0 font-bold text-[#1C261F]">
+                  <div className="ml-2 shrink-0 font-bold text-[#1C261F] dark:text-[#4ADE80]">
                     {it.quantity}x
                   </div>
                 </div>
@@ -439,26 +442,26 @@ export function CheckoutPaymentModal() {
             </div>
 
             {/* Calculations */}
-            <div className="space-y-1.5 border-t border-[#ECE7DE] pt-3 text-xs">
-              <div className="flex justify-between text-[#68706A]">
+            <div className="space-y-1.5 border-t border-[#ECE7DE] dark:border-[#2A382E] pt-3 text-xs">
+              <div className="flex justify-between text-[#68706A] dark:text-[#9CA79E]">
                 <span>Subtotal</span>
-                <span>{formatCurrency(subtotalCents)}</span>
+                <span className="dark:text-[#F2EFE9]">{formatCurrency(subtotalCents)}</span>
               </div>
-              <div className="flex justify-between text-[#68706A]">
+              <div className="flex justify-between text-[#68706A] dark:text-[#9CA79E]">
                 <span>Taxa de entrega</span>
-                <span>
+                <span className="dark:text-[#F2EFE9]">
                   {deliveryFeeCents === 0 ? "Grátis" : formatCurrency(deliveryFeeCents)}
                 </span>
               </div>
               {discountCents > 0 && (
-                <div className="flex justify-between text-[#2E6B3E] font-medium">
+                <div className="flex justify-between text-[#2E6B3E] dark:text-emerald-400 font-medium">
                   <span>Desconto cupom</span>
                   <span>- {formatCurrency(discountCents)}</span>
                 </div>
               )}
-              <div className="flex justify-between pt-2 text-sm font-bold text-[#1C261F]">
+              <div className="flex justify-between pt-2 text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                 <span>Total</span>
-                <span className="text-base text-[#1C261F]">
+                <span className="text-base text-[#1C261F] dark:text-[#4ADE80]">
                   {formatCurrency(totalCents)}
                 </span>
               </div>

@@ -22,7 +22,7 @@ export function CombosSection({ combos }: CombosSectionProps) {
   return (
     <section className="my-8">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-serif text-2xl font-bold tracking-tight text-[#1A261D]">
+        <h2 className="font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
           Combos da semana
         </h2>
         <button className="text-xs font-semibold text-[#CB5A3C] hover:underline md:text-sm">
@@ -35,10 +35,10 @@ export function CombosSection({ combos }: CombosSectionProps) {
           <div
             key={combo.id}
             onClick={() => openProductDetail(combo)}
-            className="group flex cursor-pointer items-center justify-between gap-3.5 rounded-2xl border border-[#ECE7DE] bg-white p-3.5 shadow-2xs transition hover:border-[#D8CFBE] hover:shadow-xs"
+            className="group flex cursor-pointer items-center justify-between gap-3.5 rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] p-3.5 shadow-2xs transition hover:border-[#D8CFBE] dark:hover:border-[#384D3E] hover:shadow-xs"
           >
             {/* Round Combo Image */}
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#F5F2EB]">
+            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#F5F2EB] dark:bg-[#131A15]">
               <img
                 src={combo.image_url}
                 alt={combo.name}
@@ -48,30 +48,30 @@ export function CombosSection({ combos }: CombosSectionProps) {
 
             {/* Info */}
             <div className="flex flex-1 flex-col overflow-hidden">
-              <span className="truncate font-sans text-sm font-semibold text-[#1C261F]">
+              <span className="truncate font-sans text-sm font-semibold text-[#1C261F] dark:text-[#F2EFE9]">
                 {combo.name}
               </span>
-              <span className="line-clamp-1 text-xs text-[#6B736E]">
+              <span className="line-clamp-1 text-xs text-[#6B736E] dark:text-[#9CA79E]">
                 {combo.description}
               </span>
 
               <div className="mt-2 flex items-center gap-2">
                 {combo.in_promo && combo.promo_price_cents ? (
                   <>
-                    <span className="text-xs text-[#878E89] line-through">
+                    <span className="text-xs text-[#878E89] dark:text-[#6E7B71] line-through">
                       {formatCurrency(combo.price_cents)}
                     </span>
-                    <span className="text-sm font-bold text-[#1C261F]">
+                    <span className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                       {formatCurrency(combo.promo_price_cents)}
                     </span>
                     {combo.discount_percentage && (
-                      <span className="rounded bg-[#CB5A3C]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#CB5A3C]">
+                      <span className="rounded bg-[#CB5A3C]/10 dark:bg-[#CB5A3C]/20 px-1.5 py-0.5 text-[10px] font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">
                         {combo.discount_percentage}% OFF
                       </span>
                     )}
                   </>
                 ) : (
-                  <span className="text-sm font-bold text-[#1C261F]">
+                  <span className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                     {formatCurrency(combo.price_cents)}
                   </span>
                 )}
@@ -85,7 +85,7 @@ export function CombosSection({ combos }: CombosSectionProps) {
                 openProductDetail(combo)
               }}
               aria-label={`Adicionar ${combo.name}`}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1B2A20] text-white shadow-xs transition group-hover:bg-[#283E30]"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1B2A20] dark:bg-[#2E4233] text-white shadow-xs transition group-hover:bg-[#283E30] dark:group-hover:bg-[#384F3E]"
             >
               <Plus className="h-4 w-4" />
             </button>

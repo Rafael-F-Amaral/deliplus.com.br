@@ -26,20 +26,20 @@ export function DeliveryInfoModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-      <div className="relative w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative w-full max-w-xl overflow-hidden rounded-2xl bg-white dark:bg-[#17211A] text-[#1F2922] dark:text-[#F2EFE9] border dark:border-[#2A382E] shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#ECE7DE] px-6 py-4">
+        <div className="flex items-center justify-between border-b border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] px-6 py-4">
           <div>
-            <h2 className="font-serif text-xl font-bold text-[#1C261F]">
+            <h2 className="font-serif text-xl font-bold text-[#1C261F] dark:text-[#F2EFE9]">
               Informações de entrega
             </h2>
-            <p className="text-xs text-[#6B736E]">
+            <p className="text-xs text-[#6B736E] dark:text-[#9CA79E]">
               Verifique se entregamos no seu endereço e confira os prazos.
             </p>
           </div>
           <button
             onClick={closeModal}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#5D645E] hover:bg-[#F4EFE6]"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[#5D645E] dark:text-[#9CA79E] hover:bg-[#F4EFE6] dark:hover:bg-[#253528]"
           >
             <X className="h-5 w-5" />
           </button>
@@ -56,12 +56,12 @@ export function DeliveryInfoModal() {
                 value={cep}
                 onChange={(e) => setCep(e.target.value)}
                 placeholder="Digite seu CEP (Ex: 05422-010)"
-                className="w-full rounded-xl border border-[#DED7CB] bg-[#FAF8F5] py-2.5 pl-9 pr-3 text-sm text-[#1F2921] outline-hidden focus:border-[#1B2A20] focus:bg-white focus:ring-1 focus:ring-[#1B2A20]"
+                className="w-full rounded-xl border border-[#DED7CB] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#131A15] py-2.5 pl-9 pr-3 text-sm text-[#1F2921] dark:text-[#F2EFE9] outline-hidden focus:border-[#1B2A20] dark:focus:border-emerald-500 focus:bg-white dark:focus:bg-[#131A15] focus:ring-1 focus:ring-[#1B2A20]"
               />
             </div>
             <button
               type="submit"
-              className="rounded-xl bg-[#1B2A20] px-5 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#273B2E]"
+              className="rounded-xl bg-[#1B2A20] dark:bg-[#2E4233] px-5 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#273B2E] dark:hover:bg-[#3B5441]"
             >
               Verificar
             </button>
@@ -134,32 +134,32 @@ export function DeliveryInfoModal() {
 
           {/* 3 Quality & Safety Badges */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="flex flex-col items-center rounded-xl border border-[#ECE7DE] bg-[#FAF8F5] p-3.5 text-center">
+            <div className="flex flex-col items-center rounded-xl border border-[#ECE7DE] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#1B241E] p-3.5 text-center">
               <Zap className="h-5 w-5 text-[#CB5A3C]" />
-              <span className="mt-1.5 text-xs font-bold text-[#1C261F]">
+              <span className="mt-1.5 text-xs font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                 Entrega rápida
               </span>
-              <span className="mt-0.5 text-[11px] text-[#6B736E]">
+              <span className="mt-0.5 text-[11px] text-[#6B736E] dark:text-[#9CA79E]">
                 Entregadores dedicados para manter o frescor
               </span>
             </div>
 
-            <div className="flex flex-col items-center rounded-xl border border-[#ECE7DE] bg-[#FAF8F5] p-3.5 text-center">
+            <div className="flex flex-col items-center rounded-xl border border-[#ECE7DE] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#1B241E] p-3.5 text-center">
               <Package className="h-5 w-5 text-[#2E6B3E]" />
-              <span className="mt-1.5 text-xs font-bold text-[#1C261F]">
+              <span className="mt-1.5 text-xs font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                 Embalagens seguras
               </span>
-              <span className="mt-0.5 text-[11px] text-[#6B736E]">
+              <span className="mt-0.5 text-[11px] text-[#6B736E] dark:text-[#9CA79E]">
                 Térmicas e ecológicas que preservam o calor
               </span>
             </div>
 
-            <div className="flex flex-col items-center rounded-xl border border-[#ECE7DE] bg-[#FAF8F5] p-3.5 text-center">
+            <div className="flex flex-col items-center rounded-xl border border-[#ECE7DE] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#1B241E] p-3.5 text-center">
               <ShieldCheck className="h-5 w-5 text-[#1B2A20]" />
-              <span className="mt-1.5 text-xs font-bold text-[#1C261F]">
+              <span className="mt-1.5 text-xs font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                 Dados protegidos
               </span>
-              <span className="mt-0.5 text-[11px] text-[#6B736E]">
+              <span className="mt-0.5 text-[11px] text-[#6B736E] dark:text-[#9CA79E]">
                 Total segurança do pedido ao pagamento
               </span>
             </div>
@@ -167,10 +167,10 @@ export function DeliveryInfoModal() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-[#ECE7DE] bg-white px-6 py-4">
+        <div className="border-t border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] px-6 py-4">
           <button
             onClick={closeModal}
-            className="w-full rounded-xl bg-[#1B2A20] py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-[#273B2E]"
+            className="w-full rounded-xl bg-[#1B2A20] dark:bg-[#2E4233] py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-[#273B2E] dark:hover:bg-[#3B5441]"
           >
             Continuar para o cardápio
           </button>

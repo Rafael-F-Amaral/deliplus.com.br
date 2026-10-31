@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState } from "react"
+import React, { createContext, useContext, useState, useEffect } from "react"
 import {
   CartItem,
   CustomerData,
@@ -115,6 +115,22 @@ export function StorefrontCartProvider({
   const [discountCents, setDiscountCents] = useState<number>(0)
   const [couponCode, setCouponCode] = useState<string>("")
   const [activeModal, setActiveModal] = useState<ActiveModalType>(null)
+
+  // Prevent background page scrolling when any modal is open
+  useEffect(() => {
+    if (typeof document === "undefined") return
+    if (activeModal) {
+      const originalBodyOverflow = document.body.style.overflow
+      const originalHtmlOverflow = document.documentElement.style.overflow
+      document.body.style.overflow = "hidden"
+      document.documentElement.style.overflow = "hidden"
+
+      return () => {
+        document.body.style.overflow = originalBodyOverflow
+        document.documentElement.style.overflow = originalHtmlOverflow
+      }
+    }
+  }, [activeModal])
   const [selectedProduct, setSelectedProduct] = useState<StorefrontProduct | null>(null)
   const [favorites, setFavorites] = useState<string[]>(["prod-bowl-frango", "prod-cha-casa"])
 
@@ -259,7 +275,7 @@ export function StorefrontCartProvider({
 
   const proceedToCheckout = () => {
     if (items.length === 0) return
-    setActiveModal("receiving-method")
+    setActiveModal("checkout-data")
   }
 
   const repeatLastOrder = () => {

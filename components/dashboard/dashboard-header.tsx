@@ -11,6 +11,7 @@ import {
   LogOut,
   Store,
   CreditCard,
+  ExternalLink,
   CheckCheck,
   ChevronDown,
   Sparkles,
@@ -117,6 +118,7 @@ export function DashboardHeader() {
   const userName = user?.fullName || user?.firstName || 'Rafael'
   const userEmail = user?.primaryEmailAddress?.emailAddress || 'lojista@deliplus.com.br'
   const storeName = organization?.name || 'RafaelTeste'
+  const storeSlug = organization?.slug ? organization.slug.replace(/-\d+$/, '') : 'rafaelteste'
 
   return (
     <header className="h-14 lg:h-16 border-b border-[#ECE7D8] dark:border-[#2A382E] bg-[#FAF8F0]/90 dark:bg-[#131A15]/90 backdrop-blur-md px-4 lg:px-7 flex items-center justify-between shrink-0 relative z-40 transition-colors duration-150">
@@ -256,6 +258,18 @@ export function DashboardHeader() {
           )}
         </div>
 
+        {/* Quick Link: Acessar Loja no Storefront */}
+        <Link
+          href={`/${storeSlug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Abrir Storefront da loja em nova aba"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full sm:rounded-xl bg-white dark:bg-[#1B241E] border border-[#E3E1D9] dark:border-[#2A382E] text-xs font-semibold text-[#1A241E] dark:text-[#F2EFE9] hover:text-emerald-700 dark:hover:text-emerald-400 hover:border-emerald-500/30 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition-all duration-200 shadow-xs cursor-pointer"
+        >
+          <ExternalLink className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span>Ver Loja</span>
+        </Link>
+
         {/* 3. User Profile (Foto de perfil e dropdown de usuário) */}
         <div className="relative" ref={profileRef}>
           <button
@@ -310,6 +324,21 @@ export function DashboardHeader() {
 
               {/* Navigation Links */}
               <div className="py-1">
+                <Link
+                  href={`/${storeSlug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="w-full flex items-center justify-between px-4 py-2 text-xs font-semibold text-emerald-800 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <ExternalLink className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Ver Loja no Storefront</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
+                    Ao vivo
+                  </span>
+                </Link>
                 <Link
                   href="/dashboard/settings"
                   onClick={() => setIsProfileOpen(false)}

@@ -28,7 +28,10 @@ import {
   Check,
   Download,
   X,
+  Image as ImageIcon,
+  Trash2,
 } from "lucide-react";
+import { CoverPhotoPickerModal } from "@/components/dashboard/cover-photo-picker-modal";
 import {
   BusinessHours,
   PrinterSettings,
@@ -126,6 +129,7 @@ export default function SettingsClient({
   const [bannerUrl, setBannerUrl] = useState<string | null>(
     initialData.delivery.banner_url
   );
+  const [showCoverPickerModal, setShowCoverPickerModal] = useState(false);
 
   // Delivery & Operação
   const [isOpen, setIsOpen] = useState(
@@ -582,6 +586,60 @@ export default function SettingsClient({
       {/* ================================================================ */}
       {activeTab === "overview" && (
         <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Card de Controle: Abrir e Fechar Loja */}
+          <div className="bg-white rounded-2xl border border-[#E9E4D4] p-4 sm:p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${
+                  isOpen
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-red-50 text-red-600 border-red-200"
+                }`}
+              >
+                <Store className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[#1A241E]">
+                    {isOpen ? "Sua Loja está Aberta para Pedidos" : "Sua Loja está Fechada"}
+                  </h3>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      isOpen
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {isOpen ? "Online" : "Pausada"}
+                  </span>
+                </div>
+                <p className="text-xs text-[#637267] mt-0.5">
+                  {isOpen
+                    ? "O link público da loja está ativo e recebendo pedidos normalmente."
+                    : "O link da loja está exibindo a imagem de aviso e que a loja está fechada temporariamente."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+              <button
+                type="button"
+                onClick={() => handleToggleStoreStatus(!isOpen)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2 ${
+                  isOpen
+                    ? "bg-red-50 text-red-700 border border-red-300 hover:bg-red-100"
+                    : "bg-[#2E4233] text-white hover:bg-[#233327]"
+                }`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    isOpen ? "bg-red-500" : "bg-emerald-400 animate-pulse"
+                  }`}
+                />
+                <span>{isOpen ? "Fechar Loja (Mostrar Aviso)" : "Abrir Loja Agora"}</span>
+              </button>
+            </div>
+          </div>
           {/* Bloco 1: Capa Panorâmica + Avatar da Loja Integrados */}
           <div className="bg-white rounded-2xl border border-[#E9E4D4] overflow-hidden shadow-2xs">
             {/* Capa */}
@@ -600,16 +658,41 @@ export default function SettingsClient({
                 </div>
               )}
 
-              <label className="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs font-bold cursor-pointer transition-colors backdrop-blur-xs flex items-center gap-1.5">
-                <Camera className="w-3.5 h-3.5" />
-                <span>Alterar Capa</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleUploadImage(e, "banner")}
-                />
-              </label>
+              <div className="absolute top-3 right-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCoverPickerModal(true)}
+                  className="px-3 py-1.5 rounded-xl bg-[#2E6B3E] hover:bg-[#255732] text-white text-xs font-bold cursor-pointer transition-colors shadow-md flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
+                  <span>Galeria de Fotos</span>
+                </button>
+
+                <label className="px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs font-bold cursor-pointer transition-colors backdrop-blur-xs flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Enviar Foto</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleUploadImage(e, "banner")}
+                  />
+                </label>
+
+                {bannerUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBannerUrl(null);
+                      showToast("Capa removida. Clique em Salvar Alterações para confirmar.");
+                    }}
+                    title="Remover capa"
+                    className="p-1.5 rounded-xl bg-black/60 hover:bg-red-600/80 text-white transition-colors backdrop-blur-xs cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Barra de Perfil e Link Compartilhável */}
@@ -1639,6 +1722,19 @@ export default function SettingsClient({
           </div>
         </div>
       )}
+
+      {/* Modal de Escolha de Capa de Banco Profissional */}
+      <CoverPhotoPickerModal
+        isOpen={showCoverPickerModal}
+        onClose={() => setShowCoverPickerModal(false)}
+        currentBannerUrl={bannerUrl}
+        onSelectCover={(photoUrl) => {
+          setBannerUrl(photoUrl);
+          showToast(
+            "Capa selecionada com sucesso! Clique em 'Salvar Alterações' para atualizar sua vitrine."
+          );
+        }}
+      />
     </div>
   );
 }

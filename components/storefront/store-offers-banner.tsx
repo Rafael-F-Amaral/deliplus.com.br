@@ -85,17 +85,17 @@ export function StoreOffersBanner() {
   }
 
   return (
-    <div className="relative my-6 overflow-hidden rounded-2xl border border-[#E9E2D5] bg-[#F7F2EB] p-4 shadow-2xs transition-all hover:border-[#DDD4C5] md:p-6">
+    <div className="relative my-6 overflow-hidden rounded-2xl border border-[#E9E2D5] dark:border-[#2A382E] bg-[#F7F2EB] dark:bg-[#1B241E] p-4 shadow-2xs transition-all hover:border-[#DDD4C5] dark:hover:border-[#384D3E] md:p-6">
       <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
         {/* Left Side: Offer Title & Subtitle */}
         <div className="flex flex-1 flex-col items-start text-left">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-[#CB5A3C]" />
-            <h2 className="font-serif text-xl font-bold tracking-tight text-[#1F2B22] md:text-2xl">
+            <h2 className="font-serif text-xl font-bold tracking-tight text-[#1F2B22] dark:text-[#F2EFE9] md:text-2xl">
               {current.title}
             </h2>
           </div>
-          <p className="mt-1 text-xs text-[#636B65] md:text-sm">
+          <p className="mt-1 text-xs text-[#636B65] dark:text-[#9CA79E] md:text-sm">
             {current.subtitle}
           </p>
         </div>
@@ -103,7 +103,7 @@ export function StoreOffersBanner() {
         {/* Center / Right Side: Food Preview Card */}
         <div
           onClick={() => openProductDetail(current.product_data)}
-          className="group flex w-full cursor-pointer flex-col items-center gap-4 rounded-xl bg-white/70 p-3 shadow-2xs backdrop-blur-xs transition hover:bg-white sm:flex-row md:w-auto md:p-4"
+          className="group flex w-full cursor-pointer flex-col items-center gap-4 rounded-xl bg-white/70 dark:bg-[#131A15]/80 p-3 shadow-2xs backdrop-blur-xs transition hover:bg-white dark:hover:bg-[#131A15] border border-transparent dark:border-[#2A382E]/50 sm:flex-row md:w-auto md:p-4"
         >
           <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-lg">
             <img
@@ -115,7 +115,7 @@ export function StoreOffersBanner() {
 
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-[#1B271F]">
+              <span className="font-medium text-[#1B271F] dark:text-[#F2EFE9]">
                 {current.combo_name}
               </span>
               <span className="rounded bg-[#CB5A3C] px-2 py-0.5 text-[11px] font-bold text-white shadow-xs">
@@ -124,17 +124,17 @@ export function StoreOffersBanner() {
             </div>
 
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-xs text-[#808782] line-through">
+              <span className="text-xs text-[#808782] dark:text-[#7A867E] line-through">
                 De {current.original_price_formatted} por
               </span>
-              <span className="text-base font-bold text-[#1C261F] md:text-lg">
+              <span className="text-base font-bold text-[#1C261F] dark:text-[#F2EFE9] md:text-lg">
                 {current.promo_price_formatted}
               </span>
             </div>
           </div>
 
           <div className="ml-auto">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1B2A20] text-white shadow-xs transition group-hover:bg-[#283D2F]">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1B2A20] dark:bg-[#25382B] text-white shadow-xs transition group-hover:bg-[#283D2F] dark:group-hover:bg-[#324B3A]">
               <Plus className="h-4 w-4" />
             </span>
           </div>
@@ -145,14 +145,14 @@ export function StoreOffersBanner() {
           <button
             onClick={prevSlide}
             aria-label="Oferta anterior"
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D5CDBD] bg-white text-[#4A534B] shadow-2xs transition hover:bg-[#F0ECE3]"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D5CDBD] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] text-[#4A534B] dark:text-[#F2EFE9] shadow-2xs transition hover:bg-[#F0ECE3] dark:hover:bg-[#25332A] cursor-pointer"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             onClick={nextSlide}
             aria-label="Próxima oferta"
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D5CDBD] bg-white text-[#4A534B] shadow-2xs transition hover:bg-[#F0ECE3]"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D5CDBD] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] text-[#4A534B] dark:text-[#F2EFE9] shadow-2xs transition hover:bg-[#F0ECE3] dark:hover:bg-[#25332A] cursor-pointer"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -168,8 +168,8 @@ export function StoreOffersBanner() {
             aria-label={`Ver oferta ${idx + 1}`}
             className={`h-1.5 rounded-full transition-all ${
               currentIndex === idx
-                ? "w-5 bg-[#1B2A20]"
-                : "w-1.5 bg-[#C9BFB0]"
+                ? "w-5 bg-[#1B2A20] dark:bg-[#4ADE80]"
+                : "w-1.5 bg-[#C9BFB0] dark:bg-[#2A382E]"
             }`}
           />
         ))}

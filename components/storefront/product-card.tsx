@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { Plus, Leaf, Bike } from "lucide-react"
+import { Plus, Bike } from "lucide-react"
 import { StorefrontProduct } from "@/types/storefront"
 import { useStorefrontCart } from "@/lib/storefront/storefront-cart-context"
 
@@ -22,10 +22,10 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <div
       onClick={() => openProductDetail(product)}
-      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#ECE7DE] bg-white p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#D5CDBD] hover:shadow-md md:p-4"
+      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#D5CDBD] dark:hover:border-[#384D3E] hover:shadow-md md:p-4"
     >
       {/* Product Image */}
-      <div className="relative mb-3 aspect-4/3 w-full overflow-hidden rounded-xl bg-[#F5F2EB]">
+      <div className="relative mb-3 aspect-4/3 w-full overflow-hidden rounded-xl bg-[#F5F2EB] dark:bg-[#131A15]">
         <img
           src={product.image_url}
           alt={product.name}
@@ -40,7 +40,7 @@ export function ProductCard({ product }: ProductCardProps) {
         )}
 
         {product.tags && product.tags.length > 0 && !product.in_promo && (
-          <span className="absolute left-2.5 top-2.5 rounded-md bg-white/90 px-2 py-0.5 text-[11px] font-medium text-[#2E3630] shadow-xs backdrop-blur-xs">
+          <span className="absolute left-2.5 top-2.5 rounded-md bg-white/90 dark:bg-[#1B241E]/90 px-2 py-0.5 text-[11px] font-medium text-[#2E3630] dark:text-[#E2DDD5] shadow-xs backdrop-blur-xs">
             {product.tags[0]}
           </span>
         )}
@@ -49,16 +49,13 @@ export function ProductCard({ product }: ProductCardProps) {
       {/* Info Content */}
       <div className="flex flex-1 flex-col justify-between">
         <div>
-          {/* Title & Leaf Icon */}
-          <div className="flex items-center gap-1.5">
-            <h3 className="font-sans text-base font-semibold text-[#1C261F] transition-colors group-hover:text-[#2A4733]">
-              {product.name}
-            </h3>
-            <Leaf className="h-3.5 w-3.5 text-[#5A7C65]" />
-          </div>
+          {/* Title */}
+          <h3 className="font-sans text-base font-semibold text-[#1C261F] dark:text-[#F2EFE9] transition-colors group-hover:text-[#2A4733] dark:group-hover:text-[#4ADE80]">
+            {product.name}
+          </h3>
 
           {/* Description */}
-          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#6B736E]">
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#6B736E] dark:text-[#9CA79E]">
             {product.description}
           </p>
         </div>
@@ -68,22 +65,22 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="flex flex-col">
             {product.in_promo && product.promo_price_cents ? (
               <>
-                <span className="text-[11px] text-[#878E89] line-through">
+                <span className="text-[11px] text-[#878E89] dark:text-[#7A867E] line-through">
                   {formatCurrency(product.price_cents)}
                 </span>
-                <span className="text-base font-bold text-[#1C261F]">
+                <span className="text-base font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                   {formatCurrency(product.promo_price_cents)}
                 </span>
               </>
             ) : (
-              <span className="text-base font-bold text-[#1C261F]">
+              <span className="text-base font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                 {formatCurrency(product.price_cents)}
               </span>
             )}
 
             {product.free_delivery_eligible && (
-              <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-[#2E6B3E]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#35A852]" />
+              <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-[#2E6B3E] dark:text-[#4ADE80]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#35A852] dark:bg-[#4ADE80]" />
                 Entrega grátis acima de R$ 80
               </span>
             )}
@@ -96,7 +93,7 @@ export function ProductCard({ product }: ProductCardProps) {
               openProductDetail(product)
             }}
             aria-label={`Adicionar ${product.name}`}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1B2A20] text-white shadow-xs transition duration-150 hover:scale-105 hover:bg-[#283E30] active:scale-95"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1B2A20] dark:bg-[#25382B] text-white dark:text-[#E2DDD5] shadow-xs transition duration-150 hover:scale-105 hover:bg-[#283E30] dark:hover:bg-[#324B3A] active:scale-95 cursor-pointer"
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -119,9 +116,9 @@ export function MobileProductCard({ product }: ProductCardProps) {
   return (
     <div
       onClick={() => openProductDetail(product)}
-      className="flex cursor-pointer items-center gap-3.5 rounded-xl border border-[#ECE7DE] bg-white p-3 transition hover:border-[#D5CDBD]"
+      className="flex cursor-pointer items-center gap-3.5 rounded-xl border border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] p-3 transition hover:border-[#D5CDBD] dark:hover:border-[#384D3E]"
     >
-      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[#F5F2EB]">
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[#F5F2EB] dark:bg-[#131A15]">
         <img
           src={product.image_url}
           alt={product.name}
@@ -136,13 +133,10 @@ export function MobileProductCard({ product }: ProductCardProps) {
 
       <div className="flex flex-1 flex-col justify-between overflow-hidden">
         <div>
-          <div className="flex items-center gap-1">
-            <h4 className="truncate text-sm font-semibold text-[#1C261F]">
-              {product.name}
-            </h4>
-            <Leaf className="h-3 w-3 shrink-0 text-[#5A7C65]" />
-          </div>
-          <p className="line-clamp-2 text-[11px] text-[#6B736E]">
+          <h4 className="truncate text-sm font-semibold text-[#1C261F] dark:text-[#F2EFE9]">
+            {product.name}
+          </h4>
+          <p className="line-clamp-2 text-[11px] text-[#6B736E] dark:text-[#9CA79E]">
             {product.description}
           </p>
         </div>
@@ -151,15 +145,15 @@ export function MobileProductCard({ product }: ProductCardProps) {
           <div>
             {product.in_promo && product.promo_price_cents ? (
               <div className="flex items-baseline gap-1.5">
-                <span className="text-[10px] text-[#878E89] line-through">
+                <span className="text-[10px] text-[#878E89] dark:text-[#7A867E] line-through">
                   {formatCurrency(product.price_cents)}
                 </span>
-                <span className="text-sm font-bold text-[#1C261F]">
+                <span className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                   {formatCurrency(product.promo_price_cents)}
                 </span>
               </div>
             ) : (
-              <span className="text-sm font-bold text-[#1C261F]">
+              <span className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                 {formatCurrency(product.price_cents)}
               </span>
             )}
@@ -171,7 +165,7 @@ export function MobileProductCard({ product }: ProductCardProps) {
               openProductDetail(product)
             }}
             aria-label={`Adicionar ${product.name}`}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1B2A20] text-white shadow-xs"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1B2A20] dark:bg-[#25382B] text-white dark:text-[#E2DDD5] shadow-xs cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
           </button>

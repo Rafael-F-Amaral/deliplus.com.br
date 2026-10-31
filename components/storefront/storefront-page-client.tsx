@@ -8,7 +8,6 @@ import {
 } from "@/lib/storefront/mock-storefront-data"
 import { StorefrontHeader } from "./storefront-header"
 import { StoreHero } from "./store-hero"
-import { StoreTabs } from "./store-tabs"
 import { StoreOffersBanner } from "./store-offers-banner"
 import { CategoryFilterBar } from "./category-filter-bar"
 import { ProductCard, MobileProductCard } from "./product-card"
@@ -29,7 +28,6 @@ interface StorefrontPageClientProps {
 }
 
 export function StorefrontPageClient({ initialStore: _initialStore }: StorefrontPageClientProps) {
-  const [activeTab, setActiveTab] = useState("cardapio")
   const [selectedCategory, setSelectedCategory] = useState("todas")
   const [searchQuery, setSearchQuery] = useState("")
 
@@ -60,17 +58,14 @@ export function StorefrontPageClient({ initialStore: _initialStore }: Storefront
   const sobremesas = filteredProducts.filter((p) => p.category_id === "sobremesas")
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-[#1C261F]">
+    <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#131A15] text-[#1C261F] dark:text-[#F2EFE9] transition-colors duration-150">
       {/* 1. Header */}
       <StorefrontHeader />
 
       {/* 2. Hero Section */}
       <StoreHero />
 
-      {/* 3. Navigation Tabs */}
-      <StoreTabs activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {/* 4. Main Menu Body */}
+      {/* 3. Main Menu Body */}
       <main id="cardapio" className="mx-auto max-w-7xl px-4 pb-28 pt-4 md:px-6">
         {/* Requirement: Combine Image 02 & Image 05 */}
         {/* Promotional Offers Banner (From Image 05) */}
@@ -91,7 +86,7 @@ export function StorefrontPageClient({ initialStore: _initialStore }: Storefront
             {/* Mais pedidos */}
             <section>
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-serif text-2xl font-bold tracking-tight text-[#1A261D]">
+                <h2 className="font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
                   Mais pedidos
                 </h2>
                 <button
@@ -123,7 +118,7 @@ export function StorefrontPageClient({ initialStore: _initialStore }: Storefront
             {/* Entradas */}
             {entradas.length > 0 && (
               <section>
-                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D]">
+                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
                   Entradas
                 </h2>
 
@@ -144,7 +139,7 @@ export function StorefrontPageClient({ initialStore: _initialStore }: Storefront
             {/* Bowls */}
             {bowls.length > 0 && (
               <section>
-                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D]">
+                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
                   Bowls
                 </h2>
 
@@ -165,7 +160,7 @@ export function StorefrontPageClient({ initialStore: _initialStore }: Storefront
             {/* Pratos Principais */}
             {pratosPrincipais.length > 0 && (
               <section>
-                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D]">
+                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
                   Pratos principais
                 </h2>
 
@@ -186,7 +181,7 @@ export function StorefrontPageClient({ initialStore: _initialStore }: Storefront
             {/* Bebidas & Sobremesas */}
             {bebidas.length > 0 && (
               <section>
-                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D]">
+                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
                   Bebidas
                 </h2>
 
@@ -206,7 +201,7 @@ export function StorefrontPageClient({ initialStore: _initialStore }: Storefront
 
             {sobremesas.length > 0 && (
               <section>
-                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D]">
+                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
                   Sobremesas
                 </h2>
 
@@ -228,7 +223,7 @@ export function StorefrontPageClient({ initialStore: _initialStore }: Storefront
           /* Filtered View */
           <div>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-serif text-xl font-bold text-[#1A261D]">
+              <h2 className="font-serif text-xl font-bold text-[#1A261D] dark:text-[#F2EFE9]">
                 {searchQuery
                   ? `Resultados para "${searchQuery}" (${filteredProducts.length})`
                   : MOCK_CATEGORIES.find((c) => c.id === selectedCategory)?.name}
@@ -236,8 +231,8 @@ export function StorefrontPageClient({ initialStore: _initialStore }: Storefront
             </div>
 
             {filteredProducts.length === 0 ? (
-              <div className="rounded-2xl border border-[#ECE7DE] bg-white p-12 text-center">
-                <p className="text-sm text-[#79807B]">
+              <div className="rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] p-12 text-center">
+                <p className="text-sm text-[#79807B] dark:text-[#9CA79E]">
                   Nenhum produto encontrado com os filtros selecionados.
                 </p>
                 <button

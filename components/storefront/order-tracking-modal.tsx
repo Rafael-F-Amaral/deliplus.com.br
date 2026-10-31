@@ -48,20 +48,20 @@ export function OrderTrackingModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white dark:bg-[#17211A] text-[#1F2922] dark:text-[#F2EFE9] border dark:border-[#2A382E] shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#ECE7DE] bg-white px-6 py-4">
+        <div className="flex items-center justify-between border-b border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] px-6 py-4">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-[#CB5A3C]">
               Acompanhamento ao vivo
             </span>
-            <h2 className="font-serif text-xl font-bold text-[#1C261F]">
+            <h2 className="font-serif text-xl font-bold text-[#1C261F] dark:text-[#F2EFE9]">
               Pedido {lastOrder.display_id}
             </h2>
           </div>
           <button
             onClick={closeModal}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#5D645E] hover:bg-[#F4EFE6]"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[#5D645E] dark:text-[#9CA79E] hover:bg-[#F4EFE6] dark:hover:bg-[#253528]"
           >
             <X className="h-5 w-5" />
           </button>
@@ -70,7 +70,7 @@ export function OrderTrackingModal() {
         {/* Content */}
         <div className="max-h-[75vh] overflow-y-auto p-6">
           {/* Estimated ETA Banner */}
-          <div className="mb-6 flex items-center justify-between rounded-2xl border border-[#D9EADB] bg-[#F2FAF4] p-4 text-[#1C482A]">
+          <div className="mb-6 flex items-center justify-between rounded-2xl border border-[#D9EADB] dark:border-[#2A382E] bg-[#F2FAF4] dark:bg-[#1C2920] p-4 text-[#1C482A] dark:text-[#4ADE80]">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E2F3E7] text-[#2E9B4F]">
                 <Bike className="h-5 w-5" />
@@ -87,7 +87,7 @@ export function OrderTrackingModal() {
 
           {/* Timeline Steps */}
           <div className="relative pl-6">
-            <div className="absolute bottom-4 left-2.5 top-3 w-0.5 bg-[#EAE5DC]" />
+            <div className="absolute bottom-4 left-2.5 top-3 w-0.5 bg-[#EAE5DC] dark:bg-[#2A382E]" />
 
             <div className="space-y-6">
               {steps.map((st, idx) => {
@@ -101,7 +101,7 @@ export function OrderTrackingModal() {
                           ? "bg-[#2E9B4F]"
                           : isCurrent
                           ? "bg-[#CB5A3C] ring-4 ring-[#CB5A3C]/20"
-                          : "border-2 border-[#DED7CB] bg-white text-[#99A09A]"
+                          : "border-2 border-[#DED7CB] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] text-[#99A09A]"
                       }`}
                     >
                       {isDone ? "✓" : idx + 1}
@@ -114,7 +114,7 @@ export function OrderTrackingModal() {
                             isCurrent
                               ? "text-[#CB5A3C]"
                               : isDone
-                              ? "text-[#1C261F]"
+                              ? "text-[#1C261F] dark:text-[#F2EFE9]"
                               : "text-[#8E9690]"
                           }`}
                         >
@@ -122,7 +122,7 @@ export function OrderTrackingModal() {
                         </span>
                         <span className="text-xs text-[#7E8580]">{st.time}</span>
                       </div>
-                      <p className="mt-0.5 text-xs text-[#6B736E]">{st.desc}</p>
+                      <p className="mt-0.5 text-xs text-[#6B736E] dark:text-[#9CA79E]">{st.desc}</p>
                     </div>
                   </div>
                 )
@@ -131,14 +131,14 @@ export function OrderTrackingModal() {
           </div>
 
           {/* Courier Card */}
-          <div className="mt-8 flex items-center justify-between rounded-xl border border-[#ECE7DE] bg-[#FAF8F5] p-3.5">
+          <div className="mt-8 flex items-center justify-between rounded-xl border border-[#ECE7DE] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#131A15] p-3.5">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1B2A20] text-white font-bold text-sm">
                 CS
               </div>
               <div>
                 <span className="text-xs text-[#7F8681]">Entregador</span>
-                <div className="text-sm font-bold text-[#1C261F]">
+                <div className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
                   Carlos Silva (Honda CG 160)
                 </div>
               </div>
@@ -149,7 +149,7 @@ export function OrderTrackingModal() {
                 onClick={() =>
                   window.open("https://wa.me/5511987654321", "_blank")
                 }
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DED7CB] bg-white text-[#1B2A20] hover:bg-[#F2EDE4]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DED7CB] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] text-[#1B2A20] dark:text-[#F2EFE9] hover:bg-[#F2EDE4] dark:hover:bg-[#253528]"
               >
                 <MessageCircle className="h-4 w-4" />
               </button>
