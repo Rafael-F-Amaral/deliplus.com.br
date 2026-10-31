@@ -45,6 +45,14 @@ export async function updateStoreProfile(data: {
   category?: string;
   logo_url?: string | null;
   banner_url?: string | null;
+  social_links?: {
+    whatsapp?: string;
+    instagram?: string;
+    facebook?: string;
+    youtube?: string;
+    tiktok?: string;
+    kwai?: string;
+  };
 }) {
   const { storeId, supabase } = await resolveActionContext();
 
@@ -67,15 +75,26 @@ export async function updateStoreProfile(data: {
   }
 
   // Atualizar dados de perfil em store_delivery_settings
+  const phoneValue = data.social_links?.whatsapp?.trim() || data.phone?.trim() || "";
+  const instagramValue = data.social_links?.instagram?.trim() || data.instagram?.trim() || "";
+
   const { error: settingsError } = await (supabase.from("store_delivery_settings" as any) as any)
     .update({
       bio: data.bio?.trim() ?? "",
-      phone: data.phone?.trim() ?? "",
-      instagram: data.instagram?.trim() ?? "",
+      phone: phoneValue,
+      instagram: instagramValue,
       address: data.address?.trim() ?? "",
       category: data.category?.trim() ?? "Restaurante",
       logo_url: data.logo_url ?? null,
       banner_url: data.banner_url ?? null,
+      social_links: data.social_links ?? {
+        whatsapp: phoneValue,
+        instagram: instagramValue,
+        facebook: "",
+        youtube: "",
+        tiktok: "",
+        kwai: "",
+      },
       updated_at: new Date().toISOString(),
     })
     .eq("store_id", storeId);

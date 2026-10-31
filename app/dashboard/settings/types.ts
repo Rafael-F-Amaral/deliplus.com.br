@@ -39,6 +39,14 @@ export interface StoreSettingsData {
     is_open_override: boolean | null;
     phone: string;
     instagram: string;
+    social_links?: {
+      whatsapp?: string;
+      instagram?: string;
+      facebook?: string;
+      youtube?: string;
+      tiktok?: string;
+      kwai?: string;
+    };
     address: string;
     bio: string;
     category: string;

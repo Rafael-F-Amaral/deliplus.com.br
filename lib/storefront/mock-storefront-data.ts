@@ -17,6 +17,11 @@ export const MOCK_CASA_NOMA_STORE: StorefrontStore = {
   address: "Rua Harmonia, 123 - Vila Madalena, São Paulo - SP",
   phone: "(11) 98765-4321",
   instagram: "@casanoma",
+  social_links: {
+    whatsapp: "(11) 98765-4321",
+    instagram: "@casanoma",
+    facebook: "casanomarestaurante",
+  },
   rating: 4.8,
   reviews_count: 320,
   is_open: true,

@@ -69,6 +69,14 @@ export interface StorefrontStore {
   address: string
   phone: string
   instagram: string
+  social_links?: {
+    whatsapp?: string
+    instagram?: string
+    facebook?: string
+    youtube?: string
+    tiktok?: string
+    kwai?: string
+  }
   rating: number
   reviews_count: number
   is_open: boolean

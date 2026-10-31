@@ -1,18 +1,16 @@
 "use client"
 
-import React, { useState } from "react"
+import React from "react"
 import { useStorefrontCart } from "@/lib/storefront/storefront-cart-context"
+import { Clock, Bike, MapPin } from "lucide-react"
 import {
-  Clock,
-  Bike,
-  MapPin,
-  Sparkles,
-  Star,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react"
-import { StorefrontProduct } from "@/types/storefront"
+  WhatsAppIcon,
+  InstagramIcon,
+  FacebookIcon,
+  YouTubeIcon,
+  TikTokIcon,
+  KwaiIcon,
+} from "@/components/ui/social-icons"
 
 function widenUnsplashUrl(url: string | null | undefined): string {
   if (!url) {
@@ -35,78 +33,102 @@ function widenUnsplashUrl(url: string | null | undefined): string {
 }
 
 export function StoreHero() {
-  const { store, openModal, openProductDetail } = useStorefrontCart()
+  const { store, openModal } = useStorefrontCart()
 
   // Imagem ampla em alta resolução sem crop apertado (mostra mais detalhes e distância como no print)
   const heroFoodImage = React.useMemo(() => {
     return widenUnsplashUrl(store.banner_url)
   }, [store.banner_url])
 
-  // Ofertas da semana (colocadas no lugar de Ver Cardápio / Coração)
-  const offers: {
-    id: string
-    title: string
-    combo_name: string
-    discount_badge: string
-    original_price_formatted: string
-    promo_price_formatted: string
-    image_url: string
-    product_data: StorefrontProduct
-  }[] = [
-    {
-      id: "offer-combo-bowl-cha",
-      title: "Ofertas da semana",
-      combo_name: "Combo Bowl + Chá",
-      discount_badge: "15% OFF",
-      original_price_formatted: "R$ 49,90",
-      promo_price_formatted: "R$ 42,40",
-      image_url:
-        "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&h=400&q=80",
-      product_data: {
-        id: "combo-equilibrio",
-        category_id: "combos",
-        category_name: "Combos da semana",
-        name: "Combo Bowl + Chá",
-        description:
-          "Bowl de Frango Grelhado nutritivo acompanhado do clássico Chá gelado de hibisco e frutas vermelhas da casa.",
-        price_cents: 4990,
-        promo_price_cents: 4240,
-        in_promo: true,
-        discount_percentage: 15,
-        image_url:
-          "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&h=450&q=80",
-        tags: ["Oferta da Semana", "15% OFF"],
-      },
-    },
-    {
-      id: "offer-combo-leve",
-      title: "Ofertas da semana",
-      combo_name: "Combo Leve (Bowl + Suco)",
-      discount_badge: "15% OFF",
-      original_price_formatted: "R$ 52,80",
-      promo_price_formatted: "R$ 44,90",
-      image_url:
-        "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=500&h=400&q=80",
-      product_data: {
-        id: "combo-leve",
-        category_id: "combos",
-        category_name: "Combos da semana",
-        name: "Combo Leve (Bowl + Suco Verde)",
-        description:
-          "Bowl nutritivo com quinoa e legumes, acompanhado do clássico Suco Verde Detox.",
-        price_cents: 5280,
-        promo_price_cents: 4490,
-        in_promo: true,
-        discount_percentage: 15,
-        image_url:
-          "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&h=450&q=80",
-        tags: ["Oferta", "Saudável"],
-      },
-    },
-  ]
+  // Processar canais sociais configurados (máximo 3 exibidos no perfil da vitrine)
+  const socialChannels = React.useMemo(() => {
+    const links = store.social_links || {}
+    const channels: {
+      id: string
+      name: string
+      label: string
+      url: string
+      icon: React.ReactNode
+    }[] = []
 
-  const [currentOfferIdx, setCurrentOfferIdx] = useState(0)
-  const currentOffer = offers[currentOfferIdx]
+    // 1. WhatsApp
+    const wa = links.whatsapp || store.phone
+    if (wa && wa.trim()) {
+      const cleanNum = wa.replace(/\D/g, "")
+      const formattedNum = wa.trim()
+      channels.push({
+        id: "whatsapp",
+        name: "WhatsApp",
+        label: formattedNum,
+        url: `https://wa.me/55${cleanNum}`,
+        icon: <WhatsAppIcon className="w-3.5 h-3.5 shrink-0" />,
+      })
+    }
+
+    // 2. Instagram
+    const ig = links.instagram || store.instagram
+    if (ig && ig.trim()) {
+      const handle = ig.trim().replace(/^@/, "")
+      channels.push({
+        id: "instagram",
+        name: "Instagram",
+        label: `@${handle}`,
+        url: `https://instagram.com/${handle}`,
+        icon: <InstagramIcon className="w-3.5 h-3.5 shrink-0" />,
+      })
+    }
+
+    // 3. Facebook
+    if (links.facebook && links.facebook.trim()) {
+      const fb = links.facebook.trim().replace(/^https?:\/\/(www\.)?facebook\.com\//, "")
+      channels.push({
+        id: "facebook",
+        name: "Facebook",
+        label: fb,
+        url: links.facebook.startsWith("http") ? links.facebook : `https://facebook.com/${fb}`,
+        icon: <FacebookIcon className="w-3.5 h-3.5 shrink-0" />,
+      })
+    }
+
+    // 4. YouTube
+    if (links.youtube && links.youtube.trim()) {
+      const yt = links.youtube.trim()
+      channels.push({
+        id: "youtube",
+        name: "YouTube",
+        label: yt.replace(/^https?:\/\/(www\.)?youtube\.com\//, ""),
+        url: yt.startsWith("http") ? yt : `https://youtube.com/${yt}`,
+        icon: <YouTubeIcon className="w-3.5 h-3.5 shrink-0" />,
+      })
+    }
+
+    // 5. TikTok
+    if (links.tiktok && links.tiktok.trim()) {
+      const tt = links.tiktok.trim()
+      channels.push({
+        id: "tiktok",
+        name: "TikTok",
+        label: tt.startsWith("@") ? tt : `@${tt}`,
+        url: tt.startsWith("http") ? tt : `https://tiktok.com/@${tt.replace(/^@/, "")}`,
+        icon: <TikTokIcon className="w-3.5 h-3.5 shrink-0" />,
+      })
+    }
+
+    // 6. Kwai
+    if (links.kwai && links.kwai.trim()) {
+      const kw = links.kwai.trim()
+      channels.push({
+        id: "kwai",
+        name: "Kwai",
+        label: kw.startsWith("@") ? kw : `@${kw}`,
+        url: kw.startsWith("http") ? kw : `https://kwai.com/@${kw.replace(/^@/, "")}`,
+        icon: <KwaiIcon className="w-3.5 h-3.5 shrink-0" />,
+      })
+    }
+
+    // Retorna no máximo 3 canais principais para o perfil
+    return channels.slice(0, 3)
+  }, [store.social_links, store.phone, store.instagram])
 
   return (
     <section className="relative overflow-hidden border-b border-[#2E6B3E] dark:border-[#E76F41] bg-[#FAF8F5] dark:bg-[#131A15] transition-colors">
@@ -129,7 +151,7 @@ export function StoreHero() {
       {/* ============================================================== */}
       {/* 2. MOBILE: TOP BANNER                                          */}
       {/* ============================================================== */}
-      <div className="relative h-48 sm:h-56 w-full overflow-hidden md:hidden">
+      <div className="relative h-44 sm:h-56 w-full overflow-hidden md:hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={heroFoodImage}
@@ -143,48 +165,19 @@ export function StoreHero() {
       {/* 3. STORE DETAILS CONTENT (LADO ESQUERDO DO HERO)                */}
       {/* ============================================================== */}
       <div className="relative z-10 mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-8 lg:py-10">
-        <div className="max-w-xl flex flex-col gap-3 -mt-6 md:mt-0">
-          {/* Logo Emblem + Name */}
-          <div className="flex items-center gap-3.5">
-            {/* Circular Emblem Logo */}
-            <div className="relative flex h-18 w-18 md:h-20 md:w-20 shrink-0 flex-col items-center justify-center rounded-full border-2 border-white dark:border-[#2A382E] bg-[#F7F2EB] dark:bg-[#1E2B22] p-2 text-center shadow-xs transition-colors">
-              <Sparkles className="h-3.5 w-3.5 text-[#8C7A6B] dark:text-[#A79888]" />
-              <span className="font-serif text-[10px] font-bold tracking-wider text-[#3C3630] dark:text-[#F2EFE9] leading-tight">
-                CASA
-              </span>
-              <span className="font-serif text-[10px] font-bold tracking-wider text-[#3C3630] dark:text-[#F2EFE9] leading-tight">
-                NOMA
-              </span>
-            </div>
-
-            {/* Title & Bio */}
-            <div className="flex flex-col">
-              <h1 className="font-serif text-2xl font-bold tracking-tight text-[#1C251F] dark:text-[#F2EFE9] sm:text-3xl md:text-4xl lg:text-5xl">
-                {store.name}
-              </h1>
-              <p className="mt-0.5 text-xs text-[#5D645E] dark:text-[#9CA79E] md:text-sm max-w-md leading-relaxed">
-                {store.bio}
-              </p>
-            </div>
-          </div>
-
-          {/* Category Tags Pills */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-            {(store.tags && store.tags.length > 0
-              ? store.tags
-              : [store.category || "Restaurante", "Saudável", "Caseira"]
-            ).map((tag, idx) => (
-              <span
-                key={idx}
-                className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#EFECE6] dark:bg-[#233127] text-[#5A635C] dark:text-[#CBD5CD] border border-[#E2DBD0] dark:border-[#2F4135]"
-              >
-                {tag}
-              </span>
-            ))}
+        <div className="max-w-xl flex flex-col gap-3.5 -mt-6 md:mt-0">
+          {/* Nome da Loja */}
+          <div className="flex flex-col">
+            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1C251F] dark:text-[#F2EFE9] sm:text-4xl md:text-5xl">
+              {store.name}
+            </h1>
+            <p className="mt-1 text-xs text-[#5D645E] dark:text-[#9CA79E] md:text-sm max-w-md leading-relaxed">
+              {store.bio}
+            </p>
           </div>
 
           {/* Status Row: Aberto agora | 25-35 min | Entrega grátis */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-[#4B534D] dark:text-[#9CA79E] pt-0.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs font-medium text-[#4B534D] dark:text-[#9CA79E] pt-0.5">
             <span className="flex items-center gap-1.5 font-semibold text-[#1B6B38] dark:text-[#4ADE80]">
               <span className="h-2 w-2 rounded-full bg-[#2E9B4F] dark:bg-[#4ADE80] animate-pulse" />
               {store.is_open ? "Aberto agora" : "Fechado temporariamente"}
@@ -201,106 +194,39 @@ export function StoreHero() {
             </span>
           </div>
 
-          {/* Rating & Address: ★ 4,8 (320) | Rua Harmonia... */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#5D645E] dark:text-[#9CA79E]">
-            <span className="flex items-center gap-1 font-semibold text-[#1C251F] dark:text-[#F2EFE9]">
-              <Star className="h-3.5 w-3.5 fill-[#E7A740] text-[#E7A740]" />
-              <span>{store.rating ?? 4.8}</span>
-              <span className="font-normal text-[#8A958E]">
-                ({store.reviews_count ?? 320})
-              </span>
-            </span>
-            <span className="text-[#D8D2C5] dark:text-[#2A382E]">|</span>
+          {/* Endereço */}
+          <div className="flex items-center gap-1.5 text-xs text-[#6B736E] dark:text-[#9CA79E] md:text-sm">
             <button
               type="button"
               onClick={() => openModal("delivery-info")}
               className="flex items-center gap-1.5 hover:text-[#1A261D] dark:hover:text-[#F2EFE9] hover:underline transition cursor-pointer"
             >
               <MapPin className="h-3.5 w-3.5 shrink-0 text-[#6E7570] dark:text-[#9CA79E]" />
-              <span className="truncate max-w-xs">{store.address}</span>
+              <span className="truncate max-w-sm">{store.address}</span>
             </button>
           </div>
 
           {/* ============================================================== */}
-          {/* NO LUGAR DE "VER CARDÁPIO" E CORAÇÃO: OFERTAS DA SEMANA         */}
+          {/* REDES SOCIAIS OFICIAIS CLICÁVEIS (MÁXIMO 3)                   */}
           {/* ============================================================== */}
-          <div className="pt-1.5 max-w-md">
-            <div
-              onClick={() => openProductDetail(currentOffer.product_data)}
-              className="group relative flex items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl bg-white/90 dark:bg-[#1E2B22]/90 border border-[#E8E2D8] dark:border-[#2F4135] shadow-xs hover:border-[#2E6B3E]/50 dark:hover:border-[#4ADE80]/50 hover:shadow-sm transition cursor-pointer backdrop-blur-xs"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="relative h-13 w-15 sm:h-14 sm:w-16 rounded-xl overflow-hidden shrink-0 border border-[#E9E4D4] dark:border-[#2A382E]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={currentOffer.image_url}
-                    alt={currentOffer.combo_name}
-                    className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
-                  />
-                  <span className="absolute top-1 left-1 px-1 py-0.2 rounded text-[9px] font-black bg-[#CB5A3C] text-white leading-none">
-                    {currentOffer.discount_badge}
+          {socialChannels.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {socialChannels.map((channel) => (
+                <a
+                  key={channel.id}
+                  href={channel.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/90 dark:bg-[#1E2B22]/90 border border-[#E4DDD2] dark:border-[#2F4135] shadow-2xs hover:border-[#2E6B3E]/50 dark:hover:border-[#4ADE80]/50 hover:shadow-xs transition cursor-pointer text-xs font-semibold text-[#1C251F] dark:text-[#F2EFE9] backdrop-blur-xs"
+                >
+                  <span className="shrink-0">{channel.icon}</span>
+                  <span className="truncate max-w-[150px] group-hover:underline">
+                    {channel.label}
                   </span>
-                </div>
-
-                <div className="min-w-0 flex flex-col justify-center">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] animate-pulse" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#CB5A3C]">
-                      Oferta da semana
-                    </span>
-                  </div>
-                  <p className="text-xs sm:text-sm font-bold text-[#1C251F] dark:text-[#F2EFE9] truncate">
-                    {currentOffer.combo_name}
-                  </p>
-                  <div className="flex items-baseline gap-1.5 mt-0.5">
-                    <span className="text-[10px] text-[#8C9B90] dark:text-[#7A867E] line-through">
-                      De {currentOffer.original_price_formatted}
-                    </span>
-                    <span className="text-xs sm:text-sm font-extrabold text-[#1C251F] dark:text-[#F2EFE9]">
-                      {currentOffer.promo_price_formatted}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5 shrink-0 pr-1">
-                {offers.length > 1 && (
-                  <div className="hidden sm:flex items-center gap-0.5">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setCurrentOfferIdx((prev) =>
-                          prev === 0 ? offers.length - 1 : prev - 1
-                        )
-                      }}
-                      className="p-1 rounded-lg text-[#637267] hover:bg-[#F2ECE1] dark:hover:bg-[#2A382E] transition cursor-pointer"
-                      title="Oferta anterior"
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setCurrentOfferIdx((prev) =>
-                          prev === offers.length - 1 ? 0 : prev + 1
-                        )
-                      }}
-                      className="p-1 rounded-lg text-[#637267] hover:bg-[#F2ECE1] dark:hover:bg-[#2A382E] transition cursor-pointer"
-                      title="Próxima oferta"
-                    >
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
-
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#2E6B3E] text-white shadow-xs transition group-hover:bg-[#255732]">
-                  <Plus className="h-4 w-4" />
-                </span>
-              </div>
+                </a>
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </section>

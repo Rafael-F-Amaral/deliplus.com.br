@@ -33,6 +33,14 @@ import {
 } from "lucide-react";
 import { CoverPhotoPickerModal } from "@/components/dashboard/cover-photo-picker-modal";
 import {
+  WhatsAppIcon,
+  InstagramIcon,
+  FacebookIcon,
+  YouTubeIcon,
+  TikTokIcon,
+  KwaiIcon,
+} from "@/components/ui/social-icons";
+import {
   BusinessHours,
   PrinterSettings,
   StoreSettingsData,
@@ -45,24 +53,6 @@ import {
   toggleStoreOpenStatus,
   uploadStoreAsset,
 } from "./actions";
-
-function InstagramIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-    </svg>
-  );
-}
 
 const CATEGORIES = [
   "Restaurante Geral",
@@ -118,9 +108,23 @@ export default function SettingsClient({
   const [category, setCategory] = useState(
     initialData.delivery.category || "Restaurante Geral"
   );
-  const [phone, setPhone] = useState(initialData.delivery.phone || "");
+  const [phone, setPhone] = useState(
+    initialData.delivery.social_links?.whatsapp || initialData.delivery.phone || ""
+  );
   const [instagram, setInstagram] = useState(
-    initialData.delivery.instagram || ""
+    initialData.delivery.social_links?.instagram || initialData.delivery.instagram || ""
+  );
+  const [facebook, setFacebook] = useState(
+    initialData.delivery.social_links?.facebook || ""
+  );
+  const [youtube, setYouTube] = useState(
+    initialData.delivery.social_links?.youtube || ""
+  );
+  const [tiktok, setTikTok] = useState(
+    initialData.delivery.social_links?.tiktok || ""
+  );
+  const [kwai, setKwai] = useState(
+    initialData.delivery.social_links?.kwai || ""
   );
   const [address, setAddress] = useState(initialData.delivery.address || "");
   const [logoUrl, setLogoUrl] = useState<string | null>(
@@ -266,6 +270,14 @@ export default function SettingsClient({
         address,
         logo_url: logoUrl,
         banner_url: bannerUrl,
+        social_links: {
+          whatsapp: phone,
+          instagram,
+          facebook,
+          youtube,
+          tiktok,
+          kwai,
+        },
       }),
       updateDeliverySettings({
         is_open_override: isOpen,
@@ -822,8 +834,8 @@ export default function SettingsClient({
                 {/* WhatsApp */}
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1">
-                      <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                    <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1.5">
+                      <WhatsAppIcon className="w-4 h-4 shrink-0" />
                       <span>WhatsApp de Atendimento</span>
                     </label>
                     {phone && (
@@ -848,8 +860,8 @@ export default function SettingsClient({
 
                 {/* Instagram */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1">
-                    <InstagramIcon className="w-3.5 h-3.5 text-pink-600" />
+                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1.5">
+                    <InstagramIcon className="w-4 h-4 shrink-0" />
                     <span>Instagram Oficial</span>
                   </label>
                   <div className="relative">
@@ -864,6 +876,84 @@ export default function SettingsClient({
                       className="w-full pl-8 pr-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
                     />
                   </div>
+                </div>
+
+                {/* Facebook */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1.5">
+                    <FacebookIcon className="w-4 h-4 shrink-0" />
+                    <span>Facebook Oficial</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={facebook}
+                    onChange={(e) => setFacebook(e.target.value)}
+                    placeholder="facebook.com/sualoja ou @sualoja"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
+                  />
+                </div>
+
+                {/* YouTube */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1.5">
+                    <YouTubeIcon className="w-4 h-4 shrink-0" />
+                    <span>Canal no YouTube</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={youtube}
+                    onChange={(e) => setYouTube(e.target.value)}
+                    placeholder="youtube.com/@seucanal ou @seucanal"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
+                  />
+                </div>
+
+                {/* TikTok */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1.5">
+                    <TikTokIcon className="w-4 h-4 shrink-0" />
+                    <span>TikTok</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
+                      @
+                    </span>
+                    <input
+                      type="text"
+                      value={tiktok.replace(/^@/, "")}
+                      onChange={(e) => setTikTok(e.target.value)}
+                      placeholder="seutiktok"
+                      className="w-full pl-8 pr-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
+                    />
+                  </div>
+                </div>
+
+                {/* Kwai */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1.5">
+                    <KwaiIcon className="w-4 h-4 shrink-0" />
+                    <span>Kwai</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
+                      @
+                    </span>
+                    <input
+                      type="text"
+                      value={kwai.replace(/^@/, "")}
+                      onChange={(e) => setKwai(e.target.value)}
+                      placeholder="seukwai"
+                      className="w-full pl-8 pr-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
+                    />
+                  </div>
+                </div>
+
+                {/* Aviso sobre canais na vitrine */}
+                <div className="sm:col-span-2 py-2 px-3 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4]/80 text-[11px] text-[#637267] flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-[#CB5A3C] shrink-0" />
+                  <span>
+                    <strong>Canais na Vitrine:</strong> Até 3 redes cadastradas (com links oficiais clicáveis) são exibidas no topo da sua vitrine pública para facilitar o contato com seus clientes.
+                  </span>
                 </div>
 
                 {/* Endereço Físico */}

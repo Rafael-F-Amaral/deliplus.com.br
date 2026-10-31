@@ -58,13 +58,16 @@ export default async function PublicStorePage({
 
         if (storeRow) {
           const { data: devSettings } = await (admin.from("store_delivery_settings" as any) as any)
-            .select("is_open_override, banner_url, logo_url")
+            .select("is_open_override, banner_url, logo_url, phone, instagram, social_links")
             .eq("store_id", storeRow.id)
             .maybeSingle()
 
           if (devSettings) {
             if (devSettings.banner_url) storeData.banner_url = devSettings.banner_url
             if (devSettings.logo_url) storeData.logo_url = devSettings.logo_url
+            if (devSettings.phone) storeData.phone = devSettings.phone
+            if (devSettings.instagram) storeData.instagram = devSettings.instagram
+            if (devSettings.social_links) storeData.social_links = devSettings.social_links
             if (devSettings.is_open_override !== null && devSettings.is_open_override !== undefined) {
               isStoreOpen = Boolean(devSettings.is_open_override)
             }
@@ -122,13 +125,16 @@ export default async function PublicStorePage({
         isStoreOpen = false
       } else {
         const { data: devSettings } = await (admin.from("store_delivery_settings" as any) as any)
-          .select("is_open_override, banner_url, logo_url")
+          .select("is_open_override, banner_url, logo_url, phone, instagram, social_links")
           .eq("store_id", storeRow.id)
           .maybeSingle()
 
         if (devSettings) {
           if (devSettings.banner_url) storeData.banner_url = devSettings.banner_url
           if (devSettings.logo_url) storeData.logo_url = devSettings.logo_url
+          if (devSettings.phone) storeData.phone = devSettings.phone
+          if (devSettings.instagram) storeData.instagram = devSettings.instagram
+          if (devSettings.social_links) storeData.social_links = devSettings.social_links
           if (devSettings.is_open_override !== null && devSettings.is_open_override !== undefined) {
             isStoreOpen = Boolean(devSettings.is_open_override)
           }
