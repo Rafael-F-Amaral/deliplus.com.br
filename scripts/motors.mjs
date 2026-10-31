@@ -53,8 +53,8 @@ async function status() {
   console.log("\n🔍 Verificando status dos Motores DeliPlus (Docker Desktop)...");
 
   const isKongUp = await checkHttp("http://127.0.0.1:64321");
-  const isStudioUp = await checkHttp("http://localhost:64323");
-  const isAppUp = await checkHttp("http://localhost:3000");
+  const isStudioUp = (await checkHttp("http://127.0.0.1:64323")) || (await checkHttp("http://localhost:64323"));
+  const isAppUp = (await checkHttp("http://127.0.0.1:3000")) || (await checkHttp("http://localhost:3000"));
 
   console.log("--------------------------------------------------");
   console.log(` Supabase API (Porta 64321):  ${isKongUp ? "🟢 ONLINE" : "🔴 OFFLINE"}`);

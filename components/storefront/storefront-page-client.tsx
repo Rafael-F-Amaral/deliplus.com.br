@@ -8,7 +8,6 @@ import {
 } from "@/lib/storefront/mock-storefront-data"
 import { StorefrontHeader } from "./storefront-header"
 import { StoreHero } from "./store-hero"
-import { StoreOffersBanner } from "./store-offers-banner"
 import { CategoryFilterBar } from "./category-filter-bar"
 import { ProductCard, MobileProductCard } from "./product-card"
 import { CombosSection } from "./combos-section"
@@ -66,11 +65,7 @@ export function StorefrontPageClient({ initialStore: _initialStore }: Storefront
       <StoreHero />
 
       {/* 3. Main Menu Body */}
-      <main id="cardapio" className="mx-auto max-w-7xl px-4 pb-28 pt-4 md:px-6">
-        {/* Requirement: Combine Image 02 & Image 05 */}
-        {/* Promotional Offers Banner (From Image 05) */}
-        <StoreOffersBanner />
-
+      <main id="cardapio" className="mx-auto max-w-7xl px-4 pb-28 pt-6 md:px-6">
         {/* Category Filter Pills & Search Input (From Image 02) */}
         <CategoryFilterBar
           categories={MOCK_CATEGORIES}
