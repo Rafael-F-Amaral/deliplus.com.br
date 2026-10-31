@@ -952,7 +952,7 @@ export default function SettingsClient({
                 <div className="sm:col-span-2 py-2 px-3 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4]/80 text-[11px] text-[#637267] flex items-center gap-2">
                   <Sparkles className="w-3.5 h-3.5 text-[#CB5A3C] shrink-0" />
                   <span>
-                    <strong>Canais na Vitrine:</strong> Até 3 redes cadastradas (com links oficiais clicáveis) são exibidas no topo da sua vitrine pública para facilitar o contato com seus clientes.
+                    <strong>Canais na Vitrine:</strong> Até 4 redes cadastradas (com links oficiais clicáveis) são exibidas no topo da sua vitrine pública para facilitar o contato com seus clientes.
                   </span>
                 </div>
 

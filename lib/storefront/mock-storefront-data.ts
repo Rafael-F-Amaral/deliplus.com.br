@@ -21,6 +21,7 @@ export const MOCK_CASA_NOMA_STORE: StorefrontStore = {
     whatsapp: "(11) 98765-4321",
     instagram: "@casanoma",
     facebook: "casanomarestaurante",
+    youtube: "@casanoma",
   },
   rating: 4.8,
   reviews_count: 320,

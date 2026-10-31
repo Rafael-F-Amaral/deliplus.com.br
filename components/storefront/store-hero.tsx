@@ -2,7 +2,7 @@
 
 import React from "react"
 import { useStorefrontCart } from "@/lib/storefront/storefront-cart-context"
-import { Clock, Bike, MapPin } from "lucide-react"
+import { Clock, Bike, MapPin, ChevronRight, Sparkles } from "lucide-react"
 import {
   WhatsAppIcon,
   InstagramIcon,
@@ -56,78 +56,94 @@ export function StoreHero() {
     if (wa && wa.trim()) {
       const cleanNum = wa.replace(/\D/g, "")
       const formattedNum = wa.trim()
-      channels.push({
-        id: "whatsapp",
-        name: "WhatsApp",
-        label: formattedNum,
-        url: `https://wa.me/55${cleanNum}`,
-        icon: <WhatsAppIcon className="w-3.5 h-3.5 shrink-0" />,
-      })
+      if (cleanNum) {
+        channels.push({
+          id: "whatsapp",
+          name: "WhatsApp",
+          label: formattedNum,
+          url: `https://wa.me/55${cleanNum}`,
+          icon: <WhatsAppIcon className="w-3.5 h-3.5 shrink-0" />,
+        })
+      }
     }
 
     // 2. Instagram
     const ig = links.instagram || store.instagram
     if (ig && ig.trim()) {
-      const handle = ig.trim().replace(/^@/, "")
-      channels.push({
-        id: "instagram",
-        name: "Instagram",
-        label: `@${handle}`,
-        url: `https://instagram.com/${handle}`,
-        icon: <InstagramIcon className="w-3.5 h-3.5 shrink-0" />,
-      })
+      const handle = ig.trim().replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//, "")
+      if (handle) {
+        channels.push({
+          id: "instagram",
+          name: "Instagram",
+          label: `@${handle}`,
+          url: `https://instagram.com/${handle}`,
+          icon: <InstagramIcon className="w-3.5 h-3.5 shrink-0" />,
+        })
+      }
     }
 
     // 3. Facebook
     if (links.facebook && links.facebook.trim()) {
-      const fb = links.facebook.trim().replace(/^https?:\/\/(www\.)?facebook\.com\//, "")
-      channels.push({
-        id: "facebook",
-        name: "Facebook",
-        label: fb,
-        url: links.facebook.startsWith("http") ? links.facebook : `https://facebook.com/${fb}`,
-        icon: <FacebookIcon className="w-3.5 h-3.5 shrink-0" />,
-      })
+      const rawFb = links.facebook.trim()
+      const fbHandle = rawFb.replace(/^https?:\/\/(www\.)?facebook\.com\//, "").replace(/^\//, "")
+      if (fbHandle) {
+        channels.push({
+          id: "facebook",
+          name: "Facebook",
+          label: fbHandle.startsWith("@") ? fbHandle : `@${fbHandle}`,
+          url: rawFb.startsWith("http") ? rawFb : `https://facebook.com/${fbHandle}`,
+          icon: <FacebookIcon className="w-3.5 h-3.5 shrink-0" />,
+        })
+      }
     }
 
     // 4. YouTube
     if (links.youtube && links.youtube.trim()) {
-      const yt = links.youtube.trim()
-      channels.push({
-        id: "youtube",
-        name: "YouTube",
-        label: yt.replace(/^https?:\/\/(www\.)?youtube\.com\//, ""),
-        url: yt.startsWith("http") ? yt : `https://youtube.com/${yt}`,
-        icon: <YouTubeIcon className="w-3.5 h-3.5 shrink-0" />,
-      })
+      const rawYt = links.youtube.trim()
+      const ytHandle = rawYt.replace(/^https?:\/\/(www\.)?youtube\.com\//, "").replace(/^\//, "")
+      if (ytHandle) {
+        channels.push({
+          id: "youtube",
+          name: "YouTube",
+          label: ytHandle.startsWith("@") ? ytHandle : `@${ytHandle}`,
+          url: rawYt.startsWith("http") ? rawYt : `https://youtube.com/${ytHandle}`,
+          icon: <YouTubeIcon className="w-3.5 h-3.5 shrink-0" />,
+        })
+      }
     }
 
     // 5. TikTok
     if (links.tiktok && links.tiktok.trim()) {
-      const tt = links.tiktok.trim()
-      channels.push({
-        id: "tiktok",
-        name: "TikTok",
-        label: tt.startsWith("@") ? tt : `@${tt}`,
-        url: tt.startsWith("http") ? tt : `https://tiktok.com/@${tt.replace(/^@/, "")}`,
-        icon: <TikTokIcon className="w-3.5 h-3.5 shrink-0" />,
-      })
+      const rawTt = links.tiktok.trim()
+      const ttHandle = rawTt.replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, "").replace(/^@/, "")
+      if (ttHandle) {
+        channels.push({
+          id: "tiktok",
+          name: "TikTok",
+          label: `@${ttHandle}`,
+          url: `https://tiktok.com/@${ttHandle}`,
+          icon: <TikTokIcon className="w-3.5 h-3.5 shrink-0" />,
+        })
+      }
     }
 
     // 6. Kwai
     if (links.kwai && links.kwai.trim()) {
-      const kw = links.kwai.trim()
-      channels.push({
-        id: "kwai",
-        name: "Kwai",
-        label: kw.startsWith("@") ? kw : `@${kw}`,
-        url: kw.startsWith("http") ? kw : `https://kwai.com/@${kw.replace(/^@/, "")}`,
-        icon: <KwaiIcon className="w-3.5 h-3.5 shrink-0" />,
-      })
+      const rawKw = links.kwai.trim()
+      const kwHandle = rawKw.replace(/^https?:\/\/(www\.)?kwai\.com\/@?/, "").replace(/^@/, "")
+      if (kwHandle) {
+        channels.push({
+          id: "kwai",
+          name: "Kwai",
+          label: `@${kwHandle}`,
+          url: `https://kwai.com/@${kwHandle}`,
+          icon: <KwaiIcon className="w-3.5 h-3.5 shrink-0" />,
+        })
+      }
     }
 
-    // Retorna no máximo 3 canais principais para o perfil
-    return channels.slice(0, 3)
+    // Retorna no máximo 4 canais que estiverem preenchidos para o perfil
+    return channels.slice(0, 4)
   }, [store.social_links, store.phone, store.instagram])
 
   return (
@@ -165,59 +181,91 @@ export function StoreHero() {
       {/* 3. STORE DETAILS CONTENT (LADO ESQUERDO DO HERO)                */}
       {/* ============================================================== */}
       <div className="relative z-10 mx-auto max-w-7xl px-4 md:px-6 py-7 md:py-11 lg:py-13 min-h-[260px] md:min-h-[300px] lg:min-h-[330px] flex flex-col justify-center">
-        <div className="max-w-xl flex flex-col gap-3.5 -mt-6 md:mt-0">
-          {/* Nome da Loja */}
-          <div className="flex flex-col">
-            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1C251F] dark:text-[#F2EFE9] sm:text-4xl md:text-5xl">
+        <div className="max-w-xl flex flex-col gap-4 -mt-6 md:mt-0">
+          {/* Identidade da Loja */}
+          <div className="flex flex-col gap-1.5">
+            {store.category && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold tracking-wider uppercase bg-[#2E6B3E]/10 text-[#2E6B3E] dark:bg-[#4ADE80]/15 dark:text-[#4ADE80] border border-[#2E6B3E]/20 dark:border-[#4ADE80]/20 w-fit">
+                <Sparkles className="w-3 h-3 shrink-0" />
+                <span>{store.category}</span>
+              </span>
+            )}
+            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#162019] dark:text-[#F4EFEA] sm:text-4xl md:text-5xl leading-tight">
               {store.name}
             </h1>
-            <p className="mt-1 text-xs text-[#5D645E] dark:text-[#9CA79E] md:text-sm max-w-md leading-relaxed">
-              {store.bio}
-            </p>
+            {store.bio && (
+              <p className="text-xs sm:text-sm text-[#4E5851] dark:text-[#9DA99F] max-w-lg leading-relaxed font-normal">
+                {store.bio}
+              </p>
+            )}
           </div>
 
-          {/* Status Row: Aberto agora | 25-35 min | Entrega grátis */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs font-medium text-[#4B534D] dark:text-[#9CA79E] pt-0.5">
-            <span className="flex items-center gap-1.5 font-semibold text-[#1B6B38] dark:text-[#4ADE80]">
-              <span className="h-2 w-2 rounded-full bg-[#2E9B4F] dark:bg-[#4ADE80] animate-pulse" />
+          {/* Chips de Status & Entrega (Pills Modernos / Bento Bar) */}
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            {/* Status: Aberto ou Fechado */}
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-xs transition shadow-2xs ${
+                store.is_open
+                  ? "bg-emerald-500/12 text-emerald-800 dark:text-emerald-300 border border-emerald-600/25 dark:border-emerald-500/30"
+                  : "bg-amber-500/12 text-amber-800 dark:text-amber-300 border border-amber-600/25 dark:border-amber-500/30"
+              }`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  store.is_open
+                    ? "bg-emerald-600 dark:bg-emerald-400 animate-pulse"
+                    : "bg-amber-600 dark:bg-amber-400"
+                }`}
+              />
               {store.is_open ? "Aberto agora" : "Fechado temporariamente"}
             </span>
-            <span className="text-[#D8D2C5] dark:text-[#2A382E]">|</span>
-            <span className="flex items-center gap-1.5 text-[#3D4740] dark:text-[#CBD5CD]">
-              <Clock className="h-3.5 w-3.5 text-[#6B726C] dark:text-[#9CA79E]" />
-              {store.prep_time}
-            </span>
-            <span className="text-[#D8D2C5] dark:text-[#2A382E]">|</span>
-            <span className="flex items-center gap-1.5 text-[#2C382E] dark:text-[#CBD5CD]">
-              <Bike className="h-3.5 w-3.5 text-[#6B726C] dark:text-[#9CA79E]" />
-              Entrega grátis acima de R$ 80
+
+            {/* Tempo de Preparo */}
+            {store.prep_time && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/85 dark:bg-[#1E2B22]/85 border border-[#E4DDD2] dark:border-[#2D3D32] text-[#2C382E] dark:text-[#CBD5CD] shadow-2xs backdrop-blur-xs">
+                <Clock className="h-3.5 w-3.5 text-[#5C665F] dark:text-[#9CA79E] shrink-0" />
+                <span>{store.prep_time}</span>
+              </span>
+            )}
+
+            {/* Regra de Frete */}
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#2E6B3E]/10 dark:bg-[#4ADE80]/10 border border-[#2E6B3E]/20 dark:border-[#4ADE80]/20 text-[#1B6B38] dark:text-[#4ADE80] shadow-2xs backdrop-blur-xs">
+              <Bike className="h-3.5 w-3.5 shrink-0" />
+              <span>
+                {store.free_delivery_above_cents
+                  ? `Entrega grátis acima de R$ ${(store.free_delivery_above_cents / 100).toFixed(0)}`
+                  : "Entrega expressa disponível"}
+              </span>
             </span>
           </div>
 
-          {/* Endereço */}
-          <div className="flex items-center gap-1.5 text-xs text-[#6B736E] dark:text-[#9CA79E] md:text-sm">
-            <button
-              type="button"
-              onClick={() => openModal("delivery-info")}
-              className="flex items-center gap-1.5 hover:text-[#1A261D] dark:hover:text-[#F2EFE9] hover:underline transition cursor-pointer"
-            >
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-[#6E7570] dark:text-[#9CA79E]" />
-              <span className="truncate max-w-sm">{store.address}</span>
-            </button>
-          </div>
+          {/* Endereço Clicável com Micro-Pill Moderno */}
+          {store.address && (
+            <div className="pt-0.5">
+              <button
+                type="button"
+                onClick={() => openModal("delivery-info")}
+                className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/70 dark:bg-[#1E2B22]/70 hover:bg-white dark:hover:bg-[#1E2B22] border border-[#E4DDD2] dark:border-[#2F4135] hover:border-[#2E6B3E]/50 dark:hover:border-[#4ADE80]/50 shadow-2xs transition-all cursor-pointer text-xs font-medium text-[#4D5650] dark:text-[#A0ABA2] hover:text-[#1C251F] dark:hover:text-[#F2EFE9] backdrop-blur-xs"
+              >
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-[#2E6B3E] dark:text-[#4ADE80]" />
+                <span className="truncate max-w-xs sm:max-w-md">{store.address}</span>
+                <ChevronRight className="h-3.5 w-3.5 text-[#9CA79E] group-hover:translate-x-0.5 transition-transform shrink-0" />
+              </button>
+            </div>
+          )}
 
           {/* ============================================================== */}
-          {/* REDES SOCIAIS OFICIAIS CLICÁVEIS (MÁXIMO 3)                   */}
+          {/* REDES SOCIAIS OFICIAIS CLICÁVEIS (ATÉ 4 PREENCHIDAS)          */}
           {/* ============================================================== */}
           {socialChannels.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 pt-1">
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
               {socialChannels.map((channel) => (
                 <a
                   key={channel.id}
                   href={channel.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/90 dark:bg-[#1E2B22]/90 border border-[#E4DDD2] dark:border-[#2F4135] shadow-2xs hover:border-[#2E6B3E]/50 dark:hover:border-[#4ADE80]/50 hover:shadow-xs transition cursor-pointer text-xs font-semibold text-[#1C251F] dark:text-[#F2EFE9] backdrop-blur-xs"
+                  className="group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/90 dark:bg-[#1E2B22]/90 border border-[#E4DDD2] dark:border-[#2F4135] shadow-2xs hover:border-[#2E6B3E]/60 dark:hover:border-[#4ADE80]/60 hover:shadow-xs transition-all cursor-pointer text-xs font-semibold text-[#1C251F] dark:text-[#F2EFE9] backdrop-blur-xs"
                 >
                   <span className="shrink-0">{channel.icon}</span>
                   <span className="truncate max-w-[150px] group-hover:underline">

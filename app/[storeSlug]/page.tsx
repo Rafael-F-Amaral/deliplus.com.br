@@ -58,7 +58,7 @@ export default async function PublicStorePage({
 
         if (storeRow) {
           const { data: devSettings } = await (admin.from("store_delivery_settings" as any) as any)
-            .select("is_open_override, banner_url, logo_url, phone, instagram, social_links")
+            .select("is_open_override, banner_url, logo_url, phone, instagram, social_links, bio, address, category, default_prep_min, default_prep_max, free_delivery_above_cents")
             .eq("store_id", storeRow.id)
             .maybeSingle()
 
@@ -68,6 +68,15 @@ export default async function PublicStorePage({
             if (devSettings.phone) storeData.phone = devSettings.phone
             if (devSettings.instagram) storeData.instagram = devSettings.instagram
             if (devSettings.social_links) storeData.social_links = devSettings.social_links
+            if (devSettings.bio) storeData.bio = devSettings.bio
+            if (devSettings.address) storeData.address = devSettings.address
+            if (devSettings.category) storeData.category = devSettings.category
+            if (devSettings.default_prep_min && devSettings.default_prep_max) {
+              storeData.prep_time = `${devSettings.default_prep_min}–${devSettings.default_prep_max} min`
+            }
+            if (devSettings.free_delivery_above_cents !== undefined) {
+              storeData.free_delivery_above_cents = devSettings.free_delivery_above_cents
+            }
             if (devSettings.is_open_override !== null && devSettings.is_open_override !== undefined) {
               isStoreOpen = Boolean(devSettings.is_open_override)
             }
@@ -125,7 +134,7 @@ export default async function PublicStorePage({
         isStoreOpen = false
       } else {
         const { data: devSettings } = await (admin.from("store_delivery_settings" as any) as any)
-          .select("is_open_override, banner_url, logo_url, phone, instagram, social_links")
+          .select("is_open_override, banner_url, logo_url, phone, instagram, social_links, bio, address, category, default_prep_min, default_prep_max, free_delivery_above_cents")
           .eq("store_id", storeRow.id)
           .maybeSingle()
 
@@ -135,6 +144,15 @@ export default async function PublicStorePage({
           if (devSettings.phone) storeData.phone = devSettings.phone
           if (devSettings.instagram) storeData.instagram = devSettings.instagram
           if (devSettings.social_links) storeData.social_links = devSettings.social_links
+          if (devSettings.bio) storeData.bio = devSettings.bio
+          if (devSettings.address) storeData.address = devSettings.address
+          if (devSettings.category) storeData.category = devSettings.category
+          if (devSettings.default_prep_min && devSettings.default_prep_max) {
+            storeData.prep_time = `${devSettings.default_prep_min}–${devSettings.default_prep_max} min`
+          }
+          if (devSettings.free_delivery_above_cents !== undefined) {
+            storeData.free_delivery_above_cents = devSettings.free_delivery_above_cents
+          }
           if (devSettings.is_open_override !== null && devSettings.is_open_override !== undefined) {
             isStoreOpen = Boolean(devSettings.is_open_override)
           }
