@@ -135,7 +135,7 @@ export function StoreHero() {
       {/* ============================================================== */}
       {/* 1. DESKTOP: FULL-BLEED RIGHT IMAGE COM FADE (PRINT QUADRADO)    */}
       {/* ============================================================== */}
-      <div className="hidden md:block absolute inset-y-0 right-0 w-1/2 lg:w-[54%] xl:w-[58%] h-full overflow-hidden pointer-events-none select-none z-0">
+      <div className="hidden md:block absolute inset-y-0 right-0 w-[52%] lg:w-[58%] xl:w-[62%] h-full overflow-hidden pointer-events-none select-none z-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={heroFoodImage}
@@ -151,7 +151,7 @@ export function StoreHero() {
       {/* ============================================================== */}
       {/* 2. MOBILE: TOP BANNER                                          */}
       {/* ============================================================== */}
-      <div className="relative h-44 sm:h-56 w-full overflow-hidden md:hidden">
+      <div className="relative h-48 sm:h-60 w-full overflow-hidden md:hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={heroFoodImage}
@@ -164,7 +164,7 @@ export function StoreHero() {
       {/* ============================================================== */}
       {/* 3. STORE DETAILS CONTENT (LADO ESQUERDO DO HERO)                */}
       {/* ============================================================== */}
-      <div className="relative z-10 mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-8 lg:py-10">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 md:px-6 py-7 md:py-11 lg:py-13 min-h-[260px] md:min-h-[300px] lg:min-h-[330px] flex flex-col justify-center">
         <div className="max-w-xl flex flex-col gap-3.5 -mt-6 md:mt-0">
           {/* Nome da Loja */}
           <div className="flex flex-col">
