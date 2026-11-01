@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { StorefrontStore } from "@/types/storefront"
+import { StorefrontStore, StorefrontCategory, StorefrontProduct } from "@/types/storefront"
 import {
   MOCK_CATEGORIES,
   MOCK_PRODUCTS,
@@ -24,37 +24,44 @@ import { MobileCartBar } from "./mobile-cart-bar"
 
 interface StorefrontPageClientProps {
   initialStore?: StorefrontStore
+  initialCategories?: StorefrontCategory[]
+  initialProducts?: StorefrontProduct[]
 }
 
-export function StorefrontPageClient({ initialStore: _initialStore }: StorefrontPageClientProps) {
+export function StorefrontPageClient({
+  initialStore: _initialStore,
+  initialCategories,
+  initialProducts,
+}: StorefrontPageClientProps) {
   const [selectedCategory, setSelectedCategory] = useState("todas")
   const [searchQuery, setSearchQuery] = useState("")
 
+  const categoriesList = (initialCategories && initialCategories.length > 0) ? initialCategories : MOCK_CATEGORIES
+  const productsList = (initialProducts && initialProducts.length > 0) ? initialProducts : MOCK_PRODUCTS
+
   // Filter products by search and category
-  const filteredProducts = MOCK_PRODUCTS.filter((prod) => {
+  const filteredProducts = productsList.filter((prod) => {
     const matchesCategory =
       selectedCategory === "todas" ||
       prod.category_id === selectedCategory ||
-      (selectedCategory === "combos" && prod.is_combo)
+      prod.category_name?.toLowerCase() === selectedCategory.toLowerCase() ||
+      (selectedCategory === "combos" && prod.is_combo) ||
+      (prod.tags && prod.tags.some((t) => t.toLowerCase() === selectedCategory.toLowerCase() || t.toLowerCase().replace(/\s+/g, "-") === selectedCategory.toLowerCase()))
 
     const matchesSearch =
       searchQuery.trim() === "" ||
       prod.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      prod.description.toLowerCase().includes(searchQuery.toLowerCase())
+      prod.description?.toLowerCase().includes(searchQuery.toLowerCase())
 
     return matchesCategory && matchesSearch
   })
 
   // Sections
-  const featuredProducts = MOCK_PRODUCTS.filter((p) => p.is_featured)
-  const comboProducts = MOCK_PRODUCTS.filter((p) => p.is_combo)
-  const entradas = filteredProducts.filter((p) => p.category_id === "entradas")
-  const bowls = filteredProducts.filter((p) => p.category_id === "bowls")
-  const pratosPrincipais = filteredProducts.filter(
-    (p) => p.category_id === "pratos-principais" && !p.is_featured
-  )
-  const bebidas = filteredProducts.filter((p) => p.category_id === "bebidas")
-  const sobremesas = filteredProducts.filter((p) => p.category_id === "sobremesas")
+  const featuredProducts = productsList.filter((p) => p.is_featured)
+  const comboProducts = productsList.filter((p) => p.is_combo)
+
+  // Categorias para as seções na home (todas exceto "todas")
+  const sectionsCategories = categoriesList.filter((c) => c.id !== "todas")
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#131A15] text-[#1C261F] dark:text-[#F2EFE9] transition-colors duration-150">
@@ -68,7 +75,7 @@ export function StorefrontPageClient({ initialStore: _initialStore }: Storefront
       <main id="cardapio" className="mx-auto max-w-7xl px-4 pb-28 pt-6 md:px-6">
         {/* Category Filter Pills & Search Input (From Image 02) */}
         <CategoryFilterBar
-          categories={MOCK_CATEGORIES}
+          categories={categoriesList}
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
           searchQuery={searchQuery}
@@ -79,140 +86,74 @@ export function StorefrontPageClient({ initialStore: _initialStore }: Storefront
         {selectedCategory === "todas" && searchQuery === "" ? (
           <div className="space-y-12">
             {/* Mais pedidos */}
-            <section>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
-                  Mais pedidos
-                </h2>
-                <button
-                  onClick={() => setSelectedCategory("bowls")}
-                  className="text-xs font-semibold text-[#CB5A3C] hover:underline md:text-sm"
-                >
-                  Ver tudo
-                </button>
-              </div>
+            {featuredProducts.length > 0 && (
+              <section>
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
+                    Mais pedidos
+                  </h2>
+                </div>
 
-              {/* Desktop 3-column Grid */}
-              <div className="hidden grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 md:grid">
-                {featuredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
+                {/* Desktop 3-column Grid */}
+                <div className="hidden grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 md:grid">
+                  {featuredProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
 
-              {/* Mobile Horizontal Cards List */}
-              <div className="flex flex-col gap-3 md:hidden">
-                {featuredProducts.map((product) => (
-                  <MobileProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            </section>
+                {/* Mobile Horizontal Cards List */}
+                <div className="flex flex-col gap-3 md:hidden">
+                  {featuredProducts.map((product) => (
+                    <MobileProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* Combos da semana */}
-            <CombosSection combos={comboProducts} />
-
-            {/* Entradas */}
-            {entradas.length > 0 && (
-              <section>
-                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
-                  Entradas
-                </h2>
-
-                <div className="hidden grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 md:grid">
-                  {entradas.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-
-                <div className="flex flex-col gap-3 md:hidden">
-                  {entradas.map((product) => (
-                    <MobileProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              </section>
+            {comboProducts.length > 0 && (
+              <CombosSection combos={comboProducts} />
             )}
 
-            {/* Bowls */}
-            {bowls.length > 0 && (
-              <section>
-                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
-                  Bowls
-                </h2>
+            {/* Seções dinâmicas por categoria do lojista */}
+            {sectionsCategories.map((cat) => {
+              const catProducts = productsList.filter(
+                (p) =>
+                  p.category_id === cat.id ||
+                  p.category_name?.toLowerCase() === cat.name.toLowerCase() ||
+                  (p.tags && p.tags.some((t) => t.toLowerCase() === cat.name.toLowerCase() || t.toLowerCase().replace(/\s+/g, "-") === cat.id))
+              )
 
-                <div className="hidden grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 md:grid">
-                  {bowls.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
+              if (catProducts.length === 0) return null
 
-                <div className="flex flex-col gap-3 md:hidden">
-                  {bowls.map((product) => (
-                    <MobileProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              </section>
-            )}
+              return (
+                <section key={cat.id}>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h2 className="font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
+                      {cat.name}
+                    </h2>
+                    <button
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className="text-xs font-semibold text-[#CB5A3C] hover:underline md:text-sm cursor-pointer"
+                    >
+                      Ver tudo ({catProducts.length})
+                    </button>
+                  </div>
 
-            {/* Pratos Principais */}
-            {pratosPrincipais.length > 0 && (
-              <section>
-                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
-                  Pratos principais
-                </h2>
+                  <div className="hidden grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 md:grid">
+                    {catProducts.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
 
-                <div className="hidden grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 md:grid">
-                  {pratosPrincipais.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-
-                <div className="flex flex-col gap-3 md:hidden">
-                  {pratosPrincipais.map((product) => (
-                    <MobileProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Bebidas & Sobremesas */}
-            {bebidas.length > 0 && (
-              <section>
-                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
-                  Bebidas
-                </h2>
-
-                <div className="hidden grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 md:grid">
-                  {bebidas.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-
-                <div className="flex flex-col gap-3 md:hidden">
-                  {bebidas.map((product) => (
-                    <MobileProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {sobremesas.length > 0 && (
-              <section>
-                <h2 className="mb-4 font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
-                  Sobremesas
-                </h2>
-
-                <div className="hidden grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 md:grid">
-                  {sobremesas.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-
-                <div className="flex flex-col gap-3 md:hidden">
-                  {sobremesas.map((product) => (
-                    <MobileProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              </section>
-            )}
+                  <div className="flex flex-col gap-3 md:hidden">
+                    {catProducts.map((product) => (
+                      <MobileProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+                </section>
+              )
+            })}
           </div>
         ) : (
           /* Filtered View */
@@ -221,7 +162,7 @@ export function StorefrontPageClient({ initialStore: _initialStore }: Storefront
               <h2 className="font-serif text-xl font-bold text-[#1A261D] dark:text-[#F2EFE9]">
                 {searchQuery
                   ? `Resultados para "${searchQuery}" (${filteredProducts.length})`
-                  : MOCK_CATEGORIES.find((c) => c.id === selectedCategory)?.name}
+                  : (categoriesList.find((c) => c.id === selectedCategory)?.name || selectedCategory)}
               </h2>
             </div>
 

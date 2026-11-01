@@ -6,12 +6,98 @@ import { StorefrontCartProvider } from "@/lib/storefront/storefront-cart-context
 import { StorefrontPageClient } from "@/components/storefront/storefront-page-client"
 import { StoreClosedScreen } from "@/components/storefront/store-closed-screen"
 import { MOCK_CASA_NOMA_STORE } from "@/lib/storefront/mock-storefront-data"
-import { StorefrontStore } from "@/types/storefront"
+import { StorefrontStore, StorefrontCategory, StorefrontProduct } from "@/types/storefront"
 
 export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
+}
+
+async function loadStoreCatalog(admin: any, storeId: string) {
+  try {
+    const [categoriesRes, itemsRes] = await Promise.all([
+      admin
+        .from("categories")
+        .select("id, name, sort_order")
+        .eq("store_id", storeId)
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true }),
+      admin
+        .from("menu_items" as any)
+        .select("*")
+        .eq("store_id", storeId)
+        .eq("is_active", true)
+        .order("category_sort_order", { ascending: true })
+        .order("name", { ascending: true }),
+    ])
+
+    let categories: StorefrontCategory[] = []
+    let products: StorefrontProduct[] = []
+
+    if (categoriesRes.data && categoriesRes.data.length > 0) {
+      categories = [
+        { id: "todas", name: "Todas" },
+        ...categoriesRes.data.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+        })),
+      ]
+    }
+
+    if (itemsRes.data && itemsRes.data.length > 0) {
+      products = (itemsRes.data as any[]).map((row: any) => {
+        const mainCat = row.category_name || "Geral"
+        const tags: string[] = Array.isArray(row.tags) && row.tags.length > 0 ? row.tags : [mainCat]
+        const isFeatured = tags.some(
+          (t: string) => t.toLowerCase() === "mais pedido" || t.toLowerCase() === "destaque"
+        )
+        const isCombo = tags.some((t: string) => t.toLowerCase().includes("combo"))
+        return {
+          id: row.id || "",
+          category_id: row.category_id || row.category_name?.toLowerCase() || "geral",
+          category_name: mainCat,
+          name: row.name || "",
+          description: row.description || "",
+          price_cents: row.price_cents || 0,
+          promo_price_cents: row.promo_price_cents || undefined,
+          in_promo: Boolean(row.in_promo),
+          discount_percentage: row.discount_percentage || undefined,
+          image_url:
+            row.image_url ||
+            "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&h=450&q=80",
+          tags,
+          is_featured: isFeatured,
+          is_combo: isCombo,
+          free_delivery_eligible: true,
+        }
+      })
+
+      // Se categories da tabela estiver vazio, constrói a partir dos itens do cardápio
+      if (categories.length === 0) {
+        const catMap = new Map<string, string>()
+        itemsRes.data.forEach((it: any) => {
+          if (it.category_name) catMap.set(it.category_name.toLowerCase(), it.category_name)
+          if (Array.isArray(it.tags)) {
+            it.tags.forEach((t: string) => {
+              if (t.toLowerCase() !== "mais pedido" && t.toLowerCase() !== "destaque") {
+                catMap.set(t.toLowerCase(), t)
+              }
+            })
+          }
+        })
+        categories = [
+          { id: "todas", name: "Todas" },
+          ...Array.from(catMap.entries()).map(([id, name]) => ({ id, name })),
+        ]
+      }
+    }
+
+    return { categories, products }
+  } catch (e) {
+    console.error("Erro ao carregar catálogo da loja:", e)
+    return { categories: [], products: [] }
+  }
 }
 
 export default async function PublicStorePage({
@@ -38,6 +124,9 @@ export default async function PublicStorePage({
       const storeData: StorefrontStore = { ...MOCK_CASA_NOMA_STORE }
       let isStoreOpen = true
 
+      let initialCategories: StorefrontCategory[] = []
+      let initialProducts: StorefrontProduct[] = []
+
       try {
         const { createAdminSupabaseClient } = await import("@/lib/supabase/admin")
         const admin = createAdminSupabaseClient()
@@ -57,10 +146,19 @@ export default async function PublicStorePage({
         }
 
         if (storeRow) {
-          const { data: devSettings } = await (admin.from("store_delivery_settings" as any) as any)
-            .select("is_open_override, banner_url, logo_url, phone, instagram, social_links, bio, address, category, default_prep_min, default_prep_max, free_delivery_above_cents")
-            .eq("store_id", storeRow.id)
-            .maybeSingle()
+          const [settingsRes, catalog] = await Promise.all([
+            (admin.from("store_delivery_settings" as any) as any)
+              .select(
+                "is_open_override, banner_url, logo_url, phone, instagram, social_links, bio, address, category, default_prep_min, default_prep_max, free_delivery_above_cents"
+              )
+              .eq("store_id", storeRow.id)
+              .maybeSingle(),
+            loadStoreCatalog(admin, storeRow.id),
+          ])
+
+          const devSettings = settingsRes.data
+          initialCategories = catalog.categories
+          initialProducts = catalog.products
 
           if (devSettings) {
             if (devSettings.banner_url) storeData.banner_url = devSettings.banner_url
@@ -105,7 +203,11 @@ export default async function PublicStorePage({
             <h1>{storeData.name}</h1>
             <p>Loja publicada no Deli Plus.</p>
           </div>
-          <StorefrontPageClient initialStore={storeData} />
+          <StorefrontPageClient
+            initialStore={storeData}
+            initialCategories={initialCategories}
+            initialProducts={initialProducts}
+          />
         </StorefrontCartProvider>
       )
     }
@@ -119,6 +221,8 @@ export default async function PublicStorePage({
   }
 
   let isStoreOpen = true
+  let initialCategories: StorefrontCategory[] = []
+  let initialProducts: StorefrontProduct[] = []
 
   try {
     const { createAdminSupabaseClient } = await import("@/lib/supabase/admin")
@@ -133,10 +237,19 @@ export default async function PublicStorePage({
       if (storeRow.status !== "active") {
         isStoreOpen = false
       } else {
-        const { data: devSettings } = await (admin.from("store_delivery_settings" as any) as any)
-          .select("is_open_override, banner_url, logo_url, phone, instagram, social_links, bio, address, category, default_prep_min, default_prep_max, free_delivery_above_cents")
-          .eq("store_id", storeRow.id)
-          .maybeSingle()
+        const [settingsRes, catalog] = await Promise.all([
+          (admin.from("store_delivery_settings" as any) as any)
+            .select(
+              "is_open_override, banner_url, logo_url, phone, instagram, social_links, bio, address, category, default_prep_min, default_prep_max, free_delivery_above_cents"
+            )
+            .eq("store_id", storeRow.id)
+            .maybeSingle(),
+          loadStoreCatalog(admin, storeRow.id),
+        ])
+
+        const devSettings = settingsRes.data
+        initialCategories = catalog.categories
+        initialProducts = catalog.products
 
         if (devSettings) {
           if (devSettings.banner_url) storeData.banner_url = devSettings.banner_url
@@ -181,7 +294,11 @@ export default async function PublicStorePage({
         <h1>{result.store.name}</h1>
         <p>Loja publicada no Deli Plus.</p>
       </div>
-      <StorefrontPageClient initialStore={storeData} />
+      <StorefrontPageClient
+        initialStore={storeData}
+        initialCategories={initialCategories}
+        initialProducts={initialProducts}
+      />
     </StorefrontCartProvider>
   )
 }

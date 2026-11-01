@@ -2,7 +2,7 @@
 
 import React from "react"
 import { useStorefrontCart } from "@/lib/storefront/storefront-cart-context"
-import { Clock, Bike, MapPin, ChevronRight, Sparkles } from "lucide-react"
+import { Clock, Bike, MapPin, ChevronRight } from "lucide-react"
 import {
   WhatsAppIcon,
   InstagramIcon,
@@ -184,12 +184,6 @@ export function StoreHero() {
         <div className="max-w-xl flex flex-col gap-4 -mt-6 md:mt-0">
           {/* Identidade da Loja */}
           <div className="flex flex-col gap-1.5">
-            {store.category && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold tracking-wider uppercase bg-[#2E6B3E]/10 text-[#2E6B3E] dark:bg-[#4ADE80]/15 dark:text-[#4ADE80] border border-[#2E6B3E]/20 dark:border-[#4ADE80]/20 w-fit">
-                <Sparkles className="w-3 h-3 shrink-0" />
-                <span>{store.category}</span>
-              </span>
-            )}
             <h1 className="font-serif text-3xl font-bold tracking-tight text-[#162019] dark:text-[#F4EFEA] sm:text-4xl md:text-5xl leading-tight">
               {store.name}
             </h1>
@@ -234,7 +228,7 @@ export function StoreHero() {
               <span>
                 {store.free_delivery_above_cents
                   ? `Entrega grátis acima de R$ ${(store.free_delivery_above_cents / 100).toFixed(0)}`
-                  : "Entrega expressa disponível"}
+                  : "Entrega Disponível"}
               </span>
             </span>
           </div>
@@ -258,21 +252,26 @@ export function StoreHero() {
           {/* REDES SOCIAIS OFICIAIS CLICÁVEIS (ATÉ 4 PREENCHIDAS)          */}
           {/* ============================================================== */}
           {socialChannels.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
-              {socialChannels.map((channel) => (
-                <a
-                  key={channel.id}
-                  href={channel.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/90 dark:bg-[#1E2B22]/90 border border-[#E4DDD2] dark:border-[#2F4135] shadow-2xs hover:border-[#2E6B3E]/60 dark:hover:border-[#4ADE80]/60 hover:shadow-xs transition-all cursor-pointer text-xs font-semibold text-[#1C251F] dark:text-[#F2EFE9] backdrop-blur-xs"
-                >
-                  <span className="shrink-0">{channel.icon}</span>
-                  <span className="truncate max-w-[150px] group-hover:underline">
-                    {channel.label}
-                  </span>
-                </a>
-              ))}
+            <div className="flex flex-col gap-1.5 pt-0.5">
+              <span className="text-[11px] font-semibold text-[#5A645D] dark:text-[#8C988F] tracking-wide">
+                Siga nossas redes:
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                {socialChannels.map((channel) => (
+                  <a
+                    key={channel.id}
+                    href={channel.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/90 dark:bg-[#1E2B22]/90 border border-[#E4DDD2] dark:border-[#2F4135] shadow-2xs hover:border-[#2E6B3E]/60 dark:hover:border-[#4ADE80]/60 hover:shadow-xs transition-all cursor-pointer text-xs font-semibold text-[#1C251F] dark:text-[#F2EFE9] backdrop-blur-xs"
+                  >
+                    <span className="shrink-0">{channel.icon}</span>
+                    <span className="truncate max-w-[150px] group-hover:underline">
+                      {channel.label}
+                    </span>
+                  </a>
+                ))}
+              </div>
             </div>
           )}
         </div>
