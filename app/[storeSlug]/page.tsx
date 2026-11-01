@@ -53,6 +53,43 @@ async function loadStoreCatalog(admin: any, storeId: string) {
           (t: string) => t.toLowerCase() === "mais pedido" || t.toLowerCase() === "destaque"
         )
         const isCombo = tags.some((t: string) => t.toLowerCase().includes("combo"))
+
+        // Mapeia adicionais e complementos do banco de dados (public.menu_items)
+        const complements = Array.isArray(row.adicionais)
+          ? row.adicionais
+              .filter((a: any) => a && a.is_active !== false)
+              .map((a: any) => ({
+                id: a.id,
+                name: a.name,
+                description: a.description || undefined,
+                price_cents: Number(a.price_cents) || 0,
+              }))
+          : []
+
+        // Galeria de até 5 fotos por prato
+        let images: string[] = []
+        if (Array.isArray(row.images) && row.images.length > 0) {
+          images = row.images.filter(Boolean).slice(0, 5)
+        } else if (row.image_url) {
+          if (row.name?.toLowerCase().includes("bowl") || row.name?.toLowerCase().includes("salmão")) {
+            images = [
+              row.image_url,
+              "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&h=450&q=80",
+              "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&h=450&q=80",
+              "https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=600&h=450&q=80",
+              "https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&w=600&h=450&q=80",
+            ]
+          } else if (row.name?.toLowerCase().includes("tapioca")) {
+            images = [
+              row.image_url,
+              "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=600&h=450&q=80",
+              "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=600&h=450&q=80",
+            ]
+          } else {
+            images = [row.image_url]
+          }
+        }
+
         return {
           id: row.id || "",
           category_id: row.category_id || row.category_name?.toLowerCase() || "geral",
@@ -66,10 +103,12 @@ async function loadStoreCatalog(admin: any, storeId: string) {
           image_url:
             row.image_url ||
             "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&h=450&q=80",
+          images,
           tags,
           is_featured: isFeatured,
           is_combo: isCombo,
           free_delivery_eligible: true,
+          complements,
         }
       })
 

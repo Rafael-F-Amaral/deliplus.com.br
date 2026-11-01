@@ -252,23 +252,36 @@ export function StoreHero() {
           {/* REDES SOCIAIS OFICIAIS CLICÁVEIS (ATÉ 4 PREENCHIDAS)          */}
           {/* ============================================================== */}
           {socialChannels.length > 0 && (
-            <div className="flex flex-col gap-1.5 pt-0.5">
-              <span className="text-[11px] font-semibold text-[#5A645D] dark:text-[#8C988F] tracking-wide">
-                Siga nossas redes:
-              </span>
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col gap-2 pt-1">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 rounded-full bg-[#2E6B3E] dark:bg-[#4ADE80] animate-pulse" />
+                <span className="text-xs font-black tracking-wider uppercase text-[#1B291F] dark:text-[#E8F0EA]">
+                  Canais Oficiais & Atendimento
+                </span>
+                <span className="text-[11px] text-[#69746B] dark:text-[#9DAA9F] font-medium hidden sm:inline">
+                  • Fale conosco e acompanhe as novidades
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:gap-2.5 max-w-sm sm:max-w-md pt-0.5">
                 {socialChannels.map((channel) => (
                   <a
                     key={channel.id}
                     href={channel.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/90 dark:bg-[#1E2B22]/90 border border-[#E4DDD2] dark:border-[#2F4135] shadow-2xs hover:border-[#2E6B3E]/60 dark:hover:border-[#4ADE80]/60 hover:shadow-xs transition-all cursor-pointer text-xs font-semibold text-[#1C251F] dark:text-[#F2EFE9] backdrop-blur-xs"
+                    className="group flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/95 dark:bg-[#1E2B22]/95 border border-[#E2DBD0] dark:border-[#2F4135] shadow-2xs hover:border-[#2E6B3E] dark:hover:border-[#4ADE80] hover:shadow-xs transition-all cursor-pointer backdrop-blur-xs"
                   >
-                    <span className="shrink-0">{channel.icon}</span>
-                    <span className="truncate max-w-[150px] group-hover:underline">
-                      {channel.label}
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FAF8F5] dark:bg-[#151D17] border border-[#EAE4D8] dark:border-[#263529] group-hover:scale-105 transition-transform">
+                      {channel.icon}
                     </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-[#737F75] dark:text-[#8E9C91] leading-tight">
+                        {channel.name}
+                      </div>
+                      <div className="truncate text-xs font-semibold text-[#1B291F] dark:text-[#F2EFE9] group-hover:text-[#2E6B3E] dark:group-hover:text-[#4ADE80] transition-colors">
+                        {channel.label}
+                      </div>
+                    </div>
                   </a>
                 ))}
               </div>

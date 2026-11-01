@@ -30,6 +30,7 @@ export interface StorefrontProduct {
   in_promo?: boolean
   discount_percentage?: number
   image_url: string
+  images?: string[]
   tags?: string[]
   is_featured?: boolean
   is_combo?: boolean
