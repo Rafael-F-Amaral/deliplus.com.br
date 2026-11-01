@@ -197,7 +197,7 @@ export function StorefrontPageClient({
       <MobileCartBar />
 
       {/* Modals & Drawers */}
-      <ProductDetailModal />
+      <ProductDetailModal storeProducts={productsList} />
       <DeliveryInfoModal />
       <FavoritesModal />
       <ReceivingMethodModal />

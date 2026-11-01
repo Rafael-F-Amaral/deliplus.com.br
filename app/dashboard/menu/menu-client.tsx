@@ -281,6 +281,30 @@ export function formatPromoPeriod(
   }
 }
 
+export const BEVERAGE_MEASURE_SUGGESTIONS = [
+  "Lata 350ml",
+  "Garrafa 500ml",
+  "600ml",
+  "1 Litro",
+  "1,5 Litros",
+  "2 Litros",
+  "Copo 300ml",
+  "Copo 400ml",
+  "Copo 500ml",
+  "Long Neck 330ml",
+  "Jarra 1L",
+  "Dose 50ml",
+]
+
+export const FOOD_SIZE_SUGGESTIONS = [
+  "Pequeno",
+  "Médio",
+  "Grande",
+  "Família",
+  "Individual",
+  "Broto",
+]
+
 export interface MenuClientProps {
   storeSlug?: string
   storeName?: string
@@ -306,9 +330,9 @@ export default function MenuClient({
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false)
   const categoryMenuRef = useRef<HTMLDivElement>(null)
 
-  // Pagination (11 items per page: fills container height smoothly without scrollbar, matching Estoque)
+  // Pagination (8 items per page: fits screen height cleanly without cutoff or swallowing rows)
   const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 11
+  const ITEMS_PER_PAGE = 8
 
   // 3-dots actions menu state
   const [openActionId, setOpenActionId] = useState<string | null>(null)
@@ -388,12 +412,30 @@ export default function MenuClient({
 
   // Modal de Configuração de Valor e Tamanhos
   const [sizesModalItem, setSizesModalItem] = useState<MenuItem | null>(null)
+
+  const isBeverageModalItem = Boolean(
+    sizesModalItem && (
+      sizesModalItem.category?.toLowerCase().includes("bebida") ||
+      sizesModalItem.categories?.some((c) => c.toLowerCase().includes("bebida")) ||
+      sizesModalItem.name.toLowerCase().includes("suco") ||
+      sizesModalItem.name.toLowerCase().includes("água") ||
+      sizesModalItem.name.toLowerCase().includes("refrigerante") ||
+      sizesModalItem.name.toLowerCase().includes("chá") ||
+      sizesModalItem.name.toLowerCase().includes("coca") ||
+      sizesModalItem.name.toLowerCase().includes("guaraná") ||
+      sizesModalItem.name.toLowerCase().includes("kombucha") ||
+      sizesModalItem.name.toLowerCase().includes("cerveja")
+    )
+  )
+
+  const activeSizeSuggestions = isBeverageModalItem
+    ? BEVERAGE_MEASURE_SUGGESTIONS
+    : FOOD_SIZE_SUGGESTIONS
   const [priceConfigType, setPriceConfigType] = useState<"single" | "sizes">("single")
   const [singlePriceInput, setSinglePriceInput] = useState<string>("")
   const [configuredSizes, setConfiguredSizes] = useState<ProductSize[]>([])
   const [newSizeName, setNewSizeName] = useState<string>("")
   const [isSavingSizes, setIsSavingSizes] = useState<boolean>(false)
-  const [showHowItWorksPopover, setShowHowItWorksPopover] = useState<boolean>(false)
 
   // Toast notification
   const [notification, setNotification] = useState<string | null>(null)
@@ -1635,9 +1677,9 @@ export default function MenuClient({
         </div>
       </div>
 
-      {/* Main Table Container: Stretches to fill available screen height without outer scrollbar */}
+      {/* Main Table Container: Stretches to fill available screen height with smooth inner scrollbar */}
       <div className="hidden md:flex flex-col flex-1 h-full min-h-0 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-sm overflow-hidden justify-between">
-        <div className="w-full overflow-x-auto overflow-y-hidden">
+        <div className="w-full flex-1 min-h-0 overflow-x-auto overflow-y-auto">
           <table className="w-full text-left text-[14px]">
             <thead className="bg-[#FAF8F0] dark:bg-[#222C25] border-b border-[#E9E4D4] dark:border-[#2A382E]">
               <tr className="text-[14px] font-semibold text-[#2E4233] dark:text-[#F2EFE9]">
@@ -3663,7 +3705,7 @@ export default function MenuClient({
           onClick={() => setSizesModalItem(null)}
         >
           <div
-            className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-lg shadow-2xl flex flex-col border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150 relative overflow-hidden"
+            className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-lg shadow-2xl flex flex-col border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150 relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -3673,29 +3715,17 @@ export default function MenuClient({
                   <h3 className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-base">
                     Definir Tamanhos e Valores
                   </h3>
-                  {/* Popover de Ajuda com Interrogação */}
-                  <div className="relative inline-flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => setShowHowItWorksPopover(!showHowItWorksPopover)}
-                      onMouseEnter={() => setShowHowItWorksPopover(true)}
-                      onMouseLeave={() => setShowHowItWorksPopover(false)}
-                      className="text-gray-400 hover:text-[#CB5A3C] transition-colors p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
-                      title="Como funciona na loja?"
-                    >
-                      <HelpCircle className="w-4 h-4" />
-                    </button>
-
-                    {showHowItWorksPopover && (
-                      <div className="absolute left-0 top-full mt-2 w-72 sm:w-80 p-3.5 bg-white dark:bg-[#1E2B22] rounded-xl shadow-xl border border-[#E9E4D4] dark:border-[#2A382E] z-50 animate-in fade-in zoom-in-95 duration-150">
-                        <span className="text-[#CB5A3C] font-bold text-xs block mb-1">
-                          Como funciona na loja:
-                        </span>
-                        <p className="text-gray-900 dark:text-gray-100 font-semibold text-xs leading-relaxed">
-                          Se houver apenas 1 tamanho (ex: Tamanho Padrão), o valor é cobrado diretamente. Se cadastrar múltiplos tamanhos (ex: Tamanho Padrão, Pequeno, Médio, Grande), o menor valor será exibido na vitrine como &quot;A partir de R$ ...&quot; e o cliente escolhe o tamanho desejado ao pedir.
-                        </p>
-                      </div>
-                    )}
+                  {/* Tooltip Icon & Popover no padrão DeliPlus */}
+                  <div className="relative group inline-block">
+                    <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
+                      ?
+                    </div>
+                    <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[130] pointer-events-none text-left">
+                      <p className="text-[12px] text-white dark:text-[#1C2C22] leading-relaxed">
+                        <span className="font-extrabold text-white dark:text-[#2E4233]">Como funciona na loja:</span>{" "}
+                        Se houver apenas 1 tamanho (ex: Tamanho Padrão), o valor é cobrado diretamente. Se cadastrar múltiplos tamanhos (ex: Tamanho Padrão, Pequeno, Médio, Grande), o menor valor será exibido na vitrine como &quot;A partir de R$ ...&quot; e o cliente escolhe o tamanho desejado ao pedir.
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <span className="text-sm sm:text-base font-bold text-[#CB5A3C] truncate max-w-sm mt-0.5">
@@ -3713,37 +3743,32 @@ export default function MenuClient({
 
             {/* Body */}
             <div className="p-5 flex flex-col gap-4 max-h-[75vh] overflow-y-auto">
-              {/* Sugestões de Tamanho */}
+              {/* Sugestões de Medida ou Tamanho */}
               <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-[#FAF8F0] dark:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]">
                 <span className="text-sm font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">
-                  Sugestões de Tamanho
+                  {isBeverageModalItem ? "Sugestões de Medida (Líquidos)" : "Sugestões de Tamanho"}
                 </span>
 
                 {/* Acima de Pequeno: Tamanho Padrão */}
                 <div className="flex items-center gap-2">
-                  {(() => {
-                    const exists = configuredSizes.some((s) => s.name.toLowerCase() === "tamanho padrão")
-                    return (
-                      <button
-                        type="button"
-                        disabled={exists}
-                        onClick={() => handleAddSizeOption("Tamanho Padrão", true)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                          exists
-                            ? "opacity-40 border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50 dark:bg-gray-800"
-                            : "bg-white dark:bg-[#1B241E] border-[#2E4233]/40 text-[#2E4233] dark:text-[#4ADE80] hover:border-[#CB5A3C] hover:text-[#CB5A3C] shadow-2xs"
-                        }`}
-                        title="Adicionar Tamanho Padrão no topo da lista"
-                      >
-                        <span className="text-sm font-bold leading-none">+</span> Tamanho Padrão
-                      </button>
-                    )
-                  })()}
+                  <button
+                    type="button"
+                    disabled={configuredSizes.some((s) => s.name.toLowerCase() === "tamanho padrão")}
+                    onClick={() => handleAddSizeOption("Tamanho Padrão", true)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                      configuredSizes.some((s) => s.name.toLowerCase() === "tamanho padrão")
+                        ? "opacity-40 border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50 dark:bg-gray-800"
+                        : "bg-white dark:bg-[#1B241E] border-[#2E4233]/40 text-[#2E4233] dark:text-[#4ADE80] hover:border-[#CB5A3C] hover:text-[#CB5A3C] shadow-2xs"
+                    }`}
+                    title="Adicionar Tamanho Padrão no topo da lista"
+                  >
+                    <span className="text-sm font-bold leading-none">+</span> Tamanho Padrão
+                  </button>
                 </div>
 
-                {/* Demais opções: Pequeno, Médio, Grande, Família, Individual, Broto */}
+                {/* Demais opções */}
                 <div className="flex flex-wrap items-center gap-1.5">
-                  {["Pequeno", "Médio", "Grande", "Família", "Individual", "Broto"].map((sug) => {
+                  {activeSizeSuggestions.map((sug) => {
                     const exists = configuredSizes.some((s) => s.name.toLowerCase() === sug.toLowerCase())
                     return (
                       <button
@@ -3776,7 +3801,7 @@ export default function MenuClient({
                       handleAddSizeOption(newSizeName)
                     }
                   }}
-                  placeholder="Outro tamanho (ex: Família, 500ml, 8 Fatias...)"
+                  placeholder={isBeverageModalItem ? "Outra medida (ex: 350ml, 500ml, 2L, Copo 400ml...)" : "Outro tamanho (ex: Família, 500ml, 8 Fatias...)"}
                   className="flex-1 px-3 py-2 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs font-medium focus:outline-none focus:border-[#2E4233] bg-white dark:bg-[#1B241E] dark:text-[#F2EFE9]"
                 />
                 <button

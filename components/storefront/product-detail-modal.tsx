@@ -3,25 +3,21 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { useStorefrontCart } from "@/lib/storefront/storefront-cart-context"
 import { X, Plus, Minus, ChevronLeft, ChevronRight, ZoomIn, Check } from "lucide-react"
-import { StorefrontComplement } from "@/types/storefront"
+import { StorefrontComplement, StorefrontProduct } from "@/types/storefront"
 
-export interface SuggestedBeverage {
+export interface StorefrontBeverageItem {
   id: string
   name: string
   volume: string
-  icon: string
   price_cents: number
+  image_url?: string
 }
 
-const SUGGESTED_BEVERAGES: SuggestedBeverage[] = [
-  { id: "bev-suco-laranja", name: "Suco Natural de Laranja", volume: "Garrafa 400ml", icon: "🍊", price_cents: 990 },
-  { id: "bev-coca-zero", name: "Coca-Cola Zero", volume: "Lata 350ml", icon: "🥤", price_cents: 650 },
-  { id: "bev-coca-original", name: "Coca-Cola Original", volume: "Lata 350ml", icon: "🥤", price_cents: 650 },
-  { id: "bev-agua-gas", name: "Água Mineral c/ Gás", volume: "Garrafa 500ml", icon: "💧", price_cents: 550 },
-  { id: "bev-cha-pessego", name: "Chá Gelado de Pêssego", volume: "Garrafa 450ml", icon: "🍑", price_cents: 800 },
-]
+interface ProductDetailModalProps {
+  storeProducts?: StorefrontProduct[]
+}
 
-export function ProductDetailModal() {
+export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = {}) {
   const { activeModal, selectedProduct, closeModal, addToCart } = useStorefrontCart()
 
   const [activeImageIndex, setActiveImageIndex] = useState(0)
@@ -31,9 +27,62 @@ export function ProductDetailModal() {
   const [selectedProtein, setSelectedProtein] = useState<string>("default")
   const [removedIngredients, setRemovedIngredients] = useState<string[]>([])
   const [selectedComplements, setSelectedComplements] = useState<StorefrontComplement[]>([])
-  const [selectedBeverages, setSelectedBeverages] = useState<SuggestedBeverage[]>([])
+  const [selectedBeverages, setSelectedBeverages] = useState<StorefrontBeverageItem[]>([])
   const [notes, setNotes] = useState("")
   const [quantity, setQuantity] = useState(1)
+
+  // Real catalog beverages
+  const availableBeverages: StorefrontBeverageItem[] = useMemo(() => {
+    if (!storeProducts || storeProducts.length === 0) return []
+    return storeProducts
+      .filter((p) => {
+        if (selectedProduct && p.id === selectedProduct.id) return false
+        const isDrinkCat =
+          p.category_name?.toLowerCase().includes("bebida") ||
+          p.category_id === "c273e83b-fff8-47a5-b03b-13310706ec02"
+        const hasDrinkTag = p.tags?.some((t: string) => t.toLowerCase().includes("bebida"))
+        return isDrinkCat || hasDrinkTag
+      })
+      .map((p) => {
+        const sizeName = p.sizes?.[0]?.name
+        const volume = sizeName || (p.description?.includes("ml") ? p.description : "")
+        const price = p.sizes?.[0]?.price_cents || p.promo_price_cents || p.price_cents
+        return {
+          id: p.id,
+          name: p.name,
+          volume: volume,
+          price_cents: price,
+          image_url: p.image_url,
+        }
+      })
+  }, [storeProducts, selectedProduct?.id])
+
+  const [beverageSearch, setBeverageSearch] = useState("")
+  const [beveragePage, setBeveragePage] = useState(1)
+  const BEVERAGES_PER_PAGE = 4
+
+  const filteredBeverages = useMemo(() => {
+    const q = beverageSearch.trim().toLowerCase()
+    if (!q) return availableBeverages
+    return availableBeverages.filter(
+      (b) =>
+        b.name.toLowerCase().includes(q) ||
+        (b.volume && b.volume.toLowerCase().includes(q))
+    )
+  }, [availableBeverages, beverageSearch])
+
+  const totalBeveragePages = Math.max(1, Math.ceil(filteredBeverages.length / BEVERAGES_PER_PAGE))
+
+  const paginatedBeverages = useMemo(() => {
+    const start = (beveragePage - 1) * BEVERAGES_PER_PAGE
+    return filteredBeverages.slice(start, start + BEVERAGES_PER_PAGE)
+  }, [filteredBeverages, beveragePage])
+
+  // Reset beverage filter on product switch
+  useEffect(() => {
+    setBeverageSearch("")
+    setBeveragePage(1)
+  }, [selectedProduct?.id])
 
   // Reset form states whenever selectedProduct changes
   useEffect(() => {
@@ -92,7 +141,7 @@ export function ProductDetailModal() {
     )
   }
 
-  const toggleBeverage = (bev: SuggestedBeverage) => {
+  const toggleBeverage = (bev: StorefrontBeverageItem) => {
     setSelectedBeverages((prev) =>
       prev.some((b) => b.id === bev.id)
         ? prev.filter((b) => b.id !== bev.id)
@@ -131,7 +180,7 @@ export function ProductDetailModal() {
 
     const beverageComplements: StorefrontComplement[] = selectedBeverages.map((b) => ({
       id: b.id,
-      name: `${b.name} (${b.volume})`,
+      name: b.volume ? `${b.name} (${b.volume})` : b.name,
       price_cents: b.price_cents,
     }))
 
@@ -243,68 +292,141 @@ export function ProductDetailModal() {
                 </div>
               )}
 
-              {/* Section: Bebidas para Acompanhar (Cross-sell exclusivo Deli - visível na coluna esquerda no desktop) */}
-              <div className="hidden md:flex mt-2 pt-2.5 border-t border-[#ECE7DE] dark:border-[#2A382E] flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs">🥤</span>
+              {/* Section: Bebidas (Cross-sell exclusivo Deli - visível na coluna esquerda no desktop) */}
+              {availableBeverages.length > 0 && (
+                <div className="hidden md:flex mt-2 pt-2.5 border-t border-[#ECE7DE] dark:border-[#2A382E] flex-col gap-2 flex-1 min-h-0">
+                  <div className="flex items-center justify-between shrink-0">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
-                      Bebidas para acompanhar
+                      Bebidas
                     </h3>
+                    <span className="rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                      Opcional
+                    </span>
                   </div>
-                  <span className="rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                    Opcional
-                  </span>
-                </div>
 
-                <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto pr-0.5">
-                  {SUGGESTED_BEVERAGES.map((bev) => {
-                    const isSelected = selectedBeverages.some((b) => b.id === bev.id)
-                    return (
-                      <button
-                        key={bev.id}
-                        type="button"
-                        onClick={() => toggleBeverage(bev)}
-                        className={`flex items-center justify-between p-2 rounded-xl border text-left transition-all cursor-pointer ${
-                          isSelected
-                            ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80]/60 dark:bg-[#1E2B22] shadow-2xs"
-                            : "border-[#E8E2D5] bg-white dark:border-[#2A382E] dark:bg-[#1B241E] hover:border-[#CBD5E1]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-sm shrink-0">{bev.icon}</span>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] truncate">
-                              {bev.name}
-                            </span>
-                            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
-                              {bev.volume}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[11px] font-bold text-[#166534] dark:text-[#4ADE80]">
-                            + {formatCurrency(bev.price_cents)}
-                          </span>
-                          <div
-                            className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
+                  {/* Campo de pesquisa de nome (sem ícones) */}
+                  <div className="shrink-0">
+                    <input
+                      type="text"
+                      value={beverageSearch}
+                      onChange={(e) => {
+                        setBeverageSearch(e.target.value)
+                        setBeveragePage(1)
+                      }}
+                      placeholder="Buscar bebida..."
+                      className="w-full px-2.5 py-1 text-xs bg-white dark:bg-[#1B241E] border border-[#E8E2D5] dark:border-[#2A382E] rounded-lg text-[#1F2922] dark:text-[#F2EFE9] placeholder-[#9CA3AF] focus:outline-hidden focus:border-[#2E6B3E] transition-colors"
+                    />
+                  </div>
+
+                  {/* Lista de Bebidas (4 itens preenchem a altura do container perfeitamente) */}
+                  <div className="flex flex-col gap-1.5 flex-1 overflow-y-auto pr-0.5">
+                    {paginatedBeverages.length === 0 ? (
+                      <div className="text-center py-3 text-xs text-gray-400 dark:text-gray-500">
+                        Nenhuma bebida encontrada
+                      </div>
+                    ) : (
+                      paginatedBeverages.map((bev) => {
+                        const isSelected = selectedBeverages.some((b) => b.id === bev.id)
+                        return (
+                          <button
+                            key={bev.id}
+                            type="button"
+                            onClick={() => toggleBeverage(bev)}
+                            className={`flex items-center justify-between p-2 rounded-xl border text-left transition-all cursor-pointer ${
                               isSelected
-                                ? "bg-[#2E6B3E] border-[#2E6B3E] text-white"
-                                : "border-gray-300 dark:border-gray-600 bg-white dark:bg-[#141C16]"
+                                ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80]/60 dark:bg-[#1E2B22] shadow-2xs"
+                                : "border-[#E8E2D5] bg-white dark:border-[#2A382E] dark:bg-[#1B241E] hover:border-[#CBD5E1]"
                             }`}
                           >
-                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                          </div>
+                            <div className="flex items-center gap-2 min-w-0">
+                              {bev.image_url ? (
+                                <img
+                                  src={bev.image_url}
+                                  alt={bev.name}
+                                  className="w-8 h-8 rounded-lg object-cover shrink-0 bg-[#FAF8F5] border border-[#ECE7DE] dark:border-[#2A382E]"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-lg bg-[#FAF8F5] dark:bg-[#25332A] border border-[#ECE7DE] dark:border-[#2A382E] shrink-0" />
+                              )}
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] truncate">
+                                  {bev.name}
+                                </span>
+                                {bev.volume && (
+                                  <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
+                                    {bev.volume}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[11px] font-bold text-[#166534] dark:text-[#4ADE80]">
+                                + {formatCurrency(bev.price_cents)}
+                              </span>
+                              <div
+                                className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
+                                  isSelected
+                                    ? "bg-[#2E6B3E] border-[#2E6B3E] text-white"
+                                    : "border-gray-300 dark:border-gray-600 bg-white dark:bg-[#141C16]"
+                                }`}
+                              >
+                                {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })
+                    )}
+                  </div>
+
+                  {/* Paginação de Bebidas no padrão DeliPlus */}
+                  {totalBeveragePages > 1 && (
+                    <div className="flex items-center justify-between pt-2 border-t border-[#ECE7DE] dark:border-[#2A382E] text-[11px] text-[#637267] dark:text-[#9CA3AF] shrink-0">
+                      <span className="font-medium text-[#637267] dark:text-[#9CA3AF]">
+                        {filteredBeverages.length} bebidas
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={beveragePage <= 1}
+                          onClick={() => setBeveragePage((p) => Math.max(1, p - 1))}
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#CB5A3C] hover:bg-[#FAF8F0] dark:hover:bg-[#25332A] transition-all shadow-2xs disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          Anterior
+                        </button>
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: totalBeveragePages }).map((_, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setBeveragePage(i + 1)}
+                              className={`w-6 h-6 rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
+                                beveragePage === i + 1
+                                  ? "bg-[#CB5A3C] text-white shadow-sm"
+                                  : "bg-white dark:bg-[#1B241E] text-[#637267] dark:text-[#9CA3AF] border border-[#E9E4D4] dark:border-[#2A382E] hover:bg-[#FAF8F0] dark:hover:bg-[#25332A]"
+                              }`}
+                            >
+                              {i + 1}
+                            </button>
+                          ))}
                         </div>
-                      </button>
-                    )
-                  })}
+                        <button
+                          type="button"
+                          disabled={beveragePage >= totalBeveragePages}
+                          onClick={() => setBeveragePage((p) => Math.min(totalBeveragePages, p + 1))}
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#CB5A3C] hover:bg-[#FAF8F0] dark:hover:bg-[#25332A] transition-all shadow-2xs disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          Próxima
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Right: Customization Form & Info */}
-            <div className="flex-1 p-4 md:p-5 flex flex-col space-y-4 overflow-y-auto">
+            <div className="flex-1 p-4 md:p-5 flex flex-col space-y-4 md:overflow-y-auto">
               {/* Header info */}
               <div>
                 <nav className="text-xs sm:text-sm font-semibold mb-1 flex items-center gap-1.5">
@@ -598,64 +720,136 @@ export function ProductDetailModal() {
                 </div>
               )}
 
-              {/* Section: Bebidas para Acompanhar (Versão Mobile no fluxo de rolagem) */}
-              <div className="flex md:hidden flex-col gap-2 pt-2 border-t border-[#ECE7DE] dark:border-[#2A382E]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs">🥤</span>
+              {/* Section: Bebidas (Versão Mobile no fluxo de rolagem) */}
+              {availableBeverages.length > 0 && (
+                <div className="flex md:hidden flex-col gap-2 pt-2 border-t border-[#ECE7DE] dark:border-[#2A382E]">
+                  <div className="flex items-center justify-between">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
-                      Bebidas para acompanhar
+                      Bebidas
                     </h3>
+                    <span className="rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                      Opcional
+                    </span>
                   </div>
-                  <span className="rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                    Opcional
-                  </span>
-                </div>
 
-                <div className="flex flex-col gap-1.5">
-                  {SUGGESTED_BEVERAGES.map((bev) => {
-                    const isSelected = selectedBeverages.some((b) => b.id === bev.id)
-                    return (
-                      <button
-                        key={bev.id}
-                        type="button"
-                        onClick={() => toggleBeverage(bev)}
-                        className={`flex items-center justify-between p-2 rounded-xl border text-left transition-all cursor-pointer ${
-                          isSelected
-                            ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80]/60 dark:bg-[#1E2B22] shadow-2xs"
-                            : "border-[#E8E2D5] bg-white dark:border-[#2A382E] dark:bg-[#1B241E] hover:border-[#CBD5E1]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-sm shrink-0">{bev.icon}</span>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] truncate">
-                              {bev.name}
-                            </span>
-                            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
-                              {bev.volume}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[11px] font-bold text-[#166534] dark:text-[#4ADE80]">
-                            + {formatCurrency(bev.price_cents)}
-                          </span>
-                          <div
-                            className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
+                  {/* Campo de pesquisa de nome (sem ícones) */}
+                  <div>
+                    <input
+                      type="text"
+                      value={beverageSearch}
+                      onChange={(e) => {
+                        setBeverageSearch(e.target.value)
+                        setBeveragePage(1)
+                      }}
+                      placeholder="Buscar bebida..."
+                      className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-[#1B241E] border border-[#E8E2D5] dark:border-[#2A382E] rounded-lg text-[#1F2922] dark:text-[#F2EFE9] placeholder-[#9CA3AF] focus:outline-hidden focus:border-[#2E6B3E] transition-colors"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    {paginatedBeverages.length === 0 ? (
+                      <div className="text-center py-3 text-xs text-gray-400 dark:text-gray-500">
+                        Nenhuma bebida encontrada
+                      </div>
+                    ) : (
+                      paginatedBeverages.map((bev) => {
+                        const isSelected = selectedBeverages.some((b) => b.id === bev.id)
+                        return (
+                          <button
+                            key={bev.id}
+                            type="button"
+                            onClick={() => toggleBeverage(bev)}
+                            className={`flex items-center justify-between p-2 rounded-xl border text-left transition-all cursor-pointer ${
                               isSelected
-                                ? "bg-[#2E6B3E] border-[#2E6B3E] text-white"
-                                : "border-gray-300 dark:border-gray-600 bg-white dark:bg-[#141C16]"
+                                ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80]/60 dark:bg-[#1E2B22] shadow-2xs"
+                                : "border-[#E8E2D5] bg-white dark:border-[#2A382E] dark:bg-[#1B241E] hover:border-[#CBD5E1]"
                             }`}
                           >
-                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                          </div>
+                            <div className="flex items-center gap-2 min-w-0">
+                              {bev.image_url ? (
+                                <img
+                                  src={bev.image_url}
+                                  alt={bev.name}
+                                  className="w-8 h-8 rounded-lg object-cover shrink-0 bg-[#FAF8F5] border border-[#ECE7DE] dark:border-[#2A382E]"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-lg bg-[#FAF8F5] dark:bg-[#25332A] border border-[#ECE7DE] dark:border-[#2A382E] shrink-0" />
+                              )}
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] truncate">
+                                  {bev.name}
+                                </span>
+                                {bev.volume && (
+                                  <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
+                                    {bev.volume}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[11px] font-bold text-[#166534] dark:text-[#4ADE80]">
+                                + {formatCurrency(bev.price_cents)}
+                              </span>
+                              <div
+                                className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
+                                  isSelected
+                                    ? "bg-[#2E6B3E] border-[#2E6B3E] text-white"
+                                    : "border-gray-300 dark:border-gray-600 bg-white dark:bg-[#141C16]"
+                                }`}
+                              >
+                                {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })
+                    )}
+                  </div>
+
+                  {/* Paginação de Bebidas no Mobile no padrão DeliPlus */}
+                  {totalBeveragePages > 1 && (
+                    <div className="flex items-center justify-between pt-2 border-t border-[#ECE7DE] dark:border-[#2A382E] text-[11px] text-[#637267] dark:text-[#9CA3AF]">
+                      <span className="font-medium text-[#637267] dark:text-[#9CA3AF]">
+                        {filteredBeverages.length} bebidas
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={beveragePage <= 1}
+                          onClick={() => setBeveragePage((p) => Math.max(1, p - 1))}
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#CB5A3C] hover:bg-[#FAF8F0] dark:hover:bg-[#25332A] transition-all shadow-2xs disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          Anterior
+                        </button>
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: totalBeveragePages }).map((_, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setBeveragePage(i + 1)}
+                              className={`w-6 h-6 rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
+                                beveragePage === i + 1
+                                  ? "bg-[#CB5A3C] text-white shadow-sm"
+                                  : "bg-white dark:bg-[#1B241E] text-[#637267] dark:text-[#9CA3AF] border border-[#E9E4D4] dark:border-[#2A382E] hover:bg-[#FAF8F0] dark:hover:bg-[#25332A]"
+                              }`}
+                            >
+                              {i + 1}
+                            </button>
+                          ))}
                         </div>
-                      </button>
-                    )
-                  })}
+                        <button
+                          type="button"
+                          disabled={beveragePage >= totalBeveragePages}
+                          onClick={() => setBeveragePage((p) => Math.min(totalBeveragePages, p + 1))}
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#CB5A3C] hover:bg-[#FAF8F0] dark:hover:bg-[#25332A] transition-all shadow-2xs disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          Próxima
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               {/* Section: Observações para a cozinha */}
               <div className="space-y-1.5 pt-1">
