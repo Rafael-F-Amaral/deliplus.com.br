@@ -141,7 +141,7 @@ export default async function PromotionsPage() {
       const [productsRes, categoriesRes, complementsRes, orderItemsRes] = await Promise.all([
         supabase
           .from("products")
-          .select("id, name, price_cents, promo_price_cents, in_promo, promo_indefinite, promo_start_date, promo_end_date, image_url, category_id, tags")
+          .select("id, name, price_cents, promo_price_cents, in_promo, promo_indefinite, promo_start_date, promo_end_date, image_url, category_id, tags, sizes")
           .eq("store_id", storeId),
         supabase.from("categories").select("id, name").eq("store_id", storeId),
         supabase.from("product_complements").select("id, product_id, name").eq("store_id", storeId),

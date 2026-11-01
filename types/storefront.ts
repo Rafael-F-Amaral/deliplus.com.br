@@ -5,6 +5,13 @@ export interface StorefrontComplement {
   price_cents: number
 }
 
+export interface StorefrontSizeOption {
+  id: string
+  name: string
+  price_cents: number
+  promo_price_cents?: number
+}
+
 export interface StorefrontPortionOption {
   id: string
   name: string
@@ -36,6 +43,7 @@ export interface StorefrontProduct {
   is_combo?: boolean
   free_delivery_eligible?: boolean
   portions?: StorefrontPortionOption[]
+  sizes?: StorefrontSizeOption[]
   proteins?: StorefrontProteinOption[]
   removable_ingredients?: string[]
   complements?: StorefrontComplement[]
@@ -102,6 +110,7 @@ export interface CartItem {
   quantity: number
   image_url: string
   portion?: string
+  size?: string
   protein?: string
   removed_ingredients?: string[]
   selected_complements?: StorefrontComplement[]

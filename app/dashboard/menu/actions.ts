@@ -470,3 +470,38 @@ export async function saveProductComplements(
     return { success: false, error: errorMsg }
   }
 }
+
+
+/**
+ * Atualiza configuração de valor e tamanhos do produto
+ */
+export async function updateProductSizesAndPrice(
+  productId: string,
+  priceCents: number,
+  sizes: Array<{ id: string; name: string; priceCents: number; promoPriceCents?: number | null }>
+) {
+  const { storeId, supabase } = await resolveActionContext()
+  const dbSizes = sizes.map((s) => ({
+    id: s.id || `size-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    name: s.name.trim(),
+    price_cents: s.priceCents,
+    promo_price_cents: s.promoPriceCents ?? null,
+  }))
+
+  const { error } = await supabase
+    .from("products" as any)
+    .update({
+      price_cents: priceCents,
+      sizes: dbSizes,
+    } as any)
+    .eq("id", productId)
+    .eq("store_id", storeId)
+
+  if (error) {
+    console.error("Erro ao atualizar tamanhos e valor do produto:", error)
+    throw new Error("Falha ao salvar valores")
+  }
+
+  revalidatePath("/dashboard/menu")
+  return { success: true }
+}

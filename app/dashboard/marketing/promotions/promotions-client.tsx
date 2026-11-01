@@ -336,6 +336,7 @@ export default function PromotionsClient({
 
   // Rich Promo Modal State
   const [editingPromoProduct, setEditingPromoProduct] = useState<PromoProduct | null>(initialTarget);
+  const [selectedPromoSizeId, setSelectedPromoSizeId] = useState<string>("all");
   const [discountPercentInput, setDiscountPercentInput] = useState<string>(() => {
     if (!initialTarget) return "15";
     return initialTarget.discountPercentage > 0
@@ -362,6 +363,7 @@ export default function PromotionsClient({
 
   const handleOpenPromoModal = (product: PromoProduct) => {
     setEditingPromoProduct(product);
+    setSelectedPromoSizeId("all");
     const existingDiscount = product.discountPercentage > 0
       ? product.discountPercentage.toString()
       : (product.promoPriceCents && product.priceCents > 0

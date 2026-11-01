@@ -10,6 +10,8 @@ import {
   ChevronRight,
   Upload,
   Trash2,
+  MoreVertical,
+  Layers,
   Calendar,
   Pencil,
   Check,
@@ -19,7 +21,8 @@ import {
   Camera,
   Sparkles,
   Play,
-  Plus
+  Plus,
+  HelpCircle
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -33,8 +36,18 @@ import {
   removePromoDiscount,
   recordTourProgress,
   uploadMenuProductImage,
-  saveProductComplements
+  saveProductComplements,
+  updateProductSizesAndPrice
 } from "./actions"
+
+export interface ProductSize {
+  id: string
+  name: string
+  price: string
+  priceCents: number
+  promoPrice?: string | null
+  promoPriceCents?: number | null
+}
 
 export interface ProductAdicional {
   id: string
@@ -69,6 +82,7 @@ export interface MenuItem {
   promoEndDate?: string
   campaignId?: string
   campaignName?: string
+  sizes?: ProductSize[]
   adicionais?: ProductAdicional[]
 }
 
@@ -368,6 +382,18 @@ export default function MenuClient({
   const [isDraggingAdicionalPhoto, setIsDraggingAdicionalPhoto] = useState(false)
   const [adicionalToDelete, setAdicionalToDelete] = useState<ProductAdicional | null>(null)
   const adicionalFileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Menu dropdown 3 pontinhos para o adicional
+  const [activeAdicionalMenuId, setActiveAdicionalMenuId] = useState<string | null>(null)
+
+  // Modal de Configuração de Valor e Tamanhos
+  const [sizesModalItem, setSizesModalItem] = useState<MenuItem | null>(null)
+  const [priceConfigType, setPriceConfigType] = useState<"single" | "sizes">("single")
+  const [singlePriceInput, setSinglePriceInput] = useState<string>("")
+  const [configuredSizes, setConfiguredSizes] = useState<ProductSize[]>([])
+  const [newSizeName, setNewSizeName] = useState<string>("")
+  const [isSavingSizes, setIsSavingSizes] = useState<boolean>(false)
+  const [showHowItWorksPopover, setShowHowItWorksPopover] = useState<boolean>(false)
 
   // Toast notification
   const [notification, setNotification] = useState<string | null>(null)
@@ -997,6 +1023,142 @@ export default function MenuClient({
     })
   }
 
+  // Abrir Modal de Valor e Tamanhos
+  const handleOpenSizesPriceModal = (item: MenuItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setSizesModalItem(item)
+
+    if (item.sizes && item.sizes.length > 0) {
+      // Se já possui tamanhos, ordene de modo que "Tamanho Padrão" fique no topo (acima de Pequeno)
+      const sorted = [...item.sizes].sort((a, b) => {
+        if (a.name.toLowerCase() === "tamanho padrão") return -1
+        if (b.name.toLowerCase() === "tamanho padrão") return 1
+        return 0
+      })
+      setConfiguredSizes(sorted.map((s) => ({ ...s })))
+    } else {
+      // Se não possui tamanhos configurados, inicia com 1 Tamanho Padrão com o valor atual do prato
+      const parsed = parseCurrency(item.originalPrice)
+      const cents = Math.round(parsed * 100)
+      setConfiguredSizes([
+        {
+          id: `size-padrao-${Date.now()}`,
+          name: "Tamanho Padrão",
+          price: item.originalPrice || "R$ 0,00",
+          priceCents: cents > 0 ? cents : 2500
+        }
+      ])
+    }
+    setNewSizeName("")
+  }
+
+  // Adicionar tamanho sugerido ou personalizado
+  const handleAddSizeOption = (name: string, prepend = false) => {
+    const trimmed = autoCapitalizeFirstLetter(name.trim())
+    if (!trimmed) return
+    if (configuredSizes.some((s) => s.name.toLowerCase() === trimmed.toLowerCase())) {
+      setNotification(`O tamanho "${trimmed}" já está na lista!`)
+      setTimeout(() => setNotification(null), 3000)
+      return
+    }
+
+    const defaultPrice = configuredSizes[0]?.price || sizesModalItem?.originalPrice || "R$ 0,00"
+    const cents = Math.round(parseCurrency(defaultPrice) * 100)
+
+    const isPadrao = trimmed.toLowerCase() === "tamanho padrão"
+    const shouldPrepend = prepend || isPadrao
+
+    const newSz: ProductSize = {
+      id: `size-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      name: trimmed,
+      price: defaultPrice,
+      priceCents: cents > 0 ? cents : 2500
+    }
+
+    setConfiguredSizes((prev) => (shouldPrepend ? [newSz, ...prev] : [...prev, newSz]))
+    setNewSizeName("")
+  }
+
+  // Remover tamanho da lista
+  const handleRemoveSizeOption = (id: string) => {
+    setConfiguredSizes((prev) => prev.filter((s) => s.id !== id))
+  }
+
+  // Atualizar valor de um tamanho
+  const handleUpdateSizePrice = (id: string, rawVal: string) => {
+    const formatted = formatCurrencyInput(rawVal)
+    const cents = Math.round(parseCurrency(formatted) * 100)
+    setConfiguredSizes((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, price: formatted, priceCents: cents } : s))
+    )
+  }
+
+  // Atualizar nome de um tamanho
+  const handleUpdateSizeName = (id: string, newName: string) => {
+    setConfiguredSizes((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, name: autoCapitalizeFirstLetter(newName) } : s))
+    )
+  }
+
+  // Salvar Valor e Tamanhos
+  const handleSaveSizesAndPrice = async () => {
+    if (!sizesModalItem) return
+    setIsSavingSizes(true)
+
+    try {
+      if (configuredSizes.length === 0) {
+        setNotification("Adicione pelo menos um tamanho ou valor para o produto.")
+        setIsSavingSizes(false)
+        setTimeout(() => setNotification(null), 3500)
+        return
+      }
+
+      const hasInvalidPrice = configuredSizes.some((s) => s.priceCents <= 0)
+      if (hasInvalidPrice) {
+        setNotification("Defina um valor válido para todos os tamanhos.")
+        setIsSavingSizes(false)
+        setTimeout(() => setNotification(null), 3500)
+        return
+      }
+
+      const minCents = Math.min(...configuredSizes.map((s) => s.priceCents))
+      const formattedMin = formatCurrency(minCents / 100)
+
+      await updateProductSizesAndPrice(
+        sizesModalItem.id,
+        minCents,
+        configuredSizes.map((s) => ({
+          id: s.id,
+          name: s.name,
+          priceCents: s.priceCents,
+          promoPriceCents: s.promoPriceCents
+        }))
+      )
+
+      setItems((prev) =>
+        prev.map((it) =>
+          it.id === sizesModalItem.id
+            ? {
+                ...it,
+                originalPrice: formattedMin,
+                sizes: [...configuredSizes]
+              }
+            : it
+        )
+      )
+
+      setNotification("Valores e tamanhos atualizados com sucesso!")
+      setSizesModalItem(null)
+      setTimeout(() => setNotification(null), 3500)
+    } catch (err) {
+      console.error(err)
+      setNotification("Erro ao salvar valores do produto.")
+      setTimeout(() => setNotification(null), 3500)
+    } finally {
+      setIsSavingSizes(false)
+    }
+  }
+
   // Iniciar edição rápida inline (Preço original e Quantidade)
   const startInlineEdit = (item: MenuItem, field: "originalPrice" | "dailyLimit", e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
@@ -1482,7 +1644,7 @@ export default function MenuClient({
                 <th className="px-4 py-2.5 w-[76px]">Foto</th>
                 <th className="px-4 py-2.5 w-[24%]">Produto</th>
                 <th className="px-3 py-2.5 text-center w-[14%] whitespace-nowrap">Adicionais</th>
-                <th className="px-4 py-2.5 text-left w-[13%] whitespace-nowrap">Preço original</th>
+                <th className="px-4 py-2.5 text-left w-[13%] whitespace-nowrap">Valor</th>
                 <th className="px-4 py-2.5 text-left w-[17%] whitespace-nowrap">Preço promocional</th>
                 <th className="px-3 py-2.5 text-center w-[14%] whitespace-nowrap">Disponibilidade</th>
                 <th className="px-4 py-2.5 text-center w-[14%] whitespace-nowrap">Quantidade</th>
@@ -1617,36 +1779,29 @@ export default function MenuClient({
                       )}
                     </td>
 
-                    {/* Preço original com edição inline automática */}
+                    {/* Configuração de Valor e Tamanhos */}
                     <td id={itemIdx === 0 ? "tour-price-inline" : undefined} className={`px-4 py-2 align-middle text-left whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
-                      {inlineEditingCell?.id === item.id && inlineEditingCell?.field === "originalPrice" ? (
-                        <input
-                          type="text"
-                          autoFocus
-                          value={inlineEditValue}
-                          onChange={(e) => setInlineEditValue(formatCurrencyInput(e.target.value))}
-                          onBlur={() => saveInlineEdit(item, "originalPrice")}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveInlineEdit(item, "originalPrice")
-                            if (e.key === "Escape") setInlineEditingCell(null)
-                          }}
-                          className="w-28 px-2.5 py-1 text-[14px] font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border-2 border-[#2E4233] dark:border-[#FF7D4F] rounded-lg shadow-sm focus:outline-none"
-                        />
-                      ) : (
-                        <div
-                          onClick={(e) => startInlineEdit(item, "originalPrice", e)}
-                          className="group/orig inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
-                          title="Toque ou clique para alterar o preço original"
-                        >
-                          <span className="text-[14px] font-medium text-gray-700 dark:text-[#F2EFE9] group-hover/orig:text-[#2E4233] dark:group-hover/orig:text-[#FF7D4F]">
-                            {item.originalPrice}
+                      <div
+                        onClick={(e) => handleOpenSizesPriceModal(item, e)}
+                        className="group/val inline-flex flex-col items-start gap-1 cursor-pointer py-1.5 px-2.5 -mx-2.5 rounded-xl hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] border border-transparent hover:border-[#E8E2D5] dark:hover:border-[#2A382E] transition-all"
+                        title="Clique para configurar valor ou variações de tamanho"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[14px] font-bold text-[#111827] dark:text-[#F2EFE9] group-hover/val:text-[#CB5A3C] transition-colors">
+                            {item.sizes && item.sizes.length > 1 ? `A partir de ${item.originalPrice}` : item.originalPrice}
                           </span>
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
-                          {inlineSuccessCellId === `${item.id}-originalPrice` && (
-                            <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
-                          )}
+                          <ChevronDown className="w-3.5 h-3.5 text-[#CB5A3C] shrink-0" />
                         </div>
-                      )}
+                        {item.sizes && item.sizes.length > 1 ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#E76F41]/10 text-[#E76F41] border border-[#E76F41]/20">
+                            {item.sizes.length} tamanhos
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium group-hover/val:text-gray-600">
+                            {item.sizes && item.sizes.length === 1 ? item.sizes[0].name : "Tamanho padrão"}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Preço promocional em Laranja da Logo com link sublinhado "Editar Promoção" */}
@@ -1961,35 +2116,24 @@ export default function MenuClient({
                     {/* Preços e Quantidade */}
                     <div className="flex items-start justify-between gap-2 mt-2 pt-1.5 border-t border-gray-100 flex-wrap">
                       <div className="flex flex-col gap-1">
-                        {/* Preço original inline */}
+                        {/* Configuração de Valor e Tamanhos */}
                         <div id={itemIdx === 0 ? "m-tour-price-inline" : undefined} className="flex items-center gap-1.5">
-                          <span className="text-[10px] uppercase font-bold text-gray-400">Orig:</span>
-                          {inlineEditingCell?.id === item.id && inlineEditingCell?.field === "originalPrice" ? (
-                            <input
-                              type="text"
-                              autoFocus
-                              value={inlineEditValue}
-                              onChange={(e) => setInlineEditValue(formatCurrencyInput(e.target.value))}
-                              onBlur={() => saveInlineEdit(item, "originalPrice")}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") saveInlineEdit(item, "originalPrice")
-                                if (e.key === "Escape") setInlineEditingCell(null)
-                              }}
-                              className="w-20 px-1 py-0.5 text-xs font-bold text-[#2E4233] bg-white border border-[#2E4233] rounded"
-                            />
-                          ) : (
-                            <div 
-                              onClick={(e) => startInlineEdit(item, "originalPrice", e)}
-                              className="flex items-center gap-1 cursor-pointer"
-                              title="Toque para editar preço original"
-                            >
-                              <span className="text-xs font-bold text-[#2E4233] dark:text-[#F2EFE9]">{item.originalPrice}</span>
-                              <ChevronDown className="w-3 h-3 text-[#2E4233] shrink-0" />
-                              {inlineSuccessCellId === `${item.id}-originalPrice` && (
-                                <Check className="w-3 h-3 text-[#16A34A] shrink-0" />
-                              )}
-                            </div>
-                          )}
+                          <span className="text-[10px] uppercase font-bold text-gray-400">Valor:</span>
+                          <div 
+                            onClick={(e) => handleOpenSizesPriceModal(item, e)}
+                            className="flex items-center gap-1.5 cursor-pointer py-0.5 px-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#222C25] transition-colors"
+                            title="Toque para configurar valor e tamanhos"
+                          >
+                            <span className="text-xs font-bold text-[#111827] dark:text-[#F2EFE9]">
+                              {item.sizes && item.sizes.length > 1 ? `A partir de ${item.originalPrice}` : item.originalPrice}
+                            </span>
+                            {item.sizes && item.sizes.length > 1 ? (
+                              <span className="text-[10px] font-bold text-[#E76F41] bg-[#E76F41]/10 px-1.5 py-0.2 rounded-full">
+                                {item.sizes.length} tam
+                              </span>
+                            ) : null}
+                            <ChevronDown className="w-3 h-3 text-[#CB5A3C] shrink-0" />
+                          </div>
                         </div>
 
                         {/* Preço Promocional em Laranja da Logo + Link Editar Promoção */}
@@ -3511,6 +3655,212 @@ export default function MenuClient({
           </div>
         )
       })()}
+
+      {/* Modal de Configuração de Valor e Tamanhos */}
+      {sizesModalItem && (
+        <div
+          className="fixed inset-0 z-[125] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setSizesModalItem(null)}
+        >
+          <div
+            className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-lg shadow-2xl flex flex-col border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150 relative overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-[#E9E4D4] dark:border-[#2A382E] flex justify-between items-center bg-[#FAF8F0] dark:bg-[#25332A]">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-base">
+                    Definir Tamanhos e Valores
+                  </h3>
+                  {/* Popover de Ajuda com Interrogação */}
+                  <div className="relative inline-flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowHowItWorksPopover(!showHowItWorksPopover)}
+                      onMouseEnter={() => setShowHowItWorksPopover(true)}
+                      onMouseLeave={() => setShowHowItWorksPopover(false)}
+                      className="text-gray-400 hover:text-[#CB5A3C] transition-colors p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+                      title="Como funciona na loja?"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                    </button>
+
+                    {showHowItWorksPopover && (
+                      <div className="absolute left-0 top-full mt-2 w-72 sm:w-80 p-3.5 bg-white dark:bg-[#1E2B22] rounded-xl shadow-xl border border-[#E9E4D4] dark:border-[#2A382E] z-50 animate-in fade-in zoom-in-95 duration-150">
+                        <span className="text-[#CB5A3C] font-bold text-xs block mb-1">
+                          Como funciona na loja:
+                        </span>
+                        <p className="text-gray-900 dark:text-gray-100 font-semibold text-xs leading-relaxed">
+                          Se houver apenas 1 tamanho (ex: Tamanho Padrão), o valor é cobrado diretamente. Se cadastrar múltiplos tamanhos (ex: Tamanho Padrão, Pequeno, Médio, Grande), o menor valor será exibido na vitrine como &quot;A partir de R$ ...&quot; e o cliente escolhe o tamanho desejado ao pedir.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm sm:text-base font-bold text-[#CB5A3C] truncate max-w-sm mt-0.5">
+                  {sizesModalItem.name}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSizesModalItem(null)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-[#1B241E] transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 flex flex-col gap-4 max-h-[75vh] overflow-y-auto">
+              {/* Sugestões de Tamanho */}
+              <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-[#FAF8F0] dark:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]">
+                <span className="text-sm font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">
+                  Sugestões de Tamanho
+                </span>
+
+                {/* Acima de Pequeno: Tamanho Padrão */}
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const exists = configuredSizes.some((s) => s.name.toLowerCase() === "tamanho padrão")
+                    return (
+                      <button
+                        type="button"
+                        disabled={exists}
+                        onClick={() => handleAddSizeOption("Tamanho Padrão", true)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                          exists
+                            ? "opacity-40 border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50 dark:bg-gray-800"
+                            : "bg-white dark:bg-[#1B241E] border-[#2E4233]/40 text-[#2E4233] dark:text-[#4ADE80] hover:border-[#CB5A3C] hover:text-[#CB5A3C] shadow-2xs"
+                        }`}
+                        title="Adicionar Tamanho Padrão no topo da lista"
+                      >
+                        <span className="text-sm font-bold leading-none">+</span> Tamanho Padrão
+                      </button>
+                    )
+                  })()}
+                </div>
+
+                {/* Demais opções: Pequeno, Médio, Grande, Família, Individual, Broto */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {["Pequeno", "Médio", "Grande", "Família", "Individual", "Broto"].map((sug) => {
+                    const exists = configuredSizes.some((s) => s.name.toLowerCase() === sug.toLowerCase())
+                    return (
+                      <button
+                        key={sug}
+                        type="button"
+                        disabled={exists}
+                        onClick={() => handleAddSizeOption(sug)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                          exists
+                            ? "opacity-40 border-gray-200 text-gray-400 cursor-not-allowed"
+                            : "bg-white dark:bg-[#1B241E] border-[#E8E2D5] text-[#2E4233] hover:border-[#CB5A3C] hover:text-[#CB5A3C]"
+                        }`}
+                      >
+                        + {sug}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Adicionar tamanho customizado */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newSizeName}
+                  onChange={(e) => setNewSizeName(autoCapitalizeFirstLetter(e.target.value))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      handleAddSizeOption(newSizeName)
+                    }
+                  }}
+                  placeholder="Outro tamanho (ex: Família, 500ml, 8 Fatias...)"
+                  className="flex-1 px-3 py-2 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs font-medium focus:outline-none focus:border-[#2E4233] bg-white dark:bg-[#1B241E] dark:text-[#F2EFE9]"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleAddSizeOption(newSizeName)}
+                  className="px-3.5 py-2 bg-[#2E4233] hover:bg-[#233327] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs shrink-0"
+                >
+                  + Adicionar
+                </button>
+              </div>
+
+              {/* Lista de Tamanhos Configurados */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center justify-between">
+                  <span>Tamanhos Cadastrados</span>
+                </label>
+
+                {configuredSizes.length === 0 ? (
+                  <div className="p-4 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 text-center text-xs text-gray-400">
+                    Nenhum tamanho cadastrado. Clique em &quot;+ Tamanho Padrão&quot; acima ou adicione outros tamanhos.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {configuredSizes.map((sz, idx) => (
+                      <div
+                        key={sz.id || idx}
+                        className="flex items-center justify-between p-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] shadow-2xs gap-3"
+                      >
+                        {/* Nome do Tamanho (Editável) */}
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <input
+                            type="text"
+                            value={sz.name}
+                            onChange={(e) => handleUpdateSizeName(sz.id, e.target.value)}
+                            className="w-full text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] bg-transparent border-b border-transparent hover:border-gray-300 focus:border-[#2E4233] focus:outline-none"
+                          />
+                        </div>
+
+                        {/* Valor do Tamanho e Lixeira */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <input
+                            type="text"
+                            value={sz.price}
+                            onChange={(e) => handleUpdateSizePrice(sz.id, e.target.value)}
+                            placeholder="R$ 0,00"
+                            className="w-24 px-2.5 py-1.5 border border-[#E9E4D4] dark:border-[#2A382E] rounded-lg text-xs font-semibold text-[#CB5A3C] bg-[#FAF8F5] dark:bg-[#141C16] text-right focus:outline-none focus:border-[#CB5A3C]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSizeOption(sz.id)}
+                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors cursor-pointer"
+                            title="Remover tamanho"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-500" strokeWidth={1.5} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3.5 border-t border-[#E9E4D4] dark:border-[#2A382E] flex justify-end items-center gap-2 bg-[#FAF8F0] dark:bg-[#25332A]">
+              <button
+                type="button"
+                onClick={() => setSizesModalItem(null)}
+                className="px-4 py-2 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1B241E] transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isSavingSizes}
+                onClick={handleSaveSizesAndPrice}
+                className="px-5 py-2 bg-[#CB5A3C] hover:bg-[#b0482e] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm disabled:opacity-50"
+              >
+                {isSavingSizes ? "Salvando..." : "Salvar Valores"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Pergunta / Aviso Pré-Tutorial */}
       {showTourPrompt && tourStep === null && (

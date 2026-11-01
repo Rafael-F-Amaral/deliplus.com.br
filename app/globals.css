@@ -152,6 +152,10 @@
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
 
+  /* Global typography calibration: decreased 100 on bold (700 -> 600) and extrabold (800 -> 700) */
+  --font-weight-extrabold: 700;
+  --font-weight-bold: 600;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -176,6 +180,15 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .font-extrabold {
+    font-weight: 700 !important;
+  }
+  .font-bold {
+    font-weight: 600 !important;
   }
 }
 

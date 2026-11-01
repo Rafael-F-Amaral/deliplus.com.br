@@ -54,6 +54,16 @@ async function loadStoreCatalog(admin: any, storeId: string) {
         )
         const isCombo = tags.some((t: string) => t.toLowerCase().includes("combo"))
 
+        // Tamanhos configurados pelo lojista
+        const sizes = Array.isArray(row.sizes) && row.sizes.length > 0
+          ? row.sizes.map((s: any) => ({
+              id: String(s.id || s.name),
+              name: String(s.name),
+              price_cents: Number(s.price_cents) || 0,
+              promo_price_cents: s.promo_price_cents ? Number(s.promo_price_cents) : undefined,
+            }))
+          : []
+
         // Mapeia adicionais e complementos do banco de dados (public.menu_items)
         const complements = Array.isArray(row.adicionais)
           ? row.adicionais
@@ -94,7 +104,7 @@ async function loadStoreCatalog(admin: any, storeId: string) {
           id: row.id || "",
           category_id: row.category_id || row.category_name?.toLowerCase() || "geral",
           category_name: mainCat,
-          name: row.name || "",
+          name: (row.name || "").replace(/^M\s+/i, ""),
           description: row.description || "",
           price_cents: row.price_cents || 0,
           promo_price_cents: row.promo_price_cents || undefined,
@@ -109,6 +119,7 @@ async function loadStoreCatalog(admin: any, storeId: string) {
           is_combo: isCombo,
           free_delivery_eligible: true,
           complements,
+          sizes,
         }
       })
 

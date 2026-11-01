@@ -2,30 +2,52 @@
 
 import React, { useState, useEffect, useMemo } from "react"
 import { useStorefrontCart } from "@/lib/storefront/storefront-cart-context"
-import { X, Plus, Minus, ChevronLeft, ChevronRight } from "lucide-react"
+import { X, Plus, Minus, ChevronLeft, ChevronRight, ZoomIn, Check } from "lucide-react"
 import { StorefrontComplement } from "@/types/storefront"
+
+export interface SuggestedBeverage {
+  id: string
+  name: string
+  volume: string
+  icon: string
+  price_cents: number
+}
+
+const SUGGESTED_BEVERAGES: SuggestedBeverage[] = [
+  { id: "bev-suco-laranja", name: "Suco Natural de Laranja", volume: "Garrafa 400ml", icon: "🍊", price_cents: 990 },
+  { id: "bev-coca-zero", name: "Coca-Cola Zero", volume: "Lata 350ml", icon: "🥤", price_cents: 650 },
+  { id: "bev-coca-original", name: "Coca-Cola Original", volume: "Lata 350ml", icon: "🥤", price_cents: 650 },
+  { id: "bev-agua-gas", name: "Água Mineral c/ Gás", volume: "Garrafa 500ml", icon: "💧", price_cents: 550 },
+  { id: "bev-cha-pessego", name: "Chá Gelado de Pêssego", volume: "Garrafa 450ml", icon: "🍑", price_cents: 800 },
+]
 
 export function ProductDetailModal() {
   const { activeModal, selectedProduct, closeModal, addToCart } = useStorefrontCart()
 
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [isZoomOpen, setIsZoomOpen] = useState(false)
+  const [selectedSizeId, setSelectedSizeId] = useState<string>("")
   const [selectedPortion, setSelectedPortion] = useState<string>("default")
   const [selectedProtein, setSelectedProtein] = useState<string>("default")
   const [removedIngredients, setRemovedIngredients] = useState<string[]>([])
   const [selectedComplements, setSelectedComplements] = useState<StorefrontComplement[]>([])
+  const [selectedBeverages, setSelectedBeverages] = useState<SuggestedBeverage[]>([])
   const [notes, setNotes] = useState("")
   const [quantity, setQuantity] = useState(1)
 
   // Reset form states whenever selectedProduct changes
   useEffect(() => {
     setActiveImageIndex(0)
+    setIsZoomOpen(false)
+    setSelectedSizeId(selectedProduct?.sizes?.[0]?.id || "")
     setSelectedPortion("default")
     setSelectedProtein("default")
     setRemovedIngredients([])
     setSelectedComplements([])
+    setSelectedBeverages([])
     setNotes("")
     setQuantity(1)
-  }, [selectedProduct?.id])
+  }, [selectedProduct?.id, selectedProduct?.sizes])
 
   // Up to 5 photos for gallery
   const galleryImages: string[] = useMemo(() => {
@@ -35,6 +57,22 @@ export function ProductDetailModal() {
     }
     return selectedProduct.image_url ? [selectedProduct.image_url] : []
   }, [selectedProduct])
+
+  // Keyboard navigation when Lightbox Zoom is active
+  useEffect(() => {
+    if (!isZoomOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsZoomOpen(false)
+      if (e.key === "ArrowLeft") {
+        setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : galleryImages.length - 1))
+      }
+      if (e.key === "ArrowRight") {
+        setActiveImageIndex((prev) => (prev < galleryImages.length - 1 ? prev + 1 : 0))
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isZoomOpen, galleryImages.length])
 
   if (activeModal !== "product-detail" || !selectedProduct) return null
 
@@ -54,15 +92,30 @@ export function ProductDetailModal() {
     )
   }
 
-  // Calculate unit price based on options
-  const basePrice = selectedProduct.promo_price_cents || selectedProduct.price_cents
+  const toggleBeverage = (bev: SuggestedBeverage) => {
+    setSelectedBeverages((prev) =>
+      prev.some((b) => b.id === bev.id)
+        ? prev.filter((b) => b.id !== bev.id)
+        : [...prev, bev]
+    )
+  }
+
+  // Calculate base price considering selected size
+  const selectedSizeObj =
+    selectedProduct.sizes?.find((s) => s.id === selectedSizeId) || selectedProduct.sizes?.[0]
+
+  const basePrice = selectedSizeObj
+    ? (selectedSizeObj.promo_price_cents || selectedSizeObj.price_cents)
+    : (selectedProduct.promo_price_cents || selectedProduct.price_cents)
+
   const portionExtra =
     selectedProduct.portions?.find((p) => p.id === selectedPortion)?.extra_price_cents || 0
   const proteinExtra =
     selectedProduct.proteins?.find((p) => p.id === selectedProtein)?.extra_price_cents || 0
   const complementsExtra = selectedComplements.reduce((acc, c) => acc + c.price_cents, 0)
+  const beveragesExtra = selectedBeverages.reduce((acc, b) => acc + b.price_cents, 0)
 
-  const unitTotalCents = basePrice + portionExtra + proteinExtra + complementsExtra
+  const unitTotalCents = basePrice + portionExtra + proteinExtra + complementsExtra + beveragesExtra
   const grandTotalCents = unitTotalCents * quantity
 
   const formatCurrency = (cents: number) => {
@@ -76,366 +129,667 @@ export function ProductDetailModal() {
     const portionName = selectedProduct.portions?.find((p) => p.id === selectedPortion)?.name
     const proteinName = selectedProduct.proteins?.find((p) => p.id === selectedProtein)?.name
 
+    const beverageComplements: StorefrontComplement[] = selectedBeverages.map((b) => ({
+      id: b.id,
+      name: `${b.name} (${b.volume})`,
+      price_cents: b.price_cents,
+    }))
+
     addToCart({
       product_id: selectedProduct.id,
       name: selectedProduct.name,
       unit_price_cents: unitTotalCents,
       quantity,
       image_url: activeImage || selectedProduct.image_url,
-      portion: portionName,
+      size: selectedSizeObj?.name,
+      portion: selectedSizeObj?.name || portionName,
       protein: proteinName,
       removed_ingredients: removedIngredients,
-      selected_complements: selectedComplements,
+      selected_complements: [...selectedComplements, ...beverageComplements],
       notes: notes.trim() || undefined,
     })
     closeModal()
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-xs">
-      <div className="relative flex w-full max-w-xl md:max-w-2xl flex-col overflow-hidden bg-white dark:bg-[#17211A] text-[#1F2922] dark:text-[#F2EFE9] shadow-2xl rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] max-h-[90vh] md:max-h-[85vh]">
-        {/* Close Button Top Right */}
-        <button
-          onClick={closeModal}
-          className="absolute right-3.5 top-3.5 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 dark:bg-[#1F2B22]/90 text-[#3C443E] dark:text-[#E2DED6] shadow-sm backdrop-blur-xs transition hover:bg-white dark:hover:bg-[#28382C] hover:text-black dark:hover:text-white border border-[#E8E2D5] dark:border-[#2A382E] cursor-pointer"
-          aria-label="Fechar modal"
-        >
-          <X className="h-4 w-4" />
-        </button>
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-xs">
+        <div className="relative flex w-full max-w-xl md:max-w-2xl flex-col overflow-hidden bg-white dark:bg-[#17211A] text-[#1F2922] dark:text-[#F2EFE9] shadow-2xl rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] max-h-[90vh] md:max-h-[85vh]">
+          {/* Close Button Top Right */}
+          <button
+            onClick={closeModal}
+            className="absolute right-3.5 top-3.5 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 dark:bg-[#1F2B22]/90 text-[#3C443E] dark:text-[#E2DED6] shadow-sm backdrop-blur-xs transition hover:bg-white dark:hover:bg-[#28382C] hover:text-black dark:hover:text-white border border-[#E8E2D5] dark:border-[#2A382E] cursor-pointer"
+            aria-label="Fechar modal"
+          >
+            <X className="h-4 w-4" />
+          </button>
 
-        {/* Modal Body: Compact 2-column layout on desktop, scrollable */}
-        <div className="flex flex-col md:flex-row flex-1 overflow-y-auto min-h-0">
-          {/* Left: Food Gallery Showcase (Up to 5 photos) */}
-          <div className="md:w-[270px] shrink-0 bg-[#FAF8F5] dark:bg-[#131A15] p-4 md:border-r md:border-[#ECE7DE] dark:md:border-[#2A382E] flex flex-col gap-2.5">
-            {/* Main Active Photo */}
-            <div className="relative w-full aspect-[4/3] md:aspect-square rounded-xl overflow-hidden bg-white dark:bg-[#1B241E] border border-[#E8E2D5] dark:border-[#2A382E] shadow-2xs flex items-center justify-center group">
-              <img
-                src={activeImage}
-                alt={selectedProduct.name}
-                className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
-                loading="eager"
-              />
-              {selectedProduct.tags && selectedProduct.tags.length > 0 && (
-                <span className="absolute left-2.5 top-2.5 rounded-md bg-[#CB5A3C] px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs">
-                  {selectedProduct.tags[0]}
-                </span>
-              )}
-              {galleryImages.length > 1 && (
-                <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 flex items-center justify-between pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : galleryImages.length - 1))
-                    }}
-                    className="pointer-events-auto h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center shadow-xs transition cursor-pointer"
-                    aria-label="Foto anterior"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setActiveImageIndex((prev) => (prev < galleryImages.length - 1 ? prev + 1 : 0))
-                    }}
-                    className="pointer-events-auto h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center shadow-xs transition cursor-pointer"
-                    aria-label="Próxima foto"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+          {/* Modal Body: Compact 2-column layout on desktop, scrollable */}
+          <div className="flex flex-col md:flex-row flex-1 overflow-y-auto min-h-0">
+            {/* Left: Food Gallery Showcase & Cross-sell de Bebidas */}
+            <div className="md:w-[270px] shrink-0 bg-[#FAF8F5] dark:bg-[#131A15] p-3 md:p-4 md:border-r md:border-[#ECE7DE] dark:md:border-[#2A382E] flex flex-col gap-2.5">
+              {/* Main Active Photo with Zoom trigger & Always Visible Navigation Arrows */}
+              <div
+                onClick={() => setIsZoomOpen(true)}
+                className="relative w-full aspect-[4/3] md:aspect-square rounded-xl overflow-hidden bg-white dark:bg-[#1B241E] border border-[#E8E2D5] dark:border-[#2A382E] shadow-2xs flex items-center justify-center group cursor-zoom-in"
+                title="Clique para dar zoom na imagem"
+              >
+                <img
+                  src={activeImage}
+                  alt={selectedProduct.name}
+                  className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
+                  loading="eager"
+                />
+
+                {/* Badge Zoom Indicator */}
+                <div className="absolute right-2 bottom-2 rounded-md bg-black/60 backdrop-blur-xs text-white px-2 py-0.5 text-[10px] font-semibold flex items-center gap-1 shadow-xs pointer-events-none transition group-hover:bg-black/80">
+                  <ZoomIn className="w-3 h-3" />
+                  <span>Ampliar</span>
                 </div>
-              )}
-            </div>
 
-            {/* Thumbnail Strip (up to 5 thumbnails) */}
-            {galleryImages.length > 1 && (
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-                {galleryImages.map((imgUrl, idx) => {
-                  const isActive = idx === activeImageIndex
-                  return (
+                {/* Always Visible Left & Right Arrows (Shows user it is clickable & cycleable) */}
+                {galleryImages.length > 1 && (
+                  <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 flex items-center justify-between pointer-events-none">
                     <button
-                      key={idx}
                       type="button"
-                      onClick={() => setActiveImageIndex(idx)}
-                      className={`relative h-11 w-11 shrink-0 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                        isActive
-                          ? "border-[#2E6B3E] dark:border-[#4ADE80] ring-1 ring-[#2E6B3E]/30 scale-102"
-                          : "border-[#E8E2D5] dark:border-[#2A382E] opacity-70 hover:opacity-100"
-                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : galleryImages.length - 1))
+                      }}
+                      className="pointer-events-auto h-7 w-7 rounded-full bg-black/55 hover:bg-black/85 text-white flex items-center justify-center shadow-md transition cursor-pointer backdrop-blur-xs"
+                      aria-label="Foto anterior"
                     >
-                      <img
-                        src={imgUrl}
-                        alt={`${selectedProduct.name} - foto ${idx + 1}`}
-                        className="h-full w-full object-cover object-center"
-                      />
+                      <ChevronLeft className="h-4 w-4" />
                     </button>
-                  )
-                })}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setActiveImageIndex((prev) => (prev < galleryImages.length - 1 ? prev + 1 : 0))
+                      }}
+                      className="pointer-events-auto h-7 w-7 rounded-full bg-black/55 hover:bg-black/85 text-white flex items-center justify-center shadow-md transition cursor-pointer backdrop-blur-xs"
+                      aria-label="Próxima foto"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Right: Customization Form & Info */}
-          <div className="flex-1 p-4 md:p-5 flex flex-col space-y-4 overflow-y-auto">
-            {/* Header info */}
-            <div>
-              <nav className="text-[11px] font-medium text-[#7C847E] dark:text-[#8E9B91] mb-1">
-                <span>Cardápio</span> &gt; <span>{selectedProduct.category_name}</span>
-              </nav>
-              <h2 className="font-serif text-xl md:text-2xl font-bold tracking-tight text-[#1A261E] dark:text-[#F2EFE9] pr-6">
-                {selectedProduct.name}
-              </h2>
-              {selectedProduct.description && (
-                <p className="mt-1 text-xs leading-relaxed text-[#68706A] dark:text-[#9CA79E]">
-                  {selectedProduct.description}
-                </p>
+              {/* Thumbnail Strip (up to 5 thumbnails) */}
+              {galleryImages.length > 1 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 w-full">
+                  {galleryImages.map((imgUrl, idx) => {
+                    const isActive = idx === activeImageIndex
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setActiveImageIndex(idx)}
+                        className={`relative h-10 w-10 md:h-11 md:w-11 shrink-0 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                          isActive
+                            ? "border-[#2E6B3E] dark:border-[#4ADE80] ring-1 ring-[#2E6B3E]/30 scale-102"
+                            : "border-[#E8E2D5] dark:border-[#2A382E] opacity-70 hover:opacity-100"
+                        }`}
+                      >
+                        <img
+                          src={imgUrl}
+                          alt={`${selectedProduct.name} - foto ${idx + 1}`}
+                          className="h-full w-full object-cover object-center"
+                        />
+                      </button>
+                    )
+                  })}
+                </div>
               )}
-              <div className="mt-2 text-sm font-bold text-[#2E6B3E] dark:text-[#4ADE80]">
-                A partir de {formatCurrency(basePrice)}
+
+              {/* Section: Bebidas para Acompanhar (Cross-sell exclusivo Deli - visível na coluna esquerda no desktop) */}
+              <div className="hidden md:flex mt-2 pt-2.5 border-t border-[#ECE7DE] dark:border-[#2A382E] flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs">🥤</span>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
+                      Bebidas para acompanhar
+                    </h3>
+                  </div>
+                  <span className="rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    Opcional
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto pr-0.5">
+                  {SUGGESTED_BEVERAGES.map((bev) => {
+                    const isSelected = selectedBeverages.some((b) => b.id === bev.id)
+                    return (
+                      <button
+                        key={bev.id}
+                        type="button"
+                        onClick={() => toggleBeverage(bev)}
+                        className={`flex items-center justify-between p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80]/60 dark:bg-[#1E2B22] shadow-2xs"
+                            : "border-[#E8E2D5] bg-white dark:border-[#2A382E] dark:bg-[#1B241E] hover:border-[#CBD5E1]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm shrink-0">{bev.icon}</span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] truncate">
+                              {bev.name}
+                            </span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
+                              {bev.volume}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[11px] font-bold text-[#166534] dark:text-[#4ADE80]">
+                            + {formatCurrency(bev.price_cents)}
+                          </span>
+                          <div
+                            className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
+                              isSelected
+                                ? "bg-[#2E6B3E] border-[#2E6B3E] text-white"
+                                : "border-gray-300 dark:border-gray-600 bg-white dark:bg-[#141C16]"
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </div>
 
-            <div className="border-t border-[#ECE7DE] dark:border-[#2A382E]" />
-
-            {/* Section 1: Tamanho da porção (se houver) */}
-            {selectedProduct.portions && selectedProduct.portions.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
-                    Tamanho da porção
-                  </h3>
-                  <span className="rounded bg-[#EAE5DD] dark:bg-[#253528] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#4A534C] dark:text-[#A8B5AB]">
-                    Obrigatório
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  {selectedProduct.portions.map((portion) => {
-                    const isSelected = selectedPortion === portion.id
-                    return (
-                      <label
-                        key={portion.id}
-                        className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition text-xs ${
-                          isSelected
-                            ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80]/60 dark:bg-[#1E2B22]"
-                            : "border-[#E8E2D7] bg-white dark:border-[#2A382E] dark:bg-[#1B241E] hover:border-[#D5CDBD]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="radio"
-                            name="portion"
-                            checked={isSelected}
-                            onChange={() => setSelectedPortion(portion.id)}
-                            className="h-3.5 w-3.5 accent-[#2E6B3E]"
-                          />
-                          <span className="font-medium text-[#1F2922] dark:text-[#F2EFE9]">
-                            {portion.name}
-                          </span>
-                        </div>
-                        <span className="font-semibold text-[#3C443E] dark:text-[#9CA79E]">
-                          {portion.extra_price_cents > 0
-                            ? `+ ${formatCurrency(portion.extra_price_cents)}`
-                            : "Incluso"}
-                        </span>
-                      </label>
-                    )
-                  })}
+            {/* Right: Customization Form & Info */}
+            <div className="flex-1 p-4 md:p-5 flex flex-col space-y-4 overflow-y-auto">
+              {/* Header info */}
+              <div>
+                <nav className="text-xs sm:text-sm font-semibold mb-1 flex items-center gap-1.5">
+                  <span className="text-[#374151] dark:text-[#CBD5E1]">Cardápio</span>
+                  <span className="text-[#9CA3AF] dark:text-[#64748B] font-normal">&gt;</span>
+                  <span className="text-[#E76F41] font-semibold">{selectedProduct.category_name}</span>
+                </nav>
+                <h2 className="font-serif text-2xl md:text-3xl font-bold tracking-tight text-[#111827] dark:text-[#F9FAFB] pr-6 leading-tight">
+                  {selectedProduct.name.replace(/^M\s+/i, '')}
+                </h2>
+                {selectedProduct.description && (
+                  <p className="mt-1.5 text-sm leading-relaxed text-[#374151] dark:text-[#D1D5DB] font-normal">
+                    {selectedProduct.description}
+                  </p>
+                )}
+                <div className="mt-2 text-base sm:text-lg font-bold text-[#166534] dark:text-[#4ADE80]">
+                  {selectedProduct.sizes && selectedProduct.sizes.length > 1 ? "A partir de " : ""}
+                  {formatCurrency(basePrice)}
                 </div>
               </div>
-            )}
 
-            {/* Section 2: Ponto da proteína (se houver) */}
-            {selectedProduct.proteins && selectedProduct.proteins.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
-                    Escolha a proteína
-                  </h3>
-                  <span className="rounded bg-[#EAE5DD] dark:bg-[#253528] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#4A534C] dark:text-[#A8B5AB]">
-                    Obrigatório
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  {selectedProduct.proteins.map((prot) => {
-                    const isSelected = selectedProtein === prot.id
-                    return (
-                      <label
-                        key={prot.id}
-                        className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition text-xs ${
-                          isSelected
-                            ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80]/60 dark:bg-[#1E2B22]"
-                            : "border-[#E8E2D7] bg-white dark:border-[#2A382E] dark:bg-[#1B241E] hover:border-[#D5CDBD]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="radio"
-                            name="protein"
-                            checked={isSelected}
-                            onChange={() => setSelectedProtein(prot.id)}
-                            className="h-3.5 w-3.5 accent-[#2E6B3E]"
-                          />
-                          <span className="font-medium text-[#1F2922] dark:text-[#F2EFE9]">
-                            {prot.name}
-                          </span>
-                        </div>
-                        <span className="font-semibold text-[#3C443E] dark:text-[#9CA79E]">
-                          {prot.extra_price_cents > 0
-                            ? `+ ${formatCurrency(prot.extra_price_cents)}`
-                            : "Incluso"}
-                        </span>
-                      </label>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+              <div className="border-t border-[#ECE7DE] dark:border-[#2A382E]" />
 
-            {/* Section 3: Remover ingredientes (se houver) */}
-            {selectedProduct.removable_ingredients &&
-              selectedProduct.removable_ingredients.length > 0 && (
+              {/* Section: Escolha de Tamanho (Configurado pelo lojista) */}
+              {selectedProduct.sizes && selectedProduct.sizes.length > 1 && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
-                      Remover ingredientes
+                    <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#111827] dark:text-[#F9FAFB]">
+                      Escolha o Tamanho
                     </h3>
-                    <span className="text-[11px] text-[#7F8681] dark:text-[#9CA79E]">
-                      Opcional
+                    <span className="rounded bg-[#FEE2E2] dark:bg-[#451A1A] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[#991B1B] dark:text-[#FCA5A5]">
+                      Obrigatório
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedProduct.removable_ingredients.map((ing) => {
-                      const isRemoved = removedIngredients.includes(ing)
+                  <div className="space-y-1.5">
+                    {selectedProduct.sizes.map((sz) => {
+                      const isSelected = selectedSizeId === sz.id
+                      const effectivePrice = sz.promo_price_cents || sz.price_cents
                       return (
-                        <button
-                          key={ing}
-                          type="button"
-                          onClick={() => toggleRemoved(ing)}
-                          className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition cursor-pointer ${
-                            isRemoved
-                              ? "bg-[#CB5A3C] text-white shadow-2xs"
-                              : "border border-[#DED7CB] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] text-[#4A534B] dark:text-[#D5DDD7] hover:bg-[#F7F5F0]"
+                        <label
+                          key={sz.id}
+                          className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 sm:p-3 transition text-xs sm:text-sm ${
+                            isSelected
+                              ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80]/60 dark:bg-[#1E2B22]"
+                              : "border-[#E5E7EB] bg-white dark:border-[#2A382E] dark:bg-[#1B241E] hover:border-[#D1D5DB]"
                           }`}
                         >
-                          <X className="h-3 w-3" />
-                          <span>{ing}</span>
-                        </button>
+                          <div className="flex items-center gap-2.5">
+                            <input
+                              type="radio"
+                              name="product-size"
+                              checked={isSelected}
+                              onChange={() => setSelectedSizeId(sz.id)}
+                              className="h-4 w-4 accent-[#2E6B3E]"
+                            />
+                            <span className="font-semibold text-[#111827] dark:text-[#F9FAFB]">
+                              {sz.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {sz.promo_price_cents && (
+                              <span className="line-through text-rose-600 dark:text-rose-400 font-semibold text-xs">
+                                {formatCurrency(sz.price_cents)}
+                              </span>
+                            )}
+                            <span className="font-bold text-[#166534] dark:text-[#4ADE80]">
+                              {formatCurrency(effectivePrice)}
+                            </span>
+                          </div>
+                        </label>
                       )
                     })}
                   </div>
                 </div>
               )}
 
-            {/* Section 4: Adicionais e complementos */}
-            {selectedProduct.complements && selectedProduct.complements.length > 0 && (
-              <div className="space-y-2">
+              {/* Section: Tamanho da porção legado (se houver e não tiver sizes) */}
+              {(!selectedProduct.sizes || selectedProduct.sizes.length === 0) &&
+                selectedProduct.portions &&
+                selectedProduct.portions.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
+                        Tamanho da porção
+                      </h3>
+                      <span className="rounded bg-[#EAE5DD] dark:bg-[#253528] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#4A534C] dark:text-[#A8B5AB]">
+                        Obrigatório
+                      </span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {selectedProduct.portions.map((portion) => {
+                        const isSelected = selectedPortion === portion.id
+                        return (
+                          <label
+                            key={portion.id}
+                            className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition text-xs ${
+                              isSelected
+                                ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80]/60 dark:bg-[#1E2B22]"
+                                : "border-[#E8E2D7] bg-white dark:border-[#2A382E] dark:bg-[#1B241E] hover:border-[#D5CDBD]"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name="portion"
+                                checked={isSelected}
+                                onChange={() => setSelectedPortion(portion.id)}
+                                className="h-3.5 w-3.5 accent-[#2E6B3E]"
+                              />
+                              <span className="font-medium text-[#1F2922] dark:text-[#F2EFE9]">
+                                {portion.name}
+                              </span>
+                            </div>
+                            <span className="font-semibold text-[#3C443E] dark:text-[#9CA79E]">
+                              {portion.extra_price_cents > 0
+                                ? `+ ${formatCurrency(portion.extra_price_cents)}`
+                                : "Incluso"}
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+              {/* Section: Ponto da proteína (se houver) */}
+              {selectedProduct.proteins && selectedProduct.proteins.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
+                      Escolha a proteína
+                    </h3>
+                    <span className="rounded bg-[#EAE5DD] dark:bg-[#253528] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#4A534C] dark:text-[#A8B5AB]">
+                      Obrigatório
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {selectedProduct.proteins.map((prot) => {
+                      const isSelected = selectedProtein === prot.id
+                      return (
+                        <label
+                          key={prot.id}
+                          className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition text-xs ${
+                            isSelected
+                              ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80]/60 dark:bg-[#1E2B22]"
+                              : "border-[#E8E2D7] bg-white dark:border-[#2A382E] dark:bg-[#1B241E] hover:border-[#D5CDBD]"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="protein"
+                              checked={isSelected}
+                              onChange={() => setSelectedProtein(prot.id)}
+                              className="h-3.5 w-3.5 accent-[#2E6B3E]"
+                            />
+                            <span className="font-medium text-[#1F2922] dark:text-[#F2EFE9]">
+                              {prot.name}
+                            </span>
+                          </div>
+                          <span className="font-semibold text-[#3C443E] dark:text-[#9CA79E]">
+                            {prot.extra_price_cents > 0
+                              ? `+ ${formatCurrency(prot.extra_price_cents)}`
+                              : "Incluso"}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Section: Remover ingredientes (se houver) */}
+              {selectedProduct.removable_ingredients &&
+                selectedProduct.removable_ingredients.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
+                        Remover ingredientes
+                      </h3>
+                      <span className="rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                        Opcional
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedProduct.removable_ingredients.map((ing) => {
+                        const isRemoved = removedIngredients.includes(ing)
+                        return (
+                          <button
+                            key={ing}
+                            type="button"
+                            onClick={() => toggleRemoved(ing)}
+                            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition cursor-pointer ${
+                              isRemoved
+                                ? "bg-[#CB5A3C] text-white shadow-2xs"
+                                : "border border-[#DED7CB] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] text-[#4A534B] dark:text-[#D5DDD7] hover:bg-[#F7F5F0]"
+                            }`}
+                          >
+                            <X className="h-3 w-3" />
+                            <span>{ing}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+              {/* Section: Produto Principal & Quantidade */}
+              <div className="rounded-xl border border-[#E5E7EB] dark:border-[#2D3D32] bg-[#FAF8F5] dark:bg-[#151E18] p-3 sm:p-3.5 flex items-center justify-between shadow-2xs">
+                <div className="flex flex-col min-w-0 pr-3">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#E76F41]">
+                    Produto Principal
+                  </span>
+                  <span className="text-sm font-semibold text-[#111827] dark:text-[#F9FAFB] truncate">
+                    {selectedProduct.name.replace(/^M\s+/i, '')}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 rounded-full border border-[#D1D5DB] dark:border-[#374151] bg-white dark:bg-[#1E2B22] px-3 py-1.5 shadow-2xs shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    disabled={quantity <= 1}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-[#1F2922] dark:text-[#F3F4F6] transition hover:bg-[#F3F4F6] dark:hover:bg-[#2B3A2F] disabled:opacity-30 cursor-pointer"
+                    aria-label="Diminuir quantidade"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="min-w-6 text-center text-sm font-bold text-[#111827] dark:text-[#F9FAFB]">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => q + 1)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-[#1F2922] dark:text-[#F3F4F6] transition hover:bg-[#F3F4F6] dark:hover:bg-[#2B3A2F] cursor-pointer"
+                    aria-label="Aumentar quantidade"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Section: Adicionais e complementos */}
+              {selectedProduct.complements && selectedProduct.complements.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#111827] dark:text-[#F9FAFB]">
+                      Adicionais e complementos
+                    </h3>
+                    <span className="rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                      Opcional
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {selectedProduct.complements.map((comp) => {
+                      const isSelected = selectedComplements.some((c) => c.id === comp.id)
+                      return (
+                        <label
+                          key={comp.id}
+                          className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 sm:p-3 transition ${
+                            isSelected
+                              ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80]/60 dark:bg-[#1E2B22]"
+                              : "border-[#E5E7EB] bg-white dark:border-[#2A382E] dark:bg-[#1B241E] hover:border-[#D1D5DB] dark:hover:border-[#384D3E]"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleComplement(comp)}
+                              className="h-4 w-4 rounded-sm accent-[#2E6B3E] shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <span className="text-sm font-semibold text-[#111827] dark:text-[#F9FAFB] block truncate">
+                                {comp.name}
+                              </span>
+                              {comp.description && (
+                                <span className="text-xs font-medium text-[#4B5563] dark:text-[#9CA3AF] block truncate">
+                                  {comp.description}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-sm font-bold text-[#166534] dark:text-[#4ADE80] shrink-0 ml-2">
+                            + {formatCurrency(comp.price_cents)}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Section: Bebidas para Acompanhar (Versão Mobile no fluxo de rolagem) */}
+              <div className="flex md:hidden flex-col gap-2 pt-2 border-t border-[#ECE7DE] dark:border-[#2A382E]">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
-                    Adicionais e complementos
-                  </h3>
-                  <span className="rounded-sm bg-[#EAE5DD] dark:bg-[#253528] px-1.5 py-0.5 text-[10px] font-semibold text-[#4A534C] dark:text-[#A8B5AB]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs">🥤</span>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
+                      Bebidas para acompanhar
+                    </h3>
+                  </div>
+                  <span className="rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
                     Opcional
                   </span>
                 </div>
 
-                <div className="space-y-1.5">
-                  {selectedProduct.complements.map((comp) => {
-                    const isSelected = selectedComplements.some((c) => c.id === comp.id)
+                <div className="flex flex-col gap-1.5">
+                  {SUGGESTED_BEVERAGES.map((bev) => {
+                    const isSelected = selectedBeverages.some((b) => b.id === bev.id)
                     return (
-                      <label
-                        key={comp.id}
-                        className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition ${
+                      <button
+                        key={bev.id}
+                        type="button"
+                        onClick={() => toggleBeverage(bev)}
+                        className={`flex items-center justify-between p-2 rounded-xl border text-left transition-all cursor-pointer ${
                           isSelected
-                            ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80]/60 dark:bg-[#1E2B22]"
-                            : "border-[#E8E2D7] bg-white dark:border-[#2A382E] dark:bg-[#1B241E] hover:border-[#D5CDBD] dark:hover:border-[#384D3E]"
+                            ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80]/60 dark:bg-[#1E2B22] shadow-2xs"
+                            : "border-[#E8E2D5] bg-white dark:border-[#2A382E] dark:bg-[#1B241E] hover:border-[#CBD5E1]"
                         }`}
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleComplement(comp)}
-                            className="h-4 w-4 rounded-sm accent-[#2E6B3E] shrink-0"
-                          />
-                          <div className="min-w-0">
-                            <span className="text-xs font-semibold text-[#1F2922] dark:text-[#F2EFE9] block truncate">
-                              {comp.name}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm shrink-0">{bev.icon}</span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] truncate">
+                              {bev.name}
                             </span>
-                            {comp.description && (
-                              <span className="text-[11px] text-[#7F8681] dark:text-[#9CA79E] block truncate">
-                                {comp.description}
-                              </span>
-                            )}
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
+                              {bev.volume}
+                            </span>
                           </div>
                         </div>
-                        <span className="text-xs font-bold text-[#2E6B3E] dark:text-[#4ADE80] shrink-0 ml-2">
-                          + {formatCurrency(comp.price_cents)}
-                        </span>
-                      </label>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[11px] font-bold text-[#166534] dark:text-[#4ADE80]">
+                            + {formatCurrency(bev.price_cents)}
+                          </span>
+                          <div
+                            className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
+                              isSelected
+                                ? "bg-[#2E6B3E] border-[#2E6B3E] text-white"
+                                : "border-gray-300 dark:border-gray-600 bg-white dark:bg-[#141C16]"
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                        </div>
+                      </button>
                     )
                   })}
                 </div>
               </div>
-            )}
 
-            {/* Section 5: Observações para a cozinha */}
-            <div className="space-y-1.5 pt-1">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
-                  Observações para a cozinha
-                </h3>
-                <span className="text-[11px] text-[#8B938D] dark:text-[#9CA79E]">
-                  {notes.length}/120
-                </span>
+              {/* Section: Observações para a cozinha */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#111827] dark:text-[#F9FAFB]">
+                    Observações para a cozinha
+                  </h3>
+                  <span className="text-xs font-semibold text-[#4B5563] dark:text-[#9CA3AF]">
+                    {notes.length}/120
+                  </span>
+                </div>
+                <textarea
+                  value={notes}
+                  maxLength={120}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Ex: tirar o sal, molho à parte, enviar talher descartável..."
+                  className="w-full rounded-xl border border-[#D1D5DB] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#131A15] p-3 text-sm font-medium text-[#111827] dark:text-[#F9FAFB] placeholder-[#6B7280] dark:placeholder-[#9CA3AF] outline-hidden focus:border-[#2E6B3E] dark:focus:border-emerald-500 focus:bg-white dark:focus:bg-[#131A15] focus:ring-1 focus:ring-[#2E6B3E]"
+                  rows={2}
+                />
               </div>
-              <textarea
-                value={notes}
-                maxLength={120}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Ex: tirar o sal, molho à parte, enviar talher descartável..."
-                className="w-full rounded-xl border border-[#DED7CB] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#131A15] p-2.5 text-xs text-[#1F2921] dark:text-[#F2EFE9] placeholder-[#8C938E] outline-hidden focus:border-[#2E6B3E] dark:focus:border-emerald-500 focus:bg-white dark:focus:bg-[#131A15] focus:ring-1 focus:ring-[#2E6B3E]"
-                rows={2}
-              />
             </div>
           </div>
-        </div>
 
-        {/* Sticky Modal Footer */}
-        <div className="flex shrink-0 items-center justify-between border-t border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#141C16] p-3 px-4 sm:px-5">
-          {/* Quantity Stepper */}
-          <div className="flex items-center gap-2.5 rounded-full border border-[#DED7CB] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#1B241E] px-2.5 py-1">
+          {/* Sticky Modal Footer */}
+          <div className="shrink-0 border-t border-[#E5E7EB] dark:border-[#2A382E] bg-white dark:bg-[#141C16] p-3 px-4 sm:px-5">
             <button
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              disabled={quantity <= 1}
-              className="flex h-6 w-6 items-center justify-center rounded-full text-[#3C443E] dark:text-[#D5DDD7] transition hover:bg-white dark:hover:bg-[#253528] disabled:opacity-30 cursor-pointer"
-              aria-label="Diminuir quantidade"
+              onClick={handleAdd}
+              className="w-full flex items-center justify-between rounded-xl bg-[#1B2A20] hover:bg-[#273B2E] dark:bg-[#2E4233] dark:hover:bg-[#3B5441] px-5 sm:px-6 py-3.5 text-sm sm:text-base font-semibold text-white shadow-md transition cursor-pointer"
             >
-              <Minus className="h-3 w-3" />
+              <span>Adicionar ao carrinho</span>
+              <span className="flex items-center gap-2">
+                <span className="text-white/60">•</span>
+                <span className="text-[#86EFAC] font-bold">{formatCurrency(grandTotalCents)}</span>
+              </span>
             </button>
-            <span className="min-w-5 text-center text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9]">
-              {quantity}
-            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* LIGHTBOX FULLSCREEN ZOOM OVERLAY COM NAVEGAÇÃO E SETAS VISÍVEIS */}
+      {/* ============================================================== */}
+      {isZoomOpen && (
+        <div
+          className="fixed inset-0 z-60 flex flex-col items-center justify-center bg-black/92 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          onClick={() => setIsZoomOpen(false)}
+        >
+          {/* Top Bar with title and Close Button */}
+          <div
+            className="absolute top-4 inset-x-4 md:inset-x-8 flex items-center justify-between text-white z-20"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2">
+              <span className="font-serif text-base md:text-lg font-bold">{selectedProduct.name}</span>
+              {galleryImages.length > 1 && (
+                <span className="text-xs text-gray-300 bg-white/15 px-2.5 py-0.5 rounded-full font-medium">
+                  {activeImageIndex + 1} de {galleryImages.length}
+                </span>
+              )}
+            </div>
             <button
-              onClick={() => setQuantity((q) => q + 1)}
-              className="flex h-6 w-6 items-center justify-center rounded-full text-[#3C443E] dark:text-[#D5DDD7] transition hover:bg-white dark:hover:bg-[#253528] cursor-pointer"
-              aria-label="Aumentar quantidade"
+              type="button"
+              onClick={() => setIsZoomOpen(false)}
+              className="h-9 w-9 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition cursor-pointer"
+              aria-label="Fechar zoom"
             >
-              <Plus className="h-3 w-3" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
-          {/* Add Button */}
-          <button
-            onClick={handleAdd}
-            className="flex items-center gap-2 rounded-xl bg-[#1B2A20] dark:bg-[#2E4233] px-5 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition hover:bg-[#273B2E] dark:hover:bg-[#3B5441] cursor-pointer"
+          {/* Main Large Image */}
+          <div
+            className="relative max-w-4xl max-h-[75vh] flex items-center justify-center overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
           >
-            <span>Adicionar ao carrinho</span>
-            <span>•</span>
-            <span>{formatCurrency(grandTotalCents)}</span>
-          </button>
+            <img
+              src={activeImage}
+              alt={selectedProduct.name}
+              className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl transition-all duration-300 select-none"
+            />
+
+            {/* Setas Visíveis e Destacadas nas laterais no modo Zoom */}
+            {galleryImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : galleryImages.length - 1))
+                  }}
+                  className="absolute left-2 md:-left-16 top-1/2 -translate-y-1/2 h-11 w-11 md:h-12 md:w-12 rounded-full bg-black/70 hover:bg-black/90 md:bg-white/20 md:hover:bg-white/40 text-white flex items-center justify-center shadow-xl transition cursor-pointer"
+                  aria-label="Foto anterior"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setActiveImageIndex((prev) => (prev < galleryImages.length - 1 ? prev + 1 : 0))
+                  }}
+                  className="absolute right-2 md:-right-16 top-1/2 -translate-y-1/2 h-11 w-11 md:h-12 md:w-12 rounded-full bg-black/70 hover:bg-black/90 md:bg-white/20 md:hover:bg-white/40 text-white flex items-center justify-center shadow-xl transition cursor-pointer"
+                  aria-label="Próxima foto"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Thumbnails na base do Zoom */}
+          {galleryImages.length > 1 && (
+            <div
+              className="absolute bottom-4 flex items-center gap-2 overflow-x-auto p-2 rounded-xl bg-black/50 backdrop-blur-xs max-w-sm z-20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {galleryImages.map((imgUrl, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setActiveImageIndex(idx)}
+                  className={`h-11 w-11 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                    idx === activeImageIndex
+                      ? "border-[#4ADE80] scale-105 shadow-md"
+                      : "border-white/30 opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  <img src={imgUrl} alt="" className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+      )}
+    </>
   )
 }

@@ -128,16 +128,10 @@ export function StorefrontPageClient({
 
               return (
                 <section key={cat.id}>
-                  <div className="mb-4 flex items-center justify-between">
+                  <div className="mb-4">
                     <h2 className="font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
                       {cat.name}
                     </h2>
-                    <button
-                      onClick={() => setSelectedCategory(cat.id)}
-                      className="text-xs font-semibold text-[#CB5A3C] hover:underline md:text-sm cursor-pointer"
-                    >
-                      Ver tudo ({catProducts.length})
-                    </button>
                   </div>
 
                   <div className="hidden grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 md:grid">

@@ -188,7 +188,7 @@ export function StoreHero() {
               {store.name}
             </h1>
             {store.bio && (
-              <p className="text-xs sm:text-sm text-[#4E5851] dark:text-[#9DA99F] max-w-lg leading-relaxed font-normal">
+              <p className="text-xs sm:text-[13px] text-[#374151] dark:text-[#D1D5DB] max-w-lg leading-relaxed font-normal">
                 {store.bio}
               </p>
             )}
@@ -254,12 +254,8 @@ export function StoreHero() {
           {socialChannels.length > 0 && (
             <div className="flex flex-col gap-2 pt-1">
               <div className="flex items-center gap-2">
-                <span className="flex h-2 w-2 rounded-full bg-[#2E6B3E] dark:bg-[#4ADE80] animate-pulse" />
-                <span className="text-xs font-black tracking-wider uppercase text-[#1B291F] dark:text-[#E8F0EA]">
+                <span className="text-xs font-semibold tracking-wider uppercase text-[#111827] dark:text-[#E8F0EA]">
                   Canais Oficiais & Atendimento
-                </span>
-                <span className="text-[11px] text-[#69746B] dark:text-[#9DAA9F] font-medium hidden sm:inline">
-                  • Fale conosco e acompanhe as novidades
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:gap-2.5 max-w-sm sm:max-w-md pt-0.5">

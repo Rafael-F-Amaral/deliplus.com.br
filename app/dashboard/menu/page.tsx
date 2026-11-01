@@ -117,6 +117,16 @@ export default async function CardapioPage() {
             promoIndefinite: Boolean(row.promo_indefinite),
             promoStartDate: row.promo_start_date || undefined,
             promoEndDate: row.promo_end_date || undefined,
+            sizes: Array.isArray(row.sizes)
+              ? (row.sizes as Array<Record<string, unknown>>).map((s) => ({
+                  id: String(s.id || s.name || ""),
+                  name: String(s.name || ""),
+                  price: formatBRL(typeof s.price_cents === "number" ? s.price_cents : 0),
+                  priceCents: typeof s.price_cents === "number" ? s.price_cents : 0,
+                  promoPrice: typeof s.promo_price_cents === "number" ? formatBRL(s.promo_price_cents) : null,
+                  promoPriceCents: typeof s.promo_price_cents === "number" ? s.promo_price_cents : null,
+                }))
+              : [],
             adicionais: Array.isArray(row.adicionais)
               ? (row.adicionais as Array<Record<string, unknown>>).map((ad) => ({
                   id: String(ad.id || ""),

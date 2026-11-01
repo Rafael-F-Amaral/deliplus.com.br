@@ -22,7 +22,7 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <div
       onClick={() => openProductDetail(product)}
-      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#D5CDBD] dark:hover:border-[#384D3E] hover:shadow-md md:p-4"
+      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#D1D5DB] dark:hover:border-[#384D3E] hover:shadow-md md:p-4"
     >
       {/* Product Image */}
       <div className="relative mb-3 aspect-4/3 w-full overflow-hidden rounded-xl bg-[#F5F2EB] dark:bg-[#131A15]">
@@ -32,30 +32,18 @@ export function ProductCard({ product }: ProductCardProps) {
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
         />
-
-        {product.in_promo && product.discount_percentage && (
-          <span className="absolute left-2.5 top-2.5 rounded-md bg-[#CB5A3C] px-2 py-0.5 text-[11px] font-bold text-white shadow-xs">
-            {product.discount_percentage}% OFF
-          </span>
-        )}
-
-        {product.tags && product.tags.length > 0 && !product.in_promo && (
-          <span className="absolute left-2.5 top-2.5 rounded-md bg-white/90 dark:bg-[#1B241E]/90 px-2 py-0.5 text-[11px] font-medium text-[#2E3630] dark:text-[#E2DDD5] shadow-xs backdrop-blur-xs">
-            {product.tags[0]}
-          </span>
-        )}
       </div>
 
       {/* Info Content */}
       <div className="flex flex-1 flex-col justify-between">
         <div>
           {/* Title */}
-          <h3 className="font-sans text-base font-semibold text-[#1C261F] dark:text-[#F2EFE9] transition-colors group-hover:text-[#2A4733] dark:group-hover:text-[#4ADE80]">
+          <h3 className="font-sans text-base sm:text-[17px] font-semibold text-[#111827] dark:text-[#F9FAFB] leading-snug transition-colors group-hover:text-[#2E6B3E] dark:group-hover:text-[#4ADE80]">
             {product.name}
           </h3>
 
           {/* Description */}
-          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#6B736E] dark:text-[#9CA79E]">
+          <p className="mt-1.5 line-clamp-2 text-xs sm:text-[13px] leading-relaxed text-[#374151] dark:text-[#D1D5DB] font-normal">
             {product.description}
           </p>
         </div>
@@ -65,22 +53,22 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="flex flex-col">
             {product.in_promo && product.promo_price_cents ? (
               <>
-                <span className="text-[11px] text-[#878E89] dark:text-[#7A867E] line-through">
+                <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 line-through">
                   {formatCurrency(product.price_cents)}
                 </span>
-                <span className="text-base font-bold text-[#1C261F] dark:text-[#F2EFE9]">
+                <span className="text-base sm:text-lg font-bold text-emerald-700 dark:text-emerald-400">
                   {formatCurrency(product.promo_price_cents)}
                 </span>
               </>
             ) : (
-              <span className="text-base font-bold text-[#1C261F] dark:text-[#F2EFE9]">
+              <span className="text-base sm:text-lg font-bold text-[#111827] dark:text-[#F9FAFB]">
                 {formatCurrency(product.price_cents)}
               </span>
             )}
 
             {product.free_delivery_eligible && (
-              <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-[#2E6B3E] dark:text-[#4ADE80]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#35A852] dark:bg-[#4ADE80]" />
+              <span className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-[#166534] dark:text-[#4ADE80]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A] dark:bg-[#4ADE80] animate-pulse" />
                 Entrega grátis acima de R$ 80
               </span>
             )}
@@ -116,7 +104,7 @@ export function MobileProductCard({ product }: ProductCardProps) {
   return (
     <div
       onClick={() => openProductDetail(product)}
-      className="flex cursor-pointer items-center gap-3.5 rounded-xl border border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] p-3 transition hover:border-[#D5CDBD] dark:hover:border-[#384D3E]"
+      className="flex cursor-pointer items-center gap-3.5 rounded-xl border border-[#E5E7EB] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] p-3 transition hover:border-[#D1D5DB] dark:hover:border-[#384D3E]"
     >
       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[#F5F2EB] dark:bg-[#131A15]">
         <img
@@ -124,19 +112,14 @@ export function MobileProductCard({ product }: ProductCardProps) {
           alt={product.name}
           className="h-full w-full object-cover"
         />
-        {product.in_promo && product.discount_percentage && (
-          <span className="absolute left-1 top-1 rounded bg-[#CB5A3C] px-1 py-0.5 text-[9px] font-bold text-white">
-            {product.discount_percentage}%
-          </span>
-        )}
       </div>
 
       <div className="flex flex-1 flex-col justify-between overflow-hidden">
         <div>
-          <h4 className="truncate text-sm font-semibold text-[#1C261F] dark:text-[#F2EFE9]">
+          <h4 className="truncate text-base font-semibold text-[#111827] dark:text-[#F9FAFB]">
             {product.name}
           </h4>
-          <p className="line-clamp-2 text-[11px] text-[#6B736E] dark:text-[#9CA79E]">
+          <p className="line-clamp-2 text-xs text-[#374151] dark:text-[#D1D5DB] font-normal leading-relaxed">
             {product.description}
           </p>
         </div>
@@ -145,15 +128,15 @@ export function MobileProductCard({ product }: ProductCardProps) {
           <div>
             {product.in_promo && product.promo_price_cents ? (
               <div className="flex items-baseline gap-1.5">
-                <span className="text-[10px] text-[#878E89] dark:text-[#7A867E] line-through">
+                <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 line-through">
                   {formatCurrency(product.price_cents)}
                 </span>
-                <span className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
+                <span className="text-base font-bold text-emerald-700 dark:text-emerald-400">
                   {formatCurrency(product.promo_price_cents)}
                 </span>
               </div>
             ) : (
-              <span className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
+              <span className="text-base font-bold text-[#111827] dark:text-[#F9FAFB]">
                 {formatCurrency(product.price_cents)}
               </span>
             )}

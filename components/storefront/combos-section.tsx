@@ -21,13 +21,10 @@ export function CombosSection({ combos }: CombosSectionProps) {
 
   return (
     <section className="my-8">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4">
         <h2 className="font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
           Combos da semana
         </h2>
-        <button className="text-xs font-semibold text-[#CB5A3C] hover:underline md:text-sm">
-          Ver tudo
-        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -48,30 +45,25 @@ export function CombosSection({ combos }: CombosSectionProps) {
 
             {/* Info */}
             <div className="flex flex-1 flex-col overflow-hidden">
-              <span className="truncate font-sans text-sm font-semibold text-[#1C261F] dark:text-[#F2EFE9]">
+              <span className="truncate font-sans text-sm sm:text-base font-bold text-[#111827] dark:text-[#F9FAFB]">
                 {combo.name}
               </span>
-              <span className="line-clamp-1 text-xs text-[#6B736E] dark:text-[#9CA79E]">
+              <span className="line-clamp-1 text-xs text-[#374151] dark:text-[#D1D5DB] font-medium">
                 {combo.description}
               </span>
 
               <div className="mt-2 flex items-center gap-2">
                 {combo.in_promo && combo.promo_price_cents ? (
                   <>
-                    <span className="text-xs text-[#878E89] dark:text-[#6E7B71] line-through">
+                    <span className="text-xs font-bold text-rose-600 dark:text-rose-400 line-through">
                       {formatCurrency(combo.price_cents)}
                     </span>
-                    <span className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
+                    <span className="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-400">
                       {formatCurrency(combo.promo_price_cents)}
                     </span>
-                    {combo.discount_percentage && (
-                      <span className="rounded bg-[#CB5A3C]/10 dark:bg-[#CB5A3C]/20 px-1.5 py-0.5 text-[10px] font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">
-                        {combo.discount_percentage}% OFF
-                      </span>
-                    )}
                   </>
                 ) : (
-                  <span className="text-sm font-bold text-[#1C261F] dark:text-[#F2EFE9]">
+                  <span className="text-sm sm:text-base font-black text-[#111827] dark:text-[#F9FAFB]">
                     {formatCurrency(combo.price_cents)}
                   </span>
                 )}
