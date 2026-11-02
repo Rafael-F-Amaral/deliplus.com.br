@@ -160,53 +160,75 @@ export default async function PublicStorePage({
   const { storeSlug } = await params
   const query = await searchParams
 
-  let result = await getPublicStoreBySlug(storeSlug)
+  let result: { status: "found"; store: { name: string; slug: string } } | { status: "not_found" } = { status: "not_found" }
+  try {
+    const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 300))
+    result = await Promise.race([getPublicStoreBySlug(storeSlug), timeout])
+  } catch {
+    result = { status: "not_found" }
+  }
 
   if (result.status === "not_found") {
     const strippedSlug = storeSlug.replace(/-\d+$/, "")
     if (strippedSlug !== storeSlug) {
-      result = await getPublicStoreBySlug(strippedSlug)
+      try {
+        result = await getPublicStoreBySlug(strippedSlug)
+      } catch {
+        result = { status: "not_found" }
+      }
     }
   }
 
   if (result.status === "not_found") {
     if (storeSlug === "casa-noma" || storeSlug.startsWith("rafaelteste")) {
-      const storeData: StorefrontStore = { ...MOCK_CASA_NOMA_STORE }
+      const storeData: StorefrontStore = {
+        ...MOCK_CASA_NOMA_STORE,
+        name: storeSlug.startsWith("rafaelteste") ? "RafaelTeste" : MOCK_CASA_NOMA_STORE.name,
+        slug: storeSlug,
+      }
       let isStoreOpen = true
 
       let initialCategories: StorefrontCategory[] = []
       let initialProducts: StorefrontProduct[] = []
 
       try {
-        const { createAdminSupabaseClient } = await import("@/lib/supabase/admin")
-        const admin = createAdminSupabaseClient()
-        let { data: storeRow } = await admin
-          .from("stores")
-          .select("id, status")
-          .eq("slug", "casa-noma")
-          .maybeSingle()
-
-        if (!storeRow) {
-          const { data: firstStore } = await admin
+        const timeoutPromise = new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 300))
+        const loadDb = async () => {
+          const { createAdminSupabaseClient } = await import("@/lib/supabase/admin")
+          const admin = createAdminSupabaseClient()
+          let { data: storeRow } = await admin
             .from("stores")
             .select("id, status")
-            .limit(1)
+            .eq("slug", "casa-noma")
             .maybeSingle()
-          storeRow = firstStore
+
+          if (!storeRow) {
+            const { data: firstStore } = await admin
+              .from("stores")
+              .select("id, status")
+              .limit(1)
+              .maybeSingle()
+            storeRow = firstStore
+          }
+
+          if (storeRow) {
+            const [settingsRes, catalog] = await Promise.all([
+              (admin.from("store_delivery_settings" as any) as any)
+                .select(
+                  "is_open_override, banner_url, logo_url, phone, instagram, social_links, bio, address, category, default_prep_min, default_prep_max, free_delivery_above_cents"
+                )
+                .eq("store_id", storeRow.id)
+                .maybeSingle(),
+              loadStoreCatalog(admin, storeRow.id),
+            ])
+            return { devSettings: settingsRes.data, catalog }
+          }
+          return null
         }
 
-        if (storeRow) {
-          const [settingsRes, catalog] = await Promise.all([
-            (admin.from("store_delivery_settings" as any) as any)
-              .select(
-                "is_open_override, banner_url, logo_url, phone, instagram, social_links, bio, address, category, default_prep_min, default_prep_max, free_delivery_above_cents"
-              )
-              .eq("store_id", storeRow.id)
-              .maybeSingle(),
-            loadStoreCatalog(admin, storeRow.id),
-          ])
-
-          const devSettings = settingsRes.data
+        const res = await Promise.race([loadDb(), timeoutPromise])
+        if (res) {
+          const { devSettings, catalog } = res
           initialCategories = catalog.categories
           initialProducts = catalog.products
 

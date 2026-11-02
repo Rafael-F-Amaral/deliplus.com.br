@@ -41,6 +41,55 @@ export default function RootLayout({
         playfair.variable
       )}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                function createStorageMock() {
+                  var store = {};
+                  return {
+                    getItem: function(key) { return store[key] !== undefined ? store[key] : null; },
+                    setItem: function(key, val) { store[key] = String(val); },
+                    removeItem: function(key) { delete store[key]; },
+                    clear: function() { store = {}; },
+                    key: function(i) { return Object.keys(store)[i] || null; },
+                    get length() { return Object.keys(store).length; }
+                  };
+                }
+                try {
+                  var test = window.localStorage;
+                  if (!test) throw new Error();
+                  test.getItem("__test__");
+                } catch (e) {
+                  try {
+                    Object.defineProperty(window, "localStorage", {
+                      value: createStorageMock(),
+                      configurable: true,
+                      enumerable: true,
+                      writable: true
+                    });
+                  } catch (err) {}
+                }
+                try {
+                  var testSession = window.sessionStorage;
+                  if (!testSession) throw new Error();
+                  testSession.getItem("__test__");
+                } catch (e) {
+                  try {
+                    Object.defineProperty(window, "sessionStorage", {
+                      value: createStorageMock(),
+                      configurable: true,
+                      enumerable: true,
+                      writable: true
+                    });
+                  } catch (err) {}
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body suppressHydrationWarning className="bg-background text-foreground transition-colors duration-150">
         <ClerkProvider 
           localization={{

@@ -19,7 +19,7 @@ export function createAnonymousSupabaseClient() {
       detectSessionInUrl: false,
     },
     global: {
-      fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+      fetch: (input, init) => fetch(input, { ...init, signal: init?.signal || AbortSignal.timeout(1000), cache: "no-store" }),
     },
   })
 }
