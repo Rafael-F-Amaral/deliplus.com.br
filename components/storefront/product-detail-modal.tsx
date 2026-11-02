@@ -257,7 +257,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
         onClick={handleCloseModal}
       >
         <div
-          className="relative flex w-full max-w-xl md:max-w-2xl flex-col overflow-hidden bg-white dark:bg-[#17211A] text-[#1F2922] dark:text-[#F2EFE9] shadow-2xl rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] max-h-[90vh] md:max-h-[85vh]"
+          className="relative flex w-full max-w-xl md:max-w-3xl lg:max-w-[850px] flex-col overflow-hidden bg-white dark:bg-[#17211A] text-[#1F2922] dark:text-[#F2EFE9] shadow-2xl rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] max-h-[90vh] md:max-h-[85vh]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Close Button Top Right */}
@@ -272,11 +272,11 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
           {/* Modal Body: Compact 2-column layout on desktop, scrollable */}
           <div className="flex flex-col md:flex-row flex-1 overflow-y-auto min-h-0">
             {/* Left: Food Gallery Showcase & Cross-sell de Bebidas */}
-            <div className="md:w-[270px] shrink-0 bg-[#FAF8F5] dark:bg-[#131A15] p-3 md:p-4 md:border-r md:border-[#ECE7DE] dark:md:border-[#2A382E] flex flex-col gap-2.5">
+            <div className="md:w-[325px] lg:w-[340px] shrink-0 bg-[#FAF8F5] dark:bg-[#131A15] p-3 md:p-4 md:border-r md:border-[#ECE7DE] dark:md:border-[#2A382E] flex flex-col gap-2.5">
               {/* Main Active Photo with Zoom trigger & Always Visible Navigation Arrows */}
               <div
                 onClick={() => setIsZoomOpen(true)}
-                className="relative w-full aspect-[4/3] md:aspect-square rounded-xl overflow-hidden bg-white dark:bg-[#1B241E] border border-[#E8E2D5] dark:border-[#2A382E] shadow-2xs flex items-center justify-center group cursor-zoom-in"
+                className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-white dark:bg-[#1B241E] border border-[#E8E2D5] dark:border-[#2A382E] shadow-2xs flex items-center justify-center group cursor-zoom-in"
                 title="Clique para dar zoom na imagem"
               >
                 <img
@@ -409,7 +409,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                                 <div className="w-8 h-8 rounded-lg bg-[#FAF8F5] dark:bg-[#253E2D] border border-[#ECE7DE] dark:border-[#2E4A36] shrink-0" />
                               )}
                               <div className="flex flex-col min-w-0 flex-1">
-                                <span className="text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] leading-tight break-words">
+                                <span className="text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] leading-snug">
                                   {bev.name}
                                 </span>
                                 {bev.volume && (
@@ -421,7 +421,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                             </div>
 
                             {/* Preço e Seletor de Quantidade (- e +) */}
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-1.5 shrink-0">
                               <span className={`text-[11px] font-bold ${isSelected ? "text-[#166534] dark:text-[#4ADE80]" : "text-[#4B5563] dark:text-[#CBD5E1]"}`}>
                                 + {formatCurrency(bev.price_cents)}
                               </span>
@@ -856,7 +856,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                                 <div className="w-8 h-8 rounded-lg bg-[#FAF8F5] dark:bg-[#253E2D] border border-[#ECE7DE] dark:border-[#2E4A36] shrink-0" />
                               )}
                               <div className="flex flex-col min-w-0 flex-1">
-                                <span className="text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] leading-tight break-words">
+                                <span className="text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] leading-snug">
                                   {bev.name}
                                 </span>
                                 {bev.volume && (
@@ -868,7 +868,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                             </div>
 
                             {/* Preço e Seletor de Quantidade (- e +) */}
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-1.5 shrink-0">
                               <span className={`text-[11px] font-bold ${isSelected ? "text-[#166534] dark:text-[#4ADE80]" : "text-[#4B5563] dark:text-[#CBD5E1]"}`}>
                                 + {formatCurrency(bev.price_cents)}
                               </span>

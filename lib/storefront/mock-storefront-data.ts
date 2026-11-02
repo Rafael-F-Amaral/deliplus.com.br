@@ -76,9 +76,11 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     tags: ["Mais pedido", "Sem glúten"],
     is_featured: true,
     free_delivery_eligible: true,
-    portions: [
-      { id: "port-ind", name: "Individual (450g)", extra_price_cents: 0 },
-      { id: "port-grd", name: "Grande (650g)", extra_price_cents: 1200 },
+    sizes: [
+      { id: "size-frango-padrao", name: "Tamanho Padrão (450g)", price_cents: 3490 },
+      { id: "size-frango-pequeno", name: "Pequeno (350g)", price_cents: 3490 },
+      { id: "size-frango-medio", name: "Médio (500g)", price_cents: 3890 },
+      { id: "size-frango-grande", name: "Grande (650g)", price_cents: 4390 },
     ],
     proteins: [
       { id: "prot-frango", name: "Frango grelhado marinado", extra_price_cents: 0 },
@@ -112,6 +114,10 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     tags: ["Mais pedido", "Artesanal"],
     is_featured: true,
     free_delivery_eligible: true,
+    sizes: [
+      { id: "size-sand-padrao", name: "Tamanho Padrão (15cm)", price_cents: 2890 },
+      { id: "size-sand-grande", name: "Grande (30cm)", price_cents: 3590 },
+    ],
     removable_ingredients: [
       "Sem cebola roxa",
       "Sem rúcula",
@@ -136,6 +142,10 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     tags: ["Vegetariano", "Mais pedido"],
     is_featured: true,
     free_delivery_eligible: true,
+    sizes: [
+      { id: "size-massa-ind", name: "Individual (350g)", price_cents: 3290 },
+      { id: "size-massa-fam", name: "Para 2 pessoas (700g)", price_cents: 4990 },
+    ],
     removable_ingredients: [
       "Sem parmesão",
       "Sem pimenta preta",
@@ -203,6 +213,10 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     price_cents: 2490,
     image_url: "https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?auto=format&fit=crop&w=600&h=450&q=80",
     tags: ["Vegetariano", "Entrada"],
+    sizes: [
+      { id: "size-brusc-ind", name: "Porção Individual (4 un)", price_cents: 2490 },
+      { id: "size-brusc-comp", name: "Para Compartilhar (8 un)", price_cents: 3990 },
+    ],
     removable_ingredients: ["Sem alho", "Sem manjericão"],
   },
   {
@@ -214,6 +228,10 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     price_cents: 2290,
     image_url: "https://images.unsplash.com/photo-1577906096429-f73c2c312435?auto=format&fit=crop&w=600&h=450&q=80",
     tags: ["Vegano", "Artesanal"],
+    sizes: [
+      { id: "size-homus-ind", name: "Porção 150g", price_cents: 2290 },
+      { id: "size-homus-grd", name: "Porção 300g", price_cents: 3490 },
+    ],
     removable_ingredients: ["Sem páprica"],
   },
   {
@@ -225,6 +243,10 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     price_cents: 2190,
     image_url: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&h=450&q=80",
     tags: ["Vegano", "Leve"],
+    sizes: [
+      { id: "size-salada-ind", name: "Individual (250g)", price_cents: 2190 },
+      { id: "size-salada-grd", name: "Grande (450g)", price_cents: 2990 },
+    ],
     removable_ingredients: ["Sem pepino", "Sem sementes"],
   },
 
@@ -238,9 +260,11 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     price_cents: 3490,
     image_url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&h=450&q=80",
     tags: ["Clássico", "Saudável"],
-    portions: [
-      { id: "port-ind", name: "Individual (450g)", extra_price_cents: 0 },
-      { id: "port-grd", name: "Grande (650g)", extra_price_cents: 1200 },
+    sizes: [
+      { id: "size-noma-padrao", name: "Tamanho Padrão", price_cents: 3890 },
+      { id: "size-noma-pequeno", name: "Pequeno", price_cents: 3890 },
+      { id: "size-noma-medio", name: "Médio", price_cents: 4290 },
+      { id: "size-noma-grande", name: "Grande", price_cents: 4990 },
     ],
     proteins: [
       { id: "prot-tofu", name: "Tofu grelhado marinado (vegano)", extra_price_cents: 0 },
@@ -267,9 +291,11 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     price_cents: 3690,
     image_url: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&h=450&q=80",
     tags: ["Vegano", "Nutritivo"],
-    portions: [
-      { id: "port-ind", name: "Individual (450g)", extra_price_cents: 0 },
-      { id: "port-grd", name: "Grande (650g)", extra_price_cents: 1200 },
+    sizes: [
+      { id: "size-vegano-padrao", name: "Tamanho Padrão", price_cents: 3690 },
+      { id: "size-vegano-pequeno", name: "Pequeno (350g)", price_cents: 3690 },
+      { id: "size-vegano-medio", name: "Médio (500g)", price_cents: 4190 },
+      { id: "size-vegano-grande", name: "Grande (650g)", price_cents: 4890 },
     ],
   },
 
@@ -397,6 +423,10 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     price_cents: 1890,
     image_url: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=600&h=450&q=80",
     tags: ["Artesanal", "Chocolate"],
+    sizes: [
+      { id: "size-brownie-fatia", name: "Fatia Individual", price_cents: 1890 },
+      { id: "size-brownie-duplo", name: "Porção Dupla", price_cents: 2990 },
+    ],
   },
   {
     id: "prod-cheesecake",
@@ -407,5 +437,9 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     price_cents: 2200,
     image_url: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?auto=format&fit=crop&w=600&h=450&q=80",
     tags: ["Clássico", "Sobremesa"],
+    sizes: [
+      { id: "size-cheese-fatia", name: "Fatia Individual", price_cents: 2200 },
+      { id: "size-cheese-inteiro", name: "Torta Inteira (8 fatias)", price_cents: 11900 },
+    ],
   },
 ]
