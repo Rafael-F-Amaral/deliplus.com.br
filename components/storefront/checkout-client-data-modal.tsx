@@ -26,12 +26,12 @@ export function CheckoutClientDataModal() {
     setCustomerData,
   } = useStorefrontCart()
 
-  if (activeModal !== "checkout-data") return null
-
   const [name, setName] = useState(customerData.name || "Marina Souza")
   const [whatsapp, setWhatsapp] = useState(customerData.whatsapp || "(11) 98765-4321")
   const [phone, setPhone] = useState(customerData.phone || "(11) 98765-4321")
   const [email, setEmail] = useState(customerData.email || "marina.souza@email.com")
+
+  if (activeModal !== "checkout-data") return null
 
   const formatCurrency = (cents: number) => {
     return (cents / 100).toLocaleString("pt-BR", {
@@ -55,39 +55,39 @@ export function CheckoutClientDataModal() {
             Deliplus
           </div>
 
-          {/* Stepper Center */}
-          <div className="hidden items-center gap-6 text-xs sm:flex">
-            <div className="flex items-center gap-2 text-[#7A827C]">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EAE5DC]">
-                🛒
+          {/* Stepper Center - Sem emojis, alinhado e com contraste perfeito no claro e escuro */}
+          <div className="hidden items-center gap-3 md:gap-4 text-xs sm:flex">
+            <div className="flex items-center gap-1.5 font-semibold text-[#2E6B3E] dark:text-[#4ADE80]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-[#4ADE80] border border-emerald-300 dark:border-emerald-800/60 text-[11px] font-bold">
+                1
               </span>
               <span>Sacola</span>
             </div>
-            <span className="h-px w-8 bg-[#DED7CB]" />
-            <div className="flex items-center gap-2 font-bold text-[#1B2A20]">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1B2A20] text-white">
-                👤
+            <span className="h-px w-6 sm:w-8 bg-[#DED7CB] dark:bg-[#2A382E]" />
+            <div className="flex items-center gap-1.5 font-bold text-[#1A261D] dark:text-white">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#CB5A3C] text-white text-[11px] font-bold shadow-xs">
+                2
               </span>
               <span>Dados do cliente</span>
             </div>
-            <span className="h-px w-8 bg-[#DED7CB]" />
-            <div className="flex items-center gap-2 text-[#7A827C]">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EAE5DC]">
-                📍
+            <span className="h-px w-6 sm:w-8 bg-[#DED7CB] dark:bg-[#2A382E]" />
+            <div className="flex items-center gap-1.5 font-medium text-[#6B7280] dark:text-[#9CA3AF]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EAE5DC] dark:bg-[#2A382E] text-[#6B7280] dark:text-[#9CA3AF] text-[11px] font-semibold">
+                3
               </span>
               <span>Entrega / Retirada</span>
             </div>
-            <span className="h-px w-8 bg-[#DED7CB]" />
-            <div className="flex items-center gap-2 text-[#7A827C]">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EAE5DC]">
-                💳
+            <span className="h-px w-6 sm:w-8 bg-[#DED7CB] dark:bg-[#2A382E]" />
+            <div className="flex items-center gap-1.5 font-medium text-[#6B7280] dark:text-[#9CA3AF]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EAE5DC] dark:bg-[#2A382E] text-[#6B7280] dark:text-[#9CA3AF] text-[11px] font-semibold">
+                4
               </span>
               <span>Pagamento</span>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden items-center gap-1.5 text-xs text-[#2E6B3E] md:flex">
+            <div className="hidden items-center gap-1.5 text-xs text-[#2E6B3E] dark:text-[#4ADE80] md:flex">
               <ShieldCheck className="h-4 w-4" />
               <span>Compra segura • Seus dados protegidos</span>
             </div>
@@ -215,39 +215,56 @@ export function CheckoutClientDataModal() {
             {/* Items List */}
             <div className="divide-y divide-[#ECE7DE] dark:divide-[#2A382E] py-2">
               {items.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 py-3">
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    className="h-14 w-14 shrink-0 rounded-lg object-cover"
-                  />
-                  <div className="flex flex-1 flex-col overflow-hidden text-xs">
-                    <span className="truncate font-semibold text-[#1C261F] dark:text-[#F2EFE9]">
-                      {item.name}
-                    </span>
-                    <span className="text-xs font-bold text-[#1C261F] dark:text-[#4ADE80]">
-                      {formatCurrency(item.unit_price_cents)}
-                    </span>
+                <div key={item.id} className="py-3">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                    />
+                    <div className="flex flex-1 flex-col overflow-hidden text-xs">
+                      <span className="truncate font-semibold text-[#1C261F] dark:text-[#F2EFE9]">
+                        {item.name}
+                      </span>
+                      <span className="text-xs font-bold text-[#1C261F] dark:text-[#4ADE80]">
+                        {formatCurrency(item.unit_price_cents * item.quantity)}
+                      </span>
+                    </div>
+
+                    {/* Qty +/- */}
+                    <div className="flex items-center gap-2 rounded-lg border border-[#DED7CB] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] px-2 py-1 text-xs">
+                      <button
+                        onClick={() => updateQuantity(item.id, -1)}
+                        className="text-[#68706A] dark:text-[#9CA79E] hover:text-black dark:hover:text-white cursor-pointer"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="font-bold text-[#1C261F] dark:text-[#F2EFE9]">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateQuantity(item.id, 1)}
+                        className="text-[#68706A] dark:text-[#9CA79E] hover:text-black dark:hover:text-white cursor-pointer"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Qty +/- */}
-                  <div className="flex items-center gap-2 rounded-lg border border-[#DED7CB] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] px-2 py-1 text-xs">
-                    <button
-                      onClick={() => updateQuantity(item.id, -1)}
-                      className="text-[#68706A] dark:text-[#9CA79E] hover:text-black dark:hover:text-white"
-                    >
-                      <Minus className="h-3 w-3" />
-                    </button>
-                    <span className="font-bold text-[#1C261F] dark:text-[#F2EFE9]">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => updateQuantity(item.id, 1)}
-                      className="text-[#68706A] dark:text-[#9CA79E] hover:text-black dark:hover:text-white"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </button>
-                  </div>
+                  {/* Detalhes e Adicionais Discriminados */}
+                  {(item.portion || (item.selected_complements && item.selected_complements.length > 0)) && (
+                    <div className="mt-1 pl-17 space-y-0.5 text-[11px] text-[#78807A] dark:text-[#9CA79E]">
+                      {item.portion && <span>• {item.portion}</span>}
+                      {item.selected_complements && item.selected_complements.length > 0 && (
+                        <div className="pt-0.5 text-[10px]">
+                          <span className="font-bold uppercase tracking-wider text-[#166534] dark:text-[#4ADE80]">
+                            + Adicionais:
+                          </span>{" "}
+                          <span>{item.selected_complements.map(c => c.name).join(", ")}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -34,8 +34,6 @@ export function CheckoutPaymentModal() {
     store,
   } = useStorefrontCart()
 
-  if (activeModal !== "checkout-payment") return null
-
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>("pix")
   const [copied, setCopied] = useState(false)
   const [couponInput, setCouponInput] = useState(appliedCoupon || "")
@@ -52,6 +50,8 @@ export function CheckoutPaymentModal() {
     }, 1000)
     return () => clearInterval(timer)
   }, [])
+
+  if (activeModal !== "checkout-payment") return null
 
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -98,10 +98,41 @@ export function CheckoutPaymentModal() {
             Deliplus
           </div>
 
+          {/* Stepper Center - Sem emojis, alinhado e com contraste perfeito no claro e escuro */}
+          <div className="hidden items-center gap-3 md:gap-4 text-xs sm:flex">
+            <div className="flex items-center gap-1.5 font-semibold text-[#2E6B3E] dark:text-[#4ADE80]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-[#4ADE80] border border-emerald-300 dark:border-emerald-800/60 text-[11px] font-bold">
+                1
+              </span>
+              <span>Sacola</span>
+            </div>
+            <span className="h-px w-6 sm:w-8 bg-[#DED7CB] dark:bg-[#2A382E]" />
+            <div className="flex items-center gap-1.5 font-semibold text-[#2E6B3E] dark:text-[#4ADE80]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-[#4ADE80] border border-emerald-300 dark:border-emerald-800/60 text-[11px] font-bold">
+                2
+              </span>
+              <span>Dados</span>
+            </div>
+            <span className="h-px w-6 sm:w-8 bg-[#DED7CB] dark:bg-[#2A382E]" />
+            <div className="flex items-center gap-1.5 font-semibold text-[#2E6B3E] dark:text-[#4ADE80]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-[#4ADE80] border border-emerald-300 dark:border-emerald-800/60 text-[11px] font-bold">
+                3
+              </span>
+              <span>Entrega</span>
+            </div>
+            <span className="h-px w-6 sm:w-8 bg-[#DED7CB] dark:bg-[#2A382E]" />
+            <div className="flex items-center gap-1.5 font-bold text-[#1A261D] dark:text-white">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#CB5A3C] text-white text-[11px] font-bold shadow-xs">
+                4
+              </span>
+              <span>Pagamento</span>
+            </div>
+          </div>
+
           <div className="flex items-center gap-4">
-            <div className="hidden items-center gap-1.5 text-xs text-[#2E6B3E] dark:text-emerald-400 sm:flex">
+            <div className="hidden items-center gap-1.5 text-xs text-[#2E6B3E] dark:text-[#4ADE80] md:flex">
               <ShieldCheck className="h-4 w-4" />
-              <span>Pagamento Seguro com Criptografia de Ponta a Ponta</span>
+              <span>Compra segura • Seus dados protegidos</span>
             </div>
             <button
               onClick={closeModal}

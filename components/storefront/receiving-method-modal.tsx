@@ -60,24 +60,32 @@ export function ReceivingMethodModal() {
             Deliplus
           </div>
 
-          <div className="hidden items-center gap-4 text-xs sm:flex">
-            <div className="flex items-center gap-1.5 text-[#2E6B3E]">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E5F3EA] text-[10px] font-bold">
-                ✓
+          {/* Stepper Center - Sem emojis, alinhado e com contraste perfeito no claro e escuro */}
+          <div className="hidden items-center gap-3 md:gap-4 text-xs sm:flex">
+            <div className="flex items-center gap-1.5 font-semibold text-[#2E6B3E] dark:text-[#4ADE80]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-[#4ADE80] border border-emerald-300 dark:border-emerald-800/60 text-[11px] font-bold">
+                1
+              </span>
+              <span>Sacola</span>
+            </div>
+            <span className="h-px w-6 sm:w-8 bg-[#DED7CB] dark:bg-[#2A382E]" />
+            <div className="flex items-center gap-1.5 font-semibold text-[#2E6B3E] dark:text-[#4ADE80]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-[#4ADE80] border border-emerald-300 dark:border-emerald-800/60 text-[11px] font-bold">
+                2
               </span>
               <span>Dados</span>
             </div>
-            <span className="h-px w-6 bg-[#D8D2C5]" />
-            <div className="flex items-center gap-1.5 font-bold text-[#1B2A20]">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1B2A20] text-[10px] text-white">
-                📍
+            <span className="h-px w-6 sm:w-8 bg-[#DED7CB] dark:bg-[#2A382E]" />
+            <div className="flex items-center gap-1.5 font-bold text-[#1A261D] dark:text-white">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#CB5A3C] text-white text-[11px] font-bold shadow-xs">
+                3
               </span>
-              <span>Entrega ou retirada</span>
+              <span>Entrega / Retirada</span>
             </div>
-            <span className="h-px w-6 bg-[#D8D2C5]" />
-            <div className="flex items-center gap-1.5 text-[#8F9691]">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EAE5DC] text-[10px]">
-                💳
+            <span className="h-px w-6 sm:w-8 bg-[#DED7CB] dark:bg-[#2A382E]" />
+            <div className="flex items-center gap-1.5 font-medium text-[#6B7280] dark:text-[#9CA3AF]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EAE5DC] dark:bg-[#2A382E] text-[#6B7280] dark:text-[#9CA3AF] text-[11px] font-semibold">
+                4
               </span>
               <span>Pagamento</span>
             </div>
