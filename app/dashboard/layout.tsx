@@ -22,7 +22,7 @@ export default async function DashboardLayout({
 
   if (!hasStores) {
     return (
-      <div className="flex-1 min-h-screen bg-[#F7F6F2]">
+      <div className="flex-1 min-h-dvh bg-[#F7F6F2] dark:bg-[#131A15]">
         {children}
       </div>
     )
@@ -31,7 +31,7 @@ export default async function DashboardLayout({
   const stores = linksResult?.status === 'success' ? linksResult.stores : []
 
   return (
-    <DashboardLayoutClient sidebar={<DashboardSidebar initialStores={stores} />}>
+    <DashboardLayoutClient initialStores={stores} sidebar={<DashboardSidebar initialStores={stores} />}>
       {children}
     </DashboardLayoutClient>
   )

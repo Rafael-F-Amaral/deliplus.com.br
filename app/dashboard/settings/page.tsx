@@ -52,10 +52,10 @@ export default async function SettingsPage() {
 
   if (!storeId) {
     return (
-      <div className="flex h-full min-h-[400px] items-center justify-center p-10">
-        <div className="text-center max-w-md bg-white p-8 rounded-2xl border border-[#E9E4D4] shadow-xs">
-          <h2 className="text-xl font-bold text-[#2E4233] mb-2">Nenhuma loja selecionada</h2>
-          <p className="text-sm text-[#637267]">
+      <div className="flex h-full min-h-[400px] items-center justify-center p-6 sm:p-10">
+        <div className="text-center max-w-md bg-white dark:bg-[#1B241E] p-6 sm:p-8 rounded-2xl border border-[#E9E4D4] dark:border-[#2A382E] shadow-xs">
+          <h2 className="text-xl font-bold text-[#2E4233] dark:text-[#F2EFE9] mb-2">Nenhuma loja selecionada</h2>
+          <p className="text-sm text-[#637267] dark:text-[#9CA79E]">
             Por favor, selecione ou cadastre uma loja no menu superior para gerenciar sua loja.
           </p>
         </div>
@@ -64,7 +64,7 @@ export default async function SettingsPage() {
   }
 
   // 1. Buscar dados da loja e configurações de entrega
-  const [storeRes, settingsRes, billingState] = await Promise.all([
+  const [storeRes, settingsRes, billingState, zonesRes] = await Promise.all([
     supabase
       .from("stores")
       .select("id, name, slug, status, organization_id")
@@ -75,14 +75,25 @@ export default async function SettingsPage() {
       .eq("store_id", storeId)
       .maybeSingle(),
     readBillingPageState().catch(() => null),
+    (async () => {
+      try {
+        const res = await (supabase.from("delivery_zones" as any) as any)
+          .select("*")
+          .eq("store_id", storeId)
+          .order("neighborhood_name", { ascending: true });
+        return res?.data || [];
+      } catch {
+        return [];
+      }
+    })(),
   ]);
 
   if (!storeRes.data) {
     return (
-      <div className="flex h-full min-h-[400px] items-center justify-center p-10">
-        <div className="text-center max-w-md bg-white p-8 rounded-2xl border border-[#E9E4D4] shadow-xs">
-          <h2 className="text-xl font-bold text-[#2E4233] mb-2">Loja não encontrada</h2>
-          <p className="text-sm text-[#637267]">
+      <div className="flex h-full min-h-[400px] items-center justify-center p-6 sm:p-10">
+        <div className="text-center max-w-md bg-white dark:bg-[#1B241E] p-6 sm:p-8 rounded-2xl border border-[#E9E4D4] dark:border-[#2A382E] shadow-xs">
+          <h2 className="text-xl font-bold text-[#2E4233] dark:text-[#F2EFE9] mb-2">Loja não encontrada</h2>
+          <p className="text-sm text-[#637267] dark:text-[#9CA79E]">
             Os dados da loja ativa não puderam ser carregados.
           </p>
         </div>
@@ -141,8 +152,12 @@ export default async function SettingsPage() {
       accepts_delivery: rawSettings.accepts_delivery ?? true,
       accepts_pickup: rawSettings.accepts_pickup ?? true,
       is_open_override: rawSettings.is_open_override ?? true,
-      phone: rawSettings.phone || "",
-      instagram: rawSettings.instagram || "",
+      phone: rawSettings.phone || rawSettings.social_links?.whatsapp || "",
+      instagram: rawSettings.instagram || rawSettings.social_links?.instagram || "",
+      social_links: rawSettings.social_links || {
+        whatsapp: rawSettings.phone || "",
+        instagram: rawSettings.instagram || "",
+      },
       address: rawSettings.address || "",
       bio: rawSettings.bio || "",
       category: rawSettings.category || "Restaurante",
@@ -159,6 +174,7 @@ export default async function SettingsPage() {
       printer_settings: rawSettings.printer_settings || DEFAULT_PRINTER_SETTINGS,
     },
     billing: billingInfo,
+    delivery_zones: Array.isArray(zonesRes) ? zonesRes : (zonesRes as any)?.data || [],
   };
 
   return <SettingsClient initialData={initialData} />;

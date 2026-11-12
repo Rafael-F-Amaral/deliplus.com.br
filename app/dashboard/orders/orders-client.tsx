@@ -1,13 +1,17 @@
 'use client'
+import { useSearchParams } from 'next/navigation'
+import { ManualOrderModal } from './manual-order-modal'
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { HelpTooltip } from '@/components/ui/help-tooltip'
 import { cn } from '@/lib/utils'
 import { useOrganization } from '@clerk/nextjs'
 import { updateOrderStatusAction, updateOrderItemsAction, cancelOrderAction, OrderStatus } from './actions'
 import { createBrowserSupabaseClient } from '@/lib/supabase/browser'
 import {
   Printer,
+  PlusCircle,
   X,
   Check,
   CheckCircle2,
@@ -24,7 +28,9 @@ import {
   Plus,
   Minus,
   RotateCcw,
-  Pencil
+  Pencil,
+  MoreVertical,
+  Eye
 } from 'lucide-react'
 
 // Official WhatsApp Vector Icon (White / Crisp)
@@ -759,13 +765,43 @@ const KITCHEN_STATUS_OPTIONS: { label: string; value: 'Todos' | 'Novo' | 'Em pre
   { label: 'Prontos', value: 'Pronto' },
 ]
 
+function playNewOrderSound() {
+  if (typeof window === 'undefined') return
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioCtx) return
+    const ctx = new AudioCtx()
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {})
+    }
+    const playChime = (freq: number, start: number, dur: number) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'triangle'
+      osc.frequency.setValueAtTime(freq, start)
+      gain.gain.setValueAtTime(0.25, start)
+      gain.gain.exponentialRampToValueAtTime(0.001, start + dur)
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start(start)
+      osc.stop(start + dur)
+    }
+    const t = ctx.currentTime
+    playChime(659.25, t, 0.25)
+    playChime(880.00, t + 0.15, 0.3)
+    playChime(1318.51, t + 0.3, 0.5)
+  } catch (err) {
+    console.warn('Audio chime warning:', err)
+  }
+}
+
 export default function OrdersClient({
   initialOrders = [],
   storeId,
   storeName: propStoreName,
   catalogProducts = []
 }: OrdersClientProps = {}) {
-  const [orders, setOrders] = useState<Order[]>(initialOrders.length > 0 ? initialOrders : INITIAL_ORDERS)
+  const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'Todos' | 'Novo' | 'Em preparo' | 'Pronto'>('Todos')
@@ -822,7 +858,11 @@ export default function OrdersClient({
             .order('order_number', { ascending: false })
 
           if (data) {
-            setOrders(data.map(mapRowToOrder))
+            const mapped = data.map(mapRowToOrder)
+          if (mapped.some((o: Order) => o.status === 'Novo')) {
+            playNewOrderSound()
+          }
+          setOrders(mapped)
           }
         }
       )
@@ -841,11 +881,73 @@ export default function OrdersClient({
     setDrawerItemPage(1)
   }, [selectedOrderId])
 
+  // Action Dropdown Menu State (agrupamento de ações por pedido)
+  const [openActionMenu, setOpenActionMenu] = useState<{
+    orderId: string
+    top: number
+    left: number
+    openUp: boolean
+  } | null>(null)
+
+  const handleToggleActionMenu = (orderId: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation()
+    if (openActionMenu?.orderId === orderId) {
+      setOpenActionMenu(null)
+      return
+    }
+    const rect = e.currentTarget.getBoundingClientRect()
+    const menuWidth = 216
+    const estimatedMenuHeight = 220
+    const spaceBelow = window.innerHeight - rect.bottom
+    const spaceAbove = rect.top
+    const openUp = spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow
+    const top = openUp
+      ? Math.max(12, rect.top - 6)
+      : Math.min(window.innerHeight - 12, rect.bottom + 6)
+    const left = Math.max(12, Math.min(window.innerWidth - menuWidth - 12, rect.right - menuWidth))
+    setOpenActionMenu({ orderId, top, left, openUp })
+  }
+
+  useEffect(() => {
+    if (!openActionMenu) return
+    const handleOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      if (target?.closest('[data-orders-action-menu]') || target?.closest('[data-orders-action-trigger]')) {
+        return
+      }
+      setOpenActionMenu(null)
+    }
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenActionMenu(null)
+    }
+    const handleCloseOnMove = () => setOpenActionMenu(null)
+
+    document.addEventListener('mousedown', handleOutside)
+    window.addEventListener('keydown', handleKey)
+    window.addEventListener('scroll', handleCloseOnMove, true)
+    window.addEventListener('resize', handleCloseOnMove)
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      window.removeEventListener('keydown', handleKey)
+      window.removeEventListener('scroll', handleCloseOnMove, true)
+      window.removeEventListener('resize', handleCloseOnMove)
+    }
+  }, [openActionMenu])
+
   // Cancel Order Modal State
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null)
   const [isCanceling, setIsCanceling] = useState(false)
 
   // Edit Order Items Modal State
+  const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false)
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams?.get('novo') === '1') {
+      setIsNewOrderModalOpen(true)
+    }
+  }, [searchParams])
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingOrder, setEditingOrder] = useState<Order | null>(null)
   const [editableItems, setEditableItems] = useState<OrderItem[]>([])
@@ -1334,63 +1436,169 @@ export default function OrdersClient({
     setIsPrintModalOpen(true)
   }
 
+  const renderStatusBadge = (order: Order) => {
+    if (order.status === 'Novo') {
+      return (
+        <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2EE] dark:bg-[#CB5A3C]/20 text-[#B4482D] dark:text-[#FF9E80] border border-[#FADCD5] dark:border-[#CB5A3C]/40">
+          Novo
+        </span>
+      )
+    }
+    if (order.status === 'Em preparo') {
+      return (
+        <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FFFBEB] dark:bg-amber-950/50 text-[#B45309] dark:text-amber-300 border border-[#FDE68A] dark:border-amber-800/40">
+          Em preparo
+        </span>
+      )
+    }
+    if (order.status === 'Pronto') {
+      return (
+        <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FAF5FF] dark:bg-purple-950/50 text-[#6D28D9] dark:text-purple-300 border border-[#E9D5FF] dark:border-purple-800/40">
+          {order.type === 'Retirada' ? 'Pronto p/ retirar' : 'Pronto'}
+        </span>
+      )
+    }
+    if (order.status === 'Em entrega') {
+      return (
+        <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F0F9FF] dark:bg-sky-950/50 text-[#0369A1] dark:text-sky-300 border border-[#BAE6FD] dark:border-sky-800/40">
+          Em entrega
+        </span>
+      )
+    }
+    if (order.status === 'Concluído') {
+      return (
+        <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#ECFDF5] dark:bg-emerald-950/60 text-[#047857] dark:text-emerald-300 border border-[#A7F3D0] dark:border-emerald-800/40">
+          Concluído
+        </span>
+      )
+    }
+    if (order.status === 'Cancelado') {
+      return (
+        <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2F2] dark:bg-red-950/50 text-[#B91C1C] dark:text-red-300 border border-[#FCA5A5] dark:border-red-800/40">
+          Cancelado
+        </span>
+      )
+    }
+    return null
+  }
+
+  const activeActionOrder = useMemo(
+    () => (openActionMenu ? orders.find((o) => o.id === openActionMenu.orderId) ?? null : null),
+    [openActionMenu, orders]
+  )
+
+  const getQuickStatusAction = (order: Order) => {
+    if (order.status === 'Novo') {
+      return {
+        label: 'Aceitar pedido',
+        onRun: () => handleAcceptOrder(order.id),
+        accentClass: 'text-emerald-700 dark:text-emerald-300 font-bold',
+        dotClass: 'bg-emerald-500',
+      }
+    }
+    if (order.status === 'Em preparo') {
+      return {
+        label: 'Marcar como pronto',
+        onRun: () => handleAdvanceStatus(order.id),
+        accentClass: 'text-amber-700 dark:text-amber-300 font-bold',
+        dotClass: 'bg-amber-500',
+      }
+    }
+    if (order.status === 'Pronto') {
+      return {
+        label: order.type === 'Retirada' ? 'Entregar no balcão' : 'Despachar entrega',
+        onRun: () => handleAdvanceStatus(order.id),
+        accentClass: 'text-sky-700 dark:text-sky-300 font-bold',
+        dotClass: 'bg-sky-500',
+      }
+    }
+    if (order.status === 'Em entrega') {
+      return {
+        label: 'Concluir entrega',
+        onRun: () => handleAdvanceStatus(order.id),
+        accentClass: 'text-emerald-700 dark:text-emerald-300 font-bold',
+        dotClass: 'bg-emerald-500',
+      }
+    }
+    return null
+  }
+
+  const renderPaginationBar = () => (
+    <div className="flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-2.5 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/30 dark:bg-[#1B241E]/30 shrink-0 min-h-[48px]">
+      <span className="text-xs text-muted-foreground font-medium">
+        Mostrando {filteredOrders.length > 0 ? (safeCurrentPage - 1) * itemsPerPage + 1 : 0}–{Math.min(safeCurrentPage * itemsPerPage, filteredOrders.length)} de {filteredOrders.length} pedidos
+      </span>
+
+      <div className="flex flex-wrap justify-center items-center gap-1.5">
+        {Array.from({ length: totalPages }).map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => setCurrentPage(i + 1)}
+            className={`min-h-9 min-w-9 w-9 h-9 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
+              safeCurrentPage === i + 1
+                ? "bg-[#B4482D] text-white shadow-sm"
+                : "bg-white dark:bg-[#1B241E] text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
+            }`}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+
   return (
-    <div className="flex w-full h-full max-h-full overflow-hidden relative bg-[#FAF8F0] dark:bg-[#131A15]">
+    <div className="max-w-[1440px] mx-auto flex w-full flex-1 relative bg-[#FAF8F0] dark:bg-[#131A15]">
       {/* Main Content Area */}
       <div
         className={cn(
-          "flex-1 flex flex-col w-full h-full max-h-full px-3.5 sm:px-4 md:px-5 pt-3 md:pt-3.5 pb-3 max-lg:pb-[84px] overflow-hidden justify-between font-sans transition-all min-w-0"
+          "flex-1 flex flex-col w-full px-3.5 sm:px-4 md:px-5 pt-3 md:pt-3.5 pb-6 font-sans transition-all min-w-0"
         )}
       >
-        {/* Page Header (Orange title matching DeliPlus logo & Estoque/Cardápio) */}
-        <div className="flex flex-col mb-2 sm:mb-2.5 shrink-0">
+        {/* Page Header */}
+        <div className="flex flex-col mb-2.5 shrink-0">
           <div className="flex items-center gap-2.5">
             <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] dark:text-[#FF7D4F] tracking-tight">
               Pedidos
             </h1>
-
-            {/* Tooltip Icon & Popover */}
-            <div className="relative group inline-block">
-              <div className="w-5 h-5 rounded-full bg-[#2E4233] dark:bg-[#222C25] dark:border dark:border-[#2A382E] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
-                ?
-              </div>
-              <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                <p className="text-[13px] text-white dark:text-[#1C2C22] mb-2 leading-relaxed">
-                  <span className="font-extrabold text-white dark:text-[#2E4233]">Dica:</span> Acompanhe e gerencie todos os pedidos em tempo real da sua operação de delivery e retirada.
-                </p>
-                <div className="flex flex-col gap-2 pt-2 border-t border-white/10 dark:border-[#E5DFD1] text-[12px] text-white/90 dark:text-[#1C2C22]">
-                  <div className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
-                    <span>Aceite novos pedidos, altere o status de preparo, saída e entrega com um clique.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
-                    <span>Acesse os dados do cliente e chame diretamente no WhatsApp oficial.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
-                    <span>Imprima comandas térmicas padronizadas (80mm) para sua cozinha e entregadores.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <HelpTooltip
+              title="Como gerenciar Pedidos?"
+              description="Acompanhe e gerencie todos os pedidos em tempo real da sua operação de delivery e retirada."
+              bullets={[
+                "Aceite novos pedidos, altere o status de preparo, saída e entrega com um clique.",
+                "Acesse os dados do cliente e chame diretamente no WhatsApp oficial.",
+                "Imprima comandas térmicas padronizadas (80mm) para sua cozinha e entregadores.",
+              ]}
+              ariaLabel="Ajuda sobre gerenciamento de pedidos"
+            />
           </div>
-          <p className="text-[#2E4233] dark:text-[#9CA79E] text-sm md:text-base font-medium mt-0.5">
-            Acompanhe e gerencie em tempo real os pedidos de delivery e retirada.
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-1">
+            <p className="text-[#2E4233] dark:text-[#9CA79E] text-sm md:text-base font-medium">
+              Acompanhe e gerencie em tempo real os pedidos de delivery e retirada.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsNewOrderModalOpen(true)}
+              className="min-h-10 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#B4482D] hover:bg-[#9C3B23] text-white text-xs font-bold shadow-md transition-all cursor-pointer active:scale-95 shrink-0 self-start sm:self-auto"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>+ Novo Pedido (PDV)</span>
+            </button>
+          </div>
         </div>
 
         {/* Workspace: Table Column + Desktop Order Details Drawer */}
-        <div className="flex-1 min-h-0 flex gap-3.5 md:gap-4 overflow-hidden">
-          {/* Left Column: Controls + Orders Table Container */}
-          <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
-            {/* Controls Row: Filters & Search (Aligned directly above the Table) */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 mb-2.5 shrink-0 relative z-10 bg-white/40 dark:bg-[#1B241E]/40 sm:bg-transparent p-1.5 sm:p-0 rounded-2xl">
-              <div className="w-full sm:w-auto flex flex-col">
+        <div className="flex-1 flex flex-col 2xl:flex-row 2xl:items-start gap-4 min-w-0">
+          {/* Left Column: Controls + Orders Views */}
+          <div className="flex-1 min-w-0 flex flex-col">
+            {/* Controls Row: Filters & Search */}
+            <div className="flex flex-col lg:flex-row lg:flex-wrap lg:items-center justify-between gap-2.5 mb-2.5 shrink-0 relative z-10 bg-white/40 dark:bg-[#1B241E]/40 sm:bg-transparent p-1.5 sm:p-0 rounded-2xl">
+              <div className="w-full lg:w-auto flex flex-col min-w-0">
                 <div 
                   ref={filterScrollRef}
                   onScroll={updateFilterScroll}
-                  className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-1 sm:pb-0 relative flex-nowrap"
+                  className="flex items-center gap-2 w-full lg:w-auto overflow-x-auto no-scrollbar sm:overflow-visible sm:flex-wrap pb-1 sm:pb-0 relative flex-nowrap"
                 >
                   {/* Grupo 1: Fases de Preparo / Produção (Cozinha) */}
                   <div className="flex items-center gap-1 bg-[#F3EFE3]/80 dark:bg-[#1B241E] p-0.5 rounded-full border border-[#E9E4D4] dark:border-[#2A382E] shrink-0 shadow-2xs">
@@ -1403,10 +1611,10 @@ export default function OrdersClient({
                           setCurrentPage(1)
                         }}
                         className={cn(
-                          "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
+                          "min-h-9 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
                           statusFilter === option.value
-                            ? "bg-[#2E4233] text-white shadow-xs"
-                            : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+                            ? "bg-[#2E4233] dark:bg-[#B4482D] text-white shadow-xs"
+                            : "text-gray-700 dark:text-[#C5CFC7] hover:text-gray-900 dark:hover:text-[#F2EFE9] hover:bg-white/70 dark:hover:bg-[#25332A]"
                         )}
                       >
                         {option.label}
@@ -1414,7 +1622,7 @@ export default function OrdersClient({
                     ))}
                   </div>
 
-                  {/* Separador vertical nítido entre os dois grupos */}
+                  {/* Separador vertical */}
                   <div className="h-5 w-px bg-[#D6D0BC] dark:bg-[#2A382E] shrink-0 mx-0.5 hidden sm:block" />
 
                   {/* Grupo 2: Modalidade e Data */}
@@ -1423,36 +1631,38 @@ export default function OrdersClient({
                     <div className="relative inline-block shrink-0">
                       <select
                         value={typeFilter}
+                        aria-label="Filtrar por modalidade"
                         onChange={(e) => {
                           setTypeFilter(e.target.value as 'Todos' | 'Delivery' | 'Retirada')
                           setCurrentPage(1)
                         }}
-                        className="appearance-none bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-full pl-2.5 pr-6 py-1 text-xs font-semibold text-gray-600 dark:text-[#F2EFE9] hover:border-gray-400 dark:hover:border-[#3B4D40] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
+                        className="appearance-none min-h-9 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-full pl-3 pr-7 py-1 text-base lg:text-xs font-semibold text-gray-700 dark:text-[#F2EFE9] hover:border-gray-400 dark:hover:border-[#3B4D40] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
                       >
                         <option value="Todos">Modalidade</option>
                         <option value="Delivery">Delivery</option>
                         <option value="Retirada">Retirada</option>
                       </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
 
                     {/* Date Selector */}
                     <div className="relative inline-block shrink-0">
                       <select
                         value={dateFilter}
+                        aria-label="Filtrar por período"
                         onChange={(e) => {
                           setDateFilter(e.target.value)
                           setCurrentPage(1)
                         }}
-                        className="appearance-none bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-full pl-5.5 pr-5 py-1 text-xs font-semibold text-gray-600 dark:text-[#F2EFE9] hover:border-gray-400 dark:hover:border-[#3B4D40] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
+                        className="appearance-none min-h-9 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-full pl-7 pr-6 py-1 text-base lg:text-xs font-semibold text-gray-700 dark:text-[#F2EFE9] hover:border-gray-400 dark:hover:border-[#3B4D40] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20 transition-all shadow-xs cursor-pointer"
                       >
                         <option value="Hoje">Hoje</option>
                         <option value="Ontem">Ontem</option>
                         <option value="Últimos 7 dias">7 dias</option>
                         <option value="Este mês">Este mês</option>
                       </select>
-                      <Calendar className="w-3 h-3 text-gray-400 absolute left-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <ChevronDown className="w-3 h-3 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <Calendar className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
                   </div>
                 </div>
@@ -1478,19 +1688,20 @@ export default function OrdersClient({
                 </div>
               </div>
 
-              {/* Search Bar: Destacado, nítido e altamente visível */}
+              {/* Search Bar */}
               <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
                 <div className="relative w-full sm:w-[220px] md:w-[260px]">
                   <Search className="w-4 h-4 text-[#CB5A3C] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.2]" />
                   <input
                     type="text"
                     value={searchQuery}
+                    aria-label="Buscar pedido por número ou cliente"
                     onChange={(e) => {
                       setSearchQuery(e.target.value)
                       setCurrentPage(1)
                     }}
                     placeholder="Buscar pedido por nº ou cliente..."
-                    className="w-full pl-9 pr-8 py-2 bg-white dark:bg-[#1B241E] border-2 border-[#D6D0C2] dark:border-[#2A382E] hover:border-[#CB5A3C]/70 dark:hover:border-[#FF7D4F]/70 focus:border-[#CB5A3C] dark:focus:border-[#FF7D4F] rounded-xl text-xs font-semibold text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-[#8C827A] dark:placeholder:text-[#9CA79E] placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 transition-all shadow-xs"
+                    className="w-full min-h-10 pl-9 pr-10 py-2 bg-white dark:bg-[#1B241E] border-2 border-[#D6D0C2] dark:border-[#2A382E] hover:border-[#CB5A3C]/70 dark:hover:border-[#FF7D4F]/70 focus:border-[#CB5A3C] dark:focus:border-[#FF7D4F] rounded-xl text-base lg:text-xs font-semibold text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-muted-foreground placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 transition-all shadow-xs"
                   />
                   {searchQuery && (
                     <button
@@ -1499,7 +1710,8 @@ export default function OrdersClient({
                         setSearchQuery('')
                         setCurrentPage(1)
                       }}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                      aria-label="Limpar busca"
+                      className="min-h-9 min-w-9 flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-red-600 transition-colors cursor-pointer rounded-lg"
                       title="Limpar busca"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -1509,21 +1721,139 @@ export default function OrdersClient({
               </div>
             </div>
 
-            {/* Orders Table Container */}
-            <div className="bg-white dark:bg-[#1B241E] rounded-2xl border border-[#E9E4D4] dark:border-[#2A382E] shadow-sm overflow-hidden flex-1 min-h-0 flex flex-col justify-between">
-          <div ref={tableAreaRef} className="overflow-x-auto overflow-y-hidden flex-1">
-            <table className="w-full h-full min-h-full text-left border-collapse">
+            {/* Mobile Cards View (< md) */}
+            <div className="lg:hidden space-y-3 mb-4">
+              {filteredOrders.length === 0 ? (
+                <div className="bg-white dark:bg-[#1B241E] rounded-2xl border border-[#E9E4D4] dark:border-[#2A382E] p-8 text-center text-muted-foreground text-sm shadow-sm">
+                  Nenhum pedido encontrado para os filtros selecionados.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {paginatedOrders.map((order) => {
+                    const isSelected = order.id === selectedOrderId
+                    const isNovo = order.status === 'Novo'
+
+                    return (
+                      <div
+                        key={`mobile-order-${order.id}`}
+                        className={cn(
+                          "bg-white dark:bg-[#1B241E] rounded-2xl border p-3.5 shadow-sm transition-colors space-y-3",
+                          isSelected
+                            ? "border-[#CB5A3C] dark:border-[#FF7D4F] bg-[#FAF5E9] dark:bg-[#243128]"
+                            : "border-[#E9E4D4] dark:border-[#2A382E]"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {isNovo && (
+                              <span className="w-1.5 h-5 rounded-full bg-[#CB5A3C] dark:bg-[#FF7D4F] shrink-0" />
+                            )}
+                            <div className="min-w-0">
+                              <div className="font-bold text-sm text-[#1C2C22] dark:text-[#F2EFE9]">
+                                {order.id}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground">
+                                {order.time} • {order.date}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {renderStatusBadge(order)}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#E9E4D4]/70 dark:border-[#233026]">
+                          <div className="min-w-0">
+                            <div className="font-semibold text-sm text-[#1C2C22] dark:text-[#F2EFE9] truncate">
+                              {order.client}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              {order.type === 'Delivery' ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 dark:bg-sky-950/50 text-sky-800 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/40">
+                                  Delivery
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
+                                  Retirada
+                                </span>
+                              )}
+                              <span className="text-sm font-bold text-[#1C2C22] dark:text-[#F2EFE9]">{order.total}</span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground mt-1">
+                              {order.paymentMethod}
+                              {order.paymentMethod === 'Em Dinheiro' && order.changeFor ? ` • ${order.changeFor}` : ''}
+                            </div>
+                          </div>
+
+                          <a
+                            href={getWhatsAppUrl(order, storeName)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="min-h-9 inline-flex items-center gap-1.5 bg-[#15803D] hover:bg-[#166534] text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-2xs transition-all cursor-pointer shrink-0"
+                            title={`Conversar com ${order.client} no WhatsApp (${order.phone})`}
+                          >
+                            <WhatsAppIcon className="w-3.5 h-3.5 fill-white text-white shrink-0" />
+                            <span>WhatsApp</span>
+                          </a>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#E9E4D4]/70 dark:border-[#233026]">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOrderId(order.id)}
+                            className="min-h-9 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-[#B4482D] dark:hover:text-[#FF7D4F] px-1 py-1 cursor-pointer transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Ver detalhes</span>
+                          </button>
+                          <button
+                            type="button"
+                            data-orders-action-trigger="true"
+                            aria-haspopup="menu"
+                            aria-expanded={openActionMenu?.orderId === order.id}
+                            aria-label={`Ações do pedido ${order.id}`}
+                            onClick={(e) => handleToggleActionMenu(order.id, e)}
+                            className={cn(
+                              "min-h-9 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer active:scale-95 shadow-2xs",
+                              openActionMenu?.orderId === order.id
+                                ? "bg-[#2E4233] dark:bg-[#CB5A3C] text-white border-transparent"
+                                : "text-[#1C2C22] dark:text-[#F2EFE9] bg-[#FAF8F0] dark:bg-[#222C25] hover:bg-[#F3EEDD] dark:hover:bg-[#2A382E] border-[#E9E4D4] dark:border-[#2A382E]"
+                            )}
+                          >
+                            <MoreVertical className="w-4 h-4 shrink-0" />
+                            <span>Ações</span>
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              <div className="bg-white dark:bg-[#1B241E] rounded-2xl border border-[#E9E4D4] dark:border-[#2A382E] overflow-hidden shadow-sm">
+                {renderPaginationBar()}
+              </div>
+            </div>
+
+            {/* Desktop Orders Table Container (>= md) */}
+            <div className="hidden lg:flex bg-white dark:bg-[#1B241E] rounded-2xl border border-[#E9E4D4] dark:border-[#2A382E] shadow-sm overflow-hidden flex-col justify-between">
+          <div ref={tableAreaRef} className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/80 dark:bg-[#222C25] text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-[#9CA79E]">
+                <tr className="border-b border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/80 dark:bg-[#222C25] text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                   <th
-                    onClick={() => handleSort('id')}
-                    className={cn(
-                      "py-2.5 pl-3.5 sm:pl-4 pr-1 whitespace-nowrap cursor-pointer select-none group transition-colors",
-                      sortField === 'id' ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
-                    )}
-                    title="Organizar por número do pedido"
+                    aria-sort={sortField === 'id' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    className="py-2.5 pl-2.5 xl:pl-4 pr-1 whitespace-nowrap select-none"
                   >
-                    <div className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('id')}
+                      title="Organizar por número do pedido"
+                      className={cn(
+                        "min-h-9 lg:min-h-0 inline-flex items-center gap-1 cursor-pointer group transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F]",
+                        sortField === 'id' ? "text-[#B4482D] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
+                      )}
+                    >
                       <span>Pedido</span>
                       {sortField === 'id' ? (
                         sortDirection === 'asc' ? (
@@ -1532,19 +1862,23 @@ export default function OrdersClient({
                           <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
                         )
                       ) : (
-                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                        <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity" />
                       )}
-                    </div>
+                    </button>
                   </th>
                   <th
-                    onClick={() => handleSort('client')}
-                    className={cn(
-                      "py-2.5 px-1.5 whitespace-nowrap cursor-pointer select-none group transition-colors",
-                      sortField === 'client' ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
-                    )}
-                    title="Organizar por nome do cliente"
+                    aria-sort={sortField === 'client' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    className="py-2.5 px-1 xl:px-1.5 whitespace-nowrap select-none"
                   >
-                    <div className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('client')}
+                      title="Organizar por nome do cliente"
+                      className={cn(
+                        "min-h-9 lg:min-h-0 inline-flex items-center gap-1 cursor-pointer group transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F]",
+                        sortField === 'client' ? "text-[#B4482D] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
+                      )}
+                    >
                       <span>Cliente</span>
                       {sortField === 'client' ? (
                         sortDirection === 'asc' ? (
@@ -1553,20 +1887,24 @@ export default function OrdersClient({
                           <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
                         )
                       ) : (
-                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                        <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity" />
                       )}
-                    </div>
+                    </button>
                   </th>
 
                   <th
-                    onClick={() => handleSort('time')}
-                    className={cn(
-                      "py-2.5 px-1.5 whitespace-nowrap cursor-pointer select-none group transition-colors",
-                      sortField === 'time' ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
-                    )}
-                    title="Organizar por horário"
+                    aria-sort={sortField === 'time' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    className="py-2.5 px-1 xl:px-1.5 whitespace-nowrap select-none"
                   >
-                    <div className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('time')}
+                      title="Organizar por horário"
+                      className={cn(
+                        "min-h-9 lg:min-h-0 inline-flex items-center gap-1 cursor-pointer group transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F]",
+                        sortField === 'time' ? "text-[#B4482D] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
+                      )}
+                    >
                       <span>Horário</span>
                       {sortField === 'time' ? (
                         sortDirection === 'asc' ? (
@@ -1575,19 +1913,23 @@ export default function OrdersClient({
                           <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
                         )
                       ) : (
-                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                        <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity" />
                       )}
-                    </div>
+                    </button>
                   </th>
                   <th
-                    onClick={() => handleSort('type')}
-                    className={cn(
-                      "py-2.5 px-1.5 whitespace-nowrap cursor-pointer select-none group transition-colors",
-                      sortField === 'type' ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
-                    )}
-                    title="Organizar por tipo (Delivery / Retirada)"
+                    aria-sort={sortField === 'type' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    className="py-2.5 px-1 xl:px-1.5 whitespace-nowrap select-none"
                   >
-                    <div className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('type')}
+                      title="Organizar por tipo (Delivery / Retirada)"
+                      className={cn(
+                        "min-h-9 lg:min-h-0 inline-flex items-center gap-1 cursor-pointer group transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F]",
+                        sortField === 'type' ? "text-[#B4482D] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
+                      )}
+                    >
                       <span>Tipo</span>
                       {sortField === 'type' ? (
                         sortDirection === 'asc' ? (
@@ -1596,19 +1938,23 @@ export default function OrdersClient({
                           <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
                         )
                       ) : (
-                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                        <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity" />
                       )}
-                    </div>
+                    </button>
                   </th>
                   <th
-                    onClick={() => handleSort('total')}
-                    className={cn(
-                      "py-2.5 px-1.5 whitespace-nowrap cursor-pointer select-none group transition-colors",
-                      sortField === 'total' ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
-                    )}
-                    title="Organizar por valor total"
+                    aria-sort={sortField === 'total' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    className="py-2.5 px-1 xl:px-1.5 whitespace-nowrap select-none"
                   >
-                    <div className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('total')}
+                      title="Organizar por valor total"
+                      className={cn(
+                        "min-h-9 lg:min-h-0 inline-flex items-center gap-1 cursor-pointer group transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F]",
+                        sortField === 'total' ? "text-[#B4482D] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
+                      )}
+                    >
                       <span>Total</span>
                       {sortField === 'total' ? (
                         sortDirection === 'asc' ? (
@@ -1617,19 +1963,23 @@ export default function OrdersClient({
                           <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
                         )
                       ) : (
-                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                        <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity" />
                       )}
-                    </div>
+                    </button>
                   </th>
                   <th
-                    onClick={() => handleSort('status')}
-                    className={cn(
-                      "py-2.5 px-1 text-center whitespace-nowrap cursor-pointer select-none group transition-colors",
-                      sortField === 'status' ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
-                    )}
-                    title="Organizar por status (agrupar iguais)"
+                    aria-sort={sortField === 'status' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    className="py-2.5 px-1 text-center whitespace-nowrap select-none"
                   >
-                    <div className="inline-flex items-center justify-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('status')}
+                      title="Organizar por status (agrupar iguais)"
+                      className={cn(
+                        "min-h-9 lg:min-h-0 inline-flex items-center justify-center gap-1 cursor-pointer group transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F]",
+                        sortField === 'status' ? "text-[#B4482D] dark:text-[#FF7D4F]" : "hover:text-[#1C2C22] dark:hover:text-[#F2EFE9]"
+                      )}
+                    >
                       <span>Status</span>
                       {sortField === 'status' ? (
                         sortDirection === 'asc' ? (
@@ -1638,20 +1988,20 @@ export default function OrdersClient({
                           <ArrowDown className="w-3.5 h-3.5 text-[#CB5A3C]" />
                         )
                       ) : (
-                        <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                        <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity" />
                       )}
-                    </div>
+                    </button>
                   </th>
-                  <th className="py-2.5 px-2 text-center whitespace-nowrap select-none font-bold">
+                  <th className="py-2.5 px-2 text-center whitespace-nowrap select-none font-bold w-16">
                     Ações
                   </th>
-                  <th className="py-2.5 pr-3 pl-1 w-6 select-none"></th>
+                  <th className="hidden xl:table-cell py-2.5 pr-3 pl-1 w-6 select-none" aria-label="Indicador de seleção" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E9E4D4]/60 dark:divide-[#233026]">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-gray-500 dark:text-[#9CA79E] text-sm">
+                    <td colSpan={8} className="py-12 text-center text-muted-foreground text-sm">
                       Nenhum pedido encontrado para os filtros selecionados.
                     </td>
                   </tr>
@@ -1659,22 +2009,26 @@ export default function OrdersClient({
                   paginatedOrders.map((order) => {
                     const isSelected = order.id === selectedOrderId
                     const isNovo = order.status === 'Novo'
-                    const isPreparo = order.status === 'Em preparo'
-                    const isPronto = order.status === 'Pronto'
-                    const isEntrega = order.status === 'Em entrega'
 
                     return (
                       <tr
                         key={order.id}
+                        tabIndex={0}
                         onClick={() => setSelectedOrderId(order.id)}
+                        onKeyDown={(e) => {
+                          if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault()
+                            setSelectedOrderId(order.id)
+                          }
+                        }}
                         title="Clique para ver os detalhes deste pedido"
                         className={cn(
-                          "cursor-pointer transition-colors relative group select-none bg-white dark:bg-[#1B241E] hover:bg-[#FAF8F0]/80 dark:hover:bg-[#222C25]",
+                          "cursor-pointer transition-colors relative group select-none bg-white dark:bg-[#1B241E] hover:bg-[#FAF8F0]/80 dark:hover:bg-[#222C25] focus-visible:outline-2 focus-visible:outline-[#B4482D] focus-visible:-outline-offset-2",
                           isSelected && "bg-[#FAF5E9] dark:bg-[#243128] shadow-[inset_3px_0_0_0_#CB5A3C] dark:shadow-[inset_3px_0_0_0_#FF7D4F]"
                         )}
                       >
                         {/* Order ID with Urgent Stripe */}
-                        <td className="py-2 pl-3.5 sm:pl-4 pr-1 whitespace-nowrap">
+                        <td className="py-2 pl-2.5 xl:pl-4 pr-1 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
                             {isNovo && (
                               <span className="w-1.5 h-5 rounded-full bg-[#CB5A3C] dark:bg-[#FF7D4F] shrink-0" />
@@ -1683,7 +2037,7 @@ export default function OrdersClient({
                               <span
                                 className={cn(
                                   "font-bold text-[13px] transition-colors",
-                                  isSelected ? "text-[#CB5A3C] dark:text-[#FF7D4F]" : "text-[#1C2C22] dark:text-[#F2EFE9] group-hover:text-[#CB5A3C] dark:group-hover:text-[#FF7D4F]"
+                                  isSelected ? "text-[#B4482D] dark:text-[#FF7D4F]" : "text-[#1C2C22] dark:text-[#F2EFE9] group-hover:text-[#B4482D] dark:group-hover:text-[#FF7D4F]"
                                 )}
                               >
                                 {order.id}
@@ -1693,8 +2047,8 @@ export default function OrdersClient({
                         </td>
 
                         {/* Cliente */}
-                        <td className="py-2 px-1.5 whitespace-nowrap">
-                          <div className="font-semibold text-xs text-[#1C2C22] dark:text-[#F2EFE9] leading-tight mb-1">
+                        <td className="py-2 px-1 xl:px-1.5 whitespace-nowrap">
+                          <div className="font-semibold text-xs text-[#1C2C22] dark:text-[#F2EFE9] leading-tight mb-1 max-w-[96px] xl:max-w-none truncate">
                             {order.client}
                           </div>
                           <a
@@ -1702,7 +2056,7 @@ export default function OrdersClient({
                             target="_blank"
                             rel="noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 bg-[#25D366] hover:bg-[#20bd5a] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded shadow-2xs transition-all cursor-pointer shrink-0"
+                            className="inline-flex items-center gap-1 bg-[#15803D] hover:bg-[#166534] text-white text-[10px] font-semibold px-2 py-0.5 min-h-6 rounded shadow-2xs transition-all cursor-pointer shrink-0"
                             title={`Conversar com ${order.client} no WhatsApp (${order.phone})`}
                           >
                             <WhatsAppIcon className="w-3 h-3 fill-white text-white shrink-0" />
@@ -1711,13 +2065,13 @@ export default function OrdersClient({
                         </td>
 
                         {/* Horário */}
-                        <td className="py-2 px-1.5 whitespace-nowrap">
+                        <td className="py-2 px-1 xl:px-1.5 whitespace-nowrap">
                           <div className="text-xs font-medium text-[#1C2C22] dark:text-[#F2EFE9]">{order.time}</div>
-                          <div className="text-[10px] text-gray-400 dark:text-[#9CA79E]">{order.date}</div>
+                          <div className="text-[10px] text-muted-foreground">{order.date}</div>
                         </td>
 
                         {/* Tipo */}
-                        <td className="py-2 px-1.5 whitespace-nowrap">
+                        <td className="py-2 px-1 xl:px-1.5 whitespace-nowrap">
                           {order.type === 'Delivery' ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 dark:bg-sky-950/50 text-sky-800 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/40">
                               Delivery
@@ -1730,9 +2084,9 @@ export default function OrdersClient({
                         </td>
 
                         {/* Total */}
-                        <td className="py-2 px-1.5 whitespace-nowrap">
+                        <td className="py-2 px-1 xl:px-1.5 whitespace-nowrap">
                           <div className="text-sm font-bold text-[#1C2C22] dark:text-[#F2EFE9] leading-tight">{order.total}</div>
-                          <div className="text-[10px] text-gray-600 dark:text-[#9CA79E] font-medium mt-0.5 leading-tight truncate max-w-[110px]" title={order.paymentMethod}>
+                          <div className="text-[10px] text-muted-foreground font-medium mt-0.5 leading-tight truncate max-w-[78px] xl:max-w-[110px]" title={order.paymentMethod}>
                             {order.paymentMethod}
                           </div>
                           {order.paymentMethod === 'Em Dinheiro' && order.changeFor && (
@@ -1744,70 +2098,38 @@ export default function OrdersClient({
 
                         {/* Status */}
                         <td className="py-2 px-1 text-center whitespace-nowrap">
-                          {isNovo && (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2EE] dark:bg-[#CB5A3C]/20 text-[#CB5A3C] dark:text-white border border-[#FADCD5] dark:border-[#CB5A3C]/40">
-                              Novo
-                            </span>
-                          )}
-                          {isPreparo && (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FFFBEB] dark:bg-amber-950/50 text-[#D97706] dark:text-white border border-[#FDE68A] dark:border-amber-800/40">
-                              Em preparo
-                            </span>
-                          )}
-                          {isPronto && (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FAF5FF] dark:bg-purple-950/50 text-[#7C3AED] dark:text-white border border-[#E9D5FF] dark:border-purple-800/40">
-                              {order.type === 'Retirada' ? 'Pronto p/ retirar' : 'Pronto'}
-                            </span>
-                          )}
-                          {isEntrega && (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F0F9FF] dark:bg-sky-950/50 text-[#0284C7] dark:text-white border border-[#BAE6FD] dark:border-sky-800/40">
-                              Em entrega
-                            </span>
-                          )}
-                          {order.status === 'Concluído' && (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#ECFDF5] dark:bg-emerald-950/60 text-[#059669] dark:text-white border border-[#A7F3D0] dark:border-emerald-800/40">
-                              Concluído
-                            </span>
-                          )}
-                          {order.status === 'Cancelado' && (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF2F2] dark:bg-red-950/50 text-[#DC2626] dark:text-white border border-[#FCA5A5] dark:border-red-800/40">
-                              Cancelado
-                            </span>
-                          )}
+                          {renderStatusBadge(order)}
                         </td>
 
-
-
-                        {/* Ações: Imprimir & + Detalhes */}
-                        <td className="py-2 px-1.5 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                          <div className="inline-flex items-center gap-1.5 justify-center">
-                            <button
-                              type="button"
-                              onClick={(e) => handleOpenPrint(order, e)}
-                              className="inline-flex items-center justify-center px-2 py-1 rounded-lg text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] bg-[#FAF8F0] dark:bg-[#222C25] hover:bg-[#F3EEDD] dark:hover:bg-[#2A382E] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#2E4233]/40 dark:hover:border-[#FF7D4F]/40 shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95"
-                              title="Imprimir comanda térmica 80mm"
-                            >
-                              <span className="font-semibold text-[11px]">Imprimir</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedOrderId(order.id)}
-                              className="inline-flex items-center justify-center px-2 py-1 rounded-lg text-xs font-bold text-[#CB5A3C] dark:text-[#FF7D4F] bg-white dark:bg-[#1B241E] hover:bg-[#FEF2EE] dark:hover:bg-[#25332A] border border-[#CB5A3C]/40 dark:border-[#FF7D4F]/40 hover:border-[#CB5A3C] dark:hover:border-[#FF7D4F] shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95"
-                              title="Abrir detalhes deste pedido"
-                            >
-                              <span className="font-bold text-[11px]">+ Detalhes</span>
-                            </button>
-                          </div>
+                        {/* Ações: Menu compacto (3 pontinhos) */}
+                        <td className="py-2 px-2 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            data-orders-action-trigger="true"
+                            aria-haspopup="menu"
+                            aria-expanded={openActionMenu?.orderId === order.id}
+                            aria-label={`Ações do pedido ${order.id}`}
+                            onClick={(e) => handleToggleActionMenu(order.id, e)}
+                            title={`Ações do pedido ${order.id}`}
+                            className={cn(
+                              "min-h-9 min-w-9 inline-flex items-center justify-center rounded-xl border transition-all cursor-pointer active:scale-95 shadow-2xs",
+                              openActionMenu?.orderId === order.id
+                                ? "bg-[#2E4233] dark:bg-[#CB5A3C] text-white border-transparent shadow-xs"
+                                : "text-[#1C2C22] dark:text-[#F2EFE9] bg-[#FAF8F0] dark:bg-[#222C25] hover:bg-[#F3EEDD] dark:hover:bg-[#2A382E] border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#2E4233]/35 dark:hover:border-[#FF7D4F]/40"
+                            )}
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
                         </td>
 
                         {/* Indicador de linha selecionada */}
-                        <td className="py-2 pr-3 pl-1 text-right whitespace-nowrap">
+                        <td className="hidden xl:table-cell py-2 pr-3 pl-1 text-right whitespace-nowrap">
                           <div
                             className={cn(
                               "w-5 h-5 rounded-md flex items-center justify-center transition-all ml-auto",
                               isSelected
-                                ? "bg-[#CB5A3C] text-white shadow-xs"
-                                : "text-gray-300 group-hover:text-gray-600 group-hover:translate-x-0.5"
+                                ? "bg-[#B4482D] text-white shadow-xs"
+                                : "text-muted-foreground group-hover:text-[#1C2C22] dark:group-hover:text-[#F2EFE9] group-hover:translate-x-0.5"
                             )}
                             title={isSelected ? "Pedido aberto" : "Clique para ver detalhes"}
                           >
@@ -1819,7 +2141,7 @@ export default function OrdersClient({
                   })
                 )}
 
-                {/* Linhas vazias para manter a grade alinhada perfeitamente até a paginação */}
+                {/* Linhas vazias para manter a grade alinhada perfeitamente (exatas 8 colunas = 8 th) */}
                 {filteredOrders.length > 0 &&
                   Array.from({ length: Math.max(0, itemsPerPage - paginatedOrders.length) }).map((_, idx) => (
                     <tr
@@ -1833,55 +2155,29 @@ export default function OrdersClient({
                       <td className="py-2.5 px-1.5"><span className="text-xs text-gray-200 dark:text-[#2A382E] font-medium">—</span></td>
                       <td className="py-2.5 px-1 text-center"><span className="text-xs text-gray-200 dark:text-[#2A382E] font-medium">—</span></td>
                       <td className="py-2.5 px-1.5 text-center"><span className="text-xs text-gray-200 dark:text-[#2A382E] font-medium">—</span></td>
-                      <td className="py-2.5 px-1.5 text-center"><span className="text-xs text-gray-200 dark:text-[#2A382E] font-medium">—</span></td>
-                      <td className="py-2.5 pr-3 pl-1 w-6"></td>
+                      <td className="hidden xl:table-cell py-2.5 pr-3 pl-1 w-6" />
                     </tr>
                   ))}
               </tbody>
             </table>
           </div>
 
-          {/* Pagination Controls pinned at bottom (Centered with item count) */}
-          <div className="relative flex justify-center items-center px-6 py-2.5 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/30 dark:bg-[#1B241E]/30 shrink-0 min-h-[44px]">
-            <span className="hidden sm:inline-block absolute left-6 text-xs text-gray-500 dark:text-[#9CA79E] font-medium">
-              Mostrando {filteredOrders.length > 0 ? (safeCurrentPage - 1) * itemsPerPage + 1 : 0}–{Math.min(safeCurrentPage * itemsPerPage, filteredOrders.length)} de {filteredOrders.length} pedidos
-            </span>
-
-            <div className="flex justify-center items-center gap-1.5">
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
-                    safeCurrentPage === i + 1 
-                      ? "bg-[#CB5A3C] text-white shadow-sm" 
-                      : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-          </div>
+          {renderPaginationBar()}
         </div>
       </div>
 
-      {/* Right Drawer / Order Details Panel Column */}
+      {/* Right Drawer / Order Details Panel Column (Docked only from xl: >= 1280px) */}
       <div
         className={cn(
-          "flex-col shrink-0 lg:w-[340px] xl:w-[370px] lg:h-full",
-          selectedOrderId ? "flex" : "hidden lg:flex"
+          "flex-col shrink-0 2xl:w-[370px] 2xl:sticky 2xl:top-3 2xl:max-h-[calc(100dvh-100px)]",
+          selectedOrderId ? "flex" : "hidden 2xl:flex"
         )}
       >
-        {/* Desktop Top Spacer to align Drawer card top edge exactly with Table card top edge */}
-        <div className="h-[30px] mb-2.5 shrink-0 hidden lg:block" aria-hidden="true" />
-
         <aside
           className={cn(
             "bg-white dark:bg-[#1B241E] rounded-2xl border border-[#E9E4D4] dark:border-[#2A382E] shadow-sm flex flex-col overflow-hidden flex-1 min-h-0",
-            // Mobile / Tablet: modal drawer overlay when an order is selected
-            selectedOrderId && "max-lg:fixed max-lg:inset-y-0 max-lg:right-0 max-lg:w-full sm:max-lg:w-[420px] max-lg:z-50 max-lg:shadow-2xl max-lg:flex max-lg:rounded-none max-lg:animate-in max-lg:slide-in-from-right max-lg:duration-200"
+            // Below xl (< 1280px): slide-over drawer overlay when an order is selected
+            selectedOrderId && "max-2xl:fixed max-2xl:inset-y-0 max-2xl:right-0 max-2xl:w-full sm:max-2xl:w-[420px] max-2xl:z-[60] max-2xl:shadow-2xl max-2xl:flex max-2xl:rounded-none max-2xl:animate-in max-2xl:slide-in-from-right max-2xl:duration-200"
           )}
         >
           {activeOrder ? (
@@ -1932,9 +2228,9 @@ export default function OrdersClient({
                 <button
                   type="button"
                   onClick={() => setSelectedOrderId(null)}
-                  aria-label="Fechar"
+                  aria-label="Fechar detalhes do pedido"
                   title="Fechar detalhes"
-                  className="w-7 h-7 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2A382E] flex items-center justify-center text-gray-400 dark:text-[#9CA79E] hover:text-gray-700 dark:hover:text-[#F2EFE9] transition-colors cursor-pointer shrink-0 ml-2"
+                  className="min-h-9 min-w-9 w-9 h-9 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2A382E] flex items-center justify-center text-muted-foreground hover:text-gray-800 dark:hover:text-[#F2EFE9] transition-colors cursor-pointer shrink-0 ml-2"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1947,16 +2243,16 @@ export default function OrdersClient({
                 <h3 className="text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] uppercase tracking-wider mb-1.5">
                   Cliente
                 </h3>
-                <div className="bg-[#FAF8F0]/60 dark:bg-[#1F2B23] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-2.5 flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-sm text-[#1C2C22] dark:text-[#F2EFE9]">{activeOrder.client}</div>
-                    <div className="text-xs text-gray-500 dark:text-[#9CA79E] mt-0.5">{activeOrder.phone}</div>
+                <div className="bg-[#FAF8F0]/60 dark:bg-[#1F2B23] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-2.5 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm text-[#1C2C22] dark:text-[#F2EFE9] truncate">{activeOrder.client}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{activeOrder.phone}</div>
                   </div>
                   <a
                     href={getWhatsAppUrl(activeOrder, storeName)}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer"
+                    className="min-h-9 inline-flex items-center gap-1.5 bg-[#15803D] hover:bg-[#166534] text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer shrink-0"
                   >
                     <WhatsAppIcon className="w-4 h-4 fill-white text-white shrink-0" />
                     <span>WhatsApp</span>
@@ -1994,13 +2290,7 @@ export default function OrdersClient({
                 </div>
 
                 {(() => {
-                  const DRAWER_ITEMS_PER_PAGE = 3
-                  const totalDrawerPages = Math.max(1, Math.ceil(activeOrder.itemsDetail.length / DRAWER_ITEMS_PER_PAGE))
-                  const safeDrawerPage = Math.min(Math.max(1, drawerItemPage), totalDrawerPages)
-                  const visibleItems = activeOrder.itemsDetail.slice(
-                    (safeDrawerPage - 1) * DRAWER_ITEMS_PER_PAGE,
-                    safeDrawerPage * DRAWER_ITEMS_PER_PAGE
-                  )
+                  const visibleItems = activeOrder.itemsDetail
 
                   return (
                     <>
@@ -2053,32 +2343,7 @@ export default function OrdersClient({
                         ))}
                       </div>
 
-                      {/* Pagination (3 em 3 itens, só se tiver mais de 3 itens) */}
-                      {activeOrder.itemsDetail.length > 3 && (
-                        <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-[#E9E4D4]/60 dark:border-[#2A382E]">
-                          <span className="text-[11px] text-gray-500 font-medium">
-                            Pág. {safeDrawerPage} de {totalDrawerPages} ({activeOrder.itemsDetail.length} itens)
-                          </span>
-                          <div className="flex items-center gap-1">
-                            {Array.from({ length: totalDrawerPages }).map((_, idx) => (
-                              <button
-                                key={idx}
-                                type="button"
-                                onClick={() => setDrawerItemPage(idx + 1)}
-                                className={cn(
-                                  "w-6 h-6 rounded-md text-xs font-bold flex items-center justify-center transition-colors cursor-pointer",
-                                  safeDrawerPage === idx + 1
-                                    ? "bg-[#CB5A3C] text-white shadow-2xs"
-                                    : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
-                                )}
-                              >
-                                {idx + 1}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
+                      </>
                   )
                 })()}
               </div>
@@ -2109,7 +2374,7 @@ export default function OrdersClient({
                         : 'Cobrar na entrega / retirada'}
                     </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full font-bold text-[11px] bg-amber-50 text-amber-800 border border-amber-200">
+                  <span className="px-2.5 py-1 rounded-full font-bold text-[11px] bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40">
                     {activeOrder.type === 'Delivery' ? 'Na entrega' : 'No balcão'}
                   </span>
                 </div>
@@ -2123,7 +2388,7 @@ export default function OrdersClient({
                 <button
                   type="button"
                   onClick={() => handleAcceptOrder(activeOrder.id)}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#CB5A3C] hover:bg-[#B34B30] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                  className="w-full min-h-10 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#B4482D] hover:bg-[#9C3B23] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                 >
                   <Check className="w-4 h-4 stroke-[2.5]" />
                   <span>Aceitar pedido (Iniciar preparo)</span>
@@ -2133,7 +2398,7 @@ export default function OrdersClient({
                 <button
                   type="button"
                   onClick={() => handleAdvanceStatus(activeOrder.id)}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] dark:bg-[#8B5CF6] dark:hover:bg-[#7C3AED] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                  className="w-full min-h-10 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#6D28D9] hover:bg-[#5B21B6] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                 >
                   <Check className="w-4 h-4 stroke-[2.5]" />
                   <span>Marcar como Pronto</span>
@@ -2144,7 +2409,7 @@ export default function OrdersClient({
                   <button
                     type="button"
                     onClick={() => handleAdvanceStatus(activeOrder.id)}
-                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    className="w-full min-h-10 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#15803D] hover:bg-[#166534] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                   >
                     <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
                     <span>Concluir retirada do balcão</span>
@@ -2153,7 +2418,7 @@ export default function OrdersClient({
                   <button
                     type="button"
                     onClick={() => handleAdvanceStatus(activeOrder.id)}
-                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#0284C7] hover:bg-[#0369A1] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    className="w-full min-h-10 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#0369A1] hover:bg-[#075985] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                   >
                     <Truck className="w-4 h-4" />
                     <span>Despachar pedido (Em rota)</span>
@@ -2164,7 +2429,7 @@ export default function OrdersClient({
                 <button
                   type="button"
                   onClick={() => handleAdvanceStatus(activeOrder.id)}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                  className="w-full min-h-10 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#15803D] hover:bg-[#166534] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                 >
                   <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
                   <span>Confirmar entrega e concluir</span>
@@ -2172,22 +2437,21 @@ export default function OrdersClient({
               )}
               {activeOrder.status === 'Concluído' && (
                 <div className="w-full py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 text-center flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                  <Check className="w-4 h-4 stroke-[2.5] text-emerald-600" />
+                  <Check className="w-4 h-4 stroke-[2.5] text-emerald-600 dark:text-emerald-400" />
                   <span>Pedido Concluído com Sucesso</span>
                 </div>
               )}
 
               {/* Linha secundária de Ações: Voltar Status & Alterar Pedido */}
-              <div className="flex items-center gap-2">
-                {/* Botão de Voltar Status (Permite reverter se clicou acidentalmente) */}
+              <div className="flex flex-wrap items-center gap-2">
                 {activeOrder.status !== 'Novo' && (
                   <button
                     type="button"
                     onClick={() => handleRevertStatus(activeOrder.id)}
-                    className="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] bg-white dark:bg-[#25332A] hover:bg-gray-100 dark:hover:bg-[#2E3F34] border-2 border-[#D6D0C2] dark:border-[#3E5244] shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    className="flex-1 min-h-10 py-2 px-3 rounded-xl text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] bg-white dark:bg-[#25332A] hover:bg-gray-100 dark:hover:bg-[#2E3F34] border-2 border-[#D6D0C2] dark:border-[#3E5244] shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                     title="Voltar status anterior do pedido"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 text-gray-500 dark:text-[#9CA79E]" />
+                    <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>
                       Voltar para{" "}
                       {activeOrder.status === 'Em preparo'
@@ -2203,11 +2467,10 @@ export default function OrdersClient({
                   </button>
                 )}
 
-                {/* Botão Alterar Pedido com fundo laranja Deli */}
                 <button
                   type="button"
                   onClick={() => handleOpenEditModal(activeOrder)}
-                  className="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold text-white bg-[#CB5A3C] hover:bg-[#B34B30] border border-[#B34B30] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                  className="flex-1 min-h-10 py-2 px-3 rounded-xl text-xs font-bold text-white bg-[#B4482D] hover:bg-[#9C3B23] border border-[#9C3B23] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                   title="Adicionar ou alterar itens deste pedido"
                 >
                   <Pencil className="w-3.5 h-3.5 stroke-[2.2]" />
@@ -2215,27 +2478,27 @@ export default function OrdersClient({
                 </button>
               </div>
 
-              {/* Botão Cancelar Pedido com fundo vermelho / Estado Cancelado */}
+              {/* Botão Cancelar Pedido / Estado Cancelado */}
               {activeOrder.status !== 'Cancelado' ? (
                 <button
                   type="button"
                   onClick={() => handleCancelOrder(activeOrder.id)}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 border border-red-700 shadow-sm hover:shadow-md transition-all cursor-pointer text-center active:scale-95"
+                  className="w-full min-h-10 py-2 px-4 rounded-xl text-xs font-bold text-white bg-red-700 hover:bg-red-800 border border-red-800 shadow-sm hover:shadow-md transition-all cursor-pointer text-center active:scale-95"
                 >
                   Cancelar pedido
                 </button>
               ) : (
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 py-1.5 px-3 bg-[#FEF2F2] border border-[#FCA5A5]/60 rounded-lg text-center">
-                    <span className="text-xs font-bold text-[#DC2626]">Pedido Cancelado</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex-1 min-h-9 flex items-center justify-center py-1.5 px-3 bg-[#FEF2F2] dark:bg-red-950/40 border border-[#FCA5A5]/60 dark:border-red-800/50 rounded-lg text-center">
+                    <span className="text-xs font-bold text-[#B91C1C] dark:text-red-300">Pedido Cancelado</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleRevertStatus(activeOrder.id)}
-                    className="py-1.5 px-3 rounded-lg text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] bg-white dark:bg-[#222C25] hover:bg-gray-100 dark:hover:bg-[#2A382E] border border-[#E9E4D4] dark:border-[#2A382E] shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
+                    className="min-h-9 py-1.5 px-3 rounded-lg text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] bg-white dark:bg-[#222C25] hover:bg-gray-100 dark:hover:bg-[#2A382E] border border-[#E9E4D4] dark:border-[#2A382E] shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
                     title="Reativar pedido como Novo"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 text-gray-500 dark:text-[#9CA79E]" />
+                    <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>Reativar</span>
                   </button>
                 </div>
@@ -2261,64 +2524,70 @@ export default function OrdersClient({
   </div>
 </div>
 
-  {/* Mobile Drawer Backdrop */}
+  {/* Drawer Backdrop (< xl) */}
   {selectedOrderId && (
     <div
       onClick={() => setSelectedOrderId(null)}
-      className="fixed inset-0 bg-black/40 z-40 lg:hidden animate-in fade-in duration-200"
+      className="fixed inset-0 bg-black/45 z-[55] 2xl:hidden animate-in fade-in duration-200"
     />
   )}
 
-  {/* Modal de Cancelamento de Pedido estilizado no padrão DeliPlus */}
+  {/* Modal de Cancelamento de Pedido */}
   {orderToCancel && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-[#1B241E] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancel-order-title"
+      className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+    >
+      <div className="bg-white dark:bg-[#1B241E] rounded-2xl shadow-2xl w-full max-w-sm max-h-[90dvh] overflow-hidden flex flex-col border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150">
         {/* Modal Header */}
-        <div className="p-4 bg-[#FAF8F0] dark:bg-[#222C25] border-b border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-between">
-          <h3 className="font-serif text-lg font-bold text-[#1C2C22]">
+        <div className="p-4 bg-[#FAF8F0] dark:bg-[#222C25] border-b border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-between shrink-0">
+          <h3 id="cancel-order-title" className="font-serif text-lg font-bold text-[#1C2C22] dark:text-[#F2EFE9]">
             Cancelar Pedido {orderToCancel.id}
           </h3>
           <button
             type="button"
             onClick={() => setOrderToCancel(null)}
-            className="w-7 h-7 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-[#E9E4D4]/60 flex items-center justify-center transition-colors cursor-pointer"
+            aria-label="Fechar confirmação de cancelamento"
+            className="min-h-9 min-w-9 w-9 h-9 rounded-lg text-muted-foreground hover:text-[#1C2C22] dark:hover:text-[#F2EFE9] hover:bg-[#E9E4D4]/60 dark:hover:bg-[#2A382E] flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-4 flex flex-col gap-3 bg-white dark:bg-[#1B241E]">
+        <div className="p-4 flex flex-col gap-3 bg-white dark:bg-[#1B241E] overflow-y-auto flex-1">
           <p className="text-sm font-semibold text-[#1C2C22] dark:text-[#F2EFE9]">
             Tem certeza que deseja cancelar este pedido?
           </p>
-          <p className="text-xs text-gray-500 dark:text-[#9CA79E] leading-relaxed">
-            Esta ação alterará o status do pedido para <strong className="text-red-600 font-bold">Cancelado</strong> no sistema e no banco de dados. Esta alteração não pode ser desfeita.
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Esta ação alterará o status do pedido para <strong className="text-red-600 dark:text-red-400 font-bold">Cancelado</strong> no sistema e no banco de dados. Esta alteração não pode ser desfeita.
           </p>
 
           <div className="bg-[#FAF8F0] dark:bg-[#222C25] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-3 flex flex-col gap-1.5 text-xs">
-            <div className="flex justify-between text-gray-600 dark:text-[#9CA79E]">
+            <div className="flex justify-between text-muted-foreground">
               <span>Cliente:</span>
               <span className="font-semibold text-[#1C2C22] dark:text-[#F2EFE9]">{orderToCancel.client}</span>
             </div>
-            <div className="flex justify-between text-gray-600 dark:text-[#9CA79E]">
+            <div className="flex justify-between text-muted-foreground">
               <span>Modalidade:</span>
               <span className="font-semibold text-[#1C2C22] dark:text-[#F2EFE9]">{orderToCancel.type}</span>
             </div>
-            <div className="flex justify-between text-gray-600 dark:text-[#9CA79E]">
+            <div className="flex justify-between text-muted-foreground">
               <span>Valor Total:</span>
-              <span className="font-bold text-[#CB5A3C]">{orderToCancel.total}</span>
+              <span className="font-bold text-[#B4482D] dark:text-[#FF7D4F]">{orderToCancel.total}</span>
             </div>
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="p-3 bg-[#FAF8F0] dark:bg-[#222C25] border-t border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-end gap-2">
+        <div className="p-3 bg-[#FAF8F0] dark:bg-[#222C25] border-t border-[#E9E4D4] dark:border-[#2A382E] flex flex-wrap items-center justify-end gap-2 shrink-0">
           <button
             type="button"
             onClick={() => setOrderToCancel(null)}
             disabled={isCanceling}
-            className="py-2 px-3.5 rounded-xl text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:bg-[#F3EEDD] dark:hover:bg-[#2A382E] shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+            className="min-h-9 py-2 px-3.5 rounded-xl text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:bg-[#F3EEDD] dark:hover:bg-[#2A382E] shadow-2xs transition-all cursor-pointer disabled:opacity-50"
           >
             Voltar
           </button>
@@ -2326,7 +2595,7 @@ export default function OrdersClient({
             type="button"
             onClick={handleConfirmCancelOrder}
             disabled={isCanceling}
-            className="py-2 px-3.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+            className="min-h-9 py-2 px-3.5 rounded-xl text-xs font-bold text-white bg-red-700 hover:bg-red-800 shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95 disabled:opacity-50"
           >
             {isCanceling ? 'Cancelando...' : 'Confirmar cancelamento'}
           </button>
@@ -2337,32 +2606,37 @@ export default function OrdersClient({
 
   {/* Thermal Receipt Preview Modal (80mm Cupom) */}
       {isPrintModalOpen && printingOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[92vh]">
-            <div className="p-4 bg-[#1E3A2B] text-white flex items-center justify-between">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="print-receipt-title"
+          className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+        >
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90dvh]">
+            <div className="p-4 bg-[#1E3A2B] dark:bg-[#222C25] text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <Printer className="w-4 h-4 text-emerald-400" />
-                <span className="font-semibold text-sm">Impressão Térmica 80mm</span>
+                <span id="print-receipt-title" className="font-semibold text-sm">Impressão Térmica 80mm</span>
               </div>
               <button
+                type="button"
                 onClick={() => setIsPrintModalOpen(false)}
-                className="text-white/70 hover:text-white"
+                aria-label="Fechar prévia de impressão"
+                className="min-h-9 min-w-9 flex items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Printable Thermal Receipt Mockup */}
-            <div className="p-6 overflow-y-auto flex-1 bg-[#F9F9F8]">
+            {/* Printable Thermal Receipt Mockup (papel térmico sempre branco/preto) */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-[#F9F9F8] dark:bg-[#131A15]">
               <div
                 id="thermal-receipt"
                 className="bg-white border border-dashed border-gray-300 p-5 font-mono text-[11px] leading-tight text-black shadow-inner space-y-3"
               >
                 <div className="text-center pb-2 border-b border-dashed border-gray-400">
-                  <div className="font-bold text-base tracking-wider">CASA NOMA</div>
-                  <div>Rua das Flores, 123 - São Paulo</div>
-                  <div>CNPJ: 12.345.678/0001-90</div>
-                  <div className="mt-1">COMANDA NÃO FISCAL</div>
+                  <div className="font-bold text-base tracking-wider uppercase">{storeName}</div>
+                  <div className="text-[10px] text-gray-700 mt-0.5">CONTROLE INTERNO • NÃO FISCAL</div>
                 </div>
 
                 <div className="flex justify-between border-b border-dashed border-gray-400 pb-2">
@@ -2434,11 +2708,11 @@ export default function OrdersClient({
             </div>
 
             {/* Print Dialog Actions */}
-            <div className="p-4 bg-white border-t border-gray-200 flex gap-2">
+            <div className="p-4 bg-white dark:bg-[#222C25] border-t border-gray-200 dark:border-[#2A382E] flex flex-wrap gap-2 shrink-0">
               <Button
                 variant="outline"
                 onClick={() => setIsPrintModalOpen(false)}
-                className="flex-1 text-xs"
+                className="flex-1 min-h-9 text-xs"
               >
                 Fechar
               </Button>
@@ -2446,7 +2720,7 @@ export default function OrdersClient({
                 onClick={() => {
                   if (typeof window !== 'undefined') window.print()
                 }}
-                className="flex-1 bg-[#CB5A3C] hover:bg-[#B34B30] text-white text-xs font-semibold gap-1.5"
+                className="flex-1 min-h-9 bg-[#B4482D] hover:bg-[#9C3B23] text-white text-xs font-semibold gap-1.5"
               >
                 <Printer className="w-3.5 h-3.5" />
                 Imprimir Cupom
@@ -2458,36 +2732,42 @@ export default function OrdersClient({
 
       {/* Edit Order Items Modal */}
       {isEditModalOpen && editingOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-[#1B241E] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] border border-[#E9E4D4] dark:border-[#2A382E]">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-order-title"
+          className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+        >
+          <div className="bg-white dark:bg-[#1B241E] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90dvh] border border-[#E9E4D4] dark:border-[#2A382E]">
             {/* Modal Header */}
-            <div className="px-5 py-3.5 bg-[#FAF8F0] dark:bg-[#222C25] border-b border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-between shrink-0">
-              <div>
-                <h3 className="font-serif text-lg font-bold text-[#1C2C22] dark:text-[#F2EFE9] leading-none">
+            <div className="px-4 sm:px-5 py-3.5 bg-[#FAF8F0] dark:bg-[#222C25] border-b border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-between gap-3 shrink-0">
+              <div className="min-w-0">
+                <h3 id="edit-order-title" className="font-serif text-lg font-bold text-[#1C2C22] dark:text-[#F2EFE9] leading-none truncate">
                   Editar Itens do Pedido {editingOrder.id}
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-[#9CA79E] font-medium mt-1">
+                <p className="text-xs text-muted-foreground font-medium mt-1">
                   Adicione novos produtos ou exclua itens existentes do pedido.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsEditModalOpen(false)}
-                className="w-7 h-7 rounded-lg hover:bg-gray-200/60 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                aria-label="Fechar edição do pedido"
+                className="min-h-9 min-w-9 w-9 h-9 rounded-lg hover:bg-gray-200/60 dark:hover:bg-[#2A382E] flex items-center justify-center text-muted-foreground hover:text-gray-800 dark:hover:text-[#F2EFE9] transition-colors cursor-pointer shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Scrollable Body */}
-            <div className="p-5 overflow-y-auto flex-1 space-y-4">
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
               {/* List of current items */}
               <div>
                 <label className="text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9] uppercase tracking-wider block mb-2">
                   Itens no Pedido ({editableItems.length})
                 </label>
                 {editableItems.length === 0 ? (
-                  <div className="p-4 rounded-xl border border-dashed border-gray-300 dark:border-[#2A382E] text-center text-xs text-gray-500 dark:text-[#9CA79E] bg-[#FAF8F0]/40 dark:bg-[#1B241E]/40">
+                  <div className="p-4 rounded-xl border border-dashed border-gray-300 dark:border-[#2A382E] text-center text-xs text-muted-foreground bg-[#FAF8F0]/40 dark:bg-[#1B241E]/40">
                     Nenhum item restante no pedido. Adicione itens abaixo antes de salvar.
                   </div>
                 ) : (
@@ -2497,66 +2777,72 @@ export default function OrdersClient({
                         key={idx}
                         className="p-3 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/30 dark:bg-[#222C25] flex flex-col gap-2 shadow-2xs"
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+                          <div className="flex-1 min-w-[140px]">
                             <div className="font-semibold text-xs text-[#1C2C22] dark:text-[#F2EFE9] truncate">
                               {item.name}
                             </div>
-                            <div className="text-[11px] text-gray-500 dark:text-[#9CA79E] font-medium">
+                            <div className="text-[11px] text-muted-foreground font-medium">
                               {item.price} cada
                             </div>
                           </div>
 
-                          {/* Quantity Stepper */}
-                          <div className="flex items-center gap-1 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-lg p-0.5 shadow-2xs">
+                          <div className="flex items-center gap-2 shrink-0">
+                            {/* Quantity Stepper */}
+                            <div className="flex items-center gap-1 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-lg p-0.5 shadow-2xs">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateItemQty(idx, -1)}
+                                aria-label={`Diminuir quantidade de ${item.name}`}
+                                className="min-h-9 min-w-9 w-9 h-9 rounded flex items-center justify-center text-gray-600 dark:text-[#C5CFC7] hover:bg-gray-100 dark:hover:bg-[#2A382E] hover:text-black dark:hover:text-[#F2EFE9] cursor-pointer text-xs"
+                                title="Diminuir quantidade"
+                              >
+                                <Minus className="w-3.5 h-3.5" />
+                              </button>
+                              <span className="w-6 text-center text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9]">
+                                {item.qty}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateItemQty(idx, 1)}
+                                aria-label={`Aumentar quantidade de ${item.name}`}
+                                className="min-h-9 min-w-9 w-9 h-9 rounded flex items-center justify-center text-gray-600 dark:text-[#C5CFC7] hover:bg-gray-100 dark:hover:bg-[#2A382E] hover:text-black dark:hover:text-[#F2EFE9] cursor-pointer text-xs"
+                                title="Aumentar quantidade"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Remove / Excluir Button */}
                             <button
                               type="button"
-                              onClick={() => handleUpdateItemQty(idx, -1)}
-                              className="w-6 h-6 rounded flex items-center justify-center text-gray-600 dark:text-[#9CA79E] hover:bg-gray-100 dark:hover:bg-[#2A382E] hover:text-black dark:hover:text-[#F2EFE9] cursor-pointer text-xs"
-                              title="Diminuir quantidade"
+                              onClick={() => setItemToDeleteFromOrder({ index: idx, name: item.name })}
+                              aria-label={`Excluir ${item.name} do pedido`}
+                              className="min-h-9 min-w-9 w-9 h-9 rounded-lg flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 transition-colors cursor-pointer shrink-0"
+                              title="Excluir este item do pedido"
                             >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="w-6 text-center text-xs font-bold text-[#1C2C22] dark:text-[#F2EFE9]">
-                              {item.qty}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateItemQty(idx, 1)}
-                              className="w-6 h-6 rounded flex items-center justify-center text-gray-600 dark:text-[#9CA79E] hover:bg-gray-100 dark:hover:bg-[#2A382E] hover:text-black dark:hover:text-[#F2EFE9] cursor-pointer text-xs"
-                              title="Aumentar quantidade"
-                            >
-                              <Plus className="w-3 h-3" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
-
-                          {/* Remove / Excluir Button */}
-                          <button
-                            type="button"
-                            onClick={() => setItemToDeleteFromOrder({ index: idx, name: item.name })}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer shrink-0"
-                            title="Excluir este item do pedido"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
                         </div>
 
                         {/* Complements of this item */}
                         {item.complements && item.complements.length > 0 && (
-                          <div className="pt-2 border-t border-[#E9E4D4]/60 flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] font-bold text-gray-500 dark:text-[#9CA79E] uppercase tracking-wider mr-1">
+                          <div className="pt-2 border-t border-[#E9E4D4]/60 dark:border-[#2A382E] flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mr-1">
                               Adicionais:
                             </span>
                             {item.complements.map((comp, cIdx) => (
                               <span
                                 key={cIdx}
-                                className="inline-flex items-center gap-1.5 text-[11px] font-medium bg-amber-50 text-amber-900 border border-amber-200/80 px-2 py-0.5 rounded-md"
+                                className="inline-flex items-center gap-1 text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/40 pl-2 pr-1 py-0.5 rounded-md"
                               >
                                 <span>+ {comp.name} ({comp.price})</span>
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveComplementFromItem(idx, cIdx)}
-                                  className="text-amber-700 hover:text-red-600 transition-colors cursor-pointer"
+                                  aria-label={`Remover adicional ${comp.name}`}
+                                  className="min-h-9 min-w-9 lg:min-h-7 lg:min-w-7 inline-flex items-center justify-center rounded text-amber-800 dark:text-amber-300 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
                                   title="Remover adicional"
                                 >
                                   <X className="w-3 h-3" />
@@ -2581,8 +2867,9 @@ export default function OrdersClient({
                 <div className="space-y-2">
                   <select
                     value={selectedCatalogProdId}
+                    aria-label="Selecionar produto do cardápio"
                     onChange={(e) => handleSelectCatalogProduct(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs text-[#1C2C22] dark:text-[#F2EFE9] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                    className="w-full min-h-9 px-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs text-[#1C2C22] dark:text-[#F2EFE9] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
                   >
                     <option value="">Selecione um produto do cardápio...</option>
                     {catalogProducts.map(p => (
@@ -2598,34 +2885,35 @@ export default function OrdersClient({
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
                     placeholder="Nome do produto"
-                    className="w-full px-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-gray-400 dark:placeholder:text-[#9CA79E] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                    className="w-full min-h-9 px-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
                   />
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap sm:flex-nowrap gap-2">
                     <div className="w-20 shrink-0">
                       <input
                         type="number"
                         min="1"
                         value={newItemQty}
+                        aria-label="Quantidade do novo item"
                         onChange={(e) => setNewItemQty(Math.max(1, parseInt(e.target.value) || 1))}
                         placeholder="Qtd"
-                        className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                        className="w-full min-h-9 px-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs text-[#1C2C22] dark:text-[#F2EFE9] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
                       />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-[120px]">
                       <input
                         type="text"
                         value={newItemPrice}
                         onChange={(e) => setNewItemPrice(e.target.value)}
                         placeholder="Preço (ex: 28,00)"
-                        className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                        className="w-full min-h-9 px-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
                       />
                     </div>
                     <Button
                       type="button"
                       onClick={handleAddNewItem}
                       disabled={!newItemName.trim()}
-                      className="bg-[#CB5A3C] hover:bg-[#B34B30] text-white text-xs font-bold px-3 shrink-0 rounded-xl disabled:opacity-50"
+                      className="min-h-9 bg-[#B4482D] hover:bg-[#9C3B23] text-white text-xs font-bold px-3 shrink-0 rounded-xl disabled:opacity-50"
                     >
                       <Plus className="w-3.5 h-3.5 mr-1" />
                       Adicionar
@@ -2645,13 +2933,13 @@ export default function OrdersClient({
                   <div className="space-y-2">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <div>
-                        <label className="text-[10px] font-bold text-gray-500 dark:text-[#9CA79E] uppercase tracking-wider block mb-1">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                           Item do pedido:
                         </label>
                         <select
                           value={targetItemIndex}
                           onChange={(e) => setTargetItemIndex(Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                          className="w-full min-h-9 px-2.5 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs text-[#1C2C22] dark:text-[#F2EFE9] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
                         >
                           {editableItems.map((it, idx) => (
                             <option key={idx} value={idx}>
@@ -2662,13 +2950,13 @@ export default function OrdersClient({
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-bold text-gray-500 dark:text-[#9CA79E] uppercase tracking-wider block mb-1">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                           Adicional do cardápio:
                         </label>
                         <select
                           value={selectedCatalogCompName}
                           onChange={(e) => handleSelectCatalogComplement(e.target.value)}
-                          className="w-full px-2.5 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                          className="w-full min-h-9 px-2.5 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs text-[#1C2C22] dark:text-[#F2EFE9] focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
                         >
                           <option value="">Selecione um adicional...</option>
                           {allDistinctComplements.map(c => (
@@ -2681,14 +2969,14 @@ export default function OrdersClient({
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      <div className="flex-1">
+                    <div className="flex flex-wrap sm:flex-nowrap gap-2">
+                      <div className="flex-1 min-w-[140px]">
                         <input
                           type="text"
                           value={newCompName}
                           onChange={(e) => setNewCompName(e.target.value)}
                           placeholder="Nome do adicional (ex: Bacon extra)"
-                          className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                          className="w-full min-h-9 px-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
                         />
                       </div>
                       <div className="w-24 shrink-0">
@@ -2697,14 +2985,14 @@ export default function OrdersClient({
                           value={newCompPrice}
                           onChange={(e) => setNewCompPrice(e.target.value)}
                           placeholder="Preço (ex: 5,00)"
-                          className="w-full px-3 py-1.5 bg-white border border-[#E9E4D4] rounded-xl text-xs text-[#1C2C22] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
+                          className="w-full min-h-9 px-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1E3A2B]/20"
                         />
                       </div>
                       <Button
                         type="button"
                         onClick={handleAddComplementToItem}
                         disabled={!newCompName.trim()}
-                        className="bg-[#CB5A3C] hover:bg-[#B34B30] text-white text-xs font-bold px-3 shrink-0 rounded-xl disabled:opacity-50"
+                        className="min-h-9 bg-[#B4482D] hover:bg-[#9C3B23] text-white text-xs font-bold px-3 shrink-0 rounded-xl disabled:opacity-50"
                       >
                         <Plus className="w-3.5 h-3.5 mr-1" />
                         Incluir
@@ -2722,17 +3010,17 @@ export default function OrdersClient({
             </div>
 
             {/* Modal Actions */}
-            <div className="p-4 bg-white dark:bg-[#222C25] border-t border-[#E9E4D4] dark:border-[#2A382E] flex gap-2">
+            <div className="p-4 bg-white dark:bg-[#222C25] border-t border-[#E9E4D4] dark:border-[#2A382E] flex flex-wrap gap-2 shrink-0">
               <Button
                 variant="outline"
                 onClick={() => setIsEditModalOpen(false)}
-                className="flex-1 text-xs"
+                className="flex-1 min-h-9 text-xs"
               >
                 Cancelar
               </Button>
               <Button
                 onClick={handleSaveEditedOrder}
-                className="flex-1 bg-[#CB5A3C] hover:bg-[#B34B30] text-white text-xs font-semibold gap-1.5"
+                className="flex-1 min-h-9 bg-[#B4482D] hover:bg-[#9C3B23] text-white text-xs font-semibold gap-1.5"
               >
                 <Check className="w-3.5 h-3.5" />
                 Salvar Alterações
@@ -2742,38 +3030,42 @@ export default function OrdersClient({
         </div>
       )}
 
-      {/* Modal de Confirmação: Excluir Item do Pedido no Padrão DeliPlus */}
+      {/* Modal de Confirmação: Excluir Item do Pedido */}
       {itemToDeleteFromOrder && (
-        <div 
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-order-item-title"
           className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
           onClick={() => setItemToDeleteFromOrder(null)}
         >
           <div 
-            className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col items-center text-center border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150 relative"
+            className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-sm max-h-[90dvh] overflow-y-auto shadow-2xl p-6 flex flex-col items-center text-center border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150 relative"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setItemToDeleteFromOrder(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              aria-label="Fechar confirmação"
+              className="absolute top-3.5 right-3.5 min-h-9 min-w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-gray-800 dark:hover:text-[#F2EFE9] hover:bg-gray-100 dark:hover:bg-[#2A382E] transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="w-14 h-14 rounded-full bg-[#FDF2F0] border-2 border-[#F5D8D1] flex items-center justify-center mb-3 shadow-sm">
-              <Trash2 className="w-7 h-7 text-[#CB5A3C]" />
+            <div className="w-14 h-14 rounded-full bg-[#FDF2F0] dark:bg-red-950/40 border-2 border-[#F5D8D1] dark:border-red-900/50 flex items-center justify-center mb-3 shadow-sm shrink-0">
+              <Trash2 className="w-7 h-7 text-[#CB5A3C] dark:text-[#FF7D4F]" />
             </div>
 
-            <h3 className="font-bold text-[#1C2C22] dark:text-[#F2EFE9] text-lg mb-1">Excluir item do pedido?</h3>
-            <p className="text-sm text-gray-500 dark:text-[#9CA79E] mb-6 leading-relaxed">
+            <h3 id="delete-order-item-title" className="font-bold text-[#1C2C22] dark:text-[#F2EFE9] text-lg mb-1">Excluir item do pedido?</h3>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
               Tem certeza que deseja remover <span className="font-bold text-[#1C2C22] dark:text-[#F2EFE9]">&quot;{itemToDeleteFromOrder.name}&quot;</span> deste pedido? O valor total será recalculado automaticamente.
             </p>
 
-            <div className="flex w-full gap-3">
+            <div className="flex flex-wrap w-full gap-3">
               <button
                 type="button"
                 onClick={() => setItemToDeleteFromOrder(null)}
-                className="flex-1 py-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-[14px] font-semibold text-gray-600 dark:text-[#9CA79E] hover:bg-gray-50 dark:hover:bg-[#222C25] transition-colors cursor-pointer"
+                className="flex-1 min-h-10 py-2.5 px-4 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-[14px] font-semibold text-gray-700 dark:text-[#C5CFC7] hover:bg-gray-50 dark:hover:bg-[#222C25] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -2783,7 +3075,7 @@ export default function OrdersClient({
                   handleRemoveItem(itemToDeleteFromOrder.index)
                   setItemToDeleteFromOrder(null)
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-[14px] font-semibold text-white shadow-sm transition-all cursor-pointer active:scale-95"
+                className="flex-1 min-h-10 py-2.5 px-4 rounded-xl bg-[#B4482D] hover:bg-[#9C3B23] text-[14px] font-semibold text-white shadow-sm transition-all cursor-pointer active:scale-95"
               >
                 Excluir item
               </button>
@@ -2791,6 +3083,112 @@ export default function OrdersClient({
           </div>
         </div>
       )}
+      {/* Menu Flutuante de Ações do Pedido */}
+      {openActionMenu && activeActionOrder && (() => {
+        const quickAction = getQuickStatusAction(activeActionOrder)
+        return (
+          <div
+            role="menu"
+            data-orders-action-menu="true"
+            aria-label={`Opções do pedido ${activeActionOrder.id}`}
+            style={{
+              position: 'fixed',
+              top: openActionMenu.top,
+              left: openActionMenu.left,
+              transform: openActionMenu.openUp ? 'translateY(-100%)' : undefined,
+            }}
+            className="z-[90] w-[216px] max-h-[calc(100dvh-24px)] overflow-y-auto rounded-2xl border border-[#E9E4D4] dark:border-[#2F3F34] bg-white dark:bg-[#1B241E] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-120"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-2.5 py-1.5 border-b border-[#E9E4D4]/70 dark:border-[#26342A] mb-1 flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+                Pedido {activeActionOrder.id}
+              </span>
+              {renderStatusBadge(activeActionOrder)}
+            </div>
+
+            {quickAction && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpenActionMenu(null)
+                  quickAction.onRun()
+                }}
+                className="w-full min-h-9 flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-left hover:bg-[#F5F1E6] dark:hover:bg-[#25332A] transition-colors cursor-pointer"
+              >
+                <span className={cn("w-2 h-2 rounded-full shrink-0", quickAction.dotClass)} />
+                <span className={quickAction.accentClass}>{quickAction.label}</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setSelectedOrderId(activeActionOrder.id)
+                setOpenActionMenu(null)
+              }}
+              className="w-full min-h-9 flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium text-[#1C2C22] dark:text-[#F2EFE9] text-left hover:bg-[#F5F1E6] dark:hover:bg-[#25332A] transition-colors cursor-pointer"
+            >
+              <Eye className="w-3.5 h-3.5 text-[#B4482D] dark:text-[#FF7D4F] shrink-0" />
+              <span>Ver detalhes</span>
+            </button>
+
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpenActionMenu(null)
+                handleOpenPrint(activeActionOrder)
+              }}
+              className="w-full min-h-9 flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium text-[#1C2C22] dark:text-[#F2EFE9] text-left hover:bg-[#F5F1E6] dark:hover:bg-[#25332A] transition-colors cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span>Imprimir comanda</span>
+            </button>
+
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpenActionMenu(null)
+                handleOpenEditModal(activeActionOrder)
+              }}
+              className="w-full min-h-9 flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium text-[#1C2C22] dark:text-[#F2EFE9] text-left hover:bg-[#F5F1E6] dark:hover:bg-[#25332A] transition-colors cursor-pointer"
+            >
+              <Pencil className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span>Alterar itens</span>
+            </button>
+
+            {activeActionOrder.status !== 'Cancelado' && (
+              <>
+                <div className="my-1 border-t border-[#E9E4D4]/70 dark:border-[#26342A]" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setOpenActionMenu(null)
+                    handleCancelOrder(activeActionOrder.id)
+                  }}
+                  className="w-full min-h-9 flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-red-700 dark:text-red-400 text-left hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>Cancelar pedido</span>
+                </button>
+              </>
+            )}
+          </div>
+        )
+      })()}
+
+      {/* Modal de Lançamento de Pedido Manual (PDV / Balcão / Telefone) */}
+      <ManualOrderModal
+        isOpen={isNewOrderModalOpen}
+        onClose={() => setIsNewOrderModalOpen(false)}
+        catalogProducts={catalogProducts}
+        storeName={storeName}
+      />
     </div>
   )
 }

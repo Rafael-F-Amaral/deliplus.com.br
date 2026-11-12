@@ -23,18 +23,18 @@ export function BillingStatus({ state }: { state: BillingPageState }) {
           {state.kind === "unauthenticated" ? (
             <Link
               href="/sign-in"
-              className={cn(buttonVariants({ variant: "outline" }), "dark:border-[#2A382E] dark:bg-[#25332A] dark:text-white dark:hover:bg-[#2E3F34]")}
+              className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-2 dark:border-[#2A382E] dark:bg-[#25332A] dark:text-white dark:hover:bg-[#2E3F34]")}
             >
               Entrar na conta
             </Link>
           ) : state.kind === "no_active_organization" ? (
-            <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "dark:border-[#2A382E] dark:bg-[#25332A] dark:text-white dark:hover:bg-[#2E3F34]")}>
+            <Link href="/" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-2 dark:border-[#2A382E] dark:bg-[#25332A] dark:text-white dark:hover:bg-[#2E3F34]")}>
               Selecionar organização
             </Link>
           ) : state.kind === "organization_not_provisioned" ? (
             <Link
               href="/onboarding"
-              className={cn(buttonVariants({ variant: "outline" }), "dark:border-[#2A382E] dark:bg-[#25332A] dark:text-white dark:hover:bg-[#2E3F34]")}
+              className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-2 dark:border-[#2A382E] dark:bg-[#25332A] dark:text-white dark:hover:bg-[#2E3F34]")}
             >
               Continuar configuração
             </Link>
@@ -49,7 +49,7 @@ export function BillingStatus({ state }: { state: BillingPageState }) {
     return (
       <div className="rounded-xl border border-[#F2D7B6] dark:border-[#3D5444] bg-[#FDF6E9] dark:bg-[#28382D] shadow-sm flex gap-3 p-5 items-start w-full mb-2">
         <div className="mt-0.5 shrink-0">
-          <Clock className="h-5 w-5 text-[#CB5A3C]" />
+          <Clock className="h-5 w-5 text-[#B4482D] dark:text-[#FF7D4F]" />
         </div>
         <div className="flex flex-col gap-1">
           <p className="font-bold text-foreground dark:text-white">

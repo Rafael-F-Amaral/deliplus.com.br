@@ -23,7 +23,7 @@ export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
       className,
       disabled,
       onClick,
-      activeTrackColor = "bg-[#2E4233]",
+      activeTrackColor = "bg-[#2E4233] dark:bg-emerald-500",
       inactiveTrackColor = "bg-[#CB5A3C]",
       ...props
     },
@@ -44,7 +44,7 @@ export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
           }
         }}
         className={cn(
-          "w-9 h-5 rounded-full relative p-0.5 flex items-center cursor-pointer transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed",
+          "w-9 h-5 rounded-full relative p-0.5 flex items-center cursor-pointer transition-colors duration-200 outline-none after:content-[''] after:absolute after:-inset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed",
           checked ? activeTrackColor : inactiveTrackColor,
           className
         )}

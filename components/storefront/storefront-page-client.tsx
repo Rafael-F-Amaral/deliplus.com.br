@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { StorefrontStore, StorefrontCategory, StorefrontProduct } from "@/types/storefront"
+import { normalizeSearch } from "@/lib/utils"
 import {
   MOCK_CATEGORIES,
   MOCK_PRODUCTS,
@@ -48,10 +49,12 @@ export function StorefrontPageClient({
       (selectedCategory === "combos" && prod.is_combo) ||
       (prod.tags && prod.tags.some((t) => t.toLowerCase() === selectedCategory.toLowerCase() || t.toLowerCase().replace(/\s+/g, "-") === selectedCategory.toLowerCase()))
 
+    const q = normalizeSearch(searchQuery)
     const matchesSearch =
-      searchQuery.trim() === "" ||
-      prod.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      prod.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      q === "" ||
+      normalizeSearch(prod.name).includes(q) ||
+      normalizeSearch(prod.description || "").includes(q) ||
+      (prod.tags && prod.tags.some((t) => normalizeSearch(t).includes(q)))
 
     return matchesCategory && matchesSearch
   })
@@ -63,8 +66,19 @@ export function StorefrontPageClient({
   // Categorias para as seções na home (todas exceto "todas")
   const sectionsCategories = categoriesList.filter((c) => c.id !== "todas")
 
+  // Activa scrollbar vertical elegante exclusivamente no Storefront
+  useEffect(() => {
+    document.documentElement.classList.add("storefront-active")
+    return () => {
+      document.documentElement.classList.remove("storefront-active")
+    }
+  }, [])
+
   return (
-    <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#131A15] text-[#1C261F] dark:text-[#F2EFE9] transition-colors duration-150">
+    <div
+      data-storefront-root="true"
+      className="min-h-dvh bg-[#FAF8F5] dark:bg-[#131A15] text-[#1C261F] dark:text-[#F2EFE9] transition-colors duration-150"
+    >
       {/* 1. Header */}
       <StorefrontHeader />
 
@@ -72,8 +86,11 @@ export function StorefrontPageClient({
       <StoreHero />
 
       {/* 3. Main Menu Body */}
-      <main id="cardapio" className="mx-auto max-w-7xl px-4 pb-28 pt-6 md:px-6">
-        {/* Category Filter Pills & Search Input (From Image 02) */}
+      <main
+        id="cardapio"
+        className="mx-auto max-w-7xl px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-14 pt-4 short:pt-3 md:px-6"
+      >
+        {/* Category Filter Pills & Search Input */}
         <CategoryFilterBar
           categories={categoriesList}
           selectedCategory={selectedCategory}
@@ -84,25 +101,25 @@ export function StorefrontPageClient({
 
         {/* Catalog Sections */}
         {selectedCategory === "todas" && searchQuery === "" ? (
-          <div className="space-y-12">
+          <div className="space-y-9 short:space-y-6">
             {/* Mais pedidos */}
             {featuredProducts.length > 0 && (
               <section>
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
+                <div className="mb-3.5 flex items-center justify-between">
+                  <h2 className="font-serif text-xl sm:text-2xl short:text-lg font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
                     Mais pedidos
                   </h2>
                 </div>
 
-                {/* Desktop 3-column Grid */}
-                <div className="hidden grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 md:grid">
+                {/* Desktop/Tablet Grid */}
+                <div className="hidden grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-5 md:grid">
                   {featuredProducts.map((product) => (
                     <ProductCard key={product.id} product={product} />
                   ))}
                 </div>
 
-                {/* Mobile Horizontal Cards List */}
-                <div className="flex flex-col gap-3 md:hidden">
+                {/* Mobile Cards List (2 cols on sm landscape) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
                   {featuredProducts.map((product) => (
                     <MobileProductCard key={product.id} product={product} />
                   ))}
@@ -128,19 +145,19 @@ export function StorefrontPageClient({
 
               return (
                 <section key={cat.id}>
-                  <div className="mb-4">
-                    <h2 className="font-serif text-2xl font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
+                  <div className="mb-3.5">
+                    <h2 className="font-serif text-xl sm:text-2xl short:text-lg font-bold tracking-tight text-[#1A261D] dark:text-[#F2EFE9]">
                       {cat.name}
                     </h2>
                   </div>
 
-                  <div className="hidden grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 md:grid">
+                  <div className="hidden grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-5 md:grid">
                     {catProducts.map((product) => (
                       <ProductCard key={product.id} product={product} />
                     ))}
                   </div>
 
-                  <div className="flex flex-col gap-3 md:hidden">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
                     {catProducts.map((product) => (
                       <MobileProductCard key={product.id} product={product} />
                     ))}
@@ -162,27 +179,28 @@ export function StorefrontPageClient({
 
             {filteredProducts.length === 0 ? (
               <div className="rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] p-12 text-center">
-                <p className="text-sm text-[#79807B] dark:text-[#9CA79E]">
+                <p className="text-sm text-[#59615B] dark:text-[#9CA79E]">
                   Nenhum produto encontrado com os filtros selecionados.
                 </p>
                 <button
+                  type="button"
                   onClick={() => {
                     setSelectedCategory("todas")
                     setSearchQuery("")
                   }}
-                  className="mt-3 text-xs font-bold text-[#CB5A3C] hover:underline"
+                  className="mt-3 inline-flex min-h-9 items-center px-3 text-xs font-bold text-[#B4482D] dark:text-[#FF7D4F] hover:underline cursor-pointer"
                 >
                   Limpar filtros
                 </button>
               </div>
             ) : (
               <>
-                <div className="hidden grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 md:grid">
+                <div className="hidden grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-5 md:grid">
                   {filteredProducts.map((product) => (
                     <ProductCard key={product.id} product={product} />
                   ))}
                 </div>
-                <div className="flex flex-col gap-3 md:hidden">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
                   {filteredProducts.map((product) => (
                     <MobileProductCard key={product.id} product={product} />
                   ))}

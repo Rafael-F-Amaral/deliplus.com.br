@@ -91,24 +91,27 @@ export default async function BillingPage({
     return (
       <Card key={plan.code} className={
           isEssential
-            ? "bg-[#FFF0E5] dark:bg-[#251A14] border border-[#CB5A3C] shadow-sm flex flex-col relative"
+            ? "bg-[#FFF0E5] dark:bg-[#251A14] border border-[#B4482D] dark:border-[#FF7D4F] shadow-sm flex flex-col relative"
             : "bg-white dark:bg-[#1B241E] border border-gray-200 dark:border-[#2A382E] shadow-sm flex flex-col relative"
         }>
-        {isCurrentPlan && (
-          <div className="absolute top-3.5 left-5 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C]"></span>
-            <span className="text-[10px] font-bold text-[#CB5A3C] uppercase tracking-wider">Plano atual</span>
-          </div>
-        )}
-        {isEssential && (
-          <div className="absolute top-3 right-4">
-            <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white bg-[#CB5A3C] rounded-full">
-              Mais Popular
-            </span>
-          </div>
-        )}
-        
-        <CardHeader className="flex flex-col items-start gap-1 space-y-0 relative pt-10 pb-0">
+        <CardHeader className="flex flex-col items-start gap-2 space-y-0 pt-6 pb-0">
+          {(isCurrentPlan || isEssential) && (
+            <div className="flex w-full flex-wrap items-center justify-between gap-2 min-h-6">
+              {isCurrentPlan ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#B4482D] dark:bg-[#FF7D4F]" />
+                  <span className="text-[10px] font-bold text-[#B4482D] dark:text-[#FF7D4F] uppercase tracking-wider">Plano atual</span>
+                </div>
+              ) : (
+                <span aria-hidden="true" />
+              )}
+              {isEssential ? (
+                <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white dark:text-[#131A15] bg-[#B4482D] dark:bg-[#FF7D4F] rounded-full">
+                  Mais Popular
+                </span>
+              ) : null}
+            </div>
+          )}
           <div className="flex flex-col">
             <CardTitle>
               <h2 className="text-2xl font-bold text-[#111827] dark:text-white">{plan.name}</h2>
@@ -116,7 +119,7 @@ export default async function BillingPage({
             <CardDescription className="text-[13px] mt-1 text-[#556358] dark:text-[#A1ADA4] font-medium">{plan.description}</CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="flex flex-col gap-5 pt-6 pb-0">
+        <CardContent className="flex flex-1 flex-col gap-5 pt-6 pb-0">
           <p className="flex flex-wrap items-baseline gap-1">
             <span className="text-xl font-bold tracking-tight text-[#111827] dark:text-white">R$</span>
             <span className="text-4xl font-bold tracking-tighter tabular-nums text-[#111827] dark:text-white">
@@ -126,15 +129,15 @@ export default async function BillingPage({
           </p>
           <div className="flex flex-col gap-2.5">
             <p className="flex items-center gap-2 text-[13px] font-medium text-[#2E4233] dark:text-white">
-              <span className="text-[#CB5A3C] text-[15px] font-bold leading-none translate-y-[1px]">✓</span>
+              <span className="text-[#B4482D] dark:text-[#FF7D4F] text-[15px] font-bold leading-none translate-y-[1px]">✓</span>
               {capacity === 1 ? "1 Estabelecimento" : `Até ${capacity} Estabelecimentos`}
             </p>
             <p className="flex items-center gap-2 text-[13px] font-medium text-[#2E4233] dark:text-white">
-              <span className="text-[#CB5A3C] text-[15px] font-bold leading-none translate-y-[1px]">✓</span>
+              <span className="text-[#B4482D] dark:text-[#FF7D4F] text-[15px] font-bold leading-none translate-y-[1px]">✓</span>
               Todas as funcionalidades
             </p>
             <p className="flex items-center gap-2 text-[13px] font-medium text-[#2E4233] dark:text-white">
-              <span className="text-[#CB5A3C] text-[15px] font-bold leading-none translate-y-[1px]">✓</span>
+              <span className="text-[#B4482D] dark:text-[#FF7D4F] text-[15px] font-bold leading-none translate-y-[1px]">✓</span>
               Suporte prioritário
             </p>
           </div>
@@ -160,9 +163,9 @@ export default async function BillingPage({
     )
   })
   return (
-    <main className="min-h-full w-full bg-transparent px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex flex-col">
-      <div className="flex w-full flex-col gap-8 md:gap-5 pb-12">
-        <header className="flex w-full flex-col gap-4 mt-8 md:mt-0">
+    <main className="min-h-full w-full bg-transparent px-4 sm:px-6 lg:px-8 py-6 md:py-8 pb-24 lg:pb-12 flex flex-col">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 md:gap-6">
+        <header className="flex w-full flex-col gap-4 mt-2 md:mt-0">
           <div className="flex items-center gap-2 mb-2">
             <LogoDeli variant="solid" className="h-10 w-auto block dark:hidden" />
             <LogoDeli variant="outline-white" className="h-10 w-auto hidden dark:block" />
@@ -171,11 +174,11 @@ export default async function BillingPage({
           <div className="flex flex-col gap-2 mt-0">
             <div className="flex flex-col gap-1.5">
               <span className="text-[13px] font-bold tracking-widest text-[#556358] dark:text-[#9CA79E] uppercase">Planos e preços</span>
-              <div className="w-8 h-1 bg-[#CB5A3C] rounded-full"></div>
+              <div className="w-8 h-1 bg-[#B4482D] dark:bg-[#FF7D4F] rounded-full"></div>
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl leading-[1.1] mt-1">
+            <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-balance leading-[1.1] mt-1">
               <span className="text-[#2E4233] dark:text-white">Escolha o plano ideal <br className="hidden sm:block" /></span>
-              <span className="text-[#CB5A3C]">para o seu negócio.</span>
+              <span className="text-[#B4482D] dark:text-[#FF7D4F]">para o seu negócio.</span>
             </h1>
             <p className="text-[15px] text-[#556358] dark:text-[#9CA79E] font-medium mt-0.5">
               Mais estrutura, mais controle e mais facilidade para o seu dia a dia.

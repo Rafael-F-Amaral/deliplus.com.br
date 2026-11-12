@@ -81,23 +81,7 @@ async function loadStoreCatalog(admin: any, storeId: string) {
         if (Array.isArray(row.images) && row.images.length > 0) {
           images = row.images.filter(Boolean).slice(0, 5)
         } else if (row.image_url) {
-          if (row.name?.toLowerCase().includes("bowl") || row.name?.toLowerCase().includes("salmão")) {
-            images = [
-              row.image_url,
-              "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&h=450&q=80",
-              "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&h=450&q=80",
-              "https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=600&h=450&q=80",
-              "https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&w=600&h=450&q=80",
-            ]
-          } else if (row.name?.toLowerCase().includes("tapioca")) {
-            images = [
-              row.image_url,
-              "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=600&h=450&q=80",
-              "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=600&h=450&q=80",
-            ]
-          } else {
-            images = [row.image_url]
-          }
+          images = [row.image_url]
         }
 
         return {
@@ -192,7 +176,7 @@ export default async function PublicStorePage({
       let initialProducts: StorefrontProduct[] = []
 
       try {
-        const timeoutPromise = new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 300))
+        const timeoutPromise = new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000))
         const loadDb = async () => {
           const { createAdminSupabaseClient } = await import("@/lib/supabase/admin")
           const admin = createAdminSupabaseClient()
@@ -215,7 +199,7 @@ export default async function PublicStorePage({
             const [settingsRes, catalog] = await Promise.all([
               (admin.from("store_delivery_settings" as any) as any)
                 .select(
-                  "is_open_override, banner_url, logo_url, phone, instagram, social_links, bio, address, category, default_prep_min, default_prep_max, free_delivery_above_cents"
+                  "is_open_override, banner_url, logo_url, phone, instagram, social_links, bio, address, category, default_prep_min, default_prep_max, free_delivery_above_cents, delivery_fee_cents, min_order_cents, accepts_delivery, accepts_pickup, accept_pix, accept_card, accept_cash, pix_key, pix_key_type, business_hours"
                 )
                 .eq("store_id", storeRow.id)
                 .maybeSingle(),
@@ -244,9 +228,22 @@ export default async function PublicStorePage({
             if (devSettings.default_prep_min && devSettings.default_prep_max) {
               storeData.prep_time = `${devSettings.default_prep_min}–${devSettings.default_prep_max} min`
             }
-            if (devSettings.free_delivery_above_cents !== undefined) {
+            if (devSettings.free_delivery_above_cents !== undefined && devSettings.free_delivery_above_cents !== null) {
               storeData.free_delivery_above_cents = devSettings.free_delivery_above_cents
             }
+            if (devSettings.delivery_fee_cents !== undefined && devSettings.delivery_fee_cents !== null) {
+              storeData.delivery_fee_cents = devSettings.delivery_fee_cents
+            }
+            if (devSettings.min_order_cents !== undefined && devSettings.min_order_cents !== null) {
+              storeData.min_order_cents = devSettings.min_order_cents
+            }
+            if (devSettings.accepts_delivery !== undefined) storeData.accepts_delivery = devSettings.accepts_delivery
+            if (devSettings.accepts_pickup !== undefined) storeData.accepts_pickup = devSettings.accepts_pickup
+            if (devSettings.accept_pix !== undefined) storeData.accept_pix = devSettings.accept_pix
+            if (devSettings.accept_card !== undefined) storeData.accept_card = devSettings.accept_card
+            if (devSettings.accept_cash !== undefined) storeData.accept_cash = devSettings.accept_cash
+            if (devSettings.pix_key) storeData.pix_key = devSettings.pix_key
+
             if (devSettings.is_open_override !== null && devSettings.is_open_override !== undefined) {
               isStoreOpen = Boolean(devSettings.is_open_override)
             }
@@ -312,7 +309,7 @@ export default async function PublicStorePage({
         const [settingsRes, catalog] = await Promise.all([
           (admin.from("store_delivery_settings" as any) as any)
             .select(
-              "is_open_override, banner_url, logo_url, phone, instagram, social_links, bio, address, category, default_prep_min, default_prep_max, free_delivery_above_cents"
+              "is_open_override, banner_url, logo_url, phone, instagram, social_links, bio, address, category, default_prep_min, default_prep_max, free_delivery_above_cents, delivery_fee_cents, min_order_cents, accepts_delivery, accepts_pickup, accept_pix, accept_card, accept_cash, pix_key, pix_key_type, business_hours"
             )
             .eq("store_id", storeRow.id)
             .maybeSingle(),
@@ -335,9 +332,22 @@ export default async function PublicStorePage({
           if (devSettings.default_prep_min && devSettings.default_prep_max) {
             storeData.prep_time = `${devSettings.default_prep_min}–${devSettings.default_prep_max} min`
           }
-          if (devSettings.free_delivery_above_cents !== undefined) {
+          if (devSettings.free_delivery_above_cents !== undefined && devSettings.free_delivery_above_cents !== null) {
             storeData.free_delivery_above_cents = devSettings.free_delivery_above_cents
           }
+          if (devSettings.delivery_fee_cents !== undefined && devSettings.delivery_fee_cents !== null) {
+            storeData.delivery_fee_cents = devSettings.delivery_fee_cents
+          }
+          if (devSettings.min_order_cents !== undefined && devSettings.min_order_cents !== null) {
+            storeData.min_order_cents = devSettings.min_order_cents
+          }
+          if (devSettings.accepts_delivery !== undefined) storeData.accepts_delivery = devSettings.accepts_delivery
+          if (devSettings.accepts_pickup !== undefined) storeData.accepts_pickup = devSettings.accepts_pickup
+          if (devSettings.accept_pix !== undefined) storeData.accept_pix = devSettings.accept_pix
+          if (devSettings.accept_card !== undefined) storeData.accept_card = devSettings.accept_card
+          if (devSettings.accept_cash !== undefined) storeData.accept_cash = devSettings.accept_cash
+          if (devSettings.pix_key) storeData.pix_key = devSettings.pix_key
+
           if (devSettings.is_open_override !== null && devSettings.is_open_override !== undefined) {
             isStoreOpen = Boolean(devSettings.is_open_override)
           }

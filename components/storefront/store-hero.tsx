@@ -2,6 +2,7 @@
 
 import React from "react"
 import { useStorefrontCart } from "@/lib/storefront/storefront-cart-context"
+import { StorefrontImage } from "./storefront-image"
 import { Clock, Bike, MapPin, ChevronRight } from "lucide-react"
 import {
   WhatsAppIcon,
@@ -149,30 +150,36 @@ export function StoreHero() {
   return (
     <section className="relative overflow-hidden border-b border-[#2E6B3E] dark:border-[#E76F41] bg-[#FAF8F5] dark:bg-[#131A15] transition-colors">
       {/* ============================================================== */}
-      {/* 1. DESKTOP: FULL-BLEED RIGHT IMAGE COM FADE (PRINT QUADRADO)    */}
+      {/* 1. DESKTOP: RIGHT IMAGE CONFINED TO MAX-W-7XL COM FADE         */}
       {/* ============================================================== */}
-      <div className="hidden md:block absolute inset-y-0 right-0 w-[52%] lg:w-[58%] xl:w-[62%] h-full overflow-hidden pointer-events-none select-none z-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={heroFoodImage}
-          alt={store.name}
-          className="h-full w-full object-cover object-center"
-        />
-        {/* Soft Left Faded Gradient: dissolve suavemente na cor de fundo da esquerda */}
-        <div className="absolute inset-y-0 left-0 w-36 md:w-48 lg:w-64 xl:w-80 bg-linear-to-r from-[#FAF8F5] via-[#FAF8F5]/80 to-transparent dark:from-[#131A15] dark:via-[#131A15]/80 pointer-events-none" />
-        {/* Faded inferior suave */}
-        <div className="absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-[#FAF8F5]/40 to-transparent dark:from-[#131A15]/40 pointer-events-none" />
+      <div className="hidden md:block pointer-events-none select-none absolute inset-0 mx-auto max-w-7xl z-0">
+        <div className="absolute inset-y-0 right-0 w-[48%] lg:w-[52%] h-full overflow-hidden">
+          <StorefrontImage
+            src={heroFoodImage}
+            alt={store.name}
+            className="h-full w-full object-cover object-center"
+            fallbackClassName="h-full w-full"
+            iconClassName="h-10 w-10"
+          />
+          {/* Soft Left Faded Gradient: dissolve suavemente na cor de fundo da esquerda */}
+          <div className="absolute inset-y-0 left-0 w-36 md:w-44 lg:w-56 xl:w-64 bg-linear-to-r from-[#FAF8F5] via-[#FAF8F5]/80 to-transparent dark:from-[#131A15] dark:via-[#131A15]/80 pointer-events-none" />
+          {/* Soft Right Faded Gradient em telas maiores que max-w-7xl */}
+          <div className="hidden min-[1281px]:block absolute inset-y-0 right-0 w-24 bg-linear-to-l from-[#FAF8F5] via-[#FAF8F5]/40 to-transparent dark:from-[#131A15] dark:via-[#131A15]/40 pointer-events-none" />
+          {/* Faded inferior suave */}
+          <div className="absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-[#FAF8F5]/40 to-transparent dark:from-[#131A15]/40 pointer-events-none" />
+        </div>
       </div>
 
       {/* ============================================================== */}
       {/* 2. MOBILE: TOP BANNER                                          */}
       {/* ============================================================== */}
-      <div className="relative h-48 sm:h-60 w-full overflow-hidden md:hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <div className="relative h-48 sm:h-60 short:h-36 w-full overflow-hidden md:hidden">
+        <StorefrontImage
           src={heroFoodImage}
           alt={store.name}
           className="h-full w-full object-cover object-center"
+          fallbackClassName="h-full w-full"
+          iconClassName="h-10 w-10"
         />
         <div className="absolute inset-0 bg-linear-to-t from-[#FAF8F5] via-[#FAF8F5]/30 to-transparent dark:from-[#131A15] dark:via-[#131A15]/30 pointer-events-none" />
       </div>
@@ -180,25 +187,37 @@ export function StoreHero() {
       {/* ============================================================== */}
       {/* 3. STORE DETAILS CONTENT (LADO ESQUERDO DO HERO)                */}
       {/* ============================================================== */}
-      <div className="relative z-10 mx-auto max-w-7xl px-4 md:px-6 py-7 md:py-11 lg:py-13 min-h-[260px] md:min-h-[300px] lg:min-h-[330px] flex flex-col justify-center">
-        <div className="max-w-xl flex flex-col gap-4 -mt-6 md:mt-0">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-9 lg:py-11 short:py-4 short:md:py-4 short:lg:py-4 ultrashort:py-3 ultrashort:lg:py-3 min-h-[240px] md:min-h-[280px] lg:min-h-[300px] short:min-h-0 flex flex-col justify-center">
+        <div className="w-full max-w-xl md:max-w-[54%] lg:max-w-[490px] xl:max-w-xl flex flex-col gap-3.5 short:gap-2.5 -mt-6 short:-mt-3 md:mt-0">
           {/* Identidade da Loja */}
-          <div className="flex flex-col gap-1.5">
-            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#162019] dark:text-[#F4EFEA] sm:text-4xl md:text-5xl leading-tight">
-              {store.name}
-            </h1>
-            {store.bio && (
-              <p className="text-xs sm:text-[13px] text-[#374151] dark:text-[#D1D5DB] max-w-lg leading-relaxed font-normal">
-                {store.bio}
-              </p>
+          <div className="flex items-start gap-3.5 short:gap-3">
+            {store.logo_url && (
+              <StorefrontImage
+                src={store.logo_url}
+                alt={store.name}
+                variant="logo"
+                className="h-14 w-14 sm:h-16 sm:w-16 lg:h-18 lg:w-18 short:h-12 short:w-12 short:lg:h-14 short:lg:w-14 rounded-2xl object-cover border-2 border-white dark:border-[#2A382E] shadow-md shrink-0 bg-white dark:bg-[#1A251D]"
+                fallbackClassName="h-14 w-14 sm:h-16 sm:w-16 lg:h-18 lg:w-18 short:h-12 short:w-12 short:lg:h-14 short:lg:w-14 rounded-2xl border-2 border-white dark:border-[#2A382E] shadow-md shrink-0"
+                iconClassName="h-6 w-6"
+              />
             )}
+            <div className="flex flex-col gap-1 min-w-0 flex-1">
+              <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-[42px] short:text-2xl short:lg:text-3xl font-bold tracking-tight text-[#162019] dark:text-[#F4EFEA] leading-tight line-clamp-2 break-words">
+                {store.name}
+              </h1>
+              {store.bio && (
+                <p className="text-xs sm:text-[13px] short:text-xs text-[#374151] dark:text-[#D1D5DB] max-w-lg leading-relaxed short:leading-snug font-normal line-clamp-2">
+                  {store.bio}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Chips de Status & Entrega (Pills Modernos / Bento Bar) */}
-          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-0.5">
             {/* Status: Aberto ou Fechado */}
             <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-xs transition shadow-2xs ${
+              className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 short:py-0.5 rounded-full text-xs font-semibold backdrop-blur-xs transition shadow-2xs ${
                 store.is_open
                   ? "bg-emerald-500/12 text-emerald-800 dark:text-emerald-300 border border-emerald-600/25 dark:border-emerald-500/30"
                   : "bg-amber-500/12 text-amber-800 dark:text-amber-300 border border-amber-600/25 dark:border-amber-500/30"
@@ -235,15 +254,15 @@ export function StoreHero() {
 
           {/* Endereço Clicável com Micro-Pill Moderno */}
           {store.address && (
-            <div className="pt-0.5">
+            <div className="pt-0.5 max-w-full">
               <button
                 type="button"
                 onClick={() => openModal("delivery-info")}
-                className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/70 dark:bg-[#1E2B22]/70 hover:bg-white dark:hover:bg-[#1E2B22] border border-[#E4DDD2] dark:border-[#2F4135] hover:border-[#2E6B3E]/50 dark:hover:border-[#4ADE80]/50 shadow-2xs transition-all cursor-pointer text-xs font-medium text-[#4D5650] dark:text-[#A0ABA2] hover:text-[#1C251F] dark:hover:text-[#F2EFE9] backdrop-blur-xs"
+                className="group inline-flex min-h-9 max-w-full min-w-0 items-center gap-2 px-3 py-1.5 rounded-xl bg-white/70 dark:bg-[#1E2B22]/70 hover:bg-white dark:hover:bg-[#1E2B22] border border-[#E4DDD2] dark:border-[#2F4135] hover:border-[#2E6B3E]/50 dark:hover:border-[#4ADE80]/50 shadow-2xs transition-all cursor-pointer text-xs font-medium text-[#4D5650] dark:text-[#A0ABA2] hover:text-[#1C251F] dark:hover:text-[#F2EFE9] backdrop-blur-xs"
               >
                 <MapPin className="h-3.5 w-3.5 shrink-0 text-[#2E6B3E] dark:text-[#4ADE80]" />
-                <span className="truncate max-w-xs sm:max-w-md">{store.address}</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[#9CA79E] group-hover:translate-x-0.5 transition-transform shrink-0" />
+                <span className="min-w-0 flex-1 truncate text-left">{store.address}</span>
+                <ChevronRight className="h-3.5 w-3.5 text-[#59615B] dark:text-[#9CA79E] group-hover:translate-x-0.5 transition-transform shrink-0" />
               </button>
             </div>
           )}
@@ -258,20 +277,20 @@ export function StoreHero() {
                   Canais Oficiais & Atendimento
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:gap-2.5 max-w-sm sm:max-w-md pt-0.5">
+              <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2 w-full max-w-sm sm:max-w-md pt-0.5">
                 {socialChannels.map((channel) => (
                   <a
                     key={channel.id}
                     href={channel.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/95 dark:bg-[#1E2B22]/95 border border-[#E2DBD0] dark:border-[#2F4135] shadow-2xs hover:border-[#2E6B3E] dark:hover:border-[#4ADE80] hover:shadow-xs transition-all cursor-pointer backdrop-blur-xs"
+                    className="group flex min-h-11 lg:min-h-10 min-w-0 items-center gap-2.5 px-3 py-1.5 rounded-xl bg-white/95 dark:bg-[#1E2B22]/95 border border-[#E2DBD0] dark:border-[#2F4135] shadow-2xs hover:border-[#2E6B3E] dark:hover:border-[#4ADE80] hover:shadow-xs transition-all cursor-pointer backdrop-blur-xs"
                   >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FAF8F5] dark:bg-[#151D17] border border-[#EAE4D8] dark:border-[#263529] group-hover:scale-105 transition-transform">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FAF8F5] dark:bg-[#151D17] border border-[#EAE4D8] dark:border-[#263529] text-[#1B291F] dark:text-[#F2EFE9] group-hover:scale-105 transition-transform">
                       {channel.icon}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-[#737F75] dark:text-[#8E9C91] leading-tight">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-[#59615B] dark:text-[#9CA79E] leading-tight">
                         {channel.name}
                       </div>
                       <div className="truncate text-xs font-semibold text-[#1B291F] dark:text-[#F2EFE9] group-hover:text-[#2E6B3E] dark:group-hover:text-[#4ADE80] transition-colors">

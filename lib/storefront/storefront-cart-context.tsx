@@ -10,6 +10,7 @@ import {
   StorefrontProduct,
   StorefrontStore,
 } from "@/types/storefront"
+import { submitStorefrontOrder } from "./actions"
 import { MOCK_CASA_NOMA_STORE } from "./mock-storefront-data"
 
 export type ActiveModalType =
@@ -32,8 +33,6 @@ interface StorefrontCartContextValue {
   deliveryFeeCents: number
   discountCents: number
   totalCents: number
-  couponCode: string
-  appliedCoupon: string | null
   deliveryMethod: DeliveryMethod
   customerData: CustomerData
   activeModal: ActiveModalType
@@ -48,12 +47,15 @@ interface StorefrontCartContextValue {
   clearCart: () => void
   setDeliveryMethod: (method: DeliveryMethod) => void
   setCustomerData: (data: Partial<CustomerData>) => void
-  applyCoupon: (code: string) => { success: boolean; message: string }
   openProductDetail: (product: StorefrontProduct) => void
   openModal: (modal: ActiveModalType) => void
   closeModal: () => void
   proceedToCheckout: () => void
-  confirmOrder: (paymentMethod: PaymentMethodType, changeForCents?: number) => Promise<void>
+  confirmOrder: (
+    paymentMethod: PaymentMethodType,
+    changeForCents?: number,
+    customerOverride?: Partial<CustomerData>
+  ) => Promise<void>
   repeatLastOrder: () => void
 }
 
@@ -68,52 +70,42 @@ export function StorefrontCartProvider({
 }) {
   const [store] = useState<StorefrontStore>(initialStore)
 
-  // Seed default items in cart matching mockups (Bowl Noma + Chá da casa)
-  const [items, setItems] = useState<CartItem[]>([
-    {
-      id: "cart-item-1",
-      product_id: "prod-bowl-frango",
-      name: "Bowl Noma",
-      unit_price_cents: 3490,
-      quantity: 1,
-      image_url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&h=300&q=80",
-      portion: "Individual (450g)",
-      protein: "Tofu grelhado com gergelim",
-      removed_ingredients: ["Sem tomate cereja"],
-      selected_complements: [
-        { id: "comp-molho", name: "Molho extra", price_cents: 0 },
-      ],
-      notes: "Molho bem servido por favor",
-    },
-    {
-      id: "cart-item-2",
-      product_id: "prod-cha-casa",
-      name: "Chá da casa",
-      unit_price_cents: 1290,
-      quantity: 1,
-      image_url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=400&h=300&q=80",
-      notes: "Gelado com bastante gelo",
-    },
-  ])
+  // Iniciar carrinho vazio (sem itens mockados)
+  const [items, setItems] = useState<CartItem[]>([])
 
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("delivery")
   const [customerData, setCustomerDataState] = useState<CustomerData>({
-    name: "Marina Souza",
-    phone: "(11) 98765-4321",
-    whatsapp: "(11) 98765-4321",
-    email: "marina.souza@email.com",
-    address: "Rua das Flores, 123",
-    complement: "Apto 45",
-    neighborhood: "Vila Madalena",
-    city: "São Paulo",
-    state: "SP",
-    cep: "05432-001",
-    reference: "Portaria com interfone",
+    name: "",
+    phone: "",
+    whatsapp: "",
+    email: "",
+    receive_promotions: true,
+    address: "",
+    complement: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+    cep: "",
+    reference: "",
   })
 
-  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null)
-  const [discountCents, setDiscountCents] = useState<number>(0)
-  const [couponCode, setCouponCode] = useState<string>("")
+  // Carrega dados salvos do cliente real do localStorage se existir
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("deliplus_global_customer_v1")
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        setCustomerDataState((prev) => ({
+          ...prev,
+          ...parsed,
+        }))
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const [discountCents] = useState<number>(0)
   const [activeModal, setActiveModal] = useState<ActiveModalType>(null)
 
   // Prevent background page scrolling when any modal is open
@@ -244,22 +236,6 @@ export function StorefrontCartProvider({
     setCustomerDataState((prev) => ({ ...prev, ...partial }))
   }
 
-  const applyCoupon = (code: string) => {
-    const clean = code.trim().toUpperCase()
-    setCouponCode(clean)
-    if (clean === "DELI10" || clean === "PRIMEIRA10") {
-      setAppliedCoupon(clean)
-      setDiscountCents(Math.round(subtotalCents * 0.1))
-      return { success: true, message: "Cupom de 10% aplicado com sucesso!" }
-    }
-    if (clean === "FRETEGRATIS") {
-      setAppliedCoupon(clean)
-      setDiscountCents(deliveryFeeCents)
-      return { success: true, message: "Cupom de Frete Grátis aplicado com sucesso!" }
-    }
-    return { success: false, message: "Cupom inválido ou expirado." }
-  }
-
   const openProductDetail = (product: StorefrontProduct) => {
     setSelectedProduct(product)
     setActiveModal("product-detail")
@@ -286,21 +262,88 @@ export function StorefrontCartProvider({
 
   const confirmOrder = async (
     paymentMethod: PaymentMethodType,
-    changeForCents?: number
+    changeForCents?: number,
+    customerOverride?: Partial<CustomerData>
   ) => {
-    const newDisplayId = `#${Math.floor(1000 + Math.random() * 9000)}`
+    const mergedCustomer = customerOverride
+      ? { ...customerData, ...customerOverride }
+      : customerData
+
+    if (customerOverride) {
+      setCustomerDataState(mergedCustomer)
+    }
+
+    let finalOrderId = `ord-${Date.now()}`
+    let finalDisplayId = `#${Math.floor(1000 + Math.random() * 9000)}`
     const now = new Date()
     const etaMin = new Date(now.getTime() + 25 * 60000)
     const etaMax = new Date(now.getTime() + 45 * 60000)
     const formatTime = (d: Date) =>
       d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
 
+    try {
+      const fullAddress =
+        deliveryMethod === "pickup"
+          ? undefined
+          : [
+              mergedCustomer.address,
+              mergedCustomer.complement,
+              mergedCustomer.neighborhood,
+              mergedCustomer.city,
+              mergedCustomer.reference ? `Ref: ${mergedCustomer.reference}` : "",
+            ]
+              .filter(Boolean)
+              .join(" - ")
+
+      const response = await submitStorefrontOrder({
+        storeSlug: store.slug || "rafaelteste",
+        customerName: mergedCustomer.name || "Cliente",
+        customerPhone: mergedCustomer.phone || mergedCustomer.whatsapp || "",
+        deliveryType: deliveryMethod,
+        deliveryAddress: fullAddress,
+        paymentMethod: paymentMethod,
+        changeForCents: changeForCents,
+        notes: mergedCustomer.reference || undefined,
+        items: items.map((it) => ({
+          product_id: it.product_id,
+          name: it.name,
+          quantity: it.quantity,
+          unit_price_cents: it.unit_price_cents,
+          details: [
+            it.portion,
+            it.size,
+            it.protein,
+            ...(it.removed_ingredients || []),
+            ...(it.selected_complements?.map((c) => c.name) || []),
+            it.notes,
+          ]
+            .filter(Boolean)
+            .join(" | "),
+          complements: (it.selected_complements || []).map((c) => ({
+            id: c.id,
+            name: c.name,
+            price_cents: c.price_cents,
+          })),
+        })),
+      })
+
+      if (!response.success || !response.order) {
+        throw new Error(response.error || "Não foi possível processar seu pedido no restaurante. Tente novamente.")
+      }
+
+      finalOrderId = response.order.order_id
+      finalDisplayId = response.order.display_id
+    } catch (err) {
+      console.error("Erro ao enviar pedido para o Supabase:", err)
+      throw err
+    }
+
     const orderRecord: OrderConfirmationData = {
-      order_id: `ord-${Date.now()}`,
-      display_id: newDisplayId,
+      order_id: finalOrderId,
+      display_id: finalDisplayId,
       created_at: now.toISOString(),
       store_name: store.name,
-      customer: customerData,
+      customer: mergedCustomer,
       delivery_method: deliveryMethod,
       estimated_delivery_time: `${formatTime(etaMin)} e ${formatTime(etaMax)}`,
       items: [...items],
@@ -315,6 +358,7 @@ export function StorefrontCartProvider({
     }
 
     setLastOrder(orderRecord)
+    clearCart()
     setActiveModal("order-confirmed")
   }
 
@@ -328,8 +372,6 @@ export function StorefrontCartProvider({
         deliveryFeeCents,
         discountCents,
         totalCents,
-        couponCode,
-        appliedCoupon,
         deliveryMethod,
         customerData,
         activeModal,
@@ -344,7 +386,6 @@ export function StorefrontCartProvider({
         clearCart,
         setDeliveryMethod,
         setCustomerData,
-        applyCoupon,
         openProductDetail,
         openModal,
         closeModal,

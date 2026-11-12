@@ -22,7 +22,7 @@ export function LogoDeli({ variant = "solid", className, ...props }: LogoDeliPro
       viewBox="0 0 577 224" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
-      className={cn("w-auto h-auto", className)}
+      className={cn("w-auto h-auto max-w-full shrink-0", className)}
       {...props}
     >
       <path suppressHydrationWarning 

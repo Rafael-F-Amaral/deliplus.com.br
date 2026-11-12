@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import {
   Search,
   PlusCircle,
+  Copy,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -21,12 +22,14 @@ import {
   Camera,
   Sparkles,
   Play,
-  Plus,
-  HelpCircle
+  Plus
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
+import { HelpTooltip } from "@/components/ui/help-tooltip"
+import { normalizeSearch } from "@/lib/utils"
 import {
   createMenuProduct,
+  duplicateMenuProduct,
   updateMenuProduct,
   deleteMenuProduct,
   toggleProductAvailability,
@@ -679,9 +682,9 @@ export default function MenuClient({
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        const matchesName = item.name.toLowerCase().includes(query)
-        const matchesDesc = item.description.toLowerCase().includes(query)
+        const query = normalizeSearch(searchQuery)
+        const matchesName = normalizeSearch(item.name).includes(query)
+        const matchesDesc = normalizeSearch(item.description).includes(query)
         if (!matchesName && !matchesDesc) return false
       }
 
@@ -1377,17 +1380,44 @@ export default function MenuClient({
     setAdicionalErrors({})
   }
 
+  // Duplicar Prato com 1 clique (copiando prato e adicionais)
+  const [isDuplicatingId, setIsDuplicatingId] = useState<string | null>(null)
+
+  const handleDuplicateProduct = async (item: MenuItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    if (isDuplicatingId) return
+    setIsDuplicatingId(item.id)
+
+    try {
+      const res = await duplicateMenuProduct(item.id)
+      if (res.success && res.newProduct) {
+        const duplicatedItem: MenuItem = {
+          ...item,
+          id: (res.newProduct as any).id,
+          name: (res.newProduct as any).name,
+          inPromo: false,
+          promoPrice: null,
+          adicionais: item.adicionais ? item.adicionais.map((a) => ({ ...a, id: `comp-${Date.now()}-${Math.random()}` })) : []
+        }
+        setItems((prev) => [duplicatedItem, ...prev])
+      }
+    } catch (err) {
+      console.error('Erro ao duplicar produto:', err)
+      alert('Não foi possível duplicar o prato.')
+    } finally {
+      setIsDuplicatingId(null)
+    }
+  }
+
   // Adicionar ou Atualizar Adicional na Lista
   const handleAddOrUpdateAdicional = () => {
     const isNameMissing = !adicionalName.trim()
     const isPriceMissing = !adicionalPrice.trim()
-    const isDescMissing = !adicionalDesc.trim()
 
-    if (isNameMissing || isPriceMissing || isDescMissing) {
+    if (isNameMissing || isPriceMissing) {
       setAdicionalErrors({
         name: isNameMissing,
         price: isPriceMissing,
-        desc: isDescMissing
       })
       setShakeKey((prev) => prev + 1)
       return
@@ -1504,7 +1534,7 @@ export default function MenuClient({
   }
 
   return (
-    <div className="flex flex-col w-full h-full max-h-full px-4 sm:px-6 pt-3 md:pt-4 pb-3 max-lg:pb-[84px] overflow-hidden justify-between font-sans transition-all min-w-0">
+    <div className="flex flex-col w-full max-w-[1440px] mx-auto flex-1 px-4 sm:px-6 pt-3 md:pt-4 pb-6 max-lg:pb-[84px] font-sans transition-all min-w-0">
       
       {/* Toast Notification */}
       {notification && (
@@ -1516,34 +1546,20 @@ export default function MenuClient({
 
       {/* Header Area (Orange title matching DeliPlus logo & Estoque) */}
       <div className="flex flex-col mb-3 shrink-0">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] dark:text-[#FF7D4F] tracking-tight">Cardápio</h1>
           
-          {/* Tooltip Icon & Popover */}
-          <div className="relative group inline-block">
-            <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
-              ?
-            </div>
-            <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-              <p className="text-[13px] text-white dark:text-[#1C2C22] mb-2 leading-relaxed">
-                <span className="font-extrabold text-white dark:text-[#2E4233]">Dica:</span> Aqui você gerencia os pratos, bebidas e itens do cardápio visíveis para seus clientes.
-              </p>
-              <div className="flex flex-col gap-2 pt-2 border-t border-white/10 dark:border-[#E5DFD1] text-[12px] text-white/90 dark:text-[#1C2C22]">
-                <div className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
-                  <span>Ative ou pause a disponibilidade de itens em tempo real pelo switch.</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
-                  <span>Defina preços promocionais e limites diários de produção.</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
-                  <span>Toque ou clique direto nas informações para editar produto, preço e quantidade.</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <HelpTooltip
+            title="Dica:"
+            description="Aqui você gerencia os pratos, bebidas e itens do cardápio visíveis para seus clientes."
+            items={[
+              "Ative ou pause a disponibilidade de itens em tempo real pelo switch.",
+              "Defina preços promocionais e limites diários de produção.",
+              "Toque ou clique direto nas informações para editar produto, preço e quantidade."
+            ]}
+            align="left"
+            ariaLabel="Dicas do Cardápio"
+          />
 
           {/* Botão de Tutorial Interativo / Spotlight */}
           <button
@@ -1552,10 +1568,10 @@ export default function MenuClient({
               setShowTourPrompt(false); recordTourProgress("menu_tour", { dismissed: true });
               setTourStep(0)
             }}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FAF8F0] dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#2E4233] dark:hover:border-[#FF7D4F] text-[#2E4233] dark:text-[#F2EFE9] hover:bg-white dark:hover:bg-[#25332A] shadow-2xs transition-all cursor-pointer group ml-1"
+            className="flex items-center gap-1.5 min-h-9 px-3 py-1 rounded-full bg-[#FAF8F0] dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#2E4233] dark:hover:border-[#FF7D4F] text-[#2E4233] dark:text-[#F2EFE9] hover:bg-white dark:hover:bg-[#25332A] text-xs font-semibold shadow-2xs transition-all cursor-pointer group ml-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 dark:focus-visible:ring-[#FF7D4F]/40"
             title="Abrir o tutorial interativo do Cardápio"
           >
-            <Sparkles className="w-3.5 h-3.5 text-[#CB5A3C] group-hover:scale-110 transition-transform" />
+            <Sparkles className="w-3.5 h-3.5 text-red-500 group-hover:scale-110 transition-transform" />
             <span className="hidden sm:inline">Tutorial interativo</span>
             <span className="sm:hidden">Tutorial</span>
           </button>
@@ -1566,15 +1582,15 @@ export default function MenuClient({
       </div>
 
       {/* Controls Row: Filters, Search & Novo Item (Same pattern as Estoque) */}
-      <div id="tour-filters" className="flex flex-col sm:flex-row items-center justify-between gap-2.5 mb-2.5 shrink-0 z-30 relative bg-white/40 sm:bg-transparent p-1.5 sm:p-0 rounded-2xl">
+      <div id="tour-filters" className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-2.5 mb-3 shrink-0 z-30 relative bg-white/40 dark:bg-transparent sm:bg-transparent p-1.5 sm:p-0 rounded-2xl">
         <div className="flex items-center gap-2 w-full sm:w-auto overflow-visible relative flex-wrap">
           <button 
             type="button"
             onClick={() => { setAvailabilityFilter("todos"); setCurrentPage(1); }}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer ${
+            className={`min-h-9 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 dark:focus-visible:ring-[#FF7D4F]/40 ${
               availabilityFilter === "todos" 
-                ? "bg-[#2E4233] dark:bg-[#E76F41] text-white" 
-                : "bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
+                ? "bg-[#2E4233] dark:bg-[#B4482D] text-white" 
+                : "bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-[#2E4233] dark:text-[#C5CFC8] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
             }`}
           >
             Todos
@@ -1583,10 +1599,10 @@ export default function MenuClient({
           <button 
             type="button"
             onClick={() => { setAvailabilityFilter("disponiveis"); setCurrentPage(1); }}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer ${
+            className={`min-h-9 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 dark:focus-visible:ring-[#FF7D4F]/40 ${
               availabilityFilter === "disponiveis" 
-                ? "bg-[#2E4233] dark:bg-[#E76F41] text-white" 
-                : "bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
+                ? "bg-[#2E4233] dark:bg-[#B4482D] text-white" 
+                : "bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-[#2E4233] dark:text-[#C5CFC8] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
             }`}
           >
             Disponíveis
@@ -1595,10 +1611,10 @@ export default function MenuClient({
           <button 
             type="button"
             onClick={() => { setAvailabilityFilter("promocao"); setCurrentPage(1); }}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer ${
+            className={`min-h-9 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 dark:focus-visible:ring-[#FF7D4F]/40 ${
               availabilityFilter === "promocao" 
-                ? "bg-[#2E4233] dark:bg-[#E76F41] text-white" 
-                : "bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
+                ? "bg-[#2E4233] dark:bg-[#B4482D] text-white" 
+                : "bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-[#2E4233] dark:text-[#C5CFC8] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
             }`}
           >
             Em promoção
@@ -1609,10 +1625,10 @@ export default function MenuClient({
             <button 
               type="button"
               onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
-              className={`px-3.5 py-1.5 border rounded-full text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`min-h-9 px-3.5 py-1.5 border rounded-full text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 dark:focus-visible:ring-[#FF7D4F]/40 ${
                 selectedCategory !== "all" 
-                  ? "bg-[#2E4233] dark:bg-[#E76F41] text-white border-[#2E4233] dark:border-[#E76F41] shadow-sm" 
-                  : "bg-white dark:bg-[#1B241E] border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
+                  ? "bg-[#2E4233] dark:bg-[#B4482D] text-white border-[#2E4233] dark:border-[#B4482D] shadow-sm" 
+                  : "bg-white dark:bg-[#1B241E] border-[#E9E4D4] dark:border-[#2A382E] text-[#2E4233] dark:text-[#C5CFC8] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]"
               }`}
             >
               {selectedCategory !== "all" 
@@ -1632,9 +1648,9 @@ export default function MenuClient({
                       setIsCategoryMenuOpen(false); 
                       setCurrentPage(1); 
                     }}
-                    className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-gray-50 dark:hover:bg-[#222C25] flex items-center justify-between transition-colors cursor-pointer ${
+                    className={`w-full text-left px-4 min-h-9 py-2 text-xs font-medium hover:bg-gray-50 dark:hover:bg-[#222C25] flex items-center justify-between transition-colors cursor-pointer ${
                       selectedCategory === cat.id 
-                        ? "text-[#CB5A3C] font-bold bg-orange-50/40" 
+                        ? "text-[#B4482D] dark:text-[#FF9E7D] font-bold bg-orange-50/40 dark:bg-[#B4482D]/20" 
                         : "text-gray-700 dark:text-[#F2EFE9]"
                     }`}
                   >
@@ -1645,7 +1661,7 @@ export default function MenuClient({
                       <span className="truncate">{cat.name}</span>
                     </div>
                     {selectedCategory === cat.id && (
-                      <Check className="w-3.5 h-3.5 text-[#CB5A3C] shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-[#CB5A3C] dark:text-[#FF7D4F] shrink-0" />
                     )}
                   </button>
                 ))}
@@ -1656,30 +1672,32 @@ export default function MenuClient({
         
         {/* Search Bar & + Novo Item button */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="relative w-full sm:w-[240px]">
-            <Search className="w-3.5 h-3.5 text-[#CB5A3C] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="relative flex-1 min-w-0 sm:flex-initial sm:w-[240px]">
+            <Search className="w-3.5 h-3.5 text-[#CB5A3C] dark:text-[#FF7D4F] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input 
               type="text" 
               placeholder="Buscar no cardápio" 
+              aria-label="Buscar no cardápio"
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs dark:text-[#F2EFE9] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all shadow-sm"
+              className="w-full min-h-9 pl-9 pr-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs text-gray-900 dark:text-[#F2EFE9] dark:placeholder:text-[#9CA79E] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 dark:focus:ring-[#FF7D4F]/30 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all shadow-sm"
             />
           </div>
           <button 
             type="button"
             onClick={handleOpenNewItemModal} 
-            className="flex shrink-0 items-center justify-center gap-1.5 px-3.5 py-1.5 bg-[#2E4233] hover:bg-[#233327] text-white rounded-xl font-semibold text-xs transition-all duration-300 shadow-sm cursor-pointer"
+            aria-label="Novo item do cardápio"
+            className="flex shrink-0 items-center justify-center gap-1.5 min-h-9 px-3.5 py-1.5 bg-[#2E4233] hover:bg-[#233327] dark:bg-[#B4482D] dark:hover:bg-[#9C3B23] text-white rounded-xl font-semibold text-xs transition-all duration-300 shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/40 dark:focus-visible:ring-[#FF7D4F]/40"
           >
-            <PlusCircle className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Novo item</span>
+            <PlusCircle className="w-4 h-4 shrink-0" />
+            <span>Novo item</span>
           </button>
         </div>
       </div>
 
-      {/* Main Table Container: Stretches to fill available screen height with smooth inner scrollbar */}
-      <div className="hidden md:flex flex-col flex-1 h-full min-h-0 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-sm overflow-hidden justify-between">
-        <div className="w-full flex-1 min-h-0 overflow-x-auto overflow-y-auto">
+      {/* Main Table Container */}
+      <div className="hidden md:flex flex-col flex-1 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-sm overflow-hidden justify-between">
+        <div className="w-full overflow-x-auto">
           <table className="w-full text-left text-[14px]">
             <thead className="bg-[#FAF8F0] dark:bg-[#222C25] border-b border-[#E9E4D4] dark:border-[#2A382E]">
               <tr className="text-[14px] font-semibold text-[#2E4233] dark:text-[#F2EFE9]">
@@ -1713,7 +1731,8 @@ export default function MenuClient({
                             e.stopPropagation()
                             setOpenPhotoMenuId(openPhotoMenuId === item.id ? null : item.id)
                           }}
-                          className="w-[58px] h-[44px] rounded-xl overflow-hidden border border-[#E9E4D4] shadow-2xs shrink-0 bg-gray-50 block cursor-pointer group/photo relative hover:border-[#2E4233] transition-all"
+                          aria-label={`Opções da foto de ${item.name}`}
+                          className="w-[58px] h-[44px] rounded-xl overflow-hidden border border-[#E9E4D4] dark:border-[#2A382E] shadow-2xs shrink-0 bg-gray-50 dark:bg-[#222C25] block cursor-pointer group/photo relative hover:border-[#2E4233] dark:hover:border-[#FF7D4F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 transition-all"
                           title="Clique para ampliar ou trocar a foto"
                         >
                           {item.image ? (
@@ -1723,8 +1742,8 @@ export default function MenuClient({
                               className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-200"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
-                              <Camera className="w-4 h-4 text-gray-400" />
+                            <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-[#222C25] text-gray-400 dark:text-[#9CA79E]">
+                              <Camera className="w-4 h-4 text-gray-400 dark:text-[#9CA79E]" />
                             </div>
                           )}
                           <div className="absolute inset-0 bg-black/0 group-hover/photo:bg-black/25 flex items-center justify-center transition-colors">
@@ -1742,7 +1761,7 @@ export default function MenuClient({
                                 setOpenPhotoMenuId(null)
                                 setZoomedItem(item)
                               }}
-                              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
+                              className="w-full min-h-9 flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
                             >
                               <Maximize2 className="w-3.5 h-3.5 text-white/80" />
                               <span>Ampliar imagem</span>
@@ -1755,7 +1774,7 @@ export default function MenuClient({
                                 setItemToChangeImage(item)
                                 setNewImageUrl(item.image)
                               }}
-                              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
+                              className="w-full min-h-9 flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
                             >
                               <Camera className="w-3.5 h-3.5 text-white/80" />
                               <span>Trocar imagem</span>
@@ -1767,9 +1786,10 @@ export default function MenuClient({
 
                     {/* Produto com badges de categoria ao lado do nome - Clicável para abrir modal pequeno de edição */}
                     <td id={itemIdx === 0 ? "tour-product-info" : undefined} className={`px-4 py-2 align-middle transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
-                      <div 
+                      <button 
+                        type="button"
                         onClick={(e) => handleOpenProductModal(item, e)}
-                        className="group/prod flex flex-col pr-2 cursor-pointer p-1.5 -m-1.5 rounded-xl hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
+                        className="w-full text-left group/prod flex flex-col pr-2 cursor-pointer p-1.5 -m-1.5 rounded-xl hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 dark:focus-visible:ring-[#FF7D4F]/40 transition-colors"
                         title="Toque ou clique para editar nome, descrição e categorias"
                       >
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -1792,7 +1812,7 @@ export default function MenuClient({
                         <span className="text-[12px] text-gray-500 dark:text-[#9CA79E] leading-relaxed line-clamp-1 mt-1">
                           {item.description}
                         </span>
-                      </div>
+                      </button>
                     </td>
 
                     {/* Adicionais do Produto */}
@@ -1801,21 +1821,21 @@ export default function MenuClient({
                         <button
                           type="button"
                           onClick={(e) => handleOpenAdicionaisModal(item, e)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF8F0] dark:bg-[#222C25] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#CB5A3C] hover:bg-white dark:hover:bg-[#2A382E] text-[#2E4233] dark:text-[#F2EFE9] text-xs font-semibold shadow-2xs transition-all cursor-pointer group"
+                          className="inline-flex items-center gap-1.5 min-h-9 px-2.5 py-1 rounded-xl bg-[#FAF8F0] dark:bg-[#222C25] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#CB5A3C] hover:bg-white dark:hover:bg-[#2A382E] text-[#2E4233] dark:text-[#F2EFE9] text-xs font-semibold shadow-2xs transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D]/40"
                           title="Clique para gerenciar os adicionais deste prato"
                         >
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0"></span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#B4482D] dark:bg-[#FF7D4F] shrink-0"></span>
                           <span>{item.adicionais.length} {item.adicionais.length === 1 ? "adicional" : "adicionais"}</span>
-                          <ChevronDown className="w-3.5 h-3.5 text-[#CB5A3C] group-hover:translate-y-0.5 transition-transform shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#B4482D] dark:text-[#FF7D4F] group-hover:translate-y-0.5 transition-transform shrink-0" />
                         </button>
                       ) : (
                         <button
                           type="button"
                           onClick={(e) => handleOpenAdicionaisModal(item, e)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#FAF8F0] dark:bg-[#222C25] border-2 border-[#CB5A3C]/70 dark:border-[#CB5A3C]/50 hover:border-[#CB5A3C] hover:bg-[#CB5A3C] text-[#CB5A3C] dark:text-[#FF7D4F] hover:text-white text-xs font-bold transition-all cursor-pointer shadow-2xs group"
+                          className="inline-flex items-center gap-1.5 min-h-9 px-3 py-1 rounded-xl bg-[#FAF8F0] dark:bg-[#222C25] border-2 border-[#B4482D]/70 dark:border-[#CB5A3C]/50 hover:border-[#B4482D] hover:bg-[#B4482D] text-[#B4482D] dark:text-[#FF9E7D] hover:text-white text-xs font-bold transition-all cursor-pointer shadow-2xs group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D]/40"
                           title="Clique para cadastrar adicionais para este prato"
                         >
-                          <Plus className="w-3.5 h-3.5 text-[#CB5A3C] group-hover:text-white transition-colors stroke-[2.5]" />
+                          <Plus className="w-3.5 h-3.5 text-[#B4482D] dark:text-[#FF9E7D] group-hover:text-white transition-colors stroke-[2.5]" />
                           <span className="font-bold">Adicionar</span>
                         </button>
                       )}
@@ -1823,27 +1843,28 @@ export default function MenuClient({
 
                     {/* Configuração de Valor e Tamanhos */}
                     <td id={itemIdx === 0 ? "tour-price-inline" : undefined} className={`px-4 py-2 align-middle text-left whitespace-nowrap transition-opacity duration-200 ${isPaused ? "opacity-35" : "opacity-100"}`}>
-                      <div
+                      <button
+                        type="button"
                         onClick={(e) => handleOpenSizesPriceModal(item, e)}
-                        className="group/val inline-flex flex-col items-start gap-1 cursor-pointer py-1.5 px-2.5 -mx-2.5 rounded-xl hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] border border-transparent hover:border-[#E8E2D5] dark:hover:border-[#2A382E] transition-all"
+                        className="text-left group/val inline-flex flex-col items-start gap-1 cursor-pointer min-h-9 py-1.5 px-2.5 -mx-2.5 rounded-xl hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] border border-transparent hover:border-[#E8E2D5] dark:hover:border-[#2A382E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 dark:focus-visible:ring-[#FF7D4F]/40 transition-all"
                         title="Clique para configurar valor ou variações de tamanho"
                       >
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[14px] font-bold text-[#111827] dark:text-[#F2EFE9] group-hover/val:text-[#CB5A3C] transition-colors">
+                          <span className="text-[14px] font-bold text-[#111827] dark:text-[#F2EFE9] group-hover/val:text-[#B4482D] dark:group-hover/val:text-[#FF7D4F] transition-colors">
                             {item.sizes && item.sizes.length > 1 ? `A partir de ${item.originalPrice}` : item.originalPrice}
                           </span>
-                          <ChevronDown className="w-3.5 h-3.5 text-[#CB5A3C] shrink-0" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#CB5A3C] dark:text-[#FF7D4F] shrink-0" />
                         </div>
                         {item.sizes && item.sizes.length > 1 ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#E76F41]/10 text-[#E76F41] border border-[#E76F41]/20">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#E76F41]/10 text-[#B4482D] dark:text-[#FF9E7D] border border-[#E76F41]/20">
                             {item.sizes.length} tamanhos
                           </span>
                         ) : (
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium group-hover/val:text-gray-600">
+                          <span className="text-[10px] text-muted-foreground font-medium group-hover/val:text-gray-700 dark:group-hover/val:text-[#C5CFC8]">
                             {item.sizes && item.sizes.length === 1 ? item.sizes[0].name : "Tamanho padrão"}
                           </span>
                         )}
-                      </div>
+                      </button>
                     </td>
 
                     {/* Preço promocional em Laranja da Logo com link sublinhado "Editar Promoção" */}
@@ -1851,15 +1872,15 @@ export default function MenuClient({
                       <div className="flex flex-col items-start gap-0.5">
                         {item.promoPrice ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[14.5px] font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">
+                            <span className="text-[14.5px] font-bold text-[#B4482D] dark:text-[#FF7D4F]">
                               {item.promoPrice}
                             </span>
-                            <span className="text-[10px] font-bold bg-[#FDF2F0] dark:bg-[#CB5A3C]/20 text-[#CB5A3C] dark:text-[#FF7D4F] border border-[#CB5A3C]/20 dark:border-[#CB5A3C]/40 px-1.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold bg-[#FDF2F0] dark:bg-[#CB5A3C]/20 text-[#B4482D] dark:text-[#FF9E7D] border border-[#CB5A3C]/20 dark:border-[#CB5A3C]/40 px-1.5 py-0.5 rounded-full">
                               -{getDiscountPercentage(item.originalPrice, item.promoPrice)}%
                             </span>
                           </div>
                         ) : (
-                          <span className="text-[13px] text-gray-400 dark:text-[#9CA79E] font-medium">
+                          <span className="text-[13px] text-muted-foreground font-medium">
                             Sem promoção
                           </span>
                         )}
@@ -1869,7 +1890,7 @@ export default function MenuClient({
                             e.stopPropagation()
                             router.push(`/dashboard/marketing/promotions?editProduct=${item.id}`)
                           }}
-                          className="text-[11.5px] font-semibold text-[#CB5A3C] dark:text-[#FF7D4F] underline decoration-[#CB5A3C]/60 hover:decoration-[#CB5A3C] hover:text-[#b0482e] dark:hover:text-[#FFA07A] transition-all cursor-pointer text-left"
+                          className="min-h-9 lg:min-h-0 inline-flex items-center text-[11.5px] py-0.5 font-semibold text-[#B4482D] dark:text-[#FF9E7D] underline decoration-[#B4482D]/60 hover:decoration-[#B4482D] hover:text-[#9C3B23] dark:hover:text-[#FFA07A] transition-all cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D]/40 rounded"
                         >
                           Editar Promoção
                         </button>
@@ -1887,7 +1908,7 @@ export default function MenuClient({
                         />
                         <span
                           className={`text-[11px] font-semibold mt-0.5 transition-colors ${
-                            item.isAvailable ? "text-[#2E4233] dark:text-[#34D399]" : "text-[#CB5A3C] dark:text-[#FF7D4F]"
+                            item.isAvailable ? "text-[#2E4233] dark:text-[#34D399]" : "text-[#B4482D] dark:text-[#FF7D4F]"
                           }`}
                         >
                           {item.isAvailable ? "Disponível" : "Pausado"}
@@ -1902,6 +1923,7 @@ export default function MenuClient({
                           type="number"
                           min="0"
                           autoFocus
+                          aria-label={`Limite diário de ${item.name}`}
                           value={inlineEditValue}
                           placeholder="Ilimitado"
                           onChange={(e) => setInlineEditValue(e.target.value)}
@@ -1910,27 +1932,28 @@ export default function MenuClient({
                             if (e.key === "Enter") saveInlineEdit(item, "dailyLimit")
                             if (e.key === "Escape") setInlineEditingCell(null)
                           }}
-                          className="w-20 px-2 py-1 text-center text-[13.5px] font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border-2 border-[#2E4233] dark:border-[#FF7D4F] rounded-lg shadow-sm focus:outline-none"
+                          className="w-24 min-h-9 px-2 py-1 text-center text-base lg:text-[13.5px] font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] border-2 border-[#2E4233] dark:border-[#FF7D4F] rounded-lg shadow-sm focus:outline-none"
                         />
                       ) : (
-                        <div
+                        <button
+                          type="button"
                           onClick={(e) => startInlineEdit(item, "dailyLimit", e)}
-                          className="group/qty inline-flex flex-col items-center justify-center cursor-pointer py-1 px-2 -mx-1 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
+                          className="group/qty inline-flex flex-col items-center justify-center cursor-pointer min-h-9 py-1 px-2 -mx-1 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 dark:focus-visible:ring-[#FF7D4F]/40 transition-colors"
                           title="Toque ou clique para alterar o limite de quantidade diária"
                         >
                           <div className="flex items-center gap-1">
                             {item.dailyLimit !== null ? (
                               item.remaining === 0 ? (
-                                <span className="text-[13.5px] font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">
+                                <span className="text-[13.5px] font-bold text-[#B4482D] dark:text-[#FF7D4F]">
                                   0 restantes
                                 </span>
                               ) : (
-                                <span className="text-[13.5px] font-bold text-[#16A34A] dark:text-[#34D399]">
+                                <span className="text-[13.5px] font-bold text-[#15803D] dark:text-[#34D399]">
                                   {item.remaining ?? item.dailyLimit} restantes
                                 </span>
                               )
                             ) : (
-                              <span className="text-[13px] text-gray-400 dark:text-[#9CA79E] font-medium">
+                              <span className="text-[13px] text-muted-foreground font-medium">
                                 Sem limite
                               </span>
                             )}
@@ -1939,26 +1962,39 @@ export default function MenuClient({
                               <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
                             )}
                           </div>
-                          <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">
+                          <span className="text-[11px] text-muted-foreground font-medium">
                             {item.dailyLimit !== null ? `Limite: ${item.dailyLimit} un.` : "Ilimitado"}
                           </span>
-                        </div>
+                        </button>
                       )}
                     </td>
 
-                    {/* Ações: Lixinho laranja de excluir direto com modal de confirmação */}
+                    {/* Ações: Duplicar & Excluir */}
                     <td id={itemIdx === 0 ? "tour-delete-action" : undefined} className="px-4 py-2 text-right opacity-100" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setItemToDelete(item)
-                        }}
-                        title="Excluir produto do cardápio"
-                        className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-all cursor-pointer inline-flex items-center justify-center group"
-                      >
-                        <Trash2 className="w-4 h-4 text-[#CB5A3C] group-hover:scale-110 transition-transform" />
-                      </button>
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={(e) => handleDuplicateProduct(item, e)}
+                          title="Duplicar este prato e seus adicionais"
+                          aria-label={`Duplicar ${item.name}`}
+                          disabled={isDuplicatingId === item.id}
+                          className="min-h-9 min-w-9 p-1.5 text-gray-500 dark:text-[#9CA79E] hover:text-[#2E4233] dark:hover:text-[#F2EFE9] hover:bg-gray-100 dark:hover:bg-[#2A382E] rounded-lg transition-all cursor-pointer inline-flex items-center justify-center group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30"
+                        >
+                          <Copy className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setItemToDelete(item)
+                          }}
+                          title="Excluir produto do cardápio"
+                          aria-label={`Excluir ${item.name}`}
+                          className="min-h-9 min-w-9 p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 dark:hover:bg-[#CB5A3C]/20 rounded-lg transition-all cursor-pointer inline-flex items-center justify-center group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500 group-hover:scale-110 transition-transform" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -1969,53 +2005,53 @@ export default function MenuClient({
                 Array.from({ length: Math.max(0, ITEMS_PER_PAGE - paginatedItems.length) }).map((_, idx) => (
                   <tr
                     key={`empty-slot-${idx}`}
-                    className="border-b border-[#E9E4D4] h-[60px]"
+                    className="border-b border-[#E9E4D4] dark:border-[#233026] h-[60px]"
                   >
                     {/* Foto */}
                     <td className="px-4 py-2 align-middle">
-                      <span className="text-[14px] text-gray-300 font-medium">—</span>
+                      <span className="text-[14px] text-gray-300 dark:text-[#3A4A3E] font-medium">—</span>
                     </td>
 
                     {/* Produto & Descrição */}
                     <td className="px-4 py-2 align-middle">
-                      <span className="text-[14px] text-gray-300 font-medium">—</span>
+                      <span className="text-[14px] text-gray-300 dark:text-[#3A4A3E] font-medium">—</span>
                     </td>
 
                     {/* Adicionais */}
                     <td className="px-3 py-2 align-middle text-center">
-                      <span className="text-[14px] text-gray-300 font-medium">—</span>
+                      <span className="text-[14px] text-gray-300 dark:text-[#3A4A3E] font-medium">—</span>
                     </td>
 
                     {/* Preço original */}
                     <td className="px-4 py-2 align-middle text-left whitespace-nowrap">
-                      <span className="text-[14px] text-gray-300 font-medium">—</span>
+                      <span className="text-[14px] text-gray-300 dark:text-[#3A4A3E] font-medium">—</span>
                     </td>
 
                     {/* Preço promocional */}
                     <td className="px-4 py-2 align-middle text-left whitespace-nowrap">
-                      <span className="text-[14px] text-gray-300 font-medium">—</span>
+                      <span className="text-[14px] text-gray-300 dark:text-[#3A4A3E] font-medium">—</span>
                     </td>
 
                     {/* Disponibilidade */}
                     <td className="px-3 py-2 align-middle text-center">
-                      <span className="text-[14px] text-gray-300 font-medium">—</span>
+                      <span className="text-[14px] text-gray-300 dark:text-[#3A4A3E] font-medium">—</span>
                     </td>
 
                     {/* Limite & Restantes */}
                     <td className="px-4 py-2 align-middle text-center whitespace-nowrap">
-                      <span className="text-[14px] text-gray-300 font-medium">—</span>
+                      <span className="text-[14px] text-gray-300 dark:text-[#3A4A3E] font-medium">—</span>
                     </td>
 
                     {/* Ações */}
                     <td className="px-4 py-2 text-right">
-                      <span className="text-[14px] text-gray-300 font-medium pr-2">—</span>
+                      <span className="text-[14px] text-gray-300 dark:text-[#3A4A3E] font-medium pr-2">—</span>
                     </td>
                   </tr>
                 ))}
 
               {filteredItems.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500 text-sm">
+                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground text-sm">
                     Nenhum item encontrado no cardápio.
                   </td>
                 </tr>
@@ -2024,22 +2060,24 @@ export default function MenuClient({
           </table>
         </div>
 
-        {/* Pagination Controls pinned at bottom (Centered) */}
-        <div className="relative flex justify-center items-center px-6 py-2.5 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/30 dark:bg-[#1B241E]/30 shrink-0 min-h-[44px]">
-          <span className="hidden sm:inline-block absolute left-6 text-xs text-gray-500 dark:text-[#9CA79E] font-medium">
+        {/* Pagination Controls */}
+        <div className="flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-2.5 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/30 dark:bg-[#1B241E]/30 shrink-0 min-h-[44px]">
+          <span className="text-xs text-muted-foreground font-medium">
             Mostrando {filteredItems.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)} de {filteredItems.length} itens
           </span>
 
-          <div className="flex justify-center items-center gap-1.5">
+          <div className="flex flex-wrap justify-center items-center gap-1.5">
             {Array.from({ length: Math.max(1, totalPages) }).map((_, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => setCurrentPage(i + 1)}
-                className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                aria-label={`Página ${i + 1}`}
+                aria-current={currentPage === i + 1 ? "page" : undefined}
+                className={`min-h-9 min-w-9 px-2 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D]/40 ${
                   currentPage === i + 1 
-                    ? "bg-[#CB5A3C] text-white shadow-sm" 
-                    : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
+                    ? "bg-[#B4482D] text-white shadow-sm" 
+                    : "bg-white dark:bg-[#1B241E] text-gray-700 dark:text-[#F2EFE9] hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
                 }`}
               >
                 {i + 1}
@@ -2050,16 +2088,16 @@ export default function MenuClient({
       </div>
 
       {/* Mobile Card List View (Matching Estoque mobile responsive behavior) */}
-      <div className="md:hidden flex flex-col flex-1 h-full min-h-0 bg-white border border-[#E9E4D4] rounded-2xl overflow-hidden shadow-sm justify-between">
-        <div className="overflow-y-auto divide-y divide-[#E9E4D4]">
+      <div className="md:hidden flex flex-col bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl overflow-hidden shadow-sm justify-between">
+        <div className="divide-y divide-[#E9E4D4] dark:divide-[#233026]">
           {paginatedItems.map((item, itemIdx) => {
             const isPaused = !item.isAvailable
             return (
               <div
                 key={item.id}
                 data-product-card={item.id}
-                className={`p-3 flex flex-col gap-2 transition-colors ${
-                  isPaused ? "bg-stone-50/30" : ""
+                className={`p-3 flex flex-col gap-2.5 transition-colors ${
+                  isPaused ? "bg-stone-50/30 dark:bg-black/20" : ""
                 }`}
               >
                 {/* Detalhes do Produto (Apagado quando desativado) */}
@@ -2076,14 +2114,15 @@ export default function MenuClient({
                         e.stopPropagation()
                         setOpenPhotoMenuId(openPhotoMenuId === `m-${item.id}` ? null : `m-${item.id}`)
                       }}
-                      className="w-14 h-14 rounded-xl overflow-hidden border border-[#E9E4D4] shrink-0 block relative group/mphoto cursor-pointer active:scale-95 transition-all bg-gray-50"
+                      aria-label={`Opções da foto de ${item.name}`}
+                      className="w-14 h-14 rounded-xl overflow-hidden border border-[#E9E4D4] dark:border-[#2A382E] shrink-0 block relative group/mphoto cursor-pointer active:scale-95 transition-all bg-gray-50 dark:bg-[#222C25] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30"
                       title="Toque para ampliar ou trocar a foto"
                     >
                       {item.image ? (
                         <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
-                          <Camera className="w-5 h-5 text-gray-400" />
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-[#222C25] text-gray-400 dark:text-[#9CA79E]">
+                          <Camera className="w-5 h-5 text-gray-400 dark:text-[#9CA79E]" />
                         </div>
                       )}
                       <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/mphoto:opacity-100 transition-opacity">
@@ -2101,7 +2140,7 @@ export default function MenuClient({
                             setOpenPhotoMenuId(null)
                             setZoomedItem(item)
                           }}
-                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
+                          className="w-full min-h-9 flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
                         >
                           <Maximize2 className="w-3.5 h-3.5 text-white/80" />
                           <span>Ampliar imagem</span>
@@ -2114,7 +2153,7 @@ export default function MenuClient({
                             setItemToChangeImage(item)
                             setNewImageUrl(item.image)
                           }}
-                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
+                          className="w-full min-h-9 flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
                         >
                           <Camera className="w-3.5 h-3.5 text-white/80" />
                           <span>Trocar imagem</span>
@@ -2125,13 +2164,14 @@ export default function MenuClient({
 
                   <div className="flex-1 min-w-0">
                     {/* Toque no Produto abre o Modal Pequeno de Edição */}
-                    <div 
+                    <button 
                       id={itemIdx === 0 ? "m-tour-product-info" : undefined}
+                      type="button"
                       onClick={(e) => handleOpenProductModal(item, e)}
-                      className="cursor-pointer group/mprod"
+                      className="w-full text-left cursor-pointer group/mprod rounded-lg p-1 -m-1 hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 dark:focus-visible:ring-[#FF7D4F]/40 transition-colors"
                       title="Toque para editar nome, descrição e categorias"
                     >
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-1 min-w-0">
                           <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-sm truncate group-hover/mprod:underline">
                             {item.name}
@@ -2153,39 +2193,40 @@ export default function MenuClient({
                         </div>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-[#9CA79E] line-clamp-1 mt-0.5">{item.description}</p>
-                    </div>
+                    </button>
 
                     {/* Preços e Quantidade */}
-                    <div className="flex items-start justify-between gap-2 mt-2 pt-1.5 border-t border-gray-100 flex-wrap">
+                    <div className="flex items-start justify-between gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-[#233026] flex-wrap">
                       <div className="flex flex-col gap-1">
                         {/* Configuração de Valor e Tamanhos */}
-                        <div id={itemIdx === 0 ? "m-tour-price-inline" : undefined} className="flex items-center gap-1.5">
-                          <span className="text-[10px] uppercase font-bold text-gray-400">Valor:</span>
-                          <div 
+                        <div id={itemIdx === 0 ? "m-tour-price-inline" : undefined} className="flex items-center gap-1">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground">Valor:</span>
+                          <button 
+                            type="button"
                             onClick={(e) => handleOpenSizesPriceModal(item, e)}
-                            className="flex items-center gap-1.5 cursor-pointer py-0.5 px-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#222C25] transition-colors"
+                            className="flex items-center gap-1.5 cursor-pointer min-h-9 px-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#222C25] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 transition-colors"
                             title="Toque para configurar valor e tamanhos"
                           >
                             <span className="text-xs font-bold text-[#111827] dark:text-[#F2EFE9]">
                               {item.sizes && item.sizes.length > 1 ? `A partir de ${item.originalPrice}` : item.originalPrice}
                             </span>
                             {item.sizes && item.sizes.length > 1 ? (
-                              <span className="text-[10px] font-bold text-[#E76F41] bg-[#E76F41]/10 px-1.5 py-0.2 rounded-full">
+                              <span className="text-[10px] font-bold text-[#B4482D] dark:text-[#FF9E7D] bg-[#E76F41]/10 px-1.5 py-0.5 rounded-full">
                                 {item.sizes.length} tam
                               </span>
                             ) : null}
-                            <ChevronDown className="w-3 h-3 text-[#CB5A3C] shrink-0" />
-                          </div>
+                            <ChevronDown className="w-3 h-3 text-[#CB5A3C] dark:text-[#FF7D4F] shrink-0" />
+                          </button>
                         </div>
 
                         {/* Preço Promocional em Laranja da Logo + Link Editar Promoção */}
-                        <div id={itemIdx === 0 ? "m-tour-promo-action" : undefined} className="flex flex-col items-start">
+                        <div id={itemIdx === 0 ? "m-tour-promo-action" : undefined} className="flex flex-col items-start gap-0.5">
                           {item.promoPrice ? (
-                            <span className="text-xs font-bold text-[#CB5A3C] bg-[#FDF2F0] border border-[#CB5A3C]/20 px-1.5 py-0.5 rounded">
+                            <span className="text-xs font-bold text-[#B4482D] dark:text-[#FF9E7D] bg-[#FDF2F0] dark:bg-[#CB5A3C]/20 border border-[#CB5A3C]/20 dark:border-[#CB5A3C]/40 px-1.5 py-0.5 rounded">
                               {item.promoPrice} (-{getDiscountPercentage(item.originalPrice, item.promoPrice)}%)
                             </span>
                           ) : (
-                            <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">Sem promoção</span>
+                            <span className="text-[11px] text-muted-foreground font-medium">Sem promoção</span>
                           )}
                           <button
                             type="button"
@@ -2193,7 +2234,7 @@ export default function MenuClient({
                               e.stopPropagation()
                               router.push(`/dashboard/marketing/promotions?editProduct=${item.id}`)
                             }}
-                            className="text-[11px] font-semibold text-[#CB5A3C] underline decoration-[#CB5A3C]/60 hover:decoration-[#CB5A3C] mt-0.5 cursor-pointer text-left"
+                            className="min-h-9 lg:min-h-8 inline-flex items-center text-[11px] font-semibold text-[#B4482D] dark:text-[#FF9E7D] underline decoration-[#B4482D]/60 hover:decoration-[#B4482D] cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D]/40 rounded"
                           >
                             Editar Promoção
                           </button>
@@ -2202,12 +2243,13 @@ export default function MenuClient({
 
                       {/* Quantidade mobile com edição rápida */}
                       <div className="flex flex-col items-end">
-                        <span className="text-[10px] uppercase font-bold text-gray-400 mb-0.5">Estoque diário</span>
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground mb-0.5">Estoque diário</span>
                         {inlineEditingCell?.id === item.id && inlineEditingCell?.field === "dailyLimit" ? (
                           <input
                             type="number"
                             min="0"
                             autoFocus
+                            aria-label={`Limite diário de ${item.name}`}
                             value={inlineEditValue}
                             placeholder="Ilimitado"
                             onChange={(e) => setInlineEditValue(e.target.value)}
@@ -2216,43 +2258,44 @@ export default function MenuClient({
                               if (e.key === "Enter") saveInlineEdit(item, "dailyLimit")
                               if (e.key === "Escape") setInlineEditingCell(null)
                             }}
-                            className="w-16 px-1 py-0.5 text-center text-xs font-bold text-[#2E4233] bg-white border border-[#2E4233] rounded"
+                            className="w-20 min-h-9 px-1.5 py-0.5 text-center text-base font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#161E18] border border-[#2E4233] dark:border-[#FF7D4F] rounded-lg"
                           />
                         ) : (
-                          <div
+                          <button
+                            type="button"
                             onClick={(e) => startInlineEdit(item, "dailyLimit", e)}
-                            className="flex items-center gap-1 cursor-pointer"
+                            className="flex items-center gap-1 cursor-pointer min-h-9 px-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#222C25] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 transition-colors"
                             title="Toque para editar limite diário"
                           >
                             {item.dailyLimit !== null ? (
                               item.remaining === 0 ? (
-                                <span className="text-[11px] font-bold text-[#CB5A3C] bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full leading-tight">
+                                <span className="text-[11px] font-bold text-[#B4482D] dark:text-[#FF9E7D] bg-orange-50 dark:bg-[#CB5A3C]/20 border border-orange-200 dark:border-[#CB5A3C]/40 px-1.5 py-0.5 rounded-full leading-tight">
                                   0 rest. · Lim: {item.dailyLimit}
                                 </span>
                               ) : (
-                                <span className="text-[11px] font-semibold text-[#16A34A] bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full leading-tight">
+                                <span className="text-[11px] font-semibold text-[#15803D] dark:text-[#34D399] bg-green-50 dark:bg-emerald-950/50 border border-green-200 dark:border-emerald-800/60 px-1.5 py-0.5 rounded-full leading-tight">
                                   {item.remaining ?? item.dailyLimit} rest. · Lim: {item.dailyLimit}
                                 </span>
                               )
                             ) : (
-                              <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">
+                              <span className="text-[11px] text-muted-foreground font-medium">
                                 Sem limite
                               </span>
                             )}
-                            <ChevronDown className="w-3 h-3 text-[#2E4233] shrink-0" />
+                            <ChevronDown className="w-3 h-3 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                             {inlineSuccessCellId === `${item.id}-dailyLimit` && (
                               <Check className="w-3 h-3 text-[#16A34A] shrink-0" />
                             )}
-                          </div>
+                          </button>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Barra de ações (Switch e botões com opacidade normal 100) */}
-                <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs opacity-100">
-                  <div id={itemIdx === 0 ? "m-tour-availability-switch" : undefined} className="flex items-center gap-2">
+                {/* Barra de ações (Switch, Adicionais e ações com paridade total) */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-[#233026] text-xs opacity-100">
+                  <div id={itemIdx === 0 ? "m-tour-availability-switch" : undefined} className="flex items-center gap-2 min-h-9">
                     <Switch
                       checked={item.isAvailable}
                       onClick={(e) => handleToggleAvailability(item.id, e)}
@@ -2261,29 +2304,51 @@ export default function MenuClient({
                     />
                     <span
                       className={`text-xs font-semibold transition-colors ${
-                        item.isAvailable ? "text-[#2E4233] dark:text-[#34D399]" : "text-[#CB5A3C] dark:text-[#FF7D4F]"
+                        item.isAvailable ? "text-[#2E4233] dark:text-[#34D399]" : "text-[#B4482D] dark:text-[#FF7D4F]"
                       }`}
                     >
                       {item.isAvailable ? "Disponível" : "Pausado"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={(e) => handleOpenAdicionaisModal(item, e)}
+                      className="min-h-9 px-2.5 py-1 rounded-lg bg-[#FAF8F0] dark:bg-[#222C25] border border-[#E9E4D4] dark:border-[#2A382E] text-[#B4482D] dark:text-[#FF9E7D] font-semibold hover:border-[#B4482D] cursor-pointer inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D]/40"
+                    >
+                      <Layers className="w-3.5 h-3.5 shrink-0" />
+                      <span>
+                        {item.adicionais && item.adicionais.length > 0
+                          ? `Adic. (${item.adicionais.length})`
+                          : "Adicionais"}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDuplicateProduct(item, e)}
+                      disabled={isDuplicatingId === item.id}
+                      className="min-h-9 px-2 py-1 rounded-lg text-gray-700 dark:text-[#C5CFC8] hover:bg-gray-100 dark:hover:bg-[#222C25] font-semibold cursor-pointer inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Duplicar</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleOpenEditModal(item)}
-                      className="text-[#2E4233] font-semibold hover:underline cursor-pointer"
+                      className="min-h-9 px-2 py-1 rounded-lg text-[#2E4233] dark:text-[#34D399] hover:bg-gray-100 dark:hover:bg-[#222C25] font-semibold cursor-pointer inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30"
                     >
-                      Editar
+                      <Pencil className="w-3.5 h-3.5" />
+                      <span>Editar</span>
                     </button>
                     <button
                       id={itemIdx === 0 ? "m-tour-delete-action" : undefined}
                       type="button"
                       onClick={() => setItemToDelete(item)}
                       title="Excluir item"
-                      className="text-[#CB5A3C] font-semibold hover:underline cursor-pointer inline-flex items-center gap-1"
+                      className="min-h-9 px-2 py-1 rounded-lg text-[#B4482D] dark:text-[#FF9E7D] hover:bg-red-50 dark:hover:bg-red-950/30 font-semibold cursor-pointer inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
                     >
-                      <Trash2 className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                      Excluir
+                      <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                      <span>Excluir</span>
                     </button>
                   </div>
                 </div>
@@ -2292,40 +2357,47 @@ export default function MenuClient({
           })}
 
           {filteredItems.length === 0 && (
-            <div className="p-6 text-center text-gray-500 text-sm">
+            <div className="p-6 text-center text-muted-foreground text-sm">
               Nenhum item encontrado no cardápio.
             </div>
           )}
         </div>
 
         {/* Mobile Pagination */}
-        <div className="flex justify-center items-center gap-2 p-2.5 border-t border-[#E9E4D4] bg-[#FAF8F0]/30 shrink-0">
-          {Array.from({ length: Math.max(1, totalPages) }).map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setCurrentPage(i + 1)}
-              className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors ${
-                currentPage === i + 1 
-                  ? "bg-[#CB5A3C] text-white shadow-sm" 
-                  : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
+        <div className="flex flex-wrap justify-between items-center gap-2 p-3 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/30 dark:bg-[#1B241E]/30 shrink-0">
+          <span className="text-xs text-muted-foreground font-medium">
+            {filteredItems.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)} de {filteredItems.length} itens
+          </span>
+          <div className="flex flex-wrap justify-center items-center gap-1.5">
+            {Array.from({ length: Math.max(1, totalPages) }).map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setCurrentPage(i + 1)}
+                aria-label={`Página ${i + 1}`}
+                aria-current={currentPage === i + 1 ? "page" : undefined}
+                className={`min-h-9 min-w-9 px-2 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                  currentPage === i + 1 
+                    ? "bg-[#B4482D] text-white shadow-sm" 
+                    : "bg-white dark:bg-[#1B241E] text-gray-700 dark:text-[#F2EFE9] hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* ==================== MODAL: EDITOR DE ITEM ==================== */}
       {isModalOpen && (
-        <div className={`fixed inset-0 ${modalTourType === "new_item" ? "z-[135]" : "z-50"} flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150`}>
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className={`fixed inset-0 ${modalTourType === "new_item" ? "z-[135]" : "z-[70]"} flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150`}>
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col max-h-[90dvh]">
             
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FDFCF9]">
+            <div className="px-5 sm:px-6 py-4 border-b border-[#E9E4D4] dark:border-[#2A382E] flex justify-between items-center bg-[#FDFCF9] dark:bg-[#222C25] shrink-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-serif font-bold text-[#CB5A3C] text-xl tracking-tight">
+                <h3 className="font-serif font-bold text-[#CB5A3C] dark:text-[#FF7D4F] text-xl tracking-tight">
                   {itemToEdit ? "Editar Item do Cardápio" : "Novo Item do Cardápio"}
                 </h3>
                 
@@ -2337,54 +2409,59 @@ export default function MenuClient({
                     setModalTourType("new_item")
                     setModalTourStep(0)
                   }}
-                  className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[11px] font-extrabold shadow-sm hover:bg-[#233327] hover:scale-105 transition-all cursor-pointer"
+                  aria-label="Iniciar tutorial guiado deste modal"
+                  className="w-9 h-9 -m-1.5 lg:w-6 lg:h-6 lg:m-0 rounded-full flex items-center justify-center cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/40"
                   title="Iniciar tutorial guiado deste modal"
                 >
-                  ?
+                  <span className="w-6 h-6 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[11px] font-extrabold shadow-sm group-hover:bg-[#233327] group-hover:scale-105 transition-all">
+                    ?
+                  </span>
                 </button>
               </div>
 
               <button 
                 type="button" 
                 onClick={() => setIsModalOpen(false)} 
-                className="p-1.5 rounded-lg text-[#CB5A3C] hover:bg-[#CB5A3C]/10 transition-colors cursor-pointer"
+                aria-label="Fechar modal"
+                className="min-h-9 min-w-9 flex items-center justify-center p-1.5 rounded-lg text-[#CB5A3C] dark:text-[#FF7D4F] hover:bg-[#CB5A3C]/10 dark:hover:bg-[#CB5A3C]/20 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#CB5A3C]/40"
               >
-                <X className="w-5 h-5 text-[#CB5A3C]" />
+                <X className="w-5 h-5" />
               </button>
             </div>
             
             {/* Modal Body / Scrollable Form */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+            <div className="p-5 sm:p-6 overflow-y-auto flex-1">
               <form id="menu-item-form" onSubmit={handleSaveModal} className="flex flex-col gap-4">
                 
                 {/* 1. Foto do Produto */}
                 <div id="tour-new-item-image" className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-[13px] font-semibold text-gray-700">Foto do Produto</label>
-                    <span className="text-[11px] text-gray-400">Opcional</span>
+                    <label className="text-[13px] font-semibold text-gray-700 dark:text-[#F2EFE9]">Foto do Produto</label>
+                    <span className="text-[11px] text-muted-foreground">Opcional</span>
                   </div>
 
                   {formImage ? (
-                    <div className="flex items-center gap-3 p-2.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/60">
-                      <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-[#E9E4D4] bg-white shrink-0 shadow-xs">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 p-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/60 dark:bg-[#222C25]">
+                      <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-[#E9E4D4] dark:border-[#2A382E] bg-white dark:bg-[#161E18] shrink-0 shadow-xs">
                         <img src={formImage} alt="Foto do produto" className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 flex flex-col justify-center min-w-0">
-                        <span className="text-xs font-bold text-gray-800 truncate">Foto anexada</span>
-                        <span className="text-[11px] text-gray-500">Exibição otimizada para o cliente</span>
+                        <span className="text-xs font-bold text-gray-800 dark:text-[#F2EFE9] truncate">Foto anexada</span>
+                        <span className="text-[11px] text-muted-foreground">Exibição otimizada para o cliente</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <button
                           type="button"
                           onClick={() => newItemFileInputRef.current?.click()}
-                          className="px-3 py-1.5 rounded-lg border border-[#E9E4D4] bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#2E4233] transition-colors cursor-pointer"
+                          className="min-h-9 px-3 py-1.5 rounded-lg border border-[#E9E4D4] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] text-xs font-semibold text-gray-700 dark:text-[#F2EFE9] hover:bg-gray-50 dark:hover:bg-[#25332A] hover:text-[#2E4233] transition-colors cursor-pointer"
                         >
                           Trocar
                         </button>
                         <button
                           type="button"
                           onClick={() => setFormImage("")}
-                          className="p-1.5 rounded-lg text-[#CB5A3C] hover:bg-red-50 transition-colors cursor-pointer"
+                          aria-label="Remover foto"
+                          className="min-h-9 min-w-9 flex items-center justify-center p-1.5 rounded-lg text-[#CB5A3C] dark:text-[#FF7D4F] hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
                           title="Remover foto"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -2392,7 +2469,8 @@ export default function MenuClient({
                       </div>
                     </div>
                   ) : (
-                    <div
+                    <button
+                      type="button"
                       onClick={() => newItemFileInputRef.current?.click()}
                       onDragOver={(e) => {
                         e.preventDefault()
@@ -2406,24 +2484,24 @@ export default function MenuClient({
                           handleProcessNewItemImage(e.dataTransfer.files[0])
                         }
                       }}
-                      className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      className={`w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 dark:focus-visible:ring-[#FF7D4F]/40 ${
                         newItemIsDragging
-                          ? "border-[#2E4233] bg-[#EBF5ED]/50"
-                          : "border-[#E9E4D4] hover:border-[#2E4233] bg-[#FAF8F0]/30 hover:bg-[#FAF8F0]/60"
+                          ? "border-[#2E4233] dark:border-[#FF7D4F] bg-[#EBF5ED]/50 dark:bg-[#222C25]"
+                          : "border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#2E4233] dark:hover:border-[#FF7D4F] bg-[#FAF8F0]/30 dark:bg-[#222C25]/50 hover:bg-[#FAF8F0]/60 dark:hover:bg-[#222C25]"
                       }`}
                     >
-                      <div className="w-8 h-8 rounded-xl bg-white border border-[#E9E4D4] flex items-center justify-center text-[#CB5A3C] shadow-xs">
+                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-center text-[#CB5A3C] dark:text-[#FF7D4F] shadow-xs">
                         <Upload className="w-4 h-4" />
                       </div>
                       <div className="flex flex-col items-center">
-                        <span className="text-xs font-bold text-gray-800">
+                        <span className="text-xs font-bold text-gray-800 dark:text-[#F2EFE9]">
                           Clique ou arraste uma foto para subir
                         </span>
-                        <span className="text-[11px] text-gray-400">
+                        <span className="text-[11px] text-muted-foreground">
                           PNG, JPG ou WebP até 5MB
                         </span>
                       </div>
-                    </div>
+                    </button>
                   )}
 
                   <input
@@ -2443,45 +2521,45 @@ export default function MenuClient({
                 <div id="tour-new-item-name-price" className="flex flex-col gap-3">
                   {/* Nome do Item */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[13px] font-semibold text-gray-700">Nome do Item *</label>
+                    <label className="text-[13px] font-semibold text-gray-700 dark:text-[#F2EFE9]">Nome do Item *</label>
                     <input 
                       type="text" 
                       value={formName} 
                       onChange={(e) => setFormName(e.target.value)} 
                       required 
-                      className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" 
+                      className="w-full min-h-10 bg-white dark:bg-[#161E18] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl px-4 py-2 text-base lg:text-sm text-gray-900 dark:text-[#F2EFE9] dark:placeholder:text-[#7D8C81] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 dark:focus:ring-[#FF7D4F]/30 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all" 
                       placeholder="Ex: Bowl Salmão Grelhado" 
                     />
                   </div>
 
                   {/* Preço Original */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[13px] font-semibold text-gray-700">Preço Original *</label>
+                    <label className="text-[13px] font-semibold text-gray-700 dark:text-[#F2EFE9]">Preço Original *</label>
                     <input 
                       type="text" 
                       value={formOriginalPrice} 
                       onChange={(e) => setFormOriginalPrice(e.target.value)} 
                       required
-                      className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" 
+                      className="w-full min-h-10 bg-white dark:bg-[#161E18] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl px-4 py-2 text-base lg:text-sm text-gray-900 dark:text-[#F2EFE9] dark:placeholder:text-[#7D8C81] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 dark:focus:ring-[#FF7D4F]/30 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all" 
                       placeholder="R$ 0,00" 
                     />
                   </div>
                 </div>
 
                 {/* 3. Categorias (Tags livres) */}
-                <div id="tour-new-item-categories" className="flex flex-col gap-2 pt-2 border-t border-[#E9E4D4]/60">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[13px] font-semibold text-gray-700">
+                <div id="tour-new-item-categories" className="flex flex-col gap-2 pt-2 border-t border-[#E9E4D4]/60 dark:border-[#2A382E]">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <label className="text-[13px] font-semibold text-gray-700 dark:text-[#F2EFE9]">
                       Categorias / Tags
                     </label>
-                    <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">
+                    <span className="text-[11px] text-muted-foreground font-medium">
                       Campo livre · Separe por vírgulas
                     </span>
                   </div>
 
                   {/* Tags adicionadas */}
                   {formCategories.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-[#FAF8F0]/70 rounded-xl border border-[#E9E4D4] items-center">
+                    <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-[#FAF8F0]/70 dark:bg-[#222C25] rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] items-center">
                       {formCategories.map((cat, idx) => {
                         const style = getCategoryBadgeStyle(cat)
                         return (
@@ -2493,7 +2571,8 @@ export default function MenuClient({
                             <button
                               type="button"
                               onClick={() => setFormCategories((prev) => prev.filter((_, i) => i !== idx))}
-                              className="hover:opacity-75 cursor-pointer p-0.5 rounded transition-opacity"
+                              aria-label={`Remover tag ${cat}`}
+                              className="hover:opacity-75 cursor-pointer min-h-9 min-w-9 -my-1.5 -mr-1.5 lg:min-h-6 lg:min-w-6 lg:m-0 flex items-center justify-center rounded transition-opacity"
                               title="Remover tag"
                             >
                               <X className="w-3 h-3" />
@@ -2505,7 +2584,7 @@ export default function MenuClient({
                   )}
 
                   {/* Input livre para digitar categorias */}
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap sm:flex-nowrap gap-2">
                     <input
                       type="text"
                       value={formCategoryInput}
@@ -2528,7 +2607,7 @@ export default function MenuClient({
                         }
                       }}
                       placeholder="Digite categorias (ex: Bowls, Vegano, Sem Glúten)..."
-                      className="flex-1 px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-xs text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233]"
+                      className="flex-1 min-w-0 min-h-10 px-3.5 py-2 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs text-gray-800 dark:text-[#F2EFE9] dark:placeholder:text-[#7D8C81] bg-white dark:bg-[#161E18] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 dark:focus:ring-[#FF7D4F]/30 focus:border-[#2E4233] dark:focus:border-[#FF7D4F]"
                     />
                     <button
                       type="button"
@@ -2538,7 +2617,7 @@ export default function MenuClient({
                           setFormCategoryInput("")
                         }
                       }}
-                      className="px-3.5 py-2 bg-[#2E4233] text-white text-xs font-semibold rounded-xl hover:bg-[#233327] transition-colors cursor-pointer shrink-0"
+                      className="min-h-10 px-3.5 py-2 bg-[#2E4233] dark:bg-[#B4482D] text-white text-xs font-semibold rounded-xl hover:bg-[#233327] dark:hover:bg-[#9C3B23] transition-colors cursor-pointer shrink-0"
                     >
                       + Adicionar
                     </button>
@@ -2546,7 +2625,7 @@ export default function MenuClient({
 
                   {/* Sugestões rápidas de categoria */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">Sugestões:</span>
+                    <span className="text-[11px] text-muted-foreground font-medium">Sugestões:</span>
                     {["Bowls", "Bebidas", "Sobremesas", "Entradas", "Mais pedido", "Vegano", "Destaque", "Fitness"].map((sug) => {
                       const alreadyHas = formCategories.some((c) => c.toLowerCase() === sug.toLowerCase())
                       if (alreadyHas) return null
@@ -2555,7 +2634,7 @@ export default function MenuClient({
                           key={sug}
                           type="button"
                           onClick={() => handleAddCategoryToForm(sug)}
-                          className="px-2 py-0.5 bg-white border border-[#E9E4D4] hover:border-[#2E4233] text-gray-600 hover:text-[#2E4233] rounded-md text-[11px] font-medium transition-colors cursor-pointer"
+                          className="min-h-9 lg:min-h-8 px-2.5 py-1 bg-white dark:bg-[#222C25] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#2E4233] dark:hover:border-[#FF7D4F] text-gray-700 dark:text-[#C5CFC8] hover:text-[#2E4233] dark:hover:text-[#F2EFE9] rounded-md text-[11px] font-medium transition-colors cursor-pointer"
                         >
                           + {sug}
                         </button>
@@ -2569,43 +2648,60 @@ export default function MenuClient({
                   {/* Descrição / Ingredientes */}
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-between items-center">
-                      <label className="text-[13px] font-semibold text-gray-700">Descrição / Ingredientes</label>
-                      <span className="text-[11px] text-gray-400">{formDescription.length}/300</span>
+                      <label className="text-[13px] font-semibold text-gray-700 dark:text-[#F2EFE9]">Descrição / Ingredientes</label>
+                      <span className="text-[11px] text-muted-foreground">{formDescription.length}/300</span>
                     </div>
                     <textarea
                       value={formDescription}
                       maxLength={300}
                       onChange={(e) => setFormDescription(e.target.value)}
                       rows={3}
-                      className="w-full border border-[#E9E4D4] rounded-xl p-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all resize-none leading-relaxed"
+                      className="w-full bg-white dark:bg-[#161E18] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-3 text-base lg:text-sm text-gray-900 dark:text-[#F2EFE9] dark:placeholder:text-[#7D8C81] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 dark:focus:ring-[#FF7D4F]/30 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all resize-none leading-relaxed"
                       placeholder="Descreva os ingredientes e detalhes para o cliente..."
                     />
                   </div>
 
                   {/* Limite Diário */}
-                  <div className="flex flex-col gap-2 pt-1 border-t border-gray-100">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <div
+                  <div className="flex flex-col gap-2 pt-2 border-t border-gray-100 dark:border-[#2A382E]">
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        role="checkbox"
+                        aria-checked={formHasDailyLimit}
+                        aria-label="Ativar limite diário de vendas"
                         onClick={() => setFormHasDailyLimit(!formHasDailyLimit)}
-                        className={`w-4 h-4 rounded flex items-center justify-center transition-colors cursor-pointer ${
-                          formHasDailyLimit ? "bg-[#CB5A3C] text-white" : "border border-gray-300 bg-white"
-                        }`}
+                        className="w-9 h-9 -m-2 lg:w-5 lg:h-5 lg:m-0 rounded flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D]/40"
                       >
-                        {formHasDailyLimit && <Check className="w-3 h-3 stroke-[3]" />}
-                      </div>
-                      <span className="text-[13px] font-semibold text-gray-700">Ativar limite diário de vendas</span>
-                    </label>
+                        <span
+                          className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
+                            formHasDailyLimit
+                              ? "bg-[#B4482D] text-white"
+                              : "border border-gray-300 dark:border-[#3A4A3E] bg-white dark:bg-[#161E18]"
+                          }`}
+                        >
+                          {formHasDailyLimit && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormHasDailyLimit(!formHasDailyLimit)}
+                        className="min-h-9 lg:min-h-0 inline-flex items-center text-[13px] font-semibold text-gray-700 dark:text-[#F2EFE9] cursor-pointer text-left"
+                      >
+                        Ativar limite diário de vendas
+                      </button>
+                    </div>
 
                     {formHasDailyLimit && (
-                      <div className="flex items-center gap-2 pl-6">
+                      <div className="flex items-center gap-2 pl-7">
                         <input
                           type="number"
+                          aria-label="Limite diário em unidades"
                           value={formDailyLimit}
                           onChange={(e) => setFormDailyLimit(e.target.value)}
                           placeholder="Ex: 50"
-                          className="w-24 border border-[#E9E4D4] rounded-xl px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233]"
+                          className="w-28 min-h-9 bg-white dark:bg-[#161E18] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl px-3 py-1.5 text-base lg:text-sm text-gray-900 dark:text-[#F2EFE9] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 dark:focus:ring-[#FF7D4F]/30 focus:border-[#2E4233] dark:focus:border-[#FF7D4F]"
                         />
-                        <span className="text-xs text-gray-500 font-medium">unidades por dia</span>
+                        <span className="text-xs text-muted-foreground font-medium">unidades por dia</span>
                       </div>
                     )}
                   </div>
@@ -2616,11 +2712,11 @@ export default function MenuClient({
 
 
             {/* Modal Footer (Matching Estoque) */}
-            <div className="p-4 border-t border-[#E9E4D4] bg-[#FDFCF9] flex justify-end gap-3">
+            <div className="p-4 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FDFCF9] dark:bg-[#222C25] flex flex-wrap items-center justify-end gap-3 shrink-0">
               <button 
                 type="button" 
                 onClick={() => setIsModalOpen(false)} 
-                className="px-5 py-2.5 text-[14px] font-semibold text-gray-600 hover:text-gray-800 transition-colors cursor-pointer"
+                className="min-h-10 px-5 py-2 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-[14px] font-semibold text-gray-700 dark:text-[#C5CFC8] hover:bg-gray-50 dark:hover:bg-[#1B241E] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -2628,7 +2724,7 @@ export default function MenuClient({
                 type="submit" 
                 form="menu-item-form" 
                 disabled={!formName.trim()} 
-                className="px-6 py-2.5 bg-[#CB5A3C] hover:bg-[#A8452B] text-white rounded-xl font-semibold text-[14px] transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+                className="min-h-10 px-6 py-2 bg-[#B4482D] hover:bg-[#9C3B23] text-white rounded-xl font-semibold text-[14px] transition-all shadow-sm disabled:opacity-50 cursor-pointer"
               >
                 {itemToEdit ? "Salvar Alterações" : "Adicionar Item"}
               </button>
@@ -2640,30 +2736,31 @@ export default function MenuClient({
 
       {/* ==================== CUSTOM DELETE CONFIRMATION MODAL (Matching Estoque) ==================== */}
       {itemToDelete && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col items-center text-center relative overflow-hidden">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col items-center text-center relative max-h-[90dvh] overflow-y-auto">
             <button 
               type="button"
               onClick={() => setItemToDelete(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-[#CB5A3C] hover:bg-[#CB5A3C]/10 transition-colors cursor-pointer"
+              aria-label="Fechar confirmação de exclusão"
+              className="absolute top-3 right-3 min-h-9 min-w-9 flex items-center justify-center p-1.5 rounded-lg text-[#CB5A3C] dark:text-[#FF7D4F] hover:bg-[#CB5A3C]/10 dark:hover:bg-[#CB5A3C]/20 transition-colors cursor-pointer"
             >
-              <X className="w-5 h-5 text-[#CB5A3C]" />
+              <X className="w-5 h-5" />
             </button>
 
-            <div className="w-14 h-14 rounded-full bg-[#FDF2F0] border-2 border-[#F5D8D1] flex items-center justify-center mb-3 shadow-sm">
-              <Trash2 className="w-7 h-7 text-[#CB5A3C]" />
+            <div className="w-14 h-14 rounded-full bg-[#FDF2F0] dark:bg-red-950/40 border-2 border-[#F5D8D1] dark:border-red-900/50 flex items-center justify-center mb-3 shadow-sm">
+              <Trash2 className="w-7 h-7 text-red-500" />
             </div>
 
-            <h3 className="font-bold text-[#2E4233] text-lg mb-1">Excluir item?</h3>
-            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Tem certeza que deseja excluir <span className="font-bold text-gray-800">&quot;{itemToDelete.name}&quot;</span> do cardápio? Esta ação não pode ser desfeita.
+            <h3 className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-lg mb-1">Excluir item?</h3>
+            <p className="text-sm text-gray-600 dark:text-[#C5CFC8] mb-6 leading-relaxed">
+              Tem certeza que deseja excluir <span className="font-bold text-gray-900 dark:text-[#F2EFE9]">&quot;{itemToDelete.name}&quot;</span> do cardápio? Esta ação não pode ser desfeita.
             </p>
 
-            <div className="flex w-full gap-3">
+            <div className="flex flex-wrap w-full gap-3">
               <button 
                 type="button" 
                 onClick={() => setItemToDelete(null)}
-                className="flex-1 py-2.5 rounded-xl border border-[#E9E4D4] text-[14px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="flex-1 min-w-[110px] min-h-10 py-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-[14px] font-semibold text-gray-700 dark:text-[#C5CFC8] hover:bg-gray-50 dark:hover:bg-[#222C25] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -2677,7 +2774,7 @@ export default function MenuClient({
                   setTimeout(() => setNotification(null), 3000)
                   deleteMenuProduct(toDeleteId).catch(console.error)
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-[14px] font-semibold text-white shadow-sm transition-all cursor-pointer"
+                className="flex-1 min-w-[110px] min-h-10 py-2.5 rounded-xl bg-[#B4482D] hover:bg-[#9C3B23] text-[14px] font-semibold text-white shadow-sm transition-all cursor-pointer"
               >
                 Excluir
               </button>
@@ -2693,19 +2790,20 @@ export default function MenuClient({
           onClick={() => setZoomedItem(null)}
         >
           <div 
-            className="bg-[#2E4233] text-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col border border-[#3d5743] relative animate-in zoom-in-95 duration-200"
+            className="bg-[#2E4233] text-white rounded-2xl w-full max-w-xl max-h-[90dvh] shadow-2xl overflow-hidden flex flex-col border border-[#3d5743] relative animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-5 py-3.5 border-b border-white/10 flex justify-between items-center bg-[#233327]">
+            <div className="px-5 py-3.5 border-b border-white/10 flex justify-between items-center bg-[#233327] shrink-0">
               <div className="flex items-center gap-2 min-w-0 pr-2">
                 <span className="font-bold text-white text-base truncate">{zoomedItem.name}</span>
-                <span className="text-xs text-white/60 shrink-0 font-medium">({zoomedItem.category})</span>
+                <span className="text-xs text-white/70 shrink-0 font-medium">({zoomedItem.category})</span>
               </div>
               <button
                 type="button"
                 onClick={() => setZoomedItem(null)}
-                className="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Fechar visualização"
+                className="min-h-9 min-w-9 flex items-center justify-center p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 title="Fechar"
               >
                 <X className="w-5 h-5" />
@@ -2713,17 +2811,17 @@ export default function MenuClient({
             </div>
 
             {/* Imagem Ampliada */}
-            <div className="p-4 bg-black/40 flex items-center justify-center overflow-hidden max-h-[70vh]">
+            <div className="p-4 bg-black/40 flex items-center justify-center overflow-y-auto flex-1">
               <img
                 src={zoomedItem.image}
                 alt={zoomedItem.name}
-                className="w-full max-h-[60vh] object-contain rounded-xl shadow-lg border border-white/10"
+                className="w-full max-h-[60dvh] object-contain rounded-xl shadow-lg border border-white/10"
               />
             </div>
 
             {/* Footer com informações e botão para trocar foto */}
-            <div className="px-5 py-3 border-t border-white/10 bg-[#233327] flex items-center justify-between gap-3 text-xs">
-              <span className="text-white/80 line-clamp-1 flex-1">{zoomedItem.description}</span>
+            <div className="px-5 py-3 border-t border-white/10 bg-[#233327] flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
+              <span className="text-white/85 line-clamp-1 flex-1 min-w-[140px]">{zoomedItem.description}</span>
               <button
                 type="button"
                 onClick={() => {
@@ -2732,7 +2830,7 @@ export default function MenuClient({
                   setItemToChangeImage(item)
                   setNewImageUrl(item.image)
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors shrink-0 cursor-pointer"
+                className="min-h-9 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white font-semibold transition-colors shrink-0 cursor-pointer"
               >
                 <Camera className="w-3.5 h-3.5 text-white/90" />
                 <span>Trocar foto</span>
@@ -2752,14 +2850,14 @@ export default function MenuClient({
           }}
         >
           <div 
-            className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150 relative"
+            className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-md max-h-[90dvh] shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150 relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-6 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
-              <div className="flex flex-col">
-                <h3 className="font-bold text-[#2E4233] text-lg">Trocar Imagem</h3>
-                <span className="text-xs text-gray-500 font-medium truncate max-w-[280px]">
+            <div className="px-5 sm:px-6 py-4 border-b border-[#E9E4D4] dark:border-[#2A382E] flex justify-between items-center bg-[#FAF8F0] dark:bg-[#222C25] shrink-0">
+              <div className="flex flex-col min-w-0 pr-2">
+                <h3 className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-lg">Trocar Imagem</h3>
+                <span className="text-xs text-gray-500 dark:text-[#9CA79E] font-medium truncate">
                   {itemToChangeImage.name}
                 </span>
               </div>
@@ -2769,7 +2867,8 @@ export default function MenuClient({
                   setItemToChangeImage(null)
                   setShowDeletePhotoConfirm(false)
                 }}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                aria-label="Fechar modal"
+                className="min-h-9 min-w-9 flex items-center justify-center p-1.5 rounded-lg text-gray-500 dark:text-[#9CA79E] hover:text-gray-700 dark:hover:text-[#F2EFE9] hover:bg-gray-100 dark:hover:bg-[#2A382E] transition-colors cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2789,11 +2888,11 @@ export default function MenuClient({
             />
 
             {/* Body */}
-            <form onSubmit={handleSaveChangeImage} className="p-6 flex flex-col gap-4">
+            <form onSubmit={handleSaveChangeImage} className="p-5 sm:p-6 flex flex-col gap-4 overflow-y-auto flex-1">
               {newImageUrl.trim() ? (
                 /* Imagem com Lixinho no Topo */
                 <div className="flex flex-col gap-3">
-                  <div className="relative w-full h-48 rounded-xl border border-[#E9E4D4] overflow-hidden bg-gray-50 shadow-inner group">
+                  <div className="relative w-full h-48 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] overflow-hidden bg-gray-50 dark:bg-[#161E18] shadow-inner group">
                     <img
                       src={newImageUrl}
                       alt="Prévia da imagem"
@@ -2804,7 +2903,8 @@ export default function MenuClient({
                     <button
                       type="button"
                       onClick={() => setShowDeletePhotoConfirm(true)}
-                      className="absolute top-3 right-3 p-2 rounded-xl bg-white/95 hover:bg-white text-[#CB5A3C] shadow-lg border border-[#E9E4D4] transition-all hover:scale-105 cursor-pointer flex items-center justify-center"
+                      aria-label="Excluir imagem"
+                      className="min-h-9 min-w-9 absolute top-3 right-3 p-2 rounded-xl bg-white/95 dark:bg-[#1B241E]/95 hover:bg-white dark:hover:bg-[#1B241E] text-[#CB5A3C] dark:text-[#FF7D4F] shadow-lg border border-[#E9E4D4] dark:border-[#2A382E] transition-all hover:scale-105 cursor-pointer flex items-center justify-center"
                       title="Excluir imagem"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -2812,7 +2912,8 @@ export default function MenuClient({
                   </div>
 
                   {/* Área para arrastar outra ou carregar do computador */}
-                  <div
+                  <button
+                    type="button"
                     onClick={() => fileInputRef.current?.click()}
                     onDragOver={(e) => {
                       e.preventDefault()
@@ -2820,21 +2921,22 @@ export default function MenuClient({
                     }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={handleDropImage}
-                    className={`border-2 border-dashed rounded-xl p-3.5 flex items-center justify-center gap-2 cursor-pointer transition-all ${
+                    className={`w-full border-2 border-dashed rounded-xl p-3.5 flex items-center justify-center gap-2 cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 dark:focus-visible:ring-[#FF7D4F]/40 ${
                       isDragging
-                        ? "border-[#2E4233] bg-[#FAF8F0]"
-                        : "border-[#E9E4D4] hover:border-[#2E4233] bg-[#FAF8F0]/40 hover:bg-[#FAF8F0]"
+                        ? "border-[#2E4233] dark:border-[#FF7D4F] bg-[#FAF8F0] dark:bg-[#222C25]"
+                        : "border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#2E4233] dark:hover:border-[#FF7D4F] bg-[#FAF8F0]/40 dark:bg-[#222C25]/50 hover:bg-[#FAF8F0] dark:hover:bg-[#222C25]"
                     }`}
                   >
-                    <Upload className="w-4 h-4 text-[#2E4233]" />
-                    <span className="text-xs font-semibold text-[#2E4233]">
+                    <Upload className="w-4 h-4 text-[#2E4233] dark:text-[#FF7D4F]" />
+                    <span className="text-xs font-semibold text-[#2E4233] dark:text-[#F2EFE9]">
                       Arraste outra foto ou clique para carregar
                     </span>
-                  </div>
+                  </button>
                 </div>
               ) : (
                 /* Área para arrastar imagem ou carregar do computador (Sem foto) */
-                <div
+                <button
+                  type="button"
                   onClick={() => fileInputRef.current?.click()}
                   onDragOver={(e) => {
                     e.preventDefault()
@@ -2842,42 +2944,42 @@ export default function MenuClient({
                   }}
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={handleDropImage}
-                  className={`w-full h-52 rounded-xl border-2 border-dashed flex flex-col items-center justify-center p-6 cursor-pointer transition-all ${
+                  className={`w-full h-52 rounded-xl border-2 border-dashed flex flex-col items-center justify-center p-6 cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/30 dark:focus-visible:ring-[#FF7D4F]/40 ${
                     isDragging
-                      ? "border-[#2E4233] bg-[#FAF8F0] scale-[0.99]"
-                      : "border-[#E9E4D4] hover:border-[#2E4233] bg-[#FAF8F0]/40 hover:bg-[#FAF8F0]"
+                      ? "border-[#2E4233] dark:border-[#FF7D4F] bg-[#FAF8F0] dark:bg-[#222C25] scale-[0.99]"
+                      : "border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#2E4233] dark:hover:border-[#FF7D4F] bg-[#FAF8F0]/40 dark:bg-[#222C25]/50 hover:bg-[#FAF8F0] dark:hover:bg-[#222C25]"
                   }`}
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-white shadow-xs border border-[#E9E4D4] flex items-center justify-center mb-3 text-[#2E4233]">
-                    <Upload className="w-6 h-6 text-[#2E4233]" />
+                  <div className="w-14 h-14 rounded-2xl bg-white dark:bg-[#1B241E] shadow-xs border border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-center mb-3 text-[#2E4233] dark:text-[#FF7D4F]">
+                    <Upload className="w-6 h-6" />
                   </div>
-                  <p className="text-[13px] font-bold text-[#2E4233]">
+                  <p className="text-[13px] font-bold text-[#2E4233] dark:text-[#F2EFE9]">
                     Arraste e solte uma imagem aqui
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    ou <span className="text-[#CB5A3C] font-semibold underline">clique para carregar do computador</span>
+                  <p className="text-xs text-gray-500 dark:text-[#C5CFC8] mt-1">
+                    ou <span className="text-[#B4482D] dark:text-[#FF9E7D] font-semibold underline">clique para carregar do computador</span>
                   </p>
-                  <span className="text-[11px] text-gray-400 mt-3 bg-white px-2.5 py-0.5 rounded-full border border-gray-100">
+                  <span className="text-[11px] text-muted-foreground mt-3 bg-white dark:bg-[#1B241E] px-2.5 py-0.5 rounded-full border border-gray-100 dark:border-[#2A382E]">
                     PNG, JPG ou WebP
                   </span>
-                </div>
+                </button>
               )}
 
               {/* Footer */}
-              <div className="pt-3 border-t border-[#E9E4D4] flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-[#E9E4D4] dark:border-[#2A382E] flex flex-wrap items-center justify-end gap-2.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => {
                     setItemToChangeImage(null)
                     setShowDeletePhotoConfirm(false)
                   }}
-                  className="px-4 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="min-h-9 px-4 py-2 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-xs font-semibold text-gray-700 dark:text-[#C5CFC8] hover:bg-gray-50 dark:hover:bg-[#222C25] transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                  className="min-h-9 px-5 py-2 rounded-xl bg-[#B4482D] hover:bg-[#9C3B23] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
                 >
                   Salvar Imagem
                 </button>
@@ -2890,19 +2992,19 @@ export default function MenuClient({
                 className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 rounded-2xl animate-in fade-in duration-100"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="bg-white rounded-2xl w-full max-w-xs shadow-2xl p-5 flex flex-col items-center text-center border border-[#E9E4D4] animate-in zoom-in-95 duration-100">
-                  <div className="w-12 h-12 rounded-full bg-[#FDF2F0] border border-[#F5D8D1] flex items-center justify-center mb-2.5">
-                    <Trash2 className="w-6 h-6 text-[#CB5A3C]" />
+                <div className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-xs shadow-2xl p-5 flex flex-col items-center text-center border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-100">
+                  <div className="w-12 h-12 rounded-full bg-[#FDF2F0] dark:bg-red-950/40 border border-[#F5D8D1] dark:border-red-900/50 flex items-center justify-center mb-2.5">
+                    <Trash2 className="w-6 h-6 text-red-500" />
                   </div>
-                  <h4 className="font-bold text-[#2E4233] text-base mb-1">Excluir foto?</h4>
-                  <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                  <h4 className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-base mb-1">Excluir foto?</h4>
+                  <p className="text-xs text-gray-600 dark:text-[#C5CFC8] mb-4 leading-relaxed">
                     Tem certeza que deseja excluir a foto deste produto? Ele ficará sem foto no cardápio.
                   </p>
-                  <div className="flex w-full gap-2">
+                  <div className="flex flex-wrap w-full gap-2">
                     <button
                       type="button"
                       onClick={() => setShowDeletePhotoConfirm(false)}
-                      className="flex-1 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="flex-1 min-h-9 py-2 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-xs font-semibold text-gray-700 dark:text-[#C5CFC8] hover:bg-gray-50 dark:hover:bg-[#222C25] transition-colors cursor-pointer"
                     >
                       Cancelar
                     </button>
@@ -2912,7 +3014,7 @@ export default function MenuClient({
                         setNewImageUrl("")
                         setShowDeletePhotoConfirm(false)
                       }}
-                      className="flex-1 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-xs font-semibold text-white shadow-sm transition-all cursor-pointer"
+                      className="flex-1 min-h-9 py-2 rounded-xl bg-[#B4482D] hover:bg-[#9C3B23] text-xs font-semibold text-white shadow-sm transition-all cursor-pointer"
                     >
                       Excluir
                     </button>
@@ -2932,30 +3034,31 @@ export default function MenuClient({
           onClick={() => setProdModalItem(null)}
         >
           <div 
-            className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150 max-h-[90vh]"
+            className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150 max-h-[90dvh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
+            <div className="px-5 py-4 border-b border-[#E9E4D4] dark:border-[#2A382E] flex justify-between items-center bg-[#FAF8F0] dark:bg-[#222C25] shrink-0">
               <div>
-                <h3 className="font-serif font-bold text-[#CB5A3C] text-lg">Editar Produto</h3>
-                <p className="text-xs text-black font-medium">Nome, descrição e categorias (mín. 1, máx. 3)</p>
+                <h3 className="font-serif font-bold text-[#CB5A3C] dark:text-[#FF7D4F] text-lg">Editar Produto</h3>
+                <p className="text-xs text-gray-600 dark:text-[#C5CFC8] font-medium">Nome, descrição e categorias (mín. 1, máx. 3)</p>
               </div>
               <button
                 type="button"
                 onClick={() => setProdModalItem(null)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                aria-label="Fechar modal"
+                className="min-h-9 min-w-9 flex items-center justify-center p-1.5 rounded-lg text-gray-500 dark:text-[#9CA79E] hover:text-gray-700 dark:hover:text-[#F2EFE9] hover:bg-gray-100 dark:hover:bg-[#2A382E] transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSaveProductModal} className="p-5 flex flex-col gap-4 overflow-y-auto">
+            <form onSubmit={handleSaveProductModal} className="p-5 flex flex-col gap-4 overflow-y-auto flex-1">
               {/* Nome do Produto */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-[#CB5A3C]">
-                  Nome do Produto <span className="text-[#CB5A3C]">*</span>
+                <label className="text-xs font-bold text-[#B4482D] dark:text-[#FF9E7D]">
+                  Nome do Produto <span className="text-[#CB5A3C] dark:text-[#FF7D4F]">*</span>
                 </label>
                 <input
                   type="text"
@@ -2963,13 +3066,13 @@ export default function MenuClient({
                   value={prodModalName}
                   onChange={(e) => setProdModalName(e.target.value)}
                   placeholder="Ex: Bowl Salmão Grelhado"
-                  className="w-full px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-sm font-semibold text-[#2E4233] focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all"
+                  className="w-full min-h-10 px-3.5 py-2 bg-white dark:bg-[#161E18] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-sm font-semibold text-[#2E4233] dark:text-[#F2EFE9] dark:placeholder:text-[#7D8C81] focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] dark:focus:border-[#FF7D4F] transition-all"
                 />
               </div>
 
               {/* Descrição */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-[#CB5A3C]">
+                <label className="text-xs font-bold text-[#B4482D] dark:text-[#FF9E7D]">
                   Descrição
                 </label>
                 <textarea
@@ -2977,23 +3080,23 @@ export default function MenuClient({
                   value={prodModalDesc}
                   onChange={(e) => setProdModalDesc(e.target.value)}
                   placeholder="Descreva os ingredientes, modo de preparo ou especificações..."
-                  className="w-full px-3.5 py-2 border border-[#E9E4D4] rounded-xl text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] transition-all resize-none"
+                  className="w-full px-3.5 py-2 bg-white dark:bg-[#161E18] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs text-gray-700 dark:text-[#F2EFE9] dark:placeholder:text-[#7D8C81] focus:outline-none focus:ring-2 focus:ring-[#CB5A3C]/20 focus:border-[#CB5A3C] dark:focus:border-[#FF7D4F] transition-all resize-none"
                 />
               </div>
 
               {/* Categorias (Travadas em mínimo 1 e máximo 3) */}
-              <div className="flex flex-col gap-2 pt-2 border-t border-[#E9E4D4]/60">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-[#CB5A3C]">
+              <div className="flex flex-col gap-2 pt-2 border-t border-[#E9E4D4]/60 dark:border-[#2A382E]">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <label className="text-xs font-bold text-[#B4482D] dark:text-[#FF9E7D]">
                     Categorias ({prodModalCategories.length}/3)
                   </label>
-                  <span className="text-[11px] font-medium text-gray-400">
+                  <span className="text-[11px] font-medium text-muted-foreground">
                     Mínimo 1 · Máximo 3
                   </span>
                 </div>
 
                 {/* Chips selecionados */}
-                <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-[#FAF8F0]/70 rounded-xl border border-[#E9E4D4] items-center">
+                <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-[#FAF8F0]/70 dark:bg-[#222C25] rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] items-center">
                   {prodModalCategories.map((cat, idx) => {
                     const style = getCategoryBadgeStyle(cat)
                     const canRemove = prodModalCategories.length > 1
@@ -3007,13 +3110,14 @@ export default function MenuClient({
                           <button
                             type="button"
                             onClick={() => setProdModalCategories((prev) => prev.filter((_, i) => i !== idx))}
-                            className="hover:opacity-75 cursor-pointer p-0.5 rounded transition-opacity"
+                            aria-label={`Remover categoria ${cat}`}
+                            className="hover:opacity-75 cursor-pointer min-h-9 min-w-9 -my-1.5 -mr-1.5 lg:min-h-6 lg:min-w-6 lg:m-0 flex items-center justify-center rounded transition-opacity"
                             title="Remover tag"
                           >
                             <X className="w-3 h-3" />
                           </button>
                         ) : (
-                          <span className="text-[10px] opacity-40 ml-0.5" title="Mínimo de 1 categoria obrigatória">
+                          <span className="text-[10px] opacity-60 ml-0.5" title="Mínimo de 1 categoria obrigatória">
                             (fixa)
                           </span>
                         )}
@@ -3025,7 +3129,7 @@ export default function MenuClient({
                 {/* Campo para adicionar categoria se < 3 */}
                 {prodModalCategories.length < 3 ? (
                   <div className="flex flex-col gap-2 mt-1">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap sm:flex-nowrap gap-2">
                       <input
                         type="text"
                         value={prodModalNewCat}
@@ -3037,12 +3141,12 @@ export default function MenuClient({
                           }
                         }}
                         placeholder="Digitar nova tag ou escolher abaixo..."
-                        className="flex-1 px-3 py-1.5 border border-[#E9E4D4] rounded-xl text-xs focus:outline-none focus:border-[#CB5A3C]"
+                        className="flex-1 min-w-0 min-h-9 px-3 py-1.5 bg-white dark:bg-[#161E18] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs text-gray-900 dark:text-[#F2EFE9] dark:placeholder:text-[#7D8C81] focus:outline-none focus:border-[#CB5A3C] dark:focus:border-[#FF7D4F]"
                       />
                       <button
                         type="button"
                         onClick={() => handleAddCatToProdModal(prodModalNewCat)}
-                        className="px-3 py-1.5 bg-[#CB5A3C] text-white text-xs font-bold rounded-xl hover:bg-[#b0482e] transition-colors cursor-pointer"
+                        className="min-h-9 px-3.5 py-1.5 bg-[#B4482D] text-white text-xs font-bold rounded-xl hover:bg-[#9C3B23] transition-colors cursor-pointer shrink-0"
                       >
                         + Adicionar
                       </button>
@@ -3050,7 +3154,7 @@ export default function MenuClient({
 
                     {/* Sugestões rápidas de categoria com + em laranja e fundo verde suave */}
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">Sugestões:</span>
+                      <span className="text-[11px] text-muted-foreground font-medium">Sugestões:</span>
                       {["Bowls", "Bebidas", "Sobremesas", "Entradas", "Mais pedido", "Vegano", "Orgânico", "Destaque"].map((sug) => {
                         const alreadyHas = prodModalCategories.some((c) => c.toLowerCase() === sug.toLowerCase())
                         if (alreadyHas) return null
@@ -3059,9 +3163,9 @@ export default function MenuClient({
                             key={sug}
                             type="button"
                             onClick={() => handleAddCatToProdModal(sug)}
-                            className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-800 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer inline-flex items-center"
+                            className="min-h-9 lg:min-h-8 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer inline-flex items-center"
                           >
-                            <span className="text-[#CB5A3C] font-bold mr-1">+</span>
+                            <span className="text-[#CB5A3C] dark:text-[#FF7D4F] font-bold mr-1">+</span>
                             <span>{sug}</span>
                           </button>
                         )
@@ -3069,24 +3173,24 @@ export default function MenuClient({
                     </div>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-lg font-medium">
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 px-2.5 py-1.5 rounded-lg font-medium">
                     Limite máximo de 3 categorias atingido.
                   </p>
                 )}
               </div>
 
               {/* Footer */}
-              <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-gray-100 dark:border-[#2A382E] flex flex-wrap items-center justify-end gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setProdModalItem(null)}
-                  className="px-4 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="min-h-9 px-4 py-2 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-xs font-semibold text-gray-700 dark:text-[#C5CFC8] hover:bg-gray-50 dark:hover:bg-[#222C25] transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#b0482e] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                  className="min-h-9 px-5 py-2 rounded-xl bg-[#B4482D] hover:bg-[#9C3B23] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
                 >
                   Salvar Alterações
                 </button>
@@ -3103,65 +3207,56 @@ export default function MenuClient({
           onClick={() => setAdicionaisModalItem(null)}
         >
           <div 
-            className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150 max-h-[90vh] relative"
+            className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-lg shadow-2xl flex flex-col border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150 max-h-[90dvh] overflow-hidden relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0] rounded-t-2xl">
-              <div>
+            <div className="px-5 py-4 border-b border-[#E9E4D4] dark:border-[#2A382E] flex justify-between items-center bg-[#FAF8F0] dark:bg-[#222C25] shrink-0">
+              <div className="min-w-0 pr-2">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-serif font-bold text-[#CB5A3C] text-lg">
+                  <h3 className="font-serif font-bold text-[#CB5A3C] dark:text-[#FF7D4F] text-lg truncate">
                     {adicionaisModalItem.name}
                   </h3>
-                  {/* Tooltip Icon & Popover no padrão DeliPlus */}
-                  <div className="relative group inline-block">
-                    <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
-                      ?
-                    </div>
-                    <div className="absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-3rem)] p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[120] pointer-events-none">
-                      <p className="text-[12px] text-white dark:text-[#1C2C22] leading-relaxed">
-                        <span className="font-extrabold text-white dark:text-[#2E4233]">Dica:</span> Cadastre e gerencie os adicionais e complementos deste prato.
-                      </p>
-                      <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-white/10 dark:border-[#E5DFD1] text-[11px] text-white/90 dark:text-[#1C2C22]">
-                        <div className="flex items-start gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
-                          <span>Os adicionais configurados aqui poderão ser escolhidos pelo cliente no pedido.</span>
-                        </div>
-                        <div className="flex items-start gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
-                          <span>Você pode definir valores adicionais ou oferecer itens como cortesia (R$ 0,00).</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <HelpTooltip
+                    title="Dica:"
+                    description="Cadastre e gerencie os adicionais e complementos deste prato."
+                    items={[
+                      "Os adicionais configurados aqui poderão ser escolhidos pelo cliente no pedido.",
+                      "Você pode definir valores adicionais ou oferecer itens como cortesia (R$ 0,00)."
+                    ]}
+                    align="right"
+                    size="sm"
+                    ariaLabel="Dicas de adicionais"
+                  />
                 </div>
-                <p className="text-xs text-black font-medium mt-0.5">
+                <p className="text-xs text-gray-600 dark:text-[#C5CFC8] font-medium mt-0.5">
                   Cadastre e gerencie os adicionais e complementos deste prato
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setAdicionaisModalItem(null)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                aria-label="Fechar modal"
+                className="min-h-9 min-w-9 flex items-center justify-center p-1.5 rounded-lg text-gray-500 dark:text-[#9CA79E] hover:text-gray-700 dark:hover:text-[#F2EFE9] hover:bg-gray-100 dark:hover:bg-[#2A382E] transition-colors cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Body */}
-            <div className="p-5 flex flex-col gap-4 overflow-y-auto">
+            <div className="p-5 flex flex-col gap-4 overflow-y-auto flex-1">
               {/* Formulário: Adicionar Adicional (No topo conforme solicitado) */}
-              <div className="p-3.5 bg-[#FAF8F0]/70 rounded-xl border border-[#E9E4D4] flex flex-col gap-3">
+              <div className="p-3.5 bg-[#FAF8F0]/70 dark:bg-[#222C25] rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#CB5A3C]">
+                  <span className="text-xs font-bold text-[#B4482D] dark:text-[#FF9E7D]">
                     Novo Adicional
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div className="sm:col-span-2 flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-gray-700">
-                      Nome do Adicional <span className="text-[#CB5A3C]">*</span>
+                    <label className="text-[11px] font-semibold text-gray-700 dark:text-[#F2EFE9]">
+                      Nome do Adicional <span className="text-[#CB5A3C] dark:text-[#FF7D4F]">*</span>
                     </label>
                     <input
                       key={adicionalErrors.name ? `err-name-${shakeKey}` : 'ok-name'}
@@ -3173,16 +3268,16 @@ export default function MenuClient({
                       }}
                       onBlur={() => setAdicionalName(autoCapitalizeFirstLetter(adicionalName))}
                       placeholder="Ex: Queijo Extra, Molho Especial..."
-                      className={`w-full px-3 py-1.5 border rounded-lg text-xs font-medium transition-all ${
+                      className={`w-full min-h-9 px-3 py-1.5 bg-white dark:bg-[#161E18] border rounded-lg text-base lg:text-xs font-medium text-gray-900 dark:text-[#F2EFE9] dark:placeholder:text-[#7D8C81] transition-all ${
                         adicionalErrors.name
-                          ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 animate-shake"
-                          : "border-[#E9E4D4] focus:outline-none focus:border-[#CB5A3C]"
+                          ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 dark:bg-red-950/30 animate-shake"
+                          : "border-[#E9E4D4] dark:border-[#2A382E] focus:outline-none focus:border-[#CB5A3C] dark:focus:border-[#FF7D4F]"
                       }`}
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-gray-700">
-                      Valor adicional <span className="text-[#CB5A3C]">*</span>
+                    <label className="text-[11px] font-semibold text-gray-700 dark:text-[#F2EFE9]">
+                      Valor adicional <span className="text-[#CB5A3C] dark:text-[#FF7D4F]">*</span>
                     </label>
                     <input
                       key={adicionalErrors.price ? `err-price-${shakeKey}` : 'ok-price'}
@@ -3193,46 +3288,38 @@ export default function MenuClient({
                         if (adicionalErrors.price) setAdicionalErrors((p) => ({ ...p, price: false }))
                       }}
                       placeholder="R$ 0,00"
-                      className={`w-full px-3 py-1.5 border rounded-lg text-xs font-bold transition-all ${
+                      className={`w-full min-h-9 px-3 py-1.5 bg-white dark:bg-[#161E18] border rounded-lg text-base lg:text-xs font-bold transition-all ${
                         adicionalErrors.price
-                          ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 text-red-600 animate-shake"
-                          : "border-[#E9E4D4] text-[#CB5A3C] focus:outline-none focus:border-[#CB5A3C]"
+                          ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 dark:bg-red-950/30 text-red-600 dark:text-red-400 animate-shake"
+                          : "border-[#E9E4D4] dark:border-[#2A382E] text-[#B4482D] dark:text-[#FF9E7D] focus:outline-none focus:border-[#CB5A3C] dark:focus:border-[#FF7D4F]"
                       }`}
                     />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-gray-700">
-                    Descrição do adicional <span className="text-[#CB5A3C]">*</span>
+                  <label className="text-[11px] font-semibold text-gray-700 dark:text-[#F2EFE9]">
+                    Descrição do adicional (opcional)
                   </label>
                   <input
-                    key={adicionalErrors.desc ? `err-desc-${shakeKey}` : 'ok-desc'}
                     type="text"
                     value={adicionalDesc}
-                    onChange={(e) => {
-                      setAdicionalDesc(autoCapitalizeFirstLetter(e.target.value))
-                      if (adicionalErrors.desc) setAdicionalErrors((p) => ({ ...p, desc: false }))
-                    }}
+                    onChange={(e) => setAdicionalDesc(autoCapitalizeFirstLetter(e.target.value))}
                     onBlur={() => setAdicionalDesc(autoCapitalizeFirstLetter(adicionalDesc))}
-                    placeholder="Ex: Porção de 50g artesanal feita na casa"
-                    className={`w-full px-3 py-1.5 border rounded-lg text-xs transition-all ${
-                      adicionalErrors.desc
-                        ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/20 text-gray-800 animate-shake"
-                        : "border-[#E9E4D4] text-gray-700 focus:outline-none focus:border-[#CB5A3C]"
-                    }`}
+                    placeholder="Ex: Porção artesanal feita na casa (opcional)"
+                    className="w-full min-h-9 px-3 py-1.5 bg-white dark:bg-[#161E18] border rounded-lg text-base lg:text-xs transition-all border-[#E9E4D4] dark:border-[#2A382E] text-gray-800 dark:text-[#F2EFE9] dark:placeholder:text-[#7D8C81] focus:outline-none focus:border-[#CB5A3C] dark:focus:border-[#FF7D4F]"
                   />
                 </div>
 
-                {/* Foto do Adicional: Drag & Drop + Buscar no Computador + URL */}
+                {/* Foto do Adicional: Drag & Drop + Buscar no Computador */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-semibold text-gray-700 flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-gray-700 dark:text-[#F2EFE9] flex items-center justify-between">
                     <span>Foto do adicional (opcional)</span>
                     {adicionalImage && (
                       <button
                         type="button"
                         onClick={() => setAdicionalImage("")}
-                        className="text-[10px] text-red-600 hover:underline cursor-pointer"
+                        className="text-[11px] text-red-600 dark:text-red-400 hover:underline cursor-pointer"
                       >
                         Remover foto
                       </button>
@@ -3252,24 +3339,25 @@ export default function MenuClient({
                   />
 
                   {adicionalImage ? (
-                    <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-[#E9E4D4]">
-                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#E9E4D4] bg-[#FAF8F0] shrink-0">
+                    <div className="flex items-center gap-3 p-2 bg-white dark:bg-[#161E18] rounded-xl border border-[#E9E4D4] dark:border-[#2A382E]">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#222C25] shrink-0">
                         <img src={adicionalImage} alt="Foto selecionada" className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-[#2E4233] truncate">Foto adicionada</p>
-                        <p className="text-[10px] text-gray-400 truncate">{adicionalImage}</p>
+                        <p className="text-xs font-semibold text-[#2E4233] dark:text-[#F2EFE9] truncate">Foto adicionada</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{adicionalImage}</p>
                       </div>
                       <button
                         type="button"
                         onClick={() => adicionalFileInputRef.current?.click()}
-                        className="text-xs font-bold text-[#CB5A3C] hover:underline cursor-pointer shrink-0"
+                        className="min-h-9 px-2 text-xs font-bold text-[#B4482D] dark:text-[#FF9E7D] hover:underline cursor-pointer shrink-0"
                       >
                         Trocar
                       </button>
                     </div>
                   ) : (
-                    <div
+                    <button
+                      type="button"
                       onDragOver={(e) => {
                         e.preventDefault()
                         setIsDraggingAdicionalPhoto(true)
@@ -3283,20 +3371,20 @@ export default function MenuClient({
                         }
                       }}
                       onClick={() => adicionalFileInputRef.current?.click()}
-                      className={`p-3.5 rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center text-center ${
+                      className={`w-full p-3.5 rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#CB5A3C]/40 ${
                         isDraggingAdicionalPhoto
-                          ? "border-[#CB5A3C] bg-[#FCD8CC]"
-                          : "border-[#CB5A3C]/40 bg-[#FDE7DE] hover:border-[#CB5A3C] hover:bg-[#FCD8CC]"
+                          ? "border-[#CB5A3C] bg-[#FCD8CC] dark:bg-[#CB5A3C]/20"
+                          : "border-[#CB5A3C]/40 bg-[#FDE7DE] dark:bg-[#CB5A3C]/10 hover:border-[#CB5A3C] hover:bg-[#FCD8CC] dark:hover:bg-[#CB5A3C]/20"
                       }`}
                     >
-                      <Upload className={`w-5 h-5 mb-1 ${isDraggingAdicionalPhoto ? "text-[#CB5A3C]" : "text-[#CB5A3C]"}`} />
-                      <p className="text-xs font-semibold text-gray-700">
+                      <Upload className="w-5 h-5 mb-1 text-[#CB5A3C] dark:text-[#FF7D4F]" />
+                      <p className="text-xs font-semibold text-gray-800 dark:text-[#F2EFE9]">
                         {isUploadingAdicionalPhoto
                           ? "Enviando imagem..."
                           : "Arraste uma foto aqui ou clique para buscar no computador"}
                       </p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">PNG, JPG ou WEBP (até 5MB)</p>
-                    </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">PNG, JPG ou WEBP (até 5MB)</p>
+                    </button>
                   )}
 
                   {/* Botão de Incluir Adicional no formulário */}
@@ -3304,7 +3392,7 @@ export default function MenuClient({
                     <button
                       type="button"
                       onClick={handleAddOrUpdateAdicional}
-                      className="px-5 py-2 bg-[#CB5A3C] hover:bg-[#b0482e] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow active:scale-95 flex items-center gap-1.5"
+                      className="min-h-9 px-5 py-2 bg-[#B4482D] hover:bg-[#9C3B23] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow active:scale-95 flex items-center gap-1.5"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>{editingAdicionalId ? "Salvar Adicional" : "Incluir Adicional"}</span>
@@ -3324,13 +3412,13 @@ export default function MenuClient({
                 return (
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-[#CB5A3C]">
+                      <span className="text-xs font-bold text-[#B4482D] dark:text-[#FF9E7D]">
                         Adicionais Cadastrados ({adicionaisList.length})
                       </span>
                     </div>
 
                     {adicionaisList.length === 0 ? (
-                      <div className="p-4 bg-[#FDE7DE] rounded-xl border-2 border-dashed border-[#CB5A3C]/40 text-center text-xs text-[#8A3822] font-semibold">
+                      <div className="p-4 bg-[#FDE7DE] dark:bg-[#CB5A3C]/10 rounded-xl border-2 border-dashed border-[#CB5A3C]/40 text-center text-xs text-[#8A3822] dark:text-[#FF9E7D] font-semibold">
                         Nenhum adicional cadastrado ainda. Use o formulário acima para adicionar opções.
                       </div>
                     ) : (
@@ -3338,28 +3426,28 @@ export default function MenuClient({
                         {paginatedAdicionais.map((ad, idx) => (
                           <div
                             key={ad.id || idx}
-                            className="flex items-center justify-between p-2.5 rounded-xl border-2 border-[#CB5A3C]/40 bg-white hover:border-[#CB5A3C] transition-all shadow-2xs gap-3"
+                            className="flex items-center justify-between p-2.5 rounded-xl border-2 border-[#CB5A3C]/40 dark:border-[#2A382E] bg-white dark:bg-[#161E18] hover:border-[#CB5A3C] dark:hover:border-[#FF7D4F] transition-all shadow-2xs gap-3"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
                               {/* Foto do Adicional */}
-                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#E9E4D4] bg-[#FAF8F0] shrink-0 flex items-center justify-center">
+                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#222C25] shrink-0 flex items-center justify-center">
                                 {ad.image ? (
                                   <img src={ad.image} alt={ad.name} className="w-full h-full object-cover" />
                                 ) : (
-                                  <Camera className="w-4 h-4 text-gray-400" />
+                                  <Camera className="w-4 h-4 text-gray-400 dark:text-[#9CA79E]" />
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-bold text-xs text-[#2E4233] truncate">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-xs text-[#2E4233] dark:text-[#F2EFE9] truncate">
                                     {ad.name}
                                   </span>
-                                  <span className="text-xs font-bold text-[#CB5A3C] shrink-0">
+                                  <span className="text-xs font-bold text-[#B4482D] dark:text-[#FF7D4F] shrink-0">
                                     {ad.price}
                                   </span>
                                 </div>
                                 {ad.description && (
-                                  <p className="text-[11px] text-gray-500 truncate">{ad.description}</p>
+                                  <p className="text-[11px] text-gray-600 dark:text-[#9CA79E] truncate">{ad.description}</p>
                                 )}
                               </div>
                             </div>
@@ -3369,7 +3457,8 @@ export default function MenuClient({
                               <button
                                 type="button"
                                 onClick={() => setAdicionalToDelete(ad)}
-                                className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-colors cursor-pointer"
+                                aria-label={`Excluir adicional ${ad.name}`}
+                                className="min-h-9 min-w-9 flex items-center justify-center p-1.5 text-[#CB5A3C] dark:text-[#FF7D4F] hover:bg-[#CB5A3C]/10 dark:hover:bg-[#CB5A3C]/20 rounded-lg transition-colors cursor-pointer"
                                 title="Excluir adicional"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -3382,20 +3471,21 @@ export default function MenuClient({
 
                     {/* Pagination Controls no padrão DeliPlus (3 em 3 adicionais) */}
                     {adicionaisTotalPages > 1 && (
-                      <div className="flex items-center justify-between pt-2.5 border-t border-[#ECEAE2] text-[11px] text-[#637267]">
-                        <span className="font-medium text-[#637267]">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-[#ECEAE2] dark:border-[#2A382E] text-[11px] text-muted-foreground">
+                        <span className="font-medium">
                           {(adicionaisPage - 1) * ADICIONAIS_PER_PAGE + 1}–{Math.min(adicionaisPage * ADICIONAIS_PER_PAGE, adicionaisList.length)} de {adicionaisList.length} adicionais
                         </span>
-                        <div className="flex items-center gap-1">
+                        <div className="flex flex-wrap items-center gap-1">
                           {Array.from({ length: adicionaisTotalPages }).map((_, i) => (
                             <button
                               key={i}
                               type="button"
                               onClick={() => setAdicionaisPage(i + 1)}
-                              className={`w-6 h-6 rounded-md text-[11px] font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                              aria-label={`Página ${i + 1} de adicionais`}
+                              className={`min-h-9 min-w-9 lg:min-h-8 lg:min-w-8 px-2 rounded-md text-[11px] font-bold flex items-center justify-center transition-colors cursor-pointer ${
                                 adicionaisPage === i + 1
-                                  ? "bg-[#CB5A3C] text-white shadow-xs"
-                                  : "bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
+                                  ? "bg-[#B4482D] text-white shadow-xs"
+                                  : "bg-white dark:bg-[#1B241E] text-gray-700 dark:text-[#F2EFE9] hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]"
                               }`}
                             >
                               {i + 1}
@@ -3410,11 +3500,11 @@ export default function MenuClient({
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-3.5 border-t border-[#E9E4D4] flex items-center justify-end gap-2 bg-[#FAF8F0]/40 rounded-b-2xl">
+            <div className="px-5 py-3.5 border-t border-[#E9E4D4] dark:border-[#2A382E] flex flex-wrap items-center justify-end gap-2 bg-[#FAF8F0]/40 dark:bg-[#222C25] shrink-0">
               <button
                 type="button"
                 onClick={() => setAdicionaisModalItem(null)}
-                className="px-4 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="min-h-9 px-4 py-2 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-xs font-semibold text-gray-700 dark:text-[#C5CFC8] hover:bg-gray-50 dark:hover:bg-[#1B241E] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -3422,7 +3512,7 @@ export default function MenuClient({
                 type="button"
                 onClick={handleSaveAllAdicionais}
                 disabled={isSavingAdicionais}
-                className="px-5 py-2 rounded-xl bg-[#CB5A3C] hover:bg-[#b0482e] disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                className="min-h-9 px-5 py-2 rounded-xl bg-[#B4482D] hover:bg-[#9C3B23] disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
               >
                 {isSavingAdicionais ? "Salvando..." : "Salvar Alterações"}
               </button>
@@ -3438,31 +3528,32 @@ export default function MenuClient({
           onClick={() => setAdicionalToDelete(null)}
         >
           <div 
-            className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col items-center text-center border border-[#E9E4D4] animate-in zoom-in-95 duration-150 relative"
+            className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col items-center text-center border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150 relative max-h-[90dvh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setAdicionalToDelete(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              aria-label="Fechar confirmação"
+              className="min-h-9 min-w-9 flex items-center justify-center absolute top-3 right-3 p-1.5 rounded-lg text-gray-500 dark:text-[#9CA79E] hover:text-gray-700 dark:hover:text-[#F2EFE9] hover:bg-gray-100 dark:hover:bg-[#222C25] transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="w-14 h-14 rounded-full bg-[#FDF2F0] border-2 border-[#F5D8D1] flex items-center justify-center mb-3 shadow-sm">
-              <Trash2 className="w-7 h-7 text-[#CB5A3C]" />
+            <div className="w-14 h-14 rounded-full bg-[#FDF2F0] dark:bg-red-950/40 border-2 border-[#F5D8D1] dark:border-red-900/50 flex items-center justify-center mb-3 shadow-sm">
+              <Trash2 className="w-7 h-7 text-red-500" />
             </div>
 
-            <h3 className="font-bold text-[#2E4233] text-lg mb-1">Excluir adicional?</h3>
-            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Tem certeza que deseja excluir o adicional <span className="font-bold text-gray-800">&quot;{adicionalToDelete.name}&quot;</span> deste prato? Esta ação não pode ser desfeita.
+            <h3 className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-lg mb-1">Excluir adicional?</h3>
+            <p className="text-sm text-gray-600 dark:text-[#C5CFC8] mb-6 leading-relaxed">
+              Tem certeza que deseja excluir o adicional <span className="font-bold text-gray-900 dark:text-[#F2EFE9]">&quot;{adicionalToDelete.name}&quot;</span> deste prato? Esta ação não pode ser desfeita.
             </p>
 
-            <div className="flex w-full gap-3">
+            <div className="flex flex-wrap w-full gap-3">
               <button
                 type="button"
                 onClick={() => setAdicionalToDelete(null)}
-                className="flex-1 py-2.5 rounded-xl border border-[#E9E4D4] text-[14px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="flex-1 min-w-[110px] min-h-10 py-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-[14px] font-semibold text-gray-700 dark:text-[#C5CFC8] hover:bg-gray-50 dark:hover:bg-[#222C25] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -3472,7 +3563,7 @@ export default function MenuClient({
                   handleDeleteAdicional(adicionalToDelete.id)
                   setAdicionalToDelete(null)
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-[14px] font-semibold text-white shadow-sm transition-all cursor-pointer active:scale-95"
+                className="flex-1 min-w-[110px] min-h-10 py-2.5 rounded-xl bg-[#B4482D] hover:bg-[#9C3B23] text-[14px] font-semibold text-white shadow-sm transition-all cursor-pointer active:scale-95"
               >
                 Excluir
               </button>
@@ -3494,15 +3585,15 @@ export default function MenuClient({
             onClick={() => setDiscountModalItem(null)}
           >
             <div 
-              className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] animate-in zoom-in-95 duration-150"
+              className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-md max-h-[90dvh] shadow-2xl overflow-hidden flex flex-col border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="px-5 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0]">
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-col">
-                    <h3 className="font-bold text-[#CB5A3C] text-base">Preço Promocional</h3>
-                    <span className="text-xs text-gray-500 font-medium truncate max-w-[240px]">
+              <div className="px-5 py-4 border-b border-[#E9E4D4] dark:border-[#2A382E] flex justify-between items-center bg-[#FAF8F0] dark:bg-[#222C25] shrink-0">
+                <div className="flex items-center gap-2 min-w-0 pr-2">
+                  <div className="flex flex-col min-w-0">
+                    <h3 className="font-bold text-[#CB5A3C] dark:text-[#FF7D4F] text-base">Preço Promocional</h3>
+                    <span className="text-xs text-gray-500 dark:text-[#9CA79E] font-medium truncate">
                       {discountModalItem.name}
                     </span>
                   </div>
@@ -3513,49 +3604,53 @@ export default function MenuClient({
                       setModalTourType("promo")
                       setModalTourStep(0)
                     }}
-                    className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[11px] font-extrabold shadow-sm hover:bg-[#233327] hover:scale-105 transition-all cursor-pointer shrink-0"
+                    aria-label="Iniciar tutorial guiado deste modal"
+                    className="w-9 h-9 -m-1.5 lg:w-6 lg:h-6 lg:m-0 rounded-full flex items-center justify-center cursor-pointer shrink-0 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4233]/40"
                     title="Iniciar tutorial guiado deste modal"
                   >
-                    ?
+                    <span className="w-6 h-6 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[11px] font-extrabold shadow-sm group-hover:bg-[#233327] group-hover:scale-105 transition-all">
+                      ?
+                    </span>
                   </button>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDiscountModalItem(null)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                  aria-label="Fechar modal"
+                  className="min-h-9 min-w-9 flex items-center justify-center p-1.5 rounded-lg text-gray-500 dark:text-[#9CA79E] hover:text-gray-700 dark:hover:text-[#F2EFE9] hover:bg-gray-100 dark:hover:bg-[#2A382E] transition-colors cursor-pointer shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Form */}
-              <form onSubmit={handleApplyDiscount} className="flex flex-col">
+              <form onSubmit={handleApplyDiscount} className="flex flex-col flex-1 min-h-0">
                 
                 {/* Conteúdo configurável (Apagado quando promoção desativada) */}
-                <div className={`p-5 flex flex-col gap-4 transition-all duration-200 ${!promoIsActive ? "opacity-35 pointer-events-none select-none grayscale-[0.3]" : ""}`}>
+                <div className={`p-5 flex flex-col gap-4 overflow-y-auto flex-1 transition-all duration-200 ${!promoIsActive ? "opacity-35 pointer-events-none select-none grayscale-[0.3]" : ""}`}>
                   
                   {/* Comparativo de Preços: Original e Promocional juntos */}
-                  <div className="p-3.5 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-between gap-3 shadow-xs">
+                  <div className="p-3.5 rounded-xl bg-[#FAF8F0] dark:bg-[#222C25] border border-[#E9E4D4] dark:border-[#2A382E] flex flex-wrap items-center justify-between gap-3 shadow-xs">
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-[#111827]">Preço Original</span>
-                      <span className="text-base font-extrabold text-red-600 line-through decoration-red-600 decoration-2">
+                      <span className="text-xs font-bold text-[#111827] dark:text-[#F2EFE9]">Preço Original</span>
+                      <span className="text-base font-extrabold text-red-600 dark:text-red-400 line-through decoration-red-600 dark:decoration-red-400 decoration-2">
                         {discountModalItem.originalPrice}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 shadow-2xs">
-                      <span className="text-xs font-extrabold text-[#059669]">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800/60 shadow-2xs">
+                      <span className="text-xs font-extrabold text-[#15803D] dark:text-[#34D399]">
                         -{pct > 0 ? pct : 0}%
                       </span>
                     </div>
 
                     <div className="flex flex-col items-end">
-                      <span className="text-xs font-bold text-[#111827]">Preço Promocional</span>
-                      <span className="text-2xl font-black text-[#059669]">
+                      <span className="text-xs font-bold text-[#111827] dark:text-[#F2EFE9]">Preço Promocional</span>
+                      <span className="text-2xl font-black text-[#15803D] dark:text-[#34D399]">
                         {formatCurrency(calculatedPromo)}
                       </span>
                       {savings > 0 && (
-                        <span className="text-[11px] font-semibold text-[#059669]">
+                        <span className="text-[11px] font-semibold text-[#15803D] dark:text-[#34D399]">
                           Economia de {formatCurrency(savings)}
                         </span>
                       )}
@@ -3564,9 +3659,9 @@ export default function MenuClient({
 
                   {/* Campo Porcentagem de Desconto */}
                   <div id="tour-promo-modal-calc" className="flex flex-col gap-2 p-1 rounded-xl">
-                    <label className="text-xs font-bold text-[#111827] flex justify-between">
+                    <label className="text-xs font-bold text-[#111827] dark:text-[#F2EFE9] flex justify-between">
                       <span>Porcentagem de Desconto:</span>
-                      <span className="text-[#059669] font-extrabold">{pct > 0 ? `${pct}%` : "0%"}</span>
+                      <span className="text-[#15803D] dark:text-[#34D399] font-extrabold">{pct > 0 ? `${pct}%` : "0%"}</span>
                     </label>
                     
                     <div className="relative">
@@ -3579,67 +3674,69 @@ export default function MenuClient({
                         onChange={(e) => setDiscountPercentInput(e.target.value)}
                         placeholder="Ex: 15"
                         autoFocus={promoIsActive}
-                        className="w-full border border-[#E9E4D4] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#059669] focus:outline-none focus:ring-2 focus:ring-[#059669]/20 focus:border-[#059669] transition-all"
+                        className="w-full min-h-10 bg-white dark:bg-[#161E18] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl pl-4 pr-10 py-2.5 text-base font-bold text-[#15803D] dark:text-[#34D399] dark:placeholder:text-[#7D8C81] focus:outline-none focus:ring-2 focus:ring-[#059669]/20 focus:border-[#059669] dark:focus:border-[#34D399] transition-all"
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">
                         %
                       </span>
                     </div>
                   </div>
 
                   {/* Programação da Promoção (acima dos botões) */}
-                  <div id="tour-promo-modal-schedule" className="flex flex-col gap-2.5 pt-3 border-t border-gray-100 p-1 rounded-xl">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                  <div id="tour-promo-modal-schedule" className="flex flex-col gap-2.5 pt-3 border-t border-gray-100 dark:border-[#2A382E] p-1 rounded-xl">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-gray-700 dark:text-[#F2EFE9] flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                         Programar promoção
                       </span>
                       <div className="flex items-center gap-2 select-none">
-                        <span 
+                        <button
+                          type="button"
                           onClick={() => setPromoIndefinite(!promoIndefinite)}
-                          className="text-[11px] font-medium text-gray-600 cursor-pointer"
+                          className="min-h-9 lg:min-h-0 inline-flex items-center text-[11px] font-medium text-gray-600 dark:text-[#C5CFC8] cursor-pointer"
                         >
                           Prazo indeterminado
-                        </span>
+                        </button>
                         <Switch
                           checked={promoIndefinite}
                           onCheckedChange={setPromoIndefinite}
                           activeTrackColor="bg-[#2E4233]"
                           inactiveTrackColor="bg-stone-300"
+                          aria-label="Alternar prazo indeterminado"
                         />
                       </div>
                     </div>
 
                     {/* Campos de Data de Início e Data de Término (Apagados quando prazo indeterminado) */}
-                    <div className={`grid grid-cols-2 gap-2.5 transition-all duration-200 ${promoIndefinite ? "opacity-35 pointer-events-none select-none grayscale-[0.3]" : ""}`}>
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2.5 transition-all duration-200 ${promoIndefinite ? "opacity-35 pointer-events-none select-none grayscale-[0.3]" : ""}`}>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[11px] font-medium text-gray-600">Data de início</label>
+                        <label className="text-[11px] font-medium text-gray-600 dark:text-[#C5CFC8]">Data de início</label>
                         <input
                           type="date"
                           value={promoStartDate}
                           onChange={(e) => setPromoStartDate(e.target.value)}
                           disabled={promoIndefinite}
-                          className="w-full border border-[#E9E4D4] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-[#2E4233]"
+                          className="w-full min-h-9 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl px-2.5 py-1.5 text-base lg:text-xs text-gray-700 dark:text-[#F2EFE9] bg-white dark:bg-[#161E18] focus:outline-none focus:ring-1 focus:ring-[#2E4233] dark:focus:ring-[#FF7D4F]"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[11px] font-medium text-gray-600">Data de término</label>
+                        <label className="text-[11px] font-medium text-gray-600 dark:text-[#C5CFC8]">Data de término</label>
                         <input
                           type="date"
                           value={promoEndDate}
                           min={promoStartDate}
                           onChange={(e) => setPromoEndDate(e.target.value)}
                           disabled={promoIndefinite}
-                          className="w-full border border-[#E9E4D4] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-[#2E4233]"
+                          className="w-full min-h-9 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl px-2.5 py-1.5 text-base lg:text-xs text-gray-700 dark:text-[#F2EFE9] bg-white dark:bg-[#161E18] focus:outline-none focus:ring-1 focus:ring-[#2E4233] dark:focus:ring-[#FF7D4F]"
                         />
                       </div>
                     </div>
 
                     {/* Resumo do período programado quando NÃO for prazo indeterminado */}
                     {!promoIndefinite && promoStartDate && promoEndDate && (
-                      <div className="p-2 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-between text-xs text-gray-700 animate-in fade-in">
-                        <span className="text-[11px] text-gray-500 font-medium">Período programado:</span>
-                        <span className="text-[11.5px] font-bold text-[#2E4233]">
+                      <div className="p-2 rounded-xl bg-[#FAF8F0] dark:bg-[#222C25] border border-[#E9E4D4] dark:border-[#2A382E] flex flex-wrap items-center justify-between gap-2 text-xs text-gray-700 dark:text-[#C5CFC8] animate-in fade-in">
+                        <span className="text-[11px] text-muted-foreground font-medium">Período programado:</span>
+                        <span className="text-[11.5px] font-bold text-[#2E4233] dark:text-[#34D399]">
                           {formatPromoPeriod(promoStartDate, promoEndDate, false).periodText}
                         </span>
                       </div>
@@ -3647,8 +3744,8 @@ export default function MenuClient({
 
                     {/* Aviso quando ativado por prazo indeterminado (Regra estrita: NÃO escrever 'permanente') */}
                     {promoIndefinite && (
-                      <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/60 flex items-center gap-2 text-xs text-amber-900 animate-in fade-in duration-150">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-600 shrink-0" />
+                      <div className="p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/50 flex items-center gap-2 text-xs text-amber-900 dark:text-amber-300 animate-in fade-in duration-150">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-400 shrink-0" />
                         <span className="text-[11.5px] font-medium">A promoção está ativa por prazo indeterminado</span>
                       </div>
                     )}
@@ -3657,7 +3754,7 @@ export default function MenuClient({
                 </div>
 
                 {/* Footer / Ações */}
-                <div className="pt-3 border-t border-[#E9E4D4] flex items-center justify-between gap-2 bg-[#FAF8F0] px-5 py-3.5">
+                <div className="pt-3 border-t border-[#E9E4D4] dark:border-[#2A382E] flex flex-wrap items-center justify-between gap-2.5 bg-[#FAF8F0] dark:bg-[#222C25] px-5 py-3.5 shrink-0">
                   {/* Switch para ligar/desligar promoção (Substitui 'Remover promoção') */}
                   <div id="tour-promo-modal-switch" className="flex items-center gap-2 select-none p-1 rounded-lg">
                     <Switch
@@ -3665,27 +3762,29 @@ export default function MenuClient({
                       onCheckedChange={setPromoIsActive}
                       activeTrackColor="bg-[#2E4233]"
                       inactiveTrackColor="bg-stone-300"
+                      aria-label="Ativar ou desativar promoção"
                     />
-                    <span 
+                    <button 
+                      type="button"
                       onClick={() => setPromoIsActive(!promoIsActive)}
-                      className="text-xs font-semibold text-gray-700 cursor-pointer"
+                      className="min-h-9 lg:min-h-0 inline-flex items-center text-xs font-semibold text-gray-700 dark:text-[#F2EFE9] cursor-pointer"
                     >
                       {promoIsActive ? "Promoção ativa" : "Promoção desativada"}
-                    </span>
+                    </button>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setDiscountModalItem(null)}
-                      className="px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                      className="min-h-9 px-3.5 py-2 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-xs font-semibold text-gray-700 dark:text-[#C5CFC8] hover:bg-gray-100 dark:hover:bg-[#1B241E] transition-colors cursor-pointer"
                     >
                       Cancelar
                     </button>
                     <button
                       id="tour-promo-modal-confirm"
                       type="submit"
-                      className="px-4 py-2 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                      className="min-h-9 px-4 py-2 rounded-xl bg-[#2E4233] hover:bg-[#233327] dark:bg-[#B4482D] dark:hover:bg-[#9C3B23] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
                     >
                       Confirmar
                     </button>
@@ -3705,44 +3804,40 @@ export default function MenuClient({
           onClick={() => setSizesModalItem(null)}
         >
           <div
-            className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-lg shadow-2xl flex flex-col border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150 relative"
+            className="bg-white dark:bg-[#1B241E] rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-hidden shadow-2xl flex flex-col border border-[#E9E4D4] dark:border-[#2A382E] animate-in zoom-in-95 duration-150 relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-5 py-4 border-b border-[#E9E4D4] dark:border-[#2A382E] flex justify-between items-center bg-[#FAF8F0] dark:bg-[#25332A]">
-              <div className="flex flex-col">
+            <div className="px-5 py-4 border-b border-[#E9E4D4] dark:border-[#2A382E] flex justify-between items-center bg-[#FAF8F0] dark:bg-[#25332A] shrink-0">
+              <div className="flex flex-col min-w-0 pr-2">
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-base">
                     Definir Tamanhos e Valores
                   </h3>
-                  {/* Tooltip Icon & Popover no padrão DeliPlus */}
-                  <div className="relative group inline-block">
-                    <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform shrink-0">
-                      ?
-                    </div>
-                    <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[130] pointer-events-none text-left">
-                      <p className="text-[12px] text-white dark:text-[#1C2C22] leading-relaxed">
-                        <span className="font-extrabold text-white dark:text-[#2E4233]">Como funciona na loja:</span>{" "}
-                        Se houver apenas 1 tamanho (ex: Tamanho Padrão), o valor é cobrado diretamente. Se cadastrar múltiplos tamanhos (ex: Tamanho Padrão, Pequeno, Médio, Grande), o menor valor será exibido na vitrine como &quot;A partir de R$ ...&quot; e o cliente escolhe o tamanho desejado ao pedir.
-                      </p>
-                    </div>
-                  </div>
+                  <HelpTooltip
+                    title="Como funciona na loja:"
+                    description='Se houver apenas 1 tamanho (ex: Tamanho Padrão), o valor é cobrado diretamente. Se cadastrar múltiplos tamanhos (ex: Tamanho Padrão, Pequeno, Médio, Grande), o menor valor será exibido na vitrine como "A partir de R$ ..." e o cliente escolhe o tamanho desejado ao pedir.'
+                    align="left"
+                    size="sm"
+                    ariaLabel="Como funcionam tamanhos e valores"
+                  />
                 </div>
-                <span className="text-sm sm:text-base font-bold text-[#CB5A3C] truncate max-w-sm mt-0.5">
+                <span className="text-sm sm:text-base font-bold text-[#CB5A3C] dark:text-[#FF7D4F] truncate mt-0.5">
                   {sizesModalItem.name}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setSizesModalItem(null)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-[#1B241E] transition-colors cursor-pointer"
+                aria-label="Fechar modal"
+                className="min-h-9 min-w-9 flex items-center justify-center p-1.5 rounded-lg text-gray-500 dark:text-[#9CA79E] hover:text-gray-700 dark:hover:text-[#F2EFE9] hover:bg-gray-100 dark:hover:bg-[#1B241E] transition-colors cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Body */}
-            <div className="p-5 flex flex-col gap-4 max-h-[75vh] overflow-y-auto">
+            <div className="p-5 flex flex-col gap-4 overflow-y-auto flex-1">
               {/* Sugestões de Medida ou Tamanho */}
               <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-[#FAF8F0] dark:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]">
                 <span className="text-sm font-bold text-[#CB5A3C] dark:text-[#FF7D4F]">
@@ -3755,10 +3850,10 @@ export default function MenuClient({
                     type="button"
                     disabled={configuredSizes.some((s) => s.name.toLowerCase() === "tamanho padrão")}
                     onClick={() => handleAddSizeOption("Tamanho Padrão", true)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`min-h-9 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
                       configuredSizes.some((s) => s.name.toLowerCase() === "tamanho padrão")
-                        ? "opacity-40 border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50 dark:bg-gray-800"
-                        : "bg-white dark:bg-[#1B241E] border-[#2E4233]/40 text-[#2E4233] dark:text-[#4ADE80] hover:border-[#CB5A3C] hover:text-[#CB5A3C] shadow-2xs"
+                        ? "opacity-40 border-gray-200 dark:border-[#2A382E] text-gray-400 dark:text-[#637267] cursor-not-allowed bg-gray-50 dark:bg-[#1B241E]"
+                        : "bg-white dark:bg-[#1B241E] border-[#2E4233]/40 dark:border-[#2A382E] text-[#2E4233] dark:text-[#4ADE80] hover:border-[#CB5A3C] dark:hover:border-[#FF7D4F] hover:text-[#CB5A3C] dark:hover:text-[#FF7D4F] shadow-2xs"
                     }`}
                     title="Adicionar Tamanho Padrão no topo da lista"
                   >
@@ -3776,10 +3871,10 @@ export default function MenuClient({
                         type="button"
                         disabled={exists}
                         onClick={() => handleAddSizeOption(sug)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                        className={`min-h-9 lg:min-h-8 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                           exists
-                            ? "opacity-40 border-gray-200 text-gray-400 cursor-not-allowed"
-                            : "bg-white dark:bg-[#1B241E] border-[#E8E2D5] text-[#2E4233] hover:border-[#CB5A3C] hover:text-[#CB5A3C]"
+                            ? "opacity-40 border-gray-200 dark:border-[#2A382E] text-gray-400 dark:text-[#637267] cursor-not-allowed"
+                            : "bg-white dark:bg-[#1B241E] border-[#E8E2D5] dark:border-[#2A382E] text-[#2E4233] dark:text-[#F2EFE9] hover:border-[#CB5A3C] dark:hover:border-[#FF7D4F] hover:text-[#CB5A3C] dark:hover:text-[#FF7D4F]"
                         }`}
                       >
                         + {sug}
@@ -3790,7 +3885,7 @@ export default function MenuClient({
               </div>
 
               {/* Adicionar tamanho customizado */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                 <input
                   type="text"
                   value={newSizeName}
@@ -3802,12 +3897,12 @@ export default function MenuClient({
                     }
                   }}
                   placeholder={isBeverageModalItem ? "Outra medida (ex: 350ml, 500ml, 2L, Copo 400ml...)" : "Outro tamanho (ex: Família, 500ml, 8 Fatias...)"}
-                  className="flex-1 px-3 py-2 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs font-medium focus:outline-none focus:border-[#2E4233] bg-white dark:bg-[#1B241E] dark:text-[#F2EFE9]"
+                  className="flex-1 min-w-0 min-h-9 px-3 py-2 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs font-medium focus:outline-none focus:border-[#2E4233] dark:focus:border-[#FF7D4F] bg-white dark:bg-[#161E18] text-gray-900 dark:text-[#F2EFE9] dark:placeholder:text-[#7D8C81]"
                 />
                 <button
                   type="button"
                   onClick={() => handleAddSizeOption(newSizeName)}
-                  className="px-3.5 py-2 bg-[#2E4233] hover:bg-[#233327] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs shrink-0"
+                  className="min-h-9 px-3.5 py-2 bg-[#2E4233] hover:bg-[#233327] dark:bg-[#B4482D] dark:hover:bg-[#9C3B23] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs shrink-0"
                 >
                   + Adicionar
                 </button>
@@ -3820,7 +3915,7 @@ export default function MenuClient({
                 </label>
 
                 {configuredSizes.length === 0 ? (
-                  <div className="p-4 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 text-center text-xs text-gray-400">
+                  <div className="p-4 rounded-xl border border-dashed border-gray-300 dark:border-[#2A382E] text-center text-xs text-muted-foreground">
                     Nenhum tamanho cadastrado. Clique em &quot;+ Tamanho Padrão&quot; acima ou adicione outros tamanhos.
                   </div>
                 ) : (
@@ -3828,15 +3923,16 @@ export default function MenuClient({
                     {configuredSizes.map((sz, idx) => (
                       <div
                         key={sz.id || idx}
-                        className="flex items-center justify-between p-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] bg-white dark:bg-[#1B241E] shadow-2xs gap-3"
+                        className="flex flex-wrap sm:flex-nowrap items-center justify-between p-2.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] bg-white dark:bg-[#161E18] shadow-2xs gap-3"
                       >
                         {/* Nome do Tamanho (Editável) */}
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-1 min-w-[140px]">
                           <input
                             type="text"
+                            aria-label="Nome do tamanho"
                             value={sz.name}
                             onChange={(e) => handleUpdateSizeName(sz.id, e.target.value)}
-                            className="w-full text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] bg-transparent border-b border-transparent hover:border-gray-300 focus:border-[#2E4233] focus:outline-none"
+                            className="w-full min-h-9 text-base lg:text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-[#3A4A3E] focus:border-[#2E4233] dark:focus:border-[#FF7D4F] focus:outline-none"
                           />
                         </div>
 
@@ -3844,15 +3940,17 @@ export default function MenuClient({
                         <div className="flex items-center gap-2 shrink-0">
                           <input
                             type="text"
+                            aria-label={`Valor do tamanho ${sz.name}`}
                             value={sz.price}
                             onChange={(e) => handleUpdateSizePrice(sz.id, e.target.value)}
                             placeholder="R$ 0,00"
-                            className="w-24 px-2.5 py-1.5 border border-[#E9E4D4] dark:border-[#2A382E] rounded-lg text-xs font-semibold text-[#CB5A3C] bg-[#FAF8F5] dark:bg-[#141C16] text-right focus:outline-none focus:border-[#CB5A3C]"
+                            className="w-28 min-h-9 px-2.5 py-1.5 border border-[#E9E4D4] dark:border-[#2A382E] rounded-lg text-base lg:text-xs font-semibold text-[#B4482D] dark:text-[#FF9E7D] bg-[#FAF8F5] dark:bg-[#141C16] text-right focus:outline-none focus:border-[#CB5A3C] dark:focus:border-[#FF7D4F]"
                           />
                           <button
                             type="button"
                             onClick={() => handleRemoveSizeOption(sz.id)}
-                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors cursor-pointer"
+                            aria-label={`Remover tamanho ${sz.name}`}
+                            className="min-h-9 min-w-9 flex items-center justify-center p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors cursor-pointer"
                             title="Remover tamanho"
                           >
                             <Trash2 className="w-4 h-4 text-red-500" strokeWidth={1.5} />
@@ -3866,11 +3964,11 @@ export default function MenuClient({
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-3.5 border-t border-[#E9E4D4] dark:border-[#2A382E] flex justify-end items-center gap-2 bg-[#FAF8F0] dark:bg-[#25332A]">
+            <div className="px-5 py-3.5 border-t border-[#E9E4D4] dark:border-[#2A382E] flex flex-wrap justify-end items-center gap-2 bg-[#FAF8F0] dark:bg-[#25332A] shrink-0">
               <button
                 type="button"
                 onClick={() => setSizesModalItem(null)}
-                className="px-4 py-2 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1B241E] transition-colors cursor-pointer"
+                className="min-h-9 px-4 py-2 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs font-semibold text-gray-700 dark:text-[#C5CFC8] hover:bg-gray-100 dark:hover:bg-[#1B241E] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -3878,7 +3976,7 @@ export default function MenuClient({
                 type="button"
                 disabled={isSavingSizes}
                 onClick={handleSaveSizesAndPrice}
-                className="px-5 py-2 bg-[#CB5A3C] hover:bg-[#b0482e] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                className="min-h-9 px-5 py-2 bg-[#B4482D] hover:bg-[#9C3B23] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm disabled:opacity-50"
               >
                 {isSavingSizes ? "Salvando..." : "Salvar Valores"}
               </button>
@@ -3890,12 +3988,12 @@ export default function MenuClient({
       {/* Modal de Pergunta / Aviso Pré-Tutorial */}
       {showTourPrompt && tourStep === null && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white border border-[#E9E4D4] rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-2xl max-w-md max-h-[90dvh] w-full overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             {/* Header com cor verde Deli */}
-            <div className="bg-[#2E4233] p-5 text-white flex items-start justify-between">
+            <div className="bg-[#2E4233] p-5 text-white flex items-start justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/20">
-                  <Sparkles className="w-5 h-5 text-[#CB5A3C]" />
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/20 shrink-0">
+                  <Sparkles className="w-5 h-5 text-[#FF7D4F]" />
                 </div>
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/10 text-[11px] font-semibold text-white/90 mb-1">
@@ -3911,7 +4009,8 @@ export default function MenuClient({
               <button
                 type="button"
                 onClick={handleDismissTourPrompt}
-                className="text-white/60 hover:text-white transition-colors cursor-pointer p-1"
+                aria-label="Fechar tutorial"
+                className="min-h-9 min-w-9 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer p-1 shrink-0"
                 title="Fechar"
               >
                 <X className="w-5 h-5" />
@@ -3919,38 +4018,38 @@ export default function MenuClient({
             </div>
 
             {/* Corpo da pergunta */}
-            <div className="p-5 flex flex-col gap-4">
+            <div className="p-5 flex flex-col gap-4 overflow-y-auto flex-1">
               <div>
-                <h4 className="text-sm font-bold text-gray-900 mb-1">
+                <h4 className="text-sm font-bold text-gray-900 dark:text-[#F2EFE9] mb-1">
                   Gostaria de ver um breve tutorial interativo?
                 </h4>
-                <p className="text-xs text-gray-600 leading-relaxed">
+                <p className="text-xs text-gray-600 dark:text-[#C5CFC8] leading-relaxed">
                   Preparamos um guia com efeito holofote que destaca cada funcionalidade diretamente na sua tela:
                 </p>
               </div>
 
               {/* Recursos em destaque */}
-              <div className="grid grid-cols-1 gap-2 bg-[#FAF8F0] p-3 rounded-xl border border-[#E9E4D4] text-xs text-gray-700">
+              <div className="grid grid-cols-1 gap-2 bg-[#FAF8F0] dark:bg-[#222C25] p-3 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-xs text-gray-700 dark:text-[#C5CFC8]">
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#EBF5ED] text-[#477A55] flex items-center justify-center font-bold text-[11px] shrink-0">✓</span>
+                  <span className="w-5 h-5 rounded-full bg-[#EBF5ED] dark:bg-emerald-950/60 text-[#15803D] dark:text-[#34D399] flex items-center justify-center font-bold text-[11px] shrink-0">✓</span>
                   <span><strong>Edição com um toque:</strong> altere nome, preço e estoque sem salvar.</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#FDF2F0] text-[#CB5A3C] flex items-center justify-center font-bold text-[11px] shrink-0">%</span>
+                  <span className="w-5 h-5 rounded-full bg-[#FDF2F0] dark:bg-[#CB5A3C]/20 text-[#B4482D] dark:text-[#FF9E7D] flex items-center justify-center font-bold text-[11px] shrink-0">%</span>
                   <span><strong>Preços promocionais:</strong> cálculo em porcentagem e datas agendadas.</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-[11px] shrink-0">📸</span>
+                  <span className="w-5 h-5 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 flex items-center justify-center font-bold text-[11px] shrink-0">📸</span>
                   <span><strong>Fotos dos pratos:</strong> amplie e troque com upload ou arrastar arquivos.</span>
                 </div>
               </div>
 
               {/* Ações */}
-              <div className="flex items-center justify-end gap-2.5 pt-2">
+              <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2 shrink-0">
                 <button
                   type="button"
                   onClick={handleDismissTourPrompt}
-                  className="px-4 py-2.5 rounded-xl border border-[#E9E4D4] text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                  className="min-h-9 px-4 py-2 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-xs font-semibold text-gray-700 dark:text-[#C5CFC8] hover:bg-gray-100 dark:hover:bg-[#222C25] transition-colors cursor-pointer"
                 >
                   Agora não / Pular
                 </button>
@@ -3960,7 +4059,7 @@ export default function MenuClient({
                     setShowTourPrompt(false)
                     setTourStep(0)
                   }}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white text-xs font-bold shadow-md hover:shadow transition-all cursor-pointer"
+                  className="min-h-9 flex items-center gap-2 px-5 py-2 rounded-xl bg-[#2E4233] hover:bg-[#233327] dark:bg-[#B4482D] dark:hover:bg-[#9C3B23] text-white text-xs font-bold shadow-md hover:shadow transition-all cursor-pointer"
                 >
                   <Play className="w-3.5 h-3.5 fill-white" />
                   <span>Iniciar tutorial</span>
@@ -4017,27 +4116,28 @@ export default function MenuClient({
 
           {/* Floating Step Popover Card */}
           <div
-            className="fixed z-[143] bg-white rounded-2xl shadow-2xl border border-stone-200 p-5 transition-all duration-300 animate-in fade-in zoom-in-95 max-w-[380px]"
+            className="fixed z-[143] bg-white dark:bg-[#1B241E] rounded-2xl shadow-2xl border border-stone-200 dark:border-[#2A382E] p-5 transition-all duration-300 animate-in fade-in zoom-in-95 max-w-[min(380px,calc(100vw-1.5rem))] max-h-[85dvh] flex flex-col overflow-hidden"
             style={getTourCardStyle() as React.CSSProperties}
           >
             {/* Top Bar: Step Counter & Close */}
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full bg-[#EBF5ED] text-[#2E4233] text-[11px] font-bold tracking-wide">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#2A382E] shrink-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#EBF5ED] dark:bg-[#222C25] text-[#2E4233] dark:text-[#34D399] text-[11px] font-bold tracking-wide">
                   {modalTourType === "promo" 
                     ? `PROMOÇÃO: ${activeTourCurrentIndex + 1}/${activeTourTotalSteps}`
                     : modalTourType === "new_item"
                     ? `NOVO ITEM: ${activeTourCurrentIndex + 1}/${activeTourTotalSteps}`
                     : `PASSO ${activeTourCurrentIndex + 1} DE ${activeTourTotalSteps}`}
                 </span>
-                <span className="text-[11px] text-gray-400 dark:text-[#9CA79E] font-medium">
+                <span className="text-[11px] text-muted-foreground font-medium">
                   {modalTourType ? "Modo Interativo" : "Tutorial Cardápio"}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={handleCloseTour}
-                className="p-1 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                aria-label="Fechar tutorial"
+                className="min-h-9 min-w-9 flex items-center justify-center p-1 text-gray-500 dark:text-[#9CA79E] hover:text-gray-700 dark:hover:text-[#F2EFE9] rounded-lg hover:bg-gray-100 dark:hover:bg-[#222C25] transition-colors cursor-pointer shrink-0"
                 title="Fechar tutorial (Esc)"
               >
                 <X className="w-4 h-4" />
@@ -4045,30 +4145,30 @@ export default function MenuClient({
             </div>
 
             {/* Step Content */}
-            <div className="py-4">
+            <div className="py-4 overflow-y-auto flex-1">
               <div className="flex items-center gap-2.5 mb-2">
-                <div className="w-8 h-8 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex items-center justify-center text-[#2E4233] shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-[#FAF8F0] dark:bg-[#222C25] border border-[#E9E4D4] dark:border-[#2A382E] flex items-center justify-center text-[#2E4233] dark:text-[#FF7D4F] shrink-0">
                   {(() => {
                     const StepIcon = activeTourStep.icon
-                    return <StepIcon className="w-4 h-4 text-[#CB5A3C]" />
+                    return <StepIcon className="w-4 h-4 text-[#CB5A3C] dark:text-[#FF7D4F]" />
                   })()}
                 </div>
-                <h4 className="font-bold text-gray-900 text-sm md:text-base leading-tight">
+                <h4 className="font-bold text-gray-900 dark:text-[#F2EFE9] text-sm md:text-base leading-tight">
                   {activeTourStep.title}
                 </h4>
               </div>
-              <p className="text-xs md:text-[13px] text-gray-600 leading-relaxed">
+              <p className="text-xs md:text-[13px] text-gray-600 dark:text-[#C5CFC8] leading-relaxed">
                 {activeTourStep.description}
               </p>
 
               {/* Botão Interativo para entrar no modal de promoção quando no passo 4 */}
               {tourStep === 4 && modalTourType === null && (
-                <div className="mt-3 p-3 rounded-xl bg-orange-50 border border-orange-200/80 flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-[#CB5A3C]">
+                <div className="mt-3 p-3 rounded-xl bg-orange-50 dark:bg-[#CB5A3C]/10 border border-orange-200/80 dark:border-[#CB5A3C]/30 flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#B4482D] dark:text-[#FF9E7D]">
                     <Sparkles className="w-4 h-4 shrink-0" />
                     <span>Quer testar as opções no modal agora?</span>
                   </div>
-                  <p className="text-[11.5px] text-gray-600 leading-snug">
+                  <p className="text-[11.5px] text-gray-600 dark:text-[#C5CFC8] leading-snug">
                     Abra o modal para o spotlight explicar o switch de ativação, o cálculo de % e os prazos.
                   </p>
                   <button
@@ -4081,7 +4181,7 @@ export default function MenuClient({
                         setModalTourStep(0)
                       }
                     }}
-                    className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                    className="min-h-9 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#B4482D] hover:bg-[#9C3B23] text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
                   >
                     <Play className="w-3.5 h-3.5 fill-white" />
                     <span>Abrir modal e iniciar explicação</span>
@@ -4091,7 +4191,7 @@ export default function MenuClient({
             </div>
 
             {/* Progress Dots */}
-            <div className="flex items-center justify-center gap-1.5 pb-4">
+            <div className="flex items-center justify-center gap-1.5 pb-4 shrink-0">
               {Array.from({ length: activeTourTotalSteps }).map((_, idx) => (
                 <button
                   key={idx}
@@ -4103,12 +4203,13 @@ export default function MenuClient({
                       setTourStep(idx)
                     }
                   }}
-                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                  aria-label={`Ir para passo ${idx + 1}`}
+                  className={`h-2 rounded-full transition-all cursor-pointer ${
                     idx === activeTourCurrentIndex
-                      ? "w-6 bg-[#2E4233]"
+                      ? "w-6 bg-[#2E4233] dark:bg-[#FF7D4F]"
                       : idx < activeTourCurrentIndex
-                      ? "w-2 bg-[#2E4233]/40"
-                      : "w-2 bg-gray-200"
+                      ? "w-2 bg-[#2E4233]/40 dark:bg-[#FF7D4F]/50"
+                      : "w-2 bg-gray-200 dark:bg-[#2A382E]"
                   }`}
                   title={`Ir para passo ${idx + 1}`}
                 />
@@ -4116,21 +4217,21 @@ export default function MenuClient({
             </div>
 
             {/* Navigation Footer */}
-            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-[#2A382E] shrink-0">
               <button
                 type="button"
                 onClick={handleCloseTour}
-                className="text-xs font-semibold text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                className="min-h-9 px-2 text-xs font-semibold text-gray-600 dark:text-[#C5CFC8] hover:text-gray-800 dark:hover:text-[#F2EFE9] transition-colors cursor-pointer"
               >
                 Pular tutorial
               </button>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {activeTourCurrentIndex > 0 && (
                   <button
                     type="button"
                     onClick={handlePrevTour}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-xs font-semibold text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] transition-colors cursor-pointer"
+                    className="min-h-9 flex items-center gap-1 px-3 py-1.5 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-xs font-semibold text-gray-700 dark:text-[#F2EFE9] hover:bg-gray-100 dark:hover:bg-[#25332A] transition-colors cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                     <span>Anterior</span>
@@ -4140,7 +4241,7 @@ export default function MenuClient({
                 <button
                   type="button"
                   onClick={handleNextTour}
-                  className="flex items-center gap-1 px-4 py-1.5 rounded-xl bg-[#2E4233] hover:bg-[#233327] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                  className="min-h-9 flex items-center gap-1 px-4 py-1.5 rounded-xl bg-[#2E4233] hover:bg-[#233327] dark:bg-[#B4482D] dark:hover:bg-[#9C3B23] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
                 >
                   <span>
                     {activeTourCurrentIndex === activeTourTotalSteps - 1

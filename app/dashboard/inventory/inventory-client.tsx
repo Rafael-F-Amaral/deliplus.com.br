@@ -1,9 +1,11 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Trash2, ChevronDown, ChevronUp, ArrowUpDown, Check } from "lucide-react"
+import { Trash2, ChevronDown, ChevronUp, ArrowUpDown, Check, X } from "lucide-react"
 import { createInventoryItem, createInventoryCategory, updateInventoryItem, deleteInventoryItem, deleteInventoryCategory } from "./actions"
 import { generateShoppingListPDF } from "@/lib/generate-pdf"
+import { normalizeSearch } from "@/lib/utils"
+import { HelpTooltip } from "@/components/ui/help-tooltip"
 
 function SvgIcon({ path, className }: { path: string, className?: string }) {
   return (
@@ -38,8 +40,9 @@ export default function InventoryClient({
   // Store public domain URL (https://deliplus.com.br/slug)
   const storeUrl = storeSlug ? `https://deliplus.com.br/${storeSlug}` : "https://deliplus.com.br";
 
-  // Modals state
+  // Modals & Drawers state
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
+  const [isRestockDrawerOpen, setIsRestockDrawerOpen] = useState(false);
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<any>(null);
   const [isDeletingProduct, setIsDeletingProduct] = useState(false);
@@ -276,7 +279,7 @@ export default function InventoryClient({
   const filteredProducts = products.filter((p: any) => {
     if (filterMode === 'baixo' && p.quantity > p.min_stock) return false;
     if (selectedCategoryId !== 'all' && p.category_id !== selectedCategoryId) return false;
-    if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (searchQuery && !normalizeSearch(p.name).includes(normalizeSearch(searchQuery))) return false;
     return true;
   });
 
@@ -484,66 +487,132 @@ export default function InventoryClient({
     return `${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()}`;
   };
 
+  const renderRestockCardContent = (onCloseDrawer?: () => void) => (
+    <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-sm flex flex-col h-full min-h-0 justify-between relative">
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex items-center justify-between gap-2 p-4 border-b border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#222C25] shrink-0 rounded-t-2xl relative z-10 overflow-visible">
+          <div className="flex items-center gap-2 min-w-0">
+            <SvgIcon path="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" className="w-4 h-4 text-[#CB5A3C] shrink-0" />
+            <h3 className="font-serif font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[17px] truncate">Reposição</h3>
+            <HelpTooltip
+              size="sm"
+              title="Dica de reposição"
+              description="Monitoramento automático do nível mínimo dos seus insumos."
+              bullets={[
+                "Produtos que atingiram ou estão abaixo do estoque mínimo.",
+                "Clique em \"Lista de Compras\" para gerar pedido a fornecedores.",
+              ]}
+              ariaLabel="Ajuda sobre reposição"
+            />
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {lowStockCount > 0 && (
+              <span className="bg-[#B4482D] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                {lowStockCount} {lowStockCount === 1 ? 'alerta' : 'alertas'}
+              </span>
+            )}
+            {onCloseDrawer && (
+              <button
+                type="button"
+                onClick={onCloseDrawer}
+                aria-label="Fechar painel de reposição"
+                className="min-h-9 min-w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-[#1C2C22] dark:hover:text-[#F2EFE9] hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2.5 p-3.5 overflow-y-auto flex-1 min-h-0">
+          {lowStockProducts.map((product: any) => {
+            const formatted = formatQuantity(product.quantity, product.unit);
+
+            return (
+              <div key={`alert-${product.id}`} className="flex flex-col shrink-0 gap-1 p-2.5 bg-white dark:bg-[#222C25] border border-[#F5D8D1] dark:border-[#2A382E] rounded-xl shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 left-0 bottom-0 w-1 bg-[#CB5A3C]" />
+                <div className="pl-2">
+                  <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[14px] truncate block">{product.name}</span>
+                </div>
+                <span className="text-[13px] text-muted-foreground pl-2 mt-0.5 font-medium">
+                  Restam apenas <span className="text-[#B4482D] dark:text-[#FF7D4F] font-bold">{formatted.qty} {formatted.unit}</span>
+                </span>
+              </div>
+            )
+          })}
+
+          {lowStockCount === 0 && (
+            <div className="flex flex-col items-center justify-center p-4 text-center h-full">
+              <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center mb-1.5">
+                <SvgIcon path="M5 13l4 4L19 7" className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <p className="text-[12px] text-muted-foreground font-medium">Todos os produtos estão com estoque adequado.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Button at bottom of Reposição card */}
+      <div className="p-3.5 bg-white dark:bg-[#1B241E] border-t border-[#E9E4D4] dark:border-[#2A382E] shrink-0 rounded-b-2xl">
+        <button
+          type="button"
+          onClick={() => {
+            onCloseDrawer?.();
+            setIsShoppingListOpen(true);
+          }}
+          className="w-full min-h-10 py-2.5 bg-[#2E4233] dark:bg-[#B4482D] hover:bg-[#233327] dark:hover:bg-[#9C3B23] text-white rounded-xl font-bold text-[13px] transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <SvgIcon path="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 012-2h2a2 2 0 012 2" className="w-4 h-4" />
+          Lista de Compras
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col w-full h-full max-h-full px-4 sm:px-6 pt-3 md:pt-4 pb-3 max-lg:pb-[84px] overflow-hidden justify-between font-sans transition-all min-w-0">
+    <div className="max-w-[1440px] mx-auto flex flex-col w-full flex-1 px-4 sm:px-6 pt-3 md:pt-4 pb-6 font-sans transition-all min-w-0">
       
-      {/* Header Area (Unstuck from top, orange title) */}
+      {/* Header Area */}
       <div className="flex flex-col mb-3 shrink-0">
         <div className="flex items-center gap-2.5">
           <h1 className="text-3xl md:text-4xl font-serif text-[#CB5A3C] dark:text-[#FF7D4F] tracking-tight">Estoque</h1>
-          
-          {/* Tooltip Icon & Popover */}
-          <div className="relative group inline-block">
-            <div className="w-5 h-5 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[12px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
-              ?
-            </div>
-            <div className="absolute top-full left-0 mt-2 w-80 p-4 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-              <p className="text-[13px] text-white dark:text-[#1C2C22] mb-2 leading-relaxed">
-                <span className="font-extrabold text-white dark:text-[#2E4233]">Dica:</span> Esta página gerencia todos os insumos, produtos e custos da sua operação.
-              </p>
-              <div className="flex flex-col gap-2 pt-2 border-t border-white/10 dark:border-[#E5DFD1] text-[12px] text-white/90 dark:text-[#1C2C22]">
-                <div className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
-                  <span>Acompanhe o estoque atual e receba alertas automáticos de reposição.</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
-                  <span>Gere e imprima listas de compras personalizadas para seus fornecedores.</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5"></span>
-                  <span>Controle o custo unitário e o valor total imobilizado em estoque.</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <HelpTooltip
+            title="Como funciona o Estoque?"
+            description="Esta página gerencia todos os insumos, produtos e custos da sua operação."
+            bullets={[
+              "Acompanhe o estoque atual e receba alertas automáticos de reposição.",
+              "Gere e imprima listas de compras personalizadas para seus fornecedores.",
+              "Controle o custo unitário e o valor total imobilizado em estoque.",
+            ]}
+            ariaLabel="Ajuda sobre a página de estoque"
+          />
         </div>
         <p className="text-[#2E4233] dark:text-[#9CA79E] text-sm md:text-base font-medium mt-0.5">Gerencie produtos e custos do seu estabelecimento.</p>
       </div>
 
-      {/* Summary Cards Row (Full Width Below Title) */}
+      {/* Summary Cards Row */}
       <div className="flex flex-col mb-3 shrink-0">
         <div className="hidden md:flex flex-row rounded-2xl bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] shadow-sm divide-x divide-[#E9E4D4] dark:divide-[#2A382E]">
           <div className="flex-1 p-3 px-5 flex flex-col gap-0.5">
-            <div className="flex items-center gap-1.5 text-gray-500 dark:text-[#9CA79E] mb-0.5">
+            <div className="flex items-center gap-1.5 text-muted-foreground mb-0.5">
               <SvgIcon path="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" className="w-4 h-4 text-[#CB5A3C]" />
-              <span className="text-[10px] font-bold text-gray-400 dark:text-[#9CA79E] uppercase tracking-wider">Valor em estoque</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Valor em estoque</span>
             </div>
             <span className="text-2xl font-bold text-[#2E4233] dark:text-[#F2EFE9]">{formatCurrency(totalValue)}</span>
           </div>
           
           <div className="flex-1 p-3 px-5 flex flex-col gap-0.5">
-            <div className="flex items-center gap-1.5 text-gray-500 dark:text-[#9CA79E] mb-0.5">
+            <div className="flex items-center gap-1.5 text-muted-foreground mb-0.5">
               <SvgIcon path="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" className="w-4 h-4 text-[#CB5A3C]" />
-              <span className="text-[10px] font-bold text-gray-400 dark:text-[#9CA79E] uppercase tracking-wider">Itens cadastrados</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Itens cadastrados</span>
             </div>
             <span className="text-2xl font-bold text-[#2E4233] dark:text-[#F2EFE9]">{totalItems}</span>
           </div>
 
           <div className="flex-1 p-3 px-5 flex flex-col gap-0.5">
-            <div className="flex items-center gap-1.5 text-gray-500 dark:text-[#9CA79E] mb-0.5">
+            <div className="flex items-center gap-1.5 text-muted-foreground mb-0.5">
               <SvgIcon path="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" className="w-4 h-4 text-[#CB5A3C]" />
-              <span className="text-[10px] font-bold text-gray-400 dark:text-[#9CA79E] uppercase tracking-wider">Estoque baixo</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Estoque baixo</span>
             </div>
             <span className="text-2xl font-bold text-[#2E4233] dark:text-[#F2EFE9]">{lowStockCount}</span>
           </div>
@@ -554,7 +623,7 @@ export default function InventoryClient({
           <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-3 shadow-sm flex flex-col gap-0.5">
             <div className="flex items-center gap-1.5 mb-0.5">
               <SvgIcon path="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" className="w-4 h-4 text-[#CB5A3C]" />
-              <span className="text-[10px] font-bold text-gray-400 dark:text-[#9CA79E] uppercase tracking-wider">Valor em estoque</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Valor em estoque</span>
             </div>
             <span className="text-xl font-bold text-[#2E4233] dark:text-[#F2EFE9]">{formatCurrency(totalValue)}</span>
           </div>
@@ -563,14 +632,14 @@ export default function InventoryClient({
             <div className="flex-1 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-3 shadow-sm flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <SvgIcon path="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" className="w-4 h-4 text-[#CB5A3C]" />
-                <span className="text-[10px] font-bold text-gray-400 dark:text-[#9CA79E] uppercase tracking-wider">Itens</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Itens</span>
               </div>
               <span className="text-base font-bold text-[#2E4233] dark:text-[#F2EFE9]">{totalItems}</span>
             </div>
             <div className="flex-1 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl p-3 shadow-sm flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <SvgIcon path="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" className="w-4 h-4 text-[#CB5A3C]" />
-                <span className="text-[10px] font-bold text-gray-400 dark:text-[#9CA79E] uppercase tracking-wider">Estoque baixo</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Estoque baixo</span>
               </div>
               <span className="text-base font-bold text-[#2E4233] dark:text-[#F2EFE9]">{lowStockCount}</span>
             </div>
@@ -578,50 +647,71 @@ export default function InventoryClient({
         </div>
       </div>
 
-      {/* Main Layout Bottom Section (Stretches to 100% available height with NO page scrollbar) */}
-      <div className="flex flex-col lg:flex-row gap-5 items-stretch flex-1 min-h-0 overflow-hidden">
+      {/* Main Layout Bottom Section */}
+      <div className="flex flex-col 2xl:flex-row gap-5 items-stretch flex-1 min-w-0">
         
         {/* Left Side: Table & Filters */}
-        <div className="flex-1 w-full flex flex-col min-w-0 min-h-0 h-full">
+        <div className="flex-1 w-full flex flex-col min-w-0">
           
           {/* Table Controls */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 mb-2.5 shrink-0 z-30 relative">
-            <div className="flex items-center gap-2 w-full sm:w-auto overflow-visible relative">
+          <div className="flex flex-col lg:flex-row lg:flex-wrap lg:items-center justify-between gap-2.5 mb-2.5 shrink-0 z-30 relative">
+            <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar sm:overflow-visible sm:flex-wrap">
               <button 
+                type="button"
                 onClick={() => { setFilterMode('todos'); setCurrentPage(1); }}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors ${filterMode === 'todos' ? 'bg-[#2E4233] dark:bg-[#E76F41] text-white' : 'bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]'}`}
+                className={`min-h-9 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer ${filterMode === 'todos' ? 'bg-[#2E4233] dark:bg-[#B4482D] text-white' : 'bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-600 dark:text-[#C5CFC7] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]'}`}
               >
                 Todos
               </button>
               <button 
+                type="button"
                 onClick={() => { setFilterMode('baixo'); setCurrentPage(1); }}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors ${filterMode === 'baixo' ? 'bg-[#2E4233] dark:bg-[#E76F41] text-white' : 'bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-500 dark:text-[#9CA79E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]'}`}
+                className={`min-h-9 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm transition-colors cursor-pointer ${filterMode === 'baixo' ? 'bg-[#2E4233] dark:bg-[#B4482D] text-white' : 'bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-gray-600 dark:text-[#C5CFC7] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A]'}`}
               >
                 Baixo estoque
               </button>
             </div>
             
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative w-full sm:w-[240px]">
-                <SvgIcon path="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 min-w-[160px] sm:w-[220px] md:w-[240px]">
+                <SvgIcon path="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
                 <input 
                   type="text" 
                   placeholder="Buscar produto" 
+                  aria-label="Buscar produto no estoque"
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                  className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-xs dark:text-[#F2EFE9] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all shadow-sm"
+                  className="w-full min-h-9 pl-9 pr-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl text-base lg:text-xs text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all shadow-sm"
                 />
               </div>
-              <button onClick={() => setIsNewProductModalOpen(true)} className="flex shrink-0 items-center justify-center gap-1.5 px-3.5 py-1.5 bg-[#2E4233] hover:bg-[#233327] text-white rounded-xl font-semibold text-xs transition-all duration-300 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setIsRestockDrawerOpen(true)}
+                className="2xl:hidden min-h-9 flex shrink-0 items-center justify-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:bg-[#F8F6EF] dark:hover:bg-[#25332A] text-[#2E4233] dark:text-[#F2EFE9] rounded-xl font-semibold text-xs transition-colors shadow-sm cursor-pointer"
+              >
+                <SvgIcon path="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" className="w-3.5 h-3.5 text-[#CB5A3C]" />
+                <span>Reposição</span>
+                {lowStockCount > 0 && (
+                  <span className="bg-[#B4482D] text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                    {lowStockCount}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsNewProductModalOpen(true)}
+                aria-label="Novo produto"
+                className="min-h-9 flex shrink-0 items-center justify-center gap-1.5 px-3.5 py-1.5 bg-[#2E4233] hover:bg-[#233327] text-white rounded-xl font-semibold text-xs transition-all duration-300 shadow-sm cursor-pointer"
+              >
                 <SvgIcon path="M12 4v16m8-8H4" className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Novo produto</span>
+                <span>Novo<span className="hidden sm:inline"> produto</span></span>
               </button>
             </div>
           </div>
 
-          {/* Desktop Table (Larger fonts, no subtitle, Geral hidden, reliable 3 dots) */}
-          <div className="hidden md:flex flex-col flex-1 h-full min-h-0 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-sm overflow-hidden justify-between">
-            <div className="w-full overflow-x-auto overflow-y-hidden">
+          {/* Desktop Table */}
+          <div className="hidden md:flex flex-col flex-1 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-sm overflow-hidden justify-between">
+            <div className="w-full overflow-x-auto">
               <table className="w-full text-left text-[14px]">
                 <thead className="bg-[#FAF8F0] dark:bg-[#222C25] border-b border-[#E9E4D4] dark:border-[#2A382E]">
                   <tr className="text-[14px] font-semibold text-[#2E4233] dark:text-[#F2EFE9]">
@@ -629,7 +719,7 @@ export default function InventoryClient({
                       <button 
                         type="button" 
                         onClick={() => handleSort('name')} 
-                        className="flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
+                        className="min-h-9 lg:min-h-0 flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
                         title="Ordenar por produto (ordem alfabética)"
                       >
                         <span>Produto</span>
@@ -644,7 +734,7 @@ export default function InventoryClient({
                       <button 
                         type="button" 
                         onClick={() => handleSort('quantity')} 
-                        className="flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
+                        className="min-h-9 lg:min-h-0 flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
                         title="Ordenar por quantidade (maior para menor)"
                       >
                         <span>Quantidade</span>
@@ -659,7 +749,7 @@ export default function InventoryClient({
                       <button 
                         type="button" 
                         onClick={() => handleSort('unit')} 
-                        className="flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
+                        className="min-h-9 lg:min-h-0 flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
                         title="Ordenar por unidade de medição"
                       >
                         <span>Unidade</span>
@@ -674,7 +764,7 @@ export default function InventoryClient({
                       <button 
                         type="button" 
                         onClick={() => handleSort('unit_cost')} 
-                        className="flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
+                        className="min-h-9 lg:min-h-0 flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
                         title="Ordenar por custo unitário (maior para menor)"
                       >
                         <span>Custo unitário</span>
@@ -689,7 +779,7 @@ export default function InventoryClient({
                       <button 
                         type="button" 
                         onClick={() => handleSort('stock_value')} 
-                        className="flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
+                        className="min-h-9 lg:min-h-0 flex items-center gap-1.5 hover:text-[#233327] dark:hover:text-[#F2EFE9] transition-colors group cursor-pointer"
                         title="Ordenar por valor total em estoque (maior para menor)"
                       >
                         <span>Valor em estoque</span>
@@ -703,7 +793,7 @@ export default function InventoryClient({
                     <th className="px-6 py-2.5 text-right font-semibold text-[#2E4233] dark:text-[#F2EFE9]">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E9E4D4] border-b border-[#E9E4D4]">
+                <tbody className="divide-y divide-[#E9E4D4] dark:divide-[#233026] border-b border-[#E9E4D4] dark:border-[#2A382E]">
                   {paginatedProducts.map((product: any) => {
                     const isLowStock = product.quantity <= product.min_stock;
                     const stockValue = product.quantity * (product.unit_cost_cents / 100);
@@ -711,7 +801,7 @@ export default function InventoryClient({
                     
                     return (
                       <tr key={product.id} className="border-b border-[#E9E4D4] dark:border-[#233026] hover:bg-gray-50/50 dark:hover:bg-[#222C25] transition-colors">
-                        {/* Produto: Nome clicável para edição rápida com salvamento automático */}
+                        {/* Produto: Nome clicável para edição rápida */}
                         <td className="px-6 py-2.5">
                           {editingCell?.id === product.id && editingCell?.field === 'name' ? (
                             <input
@@ -724,12 +814,13 @@ export default function InventoryClient({
                                 if (e.key === 'Enter') saveInlineEdit(product, 'name');
                                 if (e.key === 'Escape') setEditingCell(null);
                               }}
-                              className="w-full max-w-[220px] px-2.5 py-1 text-[15px] font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                              className="w-full max-w-[220px] min-h-9 px-2.5 py-1 text-base lg:text-[15px] font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#222C25] border-2 border-[#2E4233] dark:border-[#FF7D4F] rounded-lg shadow-sm focus:outline-none"
                             />
                           ) : (
-                            <div 
+                            <button
+                              type="button"
                               onClick={() => startInlineEdit(product, 'name')}
-                              className="group/name inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
+                              className="group/name inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 min-h-9 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F]"
                               title="Toque ou clique para editar o nome"
                             >
                               <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[15px] group-hover/name:underline decoration-[#2E4233]/40 dark:decoration-[#F2EFE9]/40 underline-offset-2">
@@ -737,13 +828,13 @@ export default function InventoryClient({
                               </span>
                               <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                               {saveSuccessCellId === `${product.id}-name` && (
-                                <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
+                                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 animate-in fade-in" />
                               )}
-                            </div>
+                            </button>
                           )}
                         </td>
                         
-                        {/* Quantidade: Clicável para edição rápida com indicador de seta para baixo */}
+                        {/* Quantidade: Clicável para edição rápida */}
                         <td className="px-6 py-2.5">
                           {editingCell?.id === product.id && editingCell?.field === 'quantity' ? (
                             <input
@@ -756,22 +847,23 @@ export default function InventoryClient({
                                 if (e.key === 'Enter') saveInlineEdit(product, 'quantity');
                                 if (e.key === 'Escape') setEditingCell(null);
                               }}
-                              className="w-24 px-2.5 py-1 text-[15px] font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                              className="w-24 min-h-9 px-2.5 py-1 text-base lg:text-[15px] font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#222C25] border-2 border-[#2E4233] dark:border-[#FF7D4F] rounded-lg shadow-sm focus:outline-none"
                             />
                           ) : (
-                            <div 
+                            <button
+                              type="button"
                               onClick={() => startInlineEdit(product, 'quantity')}
-                              className="group/qty inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
+                              className="group/qty inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 min-h-9 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F]"
                               title="Toque ou clique para alterar a quantidade"
                             >
-                              <span className={`font-bold text-[15px] ${isLowStock ? 'text-[#CB5A3C] dark:text-[#FF7D4F]' : 'text-[#2E4233] dark:text-[#F2EFE9]'}`}>
+                              <span className={`font-bold text-[15px] ${isLowStock ? 'text-[#B4482D] dark:text-[#FF7D4F]' : 'text-[#2E4233] dark:text-[#F2EFE9]'}`}>
                                 {formatted.qty}
                               </span>
                               <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                               {saveSuccessCellId === `${product.id}-quantity` && (
-                                <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
+                                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 animate-in fade-in" />
                               )}
-                            </div>
+                            </button>
                           )}
                         </td>
 
@@ -781,26 +873,27 @@ export default function InventoryClient({
                             <select
                               value={product.unit === 'un' ? 'unidades' : product.unit}
                               onChange={(e) => handleUnitChange(product, e.target.value)}
-                              className="appearance-none font-medium text-gray-700 dark:text-[#F2EFE9] text-[14px] bg-transparent hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] border border-transparent hover:border-[#E9E4D4] dark:hover:border-[#2A382E] rounded-lg pl-2 pr-6 py-1 cursor-pointer focus:outline-none focus:bg-white dark:focus:bg-[#1B241E] focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-colors"
+                              aria-label={`Unidade de ${product.name}`}
+                              className="appearance-none min-h-9 font-medium text-gray-700 dark:text-[#F2EFE9] text-base lg:text-[14px] bg-transparent hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] border border-transparent hover:border-[#E9E4D4] dark:hover:border-[#2A382E] rounded-lg pl-2 pr-6 py-1 cursor-pointer focus:outline-none focus:bg-white dark:focus:bg-[#1B241E] focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-colors"
                               title="Selecione a unidade de medida"
                             >
-                              <option value="unidades">unidades</option>
-                              <option value="un">un</option>
-                              <option value="kg">kg</option>
-                              <option value="g">g</option>
-                              <option value="L">L</option>
-                              <option value="ml">ml</option>
-                              <option value="caixas">caixas</option>
-                              <option value="pacotes">pacotes</option>
+                              <option value="unidades" className="dark:bg-[#1B241E]">unidades</option>
+                              <option value="un" className="dark:bg-[#1B241E]">un</option>
+                              <option value="kg" className="dark:bg-[#1B241E]">kg</option>
+                              <option value="g" className="dark:bg-[#1B241E]">g</option>
+                              <option value="L" className="dark:bg-[#1B241E]">L</option>
+                              <option value="ml" className="dark:bg-[#1B241E]">ml</option>
+                              <option value="caixas" className="dark:bg-[#1B241E]">caixas</option>
+                              <option value="pacotes" className="dark:bg-[#1B241E]">pacotes</option>
                             </select>
                             <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] absolute right-1.5 pointer-events-none transition-colors" />
                             {saveSuccessCellId === `${product.id}-unit` && (
-                              <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 ml-1 animate-in fade-in" />
+                              <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 ml-1 animate-in fade-in" />
                             )}
                           </div>
                         </td>
 
-                        {/* Custo unitário: Clicável para edição rápida com indicador de seta para baixo */}
+                        {/* Custo unitário: Clicável para edição rápida */}
                         <td className="px-6 py-2.5">
                           {editingCell?.id === product.id && editingCell?.field === 'unit_cost' ? (
                             <input
@@ -813,22 +906,23 @@ export default function InventoryClient({
                                 if (e.key === 'Enter') saveInlineEdit(product, 'unit_cost');
                                 if (e.key === 'Escape') setEditingCell(null);
                               }}
-                              className="w-28 px-2.5 py-1 text-[14px] font-medium text-gray-800 bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                              className="w-28 min-h-9 px-2.5 py-1 text-base lg:text-[14px] font-medium text-gray-800 dark:text-[#F2EFE9] bg-white dark:bg-[#222C25] border-2 border-[#2E4233] dark:border-[#FF7D4F] rounded-lg shadow-sm focus:outline-none"
                             />
                           ) : (
-                            <div 
+                            <button
+                              type="button"
                               onClick={() => startInlineEdit(product, 'unit_cost')}
-                              className="group/cost inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors"
+                              className="group/cost inline-flex items-center gap-1.5 cursor-pointer py-1 px-1.5 -mx-1.5 min-h-9 rounded-lg hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F]"
                               title="Toque ou clique para alterar o custo unitário"
                             >
-                              <span className="font-medium text-gray-600 dark:text-[#9CA79E] text-[14px]">
+                              <span className="font-medium text-gray-700 dark:text-[#C5CFC7] text-[14px]">
                                 {formatCurrency(product.unit_cost_cents / 100)}
                               </span>
                               <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                               {saveSuccessCellId === `${product.id}-unit_cost` && (
-                                <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0 animate-in fade-in" />
+                                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 animate-in fade-in" />
                               )}
-                            </div>
+                            </button>
                           )}
                         </td>
 
@@ -837,15 +931,16 @@ export default function InventoryClient({
                           {formatCurrency(stockValue)}
                         </td>
                         
-                        {/* Ações: Lixinho laranja direto para exclusão segura */}
+                        {/* Ações: Exclusão segura */}
                         <td className="px-6 py-2.5 text-right">
                           <button 
                             type="button"
                             onClick={() => setProductToDelete(product)}
                             title="Excluir produto"
-                            className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-all cursor-pointer inline-flex items-center justify-center group"
+                            aria-label={`Excluir produto ${product.name}`}
+                            className="min-h-9 min-w-9 p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-all cursor-pointer inline-flex items-center justify-center group"
                           >
-                            <Trash2 className="w-4 h-4 text-[#CB5A3C] group-hover:scale-110 transition-transform" />
+                            <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
                           </button>
                         </td>
                       </tr>
@@ -854,7 +949,7 @@ export default function InventoryClient({
                   
                   {filteredProducts.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-6 py-10 text-center text-gray-500 text-sm">
+                      <td colSpan={6} className="px-6 py-10 text-center text-muted-foreground text-sm">
                         Nenhum produto encontrado.
                       </td>
                     </tr>
@@ -863,23 +958,23 @@ export default function InventoryClient({
               </table>
             </div>
 
-            {/* Pagination Controls pinned at bottom (Centered with item count) */}
-            <div className="relative flex justify-center items-center px-6 py-2.5 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/30 dark:bg-[#1B241E]/30 shrink-0 min-h-[44px]">
-              <span className="hidden sm:inline-block absolute left-6 text-xs text-gray-500 dark:text-[#9CA79E] font-medium">
+            {/* Pagination Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-2.5 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0]/30 dark:bg-[#1B241E]/30 shrink-0 min-h-[48px]">
+              <span className="text-xs text-muted-foreground font-medium">
                 Mostrando {sortedProducts.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–{Math.min(currentPage * ITEMS_PER_PAGE, sortedProducts.length)} de {sortedProducts.length} itens
               </span>
 
               {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   {Array.from({ length: totalPages }).map((_, i) => (
                     <button
                       key={i}
                       type="button"
                       onClick={() => setCurrentPage(i + 1)}
-                      className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                      className={`min-h-9 min-w-9 w-9 h-9 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
                         currentPage === i + 1 
-                          ? 'bg-[#CB5A3C] text-white shadow-sm' 
-                          : 'bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]'
+                          ? 'bg-[#B4482D] text-white shadow-sm' 
+                          : 'bg-white dark:bg-[#1B241E] text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]'
                       }`}
                     >
                       {i + 1}
@@ -891,16 +986,16 @@ export default function InventoryClient({
           </div>
 
           {/* Mobile List View */}
-          <div className="md:hidden flex flex-col gap-0 mb-4 bg-white border border-[#E9E4D4] rounded-2xl overflow-hidden shadow-sm">
+          <div className="md:hidden flex flex-col gap-0 mb-4 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl overflow-hidden shadow-sm">
             {paginatedProducts.map((product: any) => {
               const isLowStock = product.quantity <= product.min_stock;
               const stockValue = product.quantity * (product.unit_cost_cents / 100);
               const formatted = formatQuantity(product.quantity, product.unit);
               
               return (
-                <div key={product.id} className="flex flex-col p-3.5 border-b border-[#E9E4D4] relative">
+                <div key={product.id} className="flex flex-col p-3.5 border-b border-[#E9E4D4] dark:border-[#233026] relative">
                   <div className="flex flex-col flex-1">
-                    {/* Linha superior: Nome do Produto e Botão Excluir Laranja */}
+                    {/* Linha superior: Nome do Produto e Botão Excluir */}
                     <div className="flex justify-between items-center w-full gap-2 mb-2">
                       {editingCell?.id === product.id && editingCell?.field === 'name' ? (
                         <input
@@ -913,37 +1008,39 @@ export default function InventoryClient({
                             if (e.key === 'Enter') saveInlineEdit(product, 'name');
                             if (e.key === 'Escape') setEditingCell(null);
                           }}
-                          className="flex-1 px-2.5 py-1 text-[14px] font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-lg shadow-sm focus:outline-none"
+                          className="flex-1 min-h-9 px-2.5 py-1 text-base lg:text-sm font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#222C25] border-2 border-[#2E4233] dark:border-[#FF7D4F] rounded-lg shadow-sm focus:outline-none"
                         />
                       ) : (
-                        <div 
+                        <button
+                          type="button"
                           onClick={() => startInlineEdit(product, 'name')}
-                          className="flex items-center gap-1.5 cursor-pointer py-0.5"
+                          className="flex items-center gap-1.5 cursor-pointer py-1 min-h-9 text-left min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F] rounded-lg"
                           title="Toque para editar o nome"
                         >
-                          <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[15px]">{product.name}</span>
+                          <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[15px] truncate">{product.name}</span>
                           <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
                           {saveSuccessCellId === `${product.id}-name` && (
-                            <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0" />
+                            <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           )}
-                        </div>
+                        </button>
                       )}
                       
                       <button 
                         type="button"
                         onClick={() => setProductToDelete(product)}
                         title="Excluir produto"
-                        className="p-1.5 text-[#CB5A3C] hover:bg-[#CB5A3C]/10 rounded-lg transition-colors cursor-pointer shrink-0"
+                        aria-label={`Excluir produto ${product.name}`}
+                        className="min-h-9 min-w-9 flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer shrink-0"
                       >
-                        <Trash2 className="w-4 h-4 text-[#CB5A3C]" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                     
-                    {/* Grade de 3 colunas: Quantidade, Unidade, Custo */}
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#E9E4D4]/60">
+                    {/* Grade de métricas: Quantidade, Unidade, Custo */}
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#E9E4D4]/60 dark:border-[#233026]">
                       {/* Quantidade com edição rápida */}
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Qtd</span>
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Qtd</span>
                         {editingCell?.id === product.id && editingCell?.field === 'quantity' ? (
                           <input
                             type="text"
@@ -955,46 +1052,48 @@ export default function InventoryClient({
                               if (e.key === 'Enter') saveInlineEdit(product, 'quantity');
                               if (e.key === 'Escape') setEditingCell(null);
                             }}
-                            className="w-16 px-1.5 py-0.5 text-sm font-bold text-[#2E4233] bg-white border-2 border-[#2E4233] rounded-md focus:outline-none"
+                            className="w-full max-w-[84px] min-h-9 px-2 py-1 text-base lg:text-sm font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-white dark:bg-[#222C25] border-2 border-[#2E4233] dark:border-[#FF7D4F] rounded-md focus:outline-none"
                           />
                         ) : (
-                          <div 
+                          <button
+                            type="button"
                             onClick={() => startInlineEdit(product, 'quantity')}
-                            className="flex items-center gap-1 cursor-pointer"
+                            className="flex items-center gap-1 cursor-pointer min-h-9 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F] rounded"
                           >
-                            <span className={`font-bold text-sm ${isLowStock ? 'text-[#CB5A3C] dark:text-[#FF7D4F]' : 'text-[#2E4233] dark:text-[#F2EFE9]'}`}>
+                            <span className={`font-bold text-sm ${isLowStock ? 'text-[#B4482D] dark:text-[#FF7D4F]' : 'text-[#2E4233] dark:text-[#F2EFE9]'}`}>
                               {formatted.qty}
                             </span>
                             <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
-                          </div>
+                          </button>
                         )}
                       </div>
 
                       {/* Unidade: select com opções */}
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Unidade</span>
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Unidade</span>
                         <div className="relative inline-flex items-center">
                           <select
                             value={product.unit === 'un' ? 'unidades' : product.unit}
                             onChange={(e) => handleUnitChange(product, e.target.value)}
-                            className="appearance-none font-medium text-gray-700 text-xs bg-[#FAF8F0] border border-[#E9E4D4] rounded-md pl-1.5 pr-5 py-0.5 cursor-pointer focus:outline-none focus:border-[#2E4233] w-full"
+                            aria-label={`Unidade de ${product.name}`}
+                            className="appearance-none min-h-9 font-medium text-gray-800 dark:text-[#F2EFE9] text-base lg:text-xs bg-[#FAF8F0] dark:bg-[#222C25] border border-[#E9E4D4] dark:border-[#2A382E] rounded-md pl-2 pr-6 py-1 cursor-pointer focus:outline-none focus:border-[#2E4233] dark:focus:border-[#FF7D4F] w-full"
                           >
-                            <option value="unidades">unidades</option>
-                            <option value="un">un</option>
-                            <option value="kg">kg</option>
-                            <option value="g">g</option>
-                            <option value="L">L</option>
-                            <option value="ml">ml</option>
-                            <option value="caixas">caixas</option>
-                            <option value="pacotes">pacotes</option>
+                            <option value="unidades" className="dark:bg-[#1B241E]">unidades</option>
+                            <option value="un" className="dark:bg-[#1B241E]">un</option>
+                            <option value="kg" className="dark:bg-[#1B241E]">kg</option>
+                            <option value="g" className="dark:bg-[#1B241E]">g</option>
+                            <option value="L" className="dark:bg-[#1B241E]">L</option>
+                            <option value="ml" className="dark:bg-[#1B241E]">ml</option>
+                            <option value="caixas" className="dark:bg-[#1B241E]">caixas</option>
+                            <option value="pacotes" className="dark:bg-[#1B241E]">pacotes</option>
                           </select>
-                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] absolute right-1 pointer-events-none" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] absolute right-1.5 pointer-events-none" />
                         </div>
                       </div>
 
                       {/* Custo unitário com edição rápida */}
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Custo</span>
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Custo</span>
                         {editingCell?.id === product.id && editingCell?.field === 'unit_cost' ? (
                           <input
                             type="text"
@@ -1006,20 +1105,27 @@ export default function InventoryClient({
                               if (e.key === 'Enter') saveInlineEdit(product, 'unit_cost');
                               if (e.key === 'Escape') setEditingCell(null);
                             }}
-                            className="w-20 px-1.5 py-0.5 text-xs font-semibold text-gray-800 bg-white border-2 border-[#2E4233] rounded-md focus:outline-none"
+                            className="w-full max-w-[96px] min-h-9 px-2 py-1 text-base lg:text-xs font-semibold text-gray-800 dark:text-[#F2EFE9] bg-white dark:bg-[#222C25] border-2 border-[#2E4233] dark:border-[#FF7D4F] rounded-md focus:outline-none"
                           />
                         ) : (
-                          <div 
+                          <button
+                            type="button"
                             onClick={() => startInlineEdit(product, 'unit_cost')}
-                            className="flex items-center gap-1 cursor-pointer"
+                            className="flex items-center gap-1 cursor-pointer min-h-9 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F] rounded"
                           >
                             <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-xs">
                               {formatCurrency((product.unit_cost_cents / 100))}
                             </span>
                             <ChevronDown className="w-3.5 h-3.5 text-[#2E4233] dark:text-[#9CA79E] shrink-0" />
-                          </div>
+                          </button>
                         )}
                       </div>
+                    </div>
+
+                    {/* Valor total em estoque (paridade desktop) */}
+                    <div className="flex items-center justify-between pt-2 mt-2 border-t border-[#E9E4D4]/60 dark:border-[#233026] text-xs">
+                      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Valor em estoque</span>
+                      <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9]">{formatCurrency(stockValue)}</span>
                     </div>
                   </div>
                 </div>
@@ -1027,27 +1133,27 @@ export default function InventoryClient({
             })}
             
             {filteredProducts.length === 0 && (
-              <div className="p-4 text-center text-gray-500 text-xs">
+              <div className="p-4 text-center text-muted-foreground text-xs">
                 Nenhum produto encontrado.
               </div>
             )}
 
             {/* Mobile Pagination */}
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-1.5 p-2 bg-[#FAF8F0]/30 border-t border-[#E9E4D4]">
-              <span className="text-[11px] text-gray-500 font-medium">
+            <div className="flex flex-wrap justify-between items-center gap-2 p-2.5 bg-[#FAF8F0]/30 dark:bg-[#1B241E]/30 border-t border-[#E9E4D4] dark:border-[#2A382E]">
+              <span className="text-[11px] text-muted-foreground font-medium">
                 Mostrando {sortedProducts.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–{Math.min(currentPage * ITEMS_PER_PAGE, sortedProducts.length)} de {sortedProducts.length} itens
               </span>
               {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-1.5">
+                <div className="flex flex-wrap justify-center items-center gap-1.5">
                   {Array.from({ length: totalPages }).map((_, i) => (
                     <button
                       key={i}
                       type="button"
                       onClick={() => setCurrentPage(i + 1)}
-                      className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
+                      className={`min-h-9 min-w-9 w-9 h-9 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
                         currentPage === i + 1 
-                          ? 'bg-[#CB5A3C] text-white shadow-sm' 
-                          : 'bg-white dark:bg-[#1B241E] text-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]'
+                          ? 'bg-[#B4482D] text-white shadow-sm' 
+                          : 'bg-white dark:bg-[#1B241E] text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#25332A] border border-[#E9E4D4] dark:border-[#2A382E]'
                       }`}
                     >
                       {i + 1}
@@ -1058,152 +1164,96 @@ export default function InventoryClient({
             </div>
           </div>
 
-          {/* Mobile Alerta Accordion */}
-          <div className="md:hidden bg-white border border-[#E9E4D4] rounded-2xl p-3 flex justify-between items-center shadow-sm cursor-pointer mb-4" onClick={() => setIsShoppingListOpen(true)}>
+          {/* Mobile Alerta Banner (< xl) */}
+          <button
+            type="button"
+            onClick={() => setIsRestockDrawerOpen(true)}
+            className="md:hidden w-full bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] hover:bg-[#FAF8F0] dark:hover:bg-[#222C25] rounded-2xl p-3.5 min-h-11 flex justify-between items-center shadow-sm cursor-pointer mb-4 transition-colors"
+          >
             <div className="flex items-center gap-2">
               <SvgIcon path="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" className="w-4 h-4 text-[#CB5A3C]" />
-              <h3 className="font-bold text-[#2E4233] text-[13px]">Alerta de reposição</h3>
+              <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[13px]">Alerta de reposição</span>
             </div>
             <div className="flex items-center gap-2">
-              {lowStockCount > 0 && <span className="bg-[#CB5A3C] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{lowStockCount} alertas</span>}
-              <SvgIcon path="M9 5l7 7-7 7" className="w-4 h-4 text-gray-400" />
+              {lowStockCount > 0 && <span className="bg-[#B4482D] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{lowStockCount} {lowStockCount === 1 ? 'alerta' : 'alertas'}</span>}
+              <SvgIcon path="M9 5l7 7-7 7" className="w-4 h-4 text-muted-foreground" />
             </div>
-          </div>
+          </button>
           
         </div>
 
-        {/* Right Side: Alerta de Reposição (Larger font, proportional, no modal on card click) */}
-        <div className="hidden lg:flex flex-col w-[300px] shrink-0 h-full min-h-0">
-          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] rounded-2xl shadow-sm flex flex-col h-full min-h-0 justify-between relative">
-            <div className="flex flex-col flex-1 min-h-0">
-              <div className="flex items-center justify-between p-4 border-b border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#222C25] shrink-0 rounded-t-2xl relative z-10 overflow-visible">
-                <div className="flex items-center gap-2">
-                  <SvgIcon path="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" className="w-4 h-4 text-[#CB5A3C]" />
-                  <h3 className="font-serif font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[17px]">Reposição</h3>
-                  
-                  {/* Tooltip for Reposição */}
-                  <div className="relative group inline-block">
-                    <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
-                      ?
-                    </div>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[240px] p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left">
-                      <p className="text-[12px] font-bold text-white dark:text-[#2E4233] mb-2 leading-relaxed">
-                        Dica:
-                      </p>
-                      <div className="flex flex-col gap-2 text-[11px] text-white/90 dark:text-[#1C2C22] leading-snug">
-                        <div className="flex items-start gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
-                          <span>Produtos que atingiram ou estão abaixo do estoque mínimo.</span>
-                        </div>
-                        <div className="flex items-start gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
-                          <span>Clique em "Lista de Compras" para gerar pedido a fornecedores.</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {lowStockCount > 0 && <span className="bg-[#CB5A3C] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{lowStockCount} alertas</span>}
-              </div>
-              
-              <div className="flex flex-col gap-2.5 p-3.5 overflow-y-auto flex-1 min-h-0">
-                {lowStockProducts.map((product: any) => {
-                  const formatted = formatQuantity(product.quantity, product.unit);
-
-                  return (
-                    <div key={`alert-${product.id}`} className="flex flex-col shrink-0 gap-1 p-2.5 bg-white dark:bg-[#222C25] border border-[#F5D8D1] dark:border-[#2A382E] rounded-xl shadow-sm relative overflow-hidden">
-                      <div className="absolute top-0 left-0 bottom-0 w-1 bg-[#CB5A3C]"></div>
-                      <div className="pl-2">
-                        <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[14px] truncate block">{product.name}</span>
-                      </div>
-                      <span className="text-[13px] text-gray-500 dark:text-[#9CA79E] pl-2 mt-0.5 font-medium">
-                        Restam apenas <span className="text-[#CB5A3C] font-bold">{formatted.qty} {formatted.unit}</span>
-                      </span>
-                    </div>
-                  )
-                })}
-
-                {lowStockCount === 0 && (
-                  <div className="flex flex-col items-center justify-center p-4 text-center h-full">
-                    <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center mb-1.5">
-                      <SvgIcon path="M5 13l4 4L19 7" className="w-4 h-4 text-green-500" />
-                    </div>
-                    <p className="text-[12px] text-gray-500 font-medium">Todos os produtos estão com estoque adequado.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Button at bottom of Reposição card (Pinned to bottom baseline) */}
-            <div className="p-3.5 bg-white dark:bg-[#1B241E] border-t border-[#E9E4D4] dark:border-[#2A382E] shrink-0">
-              <button 
-                onClick={() => setIsShoppingListOpen(true)}
-                className="w-full py-2.5 bg-[#2E4233] dark:bg-[#E76F41] hover:bg-[#233327] dark:hover:bg-[#B84E32] text-white rounded-xl font-bold text-[13px] transition-all shadow-sm flex items-center justify-center gap-2"
-              >
-                <SvgIcon path="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 012-2h2a2 2 0 012 2" className="w-4 h-4" />
-                Lista de Compras
-              </button>
-            </div>
-          </div>
+        {/* Right Side: Alerta de Reposição (Docked only on 2xl: >= 1536px) */}
+        <div className="hidden 2xl:flex flex-col w-[300px] shrink-0">
+          {renderRestockCardContent()}
         </div>
 
       </div>
+
+      {/* Slide-over Reposição Drawer (< 2xl) */}
+      {isRestockDrawerOpen && (
+        <div className="fixed inset-0 z-[60] 2xl:hidden flex justify-end">
+          <div
+            className="fixed inset-0 bg-black/45 backdrop-blur-xs"
+            onClick={() => setIsRestockDrawerOpen(false)}
+          />
+          <div className="relative z-10 w-full max-w-sm h-full p-3 bg-[#FAF8F0] dark:bg-[#131A15] shadow-2xl animate-in slide-in-from-right duration-200 flex flex-col">
+            {renderRestockCardContent(() => setIsRestockDrawerOpen(false))}
+          </div>
+        </div>
+      )}
 
 
 
       {/* ==================== MODAL: NOVO PRODUTO ==================== */}
       {isNewProductModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FDFCF9]">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="inventory-new-product-title"
+          className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
+        >
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-[#1C2C22] dark:text-[#F2EFE9] rounded-2xl w-full max-w-md shadow-xl overflow-hidden flex flex-col max-h-[90dvh]">
+            <div className="px-5 sm:px-6 py-4 border-b border-[#E9E4D4] dark:border-[#2A382E] flex justify-between items-center bg-[#FDFCF9] dark:bg-[#222C25] shrink-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-serif font-bold text-[#CB5A3C] text-xl tracking-tight">Novo Produto</h3>
-                <div className="relative group inline-block">
-                  <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
-                    ?
-                  </div>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[250px] p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left">
-                    <p className="text-[12px] font-bold text-white dark:text-[#2E4233] mb-2 leading-relaxed">
-                      Dica de cadastro:
-                    </p>
-                    <div className="flex flex-col gap-2 text-[11px] text-white/90 dark:text-[#1C2C22] leading-snug">
-                      <div className="flex items-start gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
-                        <span>Cadastre insumos, produtos acabados ou embalagens.</span>
-                      </div>
-                      <div className="flex items-start gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
-                        <span>Defina a quantidade atual e o estoque mínimo para alertas automáticos.</span>
-                      </div>
-                      <div className="flex items-start gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
-                        <span>Informe o custo unitário para cálculo do patrimônio em estoque.</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <h3 id="inventory-new-product-title" className="font-serif font-bold text-[#CB5A3C] dark:text-[#FF7D4F] text-xl tracking-tight">Novo Produto</h3>
+                <HelpTooltip
+                  size="sm"
+                  title="Dica de cadastro"
+                  description="Preencha os campos para acompanhar estoque e custos."
+                  bullets={[
+                    "Cadastre insumos, produtos acabados ou embalagens.",
+                    "Defina a quantidade atual e o estoque mínimo para alertas automáticos.",
+                    "Informe o custo unitário para cálculo do patrimônio em estoque.",
+                  ]}
+                  ariaLabel="Ajuda sobre cadastro de produto"
+                />
               </div>
-              <button onClick={() => setIsNewProductModalOpen(false)} className="p-1.5 rounded-lg text-[#CB5A3C] hover:bg-[#CB5A3C]/10 transition-colors">
-                <SvgIcon path="M6 18L18 6M6 6l12 12" className="w-5 h-5 text-[#CB5A3C]" />
+              <button
+                type="button"
+                onClick={() => setIsNewProductModalOpen(false)}
+                aria-label="Fechar modal de novo produto"
+                className="min-h-9 min-w-9 flex items-center justify-center rounded-lg text-[#CB5A3C] dark:text-[#FF7D4F] hover:bg-[#CB5A3C]/10 transition-colors cursor-pointer"
+              >
+                <SvgIcon path="M6 18L18 6M6 6l12 12" className="w-5 h-5" />
               </button>
             </div>
             
-            <div className="p-6 overflow-y-auto">
+            <div className="p-5 sm:p-6 overflow-y-auto flex-1">
               <form id="new-product-form" onSubmit={handleSaveProduct} className="flex flex-col gap-5">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-semibold text-gray-700">Nome do Produto *</label>
-                  <input type="text" value={newItemName} onChange={e => setNewItemName(e.target.value)} required className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" placeholder="Ex: Açúcar Refinado" />
+                  <label className="text-[13px] font-semibold text-gray-700 dark:text-gray-200">Nome do Produto *</label>
+                  <input type="text" value={newItemName} onChange={e => setNewItemName(e.target.value)} required className="w-full min-h-10 border border-[#E9E4D4] dark:border-[#2A382E] bg-white dark:bg-[#222C25] text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-muted-foreground rounded-xl px-4 py-2 text-base lg:text-sm focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all" placeholder="Ex: Açúcar Refinado" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[13px] font-semibold text-gray-700">Quantidade</label>
-                    <input type="text" value={newItemQuantity} onChange={e => setNewItemQuantity(e.target.value)} className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" placeholder="0" />
+                    <label className="text-[13px] font-semibold text-gray-700 dark:text-gray-200">Quantidade</label>
+                    <input type="text" value={newItemQuantity} onChange={e => setNewItemQuantity(e.target.value)} className="w-full min-h-10 border border-[#E9E4D4] dark:border-[#2A382E] bg-white dark:bg-[#222C25] text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-muted-foreground rounded-xl px-4 py-2 text-base lg:text-sm focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all" placeholder="0" />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[13px] font-semibold text-gray-700">Unidade</label>
+                    <label className="text-[13px] font-semibold text-gray-700 dark:text-gray-200">Unidade</label>
                     <div className="relative">
-                      <select value={newItemUnit} onChange={e => setNewItemUnit(e.target.value)} className="w-full appearance-none border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all bg-white">
+                      <select value={newItemUnit} onChange={e => setNewItemUnit(e.target.value)} className="w-full min-h-10 appearance-none border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl px-4 py-2 text-base lg:text-sm focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all bg-white dark:bg-[#222C25] text-[#1C2C22] dark:text-[#F2EFE9]">
                         <option value="unidades">unidades</option>
                         <option value="kg">kg</option>
                         <option value="g">g</option>
@@ -1212,37 +1262,37 @@ export default function InventoryClient({
                         <option value="caixas">caixas</option>
                         <option value="pacotes">pacotes</option>
                       </select>
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
                         <SvgIcon path="M19 9l-7 7-7-7" className="w-4 h-4" />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[13px] font-semibold text-gray-700">Custo Unitário (R$)</label>
+                    <label className="text-[13px] font-semibold text-gray-700 dark:text-gray-200">Custo Unitário (R$)</label>
                     <input 
                       type="text" 
                       value={newItemUnitCost} 
                       onChange={e => setNewItemUnitCost(formatCurrencyInput(e.target.value))} 
-                      className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" 
+                      className="w-full min-h-10 border border-[#E9E4D4] dark:border-[#2A382E] bg-white dark:bg-[#222C25] text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-muted-foreground rounded-xl px-4 py-2 text-base lg:text-sm focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all" 
                       placeholder="R$ 0,00" 
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[13px] font-semibold text-gray-700">Estoque Mínimo</label>
-                    <input type="text" value={newItemMinStock} onChange={e => setNewItemMinStock(e.target.value)} className="w-full border border-[#E9E4D4] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all" placeholder="0" />
+                    <label className="text-[13px] font-semibold text-gray-700 dark:text-gray-200">Estoque Mínimo</label>
+                    <input type="text" value={newItemMinStock} onChange={e => setNewItemMinStock(e.target.value)} className="w-full min-h-10 border border-[#E9E4D4] dark:border-[#2A382E] bg-white dark:bg-[#222C25] text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-muted-foreground rounded-xl px-4 py-2 text-base lg:text-sm focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all" placeholder="0" />
                   </div>
                 </div>
               </form>
             </div>
 
-            <div className="p-4 border-t border-[#E9E4D4] bg-[#FDFCF9] flex justify-end gap-3">
-              <button type="button" onClick={() => setIsNewProductModalOpen(false)} className="px-5 py-2.5 text-[14px] font-semibold text-gray-600 hover:text-gray-800 transition-colors">
+            <div className="p-4 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FDFCF9] dark:bg-[#222C25] flex flex-wrap justify-end gap-3 shrink-0">
+              <button type="button" onClick={() => setIsNewProductModalOpen(false)} className="min-h-10 px-5 py-2 text-[14px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors cursor-pointer">
                 Cancelar
               </button>
-              <button type="submit" form="new-product-form" disabled={isSavingProduct || !newItemName.trim()} className="px-6 py-2.5 bg-[#CB5A3C] hover:bg-[#A8452B] text-white rounded-xl font-semibold text-[14px] transition-all shadow-sm disabled:opacity-50">
+              <button type="submit" form="new-product-form" disabled={isSavingProduct || !newItemName.trim()} className="min-h-10 px-6 py-2 bg-[#B4482D] hover:bg-[#9C3B23] text-white rounded-xl font-semibold text-[14px] transition-all shadow-sm disabled:opacity-50 cursor-pointer">
                 {isSavingProduct ? 'Salvando...' : 'Salvar Produto'}
               </button>
             </div>
@@ -1250,33 +1300,8 @@ export default function InventoryClient({
         </div>
       )}
 
-      {/* ==================== PRINT STYLES ==================== */}
-      <style>{`
-        @media print {
-          body * {
-            visibility: hidden !important;
-          }
-          #print-sheet-root, #print-sheet-root * {
-            visibility: visible !important;
-          }
-          #print-sheet-root {
-            display: block !important;
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            min-height: 100vh !important;
-            background-color: #ffffff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            margin: 0 !important;
-            padding: 32px !important;
-          }
-        }
-      `}</style>
-
       {/* ==================== DEDICATED PRINT SHEET (EXACT PDF DESIGN) ==================== */}
-      <div id="print-sheet-root" className="hidden print:block min-h-screen bg-white text-[#223829] font-sans relative overflow-hidden">
+      <div id="print-sheet-root" className="hidden print:block print:p-8 print:overflow-visible min-h-screen bg-white text-[#223829] font-sans relative overflow-hidden">
         {/* Top Header */}
         <div className="relative z-10 flex justify-between items-start text-[8px] tracking-widest text-[#788278] uppercase mb-4 px-2">
           <div className="flex flex-col gap-0.5">
@@ -1353,63 +1378,56 @@ export default function InventoryClient({
 
       {/* ==================== MODAL: LISTA DE COMPRAS ==================== */}
       {isShoppingListOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[500px] overflow-hidden flex flex-col max-h-[90vh]">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="shopping-list-title"
+          className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
+        >
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-[#1C2C22] dark:text-[#F2EFE9] rounded-2xl shadow-xl w-full max-w-[500px] overflow-hidden flex flex-col max-h-[90dvh]">
             
-            {/* Modal Header (Título laranja, interrogação com dicas e botão fechar) */}
-            <div className="px-6 py-4 border-b border-[#E9E4D4] flex justify-between items-center bg-[#FAF8F0] relative z-20 overflow-visible">
-              <div>
+            {/* Modal Header */}
+            <div className="px-5 sm:px-6 py-4 border-b border-[#E9E4D4] dark:border-[#2A382E] flex justify-between items-center gap-3 bg-[#FAF8F0] dark:bg-[#222C25] relative z-20 overflow-visible shrink-0">
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-serif font-bold text-[#CB5A3C] text-xl tracking-tight">Lista de Compras</h3>
-                  
-                  {/* Tooltip for Lista de Compras */}
-                  <div className="relative group inline-block">
-                    <div className="w-4 h-4 rounded-full bg-[#2E4233] text-white flex items-center justify-center text-[10px] font-extrabold leading-none shadow-sm cursor-help hover:scale-105 transition-transform">
-                      ?
-                    </div>
-                    <div className="absolute top-full left-0 mt-2 w-[270px] p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left">
-                      <p className="text-[12px] font-bold text-white dark:text-[#2E4233] mb-2 leading-relaxed">
-                        Dica da Lista de Compras:
-                      </p>
-                      <div className="flex flex-col gap-2 text-[11px] text-white/90 dark:text-[#1C2C22] leading-snug">
-                        <div className="flex items-start gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
-                          <span>Produtos com estoque em estado crítico são sugeridos automaticamente.</span>
-                        </div>
-                        <div className="flex items-start gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
-                          <span>Adicione itens avulsos com a quantidade e unidade de medida desejada.</span>
-                        </div>
-                        <div className="flex items-start gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C] shrink-0 mt-1"></span>
-                          <span>Envie a lista pronta pelo WhatsApp, baixe o PDF estilizado ou imprima direto.</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <h3 id="shopping-list-title" className="font-serif font-bold text-[#CB5A3C] dark:text-[#FF7D4F] text-xl tracking-tight">Lista de Compras</h3>
+                  <HelpTooltip
+                    size="sm"
+                    title="Dica da Lista de Compras"
+                    description="Monte e compartilhe o pedido para seus fornecedores."
+                    bullets={[
+                      "Produtos com estoque em estado crítico são sugeridos automaticamente.",
+                      "Adicione itens avulsos com a quantidade e unidade de medida desejada.",
+                      "Envie a lista pronta pelo WhatsApp, baixe o PDF estilizado ou imprima direto.",
+                    ]}
+                    ariaLabel="Ajuda sobre lista de compras"
+                  />
                 </div>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {activeLowStockProducts.length + extraItems.length} {activeLowStockProducts.length + extraItems.length === 1 ? 'item' : 'itens'} na lista
                 </p>
               </div>
               <button 
+                type="button"
                 onClick={() => setIsShoppingListOpen(false)} 
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#CB5A3C]/10 text-[#CB5A3C] transition-colors"
+                aria-label="Fechar lista de compras"
+                className="min-h-9 min-w-9 w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#CB5A3C]/10 text-[#CB5A3C] dark:text-[#FF7D4F] transition-colors cursor-pointer shrink-0"
               >
-                <SvgIcon path="M6 18L18 6M6 6l12 12" className="w-5 h-5 text-[#CB5A3C]" />
+                <SvgIcon path="M6 18L18 6M6 6l12 12" className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Campo Fixo de Itens Extras (Posicionado acima da lista) */}
-            <div className="px-6 py-3.5 border-b border-[#E9E4D4] bg-[#FDFCF9] shrink-0">
+            {/* Campo Fixo de Itens Extras */}
+            <div className="px-5 sm:px-6 py-3.5 border-b border-[#E9E4D4] dark:border-[#2A382E] bg-[#FDFCF9] dark:bg-[#161E18] shrink-0">
               <div className="flex flex-col sm:flex-row gap-2">
                 <input 
                   type="text" 
                   placeholder="Item extra (ex: Detergente, papel toalha...)" 
+                  aria-label="Nome do item extra"
                   value={newExtraItemName}
                   onChange={(e) => setNewExtraItemName(e.target.value)}
                   onKeyDown={handleAddExtraItem}
-                  className="flex-1 min-w-0 border border-[#E9E4D4] rounded-xl px-3.5 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all shadow-sm bg-white" 
+                  className="flex-1 min-w-0 min-h-9 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl px-3.5 py-2 text-base lg:text-[13px] text-[#1C2C22] dark:text-[#F2EFE9] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all shadow-sm bg-white dark:bg-[#222C25]" 
                 />
                 <div className="flex items-center gap-1.5 shrink-0">
                   <input
@@ -1417,16 +1435,18 @@ export default function InventoryClient({
                     min="0.1"
                     step="any"
                     placeholder="Qtd"
+                    aria-label="Quantidade do item extra"
                     value={newExtraItemQty}
                     onChange={(e) => setNewExtraItemQty(e.target.value)}
                     onKeyDown={handleAddExtraItem}
-                    className="w-16 border border-[#E9E4D4] rounded-xl px-2 py-2 text-[13px] font-semibold text-center focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] transition-all shadow-sm bg-white"
+                    className="w-16 min-h-9 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl px-2 py-2 text-base lg:text-[13px] font-semibold text-center text-[#1C2C22] dark:text-[#F2EFE9] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] transition-all shadow-sm bg-white dark:bg-[#222C25]"
                   />
                   <div className="relative">
                     <select
                       value={newExtraItemUnit}
                       onChange={(e) => setNewExtraItemUnit(e.target.value)}
-                      className="appearance-none border border-[#E9E4D4] rounded-xl pl-2.5 pr-6 py-2 text-[13px] font-medium bg-white focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] shadow-sm text-gray-700 cursor-pointer"
+                      aria-label="Unidade do item extra"
+                      className="appearance-none min-h-9 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl pl-2.5 pr-6 py-2 text-base lg:text-[13px] font-medium bg-white dark:bg-[#222C25] focus:outline-none focus:ring-2 focus:ring-[#2E4233]/20 focus:border-[#2E4233] dark:focus:border-[#FF7D4F] shadow-sm text-gray-800 dark:text-[#F2EFE9] cursor-pointer"
                     >
                       <option value="unidades">un</option>
                       <option value="kg">kg</option>
@@ -1436,7 +1456,7 @@ export default function InventoryClient({
                       <option value="caixas">cx</option>
                       <option value="pacotes">pct</option>
                     </select>
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
                       <SvgIcon path="M19 9l-7 7-7-7" className="w-3.5 h-3.5" />
                     </div>
                   </div>
@@ -1444,7 +1464,7 @@ export default function InventoryClient({
                     type="button"
                     onClick={handleAddExtraItem}
                     disabled={!newExtraItemName.trim()}
-                    className="px-3.5 py-2 bg-[#2E4233] hover:bg-[#233327] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all text-[13px] flex items-center justify-center gap-1 shadow-sm shrink-0"
+                    className="min-h-9 px-3.5 py-2 bg-[#2E4233] hover:bg-[#233327] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all text-[13px] flex items-center justify-center gap-1 shadow-sm shrink-0 cursor-pointer"
                   >
                     <SvgIcon path="M12 4v16m8-8H4" className="w-4 h-4" />
                     Incluir
@@ -1454,32 +1474,33 @@ export default function InventoryClient({
             </div>
             
             {/* Modal Body: Lista de Produtos para Reposição & Itens Extras */}
-            <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-3 bg-white">
+            <div className="p-5 sm:p-6 overflow-y-auto flex-1 flex flex-col gap-3 bg-white dark:bg-[#1B241E]">
               {activeLowStockProducts.length === 0 && extraItems.length === 0 ? (
-                <div className="p-8 bg-gray-50 rounded-2xl text-center text-sm text-gray-500 border border-[#E9E4D4]">
+                <div className="p-8 bg-gray-50 dark:bg-[#222C25] rounded-2xl text-center text-sm text-muted-foreground border border-[#E9E4D4] dark:border-[#2A382E]">
                   Nenhum item na lista de compras no momento.
                 </div>
               ) : (
                 <>
-                  {/* Extra Items (Renderizados como cards iguais aos demais) */}
+                  {/* Extra Items */}
                   {extraItems.map((item) => {
                     const currentQty = shoppingQuantities[item.id] ?? item.quantity;
                     const unitDisplay = item.unit === 'unidades' ? 'un' : item.unit === 'caixas' ? 'cx' : item.unit === 'pacotes' ? 'pct' : item.unit;
                     
                     return (
-                      <div key={item.id} className="flex items-center justify-between shrink-0 gap-3 p-3 border border-[#E9E4D4] rounded-xl bg-white shadow-sm hover:border-[#CB5A3C]/40 transition-colors">
+                      <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-2.5 p-3 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl bg-white dark:bg-[#222C25] shadow-sm hover:border-[#CB5A3C]/40 transition-colors">
                         <div className="flex flex-col min-w-0 flex-1">
-                          <span className="font-bold text-[#2E4233] text-[15px] truncate">{item.name}</span>
-                          <span className="text-[12px] text-gray-400 font-medium">
+                          <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[15px] truncate">{item.name}</span>
+                          <span className="text-[12px] text-muted-foreground font-medium">
                             Item extra
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className="flex items-center border border-[#E9E4D4] rounded-lg bg-white overflow-hidden shadow-sm">
+                        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                          <div className="flex items-center border border-[#E9E4D4] dark:border-[#2A382E] rounded-lg bg-white dark:bg-[#1B241E] overflow-hidden shadow-sm">
                             <button 
                               type="button" 
                               onClick={() => updateShoppingQty(item.id, currentQty - 1)}
-                              className="px-2.5 py-1.5 text-gray-500 hover:bg-gray-50 hover:text-[#2E4233] transition-colors"
+                              aria-label={`Diminuir quantidade de ${item.name}`}
+                              className="min-h-9 min-w-9 flex items-center justify-center text-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2A382E] hover:text-[#2E4233] dark:hover:text-white transition-colors cursor-pointer"
                             >
                               <SvgIcon path="M20 12H4" className="w-3.5 h-3.5" />
                             </button>
@@ -1487,26 +1508,31 @@ export default function InventoryClient({
                               type="number" 
                               step="any"
                               value={currentQty} 
+                              aria-label={`Quantidade de ${item.name}`}
                               onChange={(e) => updateShoppingQty(item.id, parseFloat(e.target.value) || 1)}
-                              className="w-12 text-center py-1.5 text-[15px] font-bold text-[#2E4233] focus:outline-none border-x border-[#E9E4D4]" 
+                              className="w-12 min-h-9 text-center py-1 text-base lg:text-[15px] font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-transparent focus:outline-none border-x border-[#E9E4D4] dark:border-[#2A382E]" 
                             />
                             <button 
                               type="button" 
                               onClick={() => updateShoppingQty(item.id, currentQty + 1)}
-                              className="px-2.5 py-1.5 text-gray-500 hover:bg-gray-50 hover:text-[#2E4233] transition-colors"
+                              aria-label={`Aumentar quantidade de ${item.name}`}
+                              className="min-h-9 min-w-9 flex items-center justify-center text-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2A382E] hover:text-[#2E4233] dark:hover:text-white transition-colors cursor-pointer"
                             >
                               <SvgIcon path="M12 4v16m8-8H4" className="w-4 h-4" />
                             </button>
                           </div>
-                          <span className="text-sm font-medium text-gray-500 w-6 text-center">{unitDisplay}</span>
-                          <button 
-                            type="button"
-                            onClick={() => handleRemoveExtraItem(item.id)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-[#CB5A3C] hover:bg-red-50 transition-colors"
-                            title="Excluir apenas da lista de compras"
-                          >
-                            <SvgIcon path="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium text-muted-foreground min-w-[24px] text-center">{unitDisplay}</span>
+                            <button 
+                              type="button"
+                              onClick={() => handleRemoveExtraItem(item.id)}
+                              aria-label={`Remover ${item.name} da lista de compras`}
+                              className="min-h-9 min-w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-[#B4482D] dark:hover:text-[#FF7D4F] hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                              title="Excluir apenas da lista de compras"
+                            >
+                              <SvgIcon path="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -1519,19 +1545,20 @@ export default function InventoryClient({
                     const formatted = formatQuantity(product.quantity, product.unit);
                     
                     return (
-                      <div key={`shop-${product.id}`} className="flex items-center justify-between shrink-0 gap-3 p-3 border border-[#E9E4D4] rounded-xl bg-white shadow-sm hover:border-[#CB5A3C]/40 transition-colors">
+                      <div key={`shop-${product.id}`} className="flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-2.5 p-3 border border-[#E9E4D4] dark:border-[#2A382E] rounded-xl bg-white dark:bg-[#222C25] shadow-sm hover:border-[#CB5A3C]/40 transition-colors">
                         <div className="flex flex-col min-w-0 flex-1">
-                          <span className="font-bold text-[#2E4233] text-[15px] truncate">{product.name}</span>
-                          <span className="text-[12px] text-gray-500">
-                            Atual: <span className="font-bold text-[#CB5A3C]">{formatted.qty} {formatted.unit}</span>
+                          <span className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-[15px] truncate">{product.name}</span>
+                          <span className="text-[12px] text-muted-foreground">
+                            Atual: <span className="font-bold text-[#B4482D] dark:text-[#FF7D4F]">{formatted.qty} {formatted.unit}</span>
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className="flex items-center border border-[#E9E4D4] rounded-lg bg-white overflow-hidden shadow-sm">
+                        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                          <div className="flex items-center border border-[#E9E4D4] dark:border-[#2A382E] rounded-lg bg-white dark:bg-[#1B241E] overflow-hidden shadow-sm">
                             <button 
                               type="button" 
                               onClick={() => updateShoppingQty(product.id, currentQty - 1)}
-                              className="px-2.5 py-1.5 text-gray-500 hover:bg-gray-50 hover:text-[#2E4233] transition-colors"
+                              aria-label={`Diminuir quantidade de ${product.name}`}
+                              className="min-h-9 min-w-9 flex items-center justify-center text-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2A382E] hover:text-[#2E4233] dark:hover:text-white transition-colors cursor-pointer"
                             >
                               <SvgIcon path="M20 12H4" className="w-3.5 h-3.5" />
                             </button>
@@ -1539,26 +1566,31 @@ export default function InventoryClient({
                               type="number" 
                               step="any"
                               value={currentQty} 
+                              aria-label={`Quantidade de ${product.name}`}
                               onChange={(e) => updateShoppingQty(product.id, parseFloat(e.target.value) || 1)}
-                              className="w-12 text-center py-1.5 text-[15px] font-bold text-[#2E4233] focus:outline-none border-x border-[#E9E4D4]" 
+                              className="w-12 min-h-9 text-center py-1 text-base lg:text-[15px] font-bold text-[#2E4233] dark:text-[#F2EFE9] bg-transparent focus:outline-none border-x border-[#E9E4D4] dark:border-[#2A382E]" 
                             />
                             <button 
                               type="button" 
                               onClick={() => updateShoppingQty(product.id, currentQty + 1)}
-                              className="px-2.5 py-1.5 text-gray-500 hover:bg-gray-50 hover:text-[#2E4233] transition-colors"
+                              aria-label={`Aumentar quantidade de ${product.name}`}
+                              className="min-h-9 min-w-9 flex items-center justify-center text-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2A382E] hover:text-[#2E4233] dark:hover:text-white transition-colors cursor-pointer"
                             >
                               <SvgIcon path="M12 4v16m8-8H4" className="w-4 h-4" />
                             </button>
                           </div>
-                          <span className="text-sm font-medium text-gray-500 w-6 text-center">{formatted.unit}</span>
-                          <button 
-                            type="button"
-                            onClick={() => handleExcludeProduct(product.id)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-[#CB5A3C] hover:bg-red-50 transition-colors"
-                            title="Excluir apenas da lista de compras"
-                          >
-                            <SvgIcon path="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium text-muted-foreground min-w-[24px] text-center">{formatted.unit}</span>
+                            <button 
+                              type="button"
+                              onClick={() => handleExcludeProduct(product.id)}
+                              aria-label={`Remover ${product.name} da lista de compras`}
+                              className="min-h-9 min-w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-[#B4482D] dark:hover:text-[#FF7D4F] hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                              title="Excluir apenas da lista de compras"
+                            >
+                              <SvgIcon path="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -1568,21 +1600,29 @@ export default function InventoryClient({
             </div>
             
             {/* Modal Footer (Actions) */}
-            <div className="p-5 border-t border-[#E9E4D4] bg-[#FAF8F0] flex flex-col sm:flex-row gap-3">
+            <div className="p-4 sm:p-5 border-t border-[#E9E4D4] dark:border-[#2A382E] bg-[#FAF8F0] dark:bg-[#222C25] flex flex-col sm:flex-row flex-wrap gap-3 shrink-0">
               <button 
                 type="button"
                 onClick={handleShareWhatsApp}
-                className="flex-1 py-3 bg-[#25D366] hover:bg-[#1EBE5C] text-white rounded-xl font-bold text-[14px] transition-all flex items-center justify-center gap-2 shadow-sm"
+                className="flex-1 min-h-10 py-2.5 px-4 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl font-bold text-[14px] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
               >
                 <SvgIcon path="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" className="w-5 h-5" />
                 Enviar para Fornecedor
               </button>
-              <div className="flex gap-3">
-                <button onClick={handleGeneratePDF} className="flex-1 sm:flex-none px-6 py-3 bg-white border border-[#E9E4D4] text-[#2E4233] hover:bg-gray-50 rounded-xl font-bold text-[14px] transition-all flex items-center justify-center gap-2 shadow-sm">
+              <div className="flex flex-wrap gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleGeneratePDF}
+                  className="flex-1 sm:flex-none min-h-10 px-5 py-2.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-[#2E4233] dark:text-[#F2EFE9] hover:bg-gray-50 dark:hover:bg-[#2A382E] rounded-xl font-bold text-[14px] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                >
                   <SvgIcon path="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" className="w-5 h-5" />
                   PDF
                 </button>
-                <button onClick={handlePrint} className="flex-1 sm:flex-none px-6 py-3 bg-white border border-[#E9E4D4] text-[#2E4233] hover:bg-gray-50 rounded-xl font-bold text-[14px] transition-all flex items-center justify-center gap-2 shadow-sm">
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="flex-1 sm:flex-none min-h-10 px-5 py-2.5 bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-[#2E4233] dark:text-[#F2EFE9] hover:bg-gray-50 dark:hover:bg-[#2A382E] rounded-xl font-bold text-[14px] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                >
                   <SvgIcon path="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" className="w-5 h-5" />
                   Imprimir
                 </button>
@@ -1594,29 +1634,36 @@ export default function InventoryClient({
 
       {/* ==================== CUSTOM DELETE CONFIRMATION MODAL (PRODUTO) ==================== */}
       {productToDelete && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col items-center text-center relative overflow-hidden">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-product-title"
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
+        >
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-[#1C2C22] dark:text-[#F2EFE9] rounded-2xl w-full max-w-sm max-h-[90dvh] overflow-y-auto shadow-2xl p-6 flex flex-col items-center text-center relative">
             <button 
+              type="button"
               onClick={() => setProductToDelete(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-[#CB5A3C] hover:bg-[#CB5A3C]/10 transition-colors"
+              aria-label="Fechar confirmação"
+              className="absolute top-3.5 right-3.5 min-h-9 min-w-9 flex items-center justify-center rounded-lg text-[#CB5A3C] dark:text-[#FF7D4F] hover:bg-[#CB5A3C]/10 transition-colors cursor-pointer"
             >
-              <SvgIcon path="M6 18L18 6M6 6l12 12" className="w-5 h-5 text-[#CB5A3C]" />
+              <SvgIcon path="M6 18L18 6M6 6l12 12" className="w-5 h-5" />
             </button>
 
-            <div className="w-14 h-14 rounded-full bg-[#FDF2F0] border-2 border-[#F5D8D1] flex items-center justify-center mb-3 shadow-sm">
-              <SvgIcon path="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" className="w-7 h-7 text-[#CB5A3C]" />
+            <div className="w-14 h-14 rounded-full bg-[#FDF2F0] dark:bg-red-950/40 border-2 border-[#F5D8D1] dark:border-red-900/50 flex items-center justify-center mb-3 shadow-sm shrink-0">
+              <SvgIcon path="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" className="w-7 h-7 text-[#CB5A3C] dark:text-[#FF7D4F]" />
             </div>
 
-            <h3 className="font-bold text-[#2E4233] text-lg mb-1">Excluir produto?</h3>
-            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Tem certeza que deseja excluir <span className="font-bold text-gray-800">"{productToDelete.name}"</span>? Esta ação não pode ser desfeita.
+            <h3 id="delete-product-title" className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-lg mb-1">Excluir produto?</h3>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              Tem certeza que deseja excluir <span className="font-bold text-gray-800 dark:text-[#F2EFE9]">&quot;{productToDelete.name}&quot;</span>? Esta ação não pode ser desfeita.
             </p>
 
-            <div className="flex w-full gap-3">
+            <div className="flex flex-wrap w-full gap-3">
               <button 
                 type="button" 
                 onClick={() => setProductToDelete(null)}
-                className="flex-1 py-2.5 rounded-xl border border-[#E9E4D4] text-[14px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 min-h-10 py-2.5 px-4 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-[14px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#222C25] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -1636,7 +1683,7 @@ export default function InventoryClient({
                     setIsDeletingProduct(false);
                   }
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-[14px] font-semibold text-white shadow-sm transition-all disabled:opacity-50"
+                className="flex-1 min-h-10 py-2.5 px-4 rounded-xl bg-[#B4482D] hover:bg-[#9C3B23] text-[14px] font-semibold text-white shadow-sm transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isDeletingProduct ? 'Excluindo...' : 'Excluir'}
               </button>
@@ -1647,29 +1694,36 @@ export default function InventoryClient({
 
       {/* ==================== CUSTOM DELETE CONFIRMATION MODAL (CATEGORIA) ==================== */}
       {categoryToDelete && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col items-center text-center relative overflow-hidden">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-category-title"
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
+        >
+          <div className="bg-white dark:bg-[#1B241E] border border-[#E9E4D4] dark:border-[#2A382E] text-[#1C2C22] dark:text-[#F2EFE9] rounded-2xl w-full max-w-sm max-h-[90dvh] overflow-y-auto shadow-2xl p-6 flex flex-col items-center text-center relative">
             <button 
+              type="button"
               onClick={() => setCategoryToDelete(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-[#CB5A3C] hover:bg-[#CB5A3C]/10 transition-colors"
+              aria-label="Fechar confirmação"
+              className="absolute top-3.5 right-3.5 min-h-9 min-w-9 flex items-center justify-center rounded-lg text-[#CB5A3C] dark:text-[#FF7D4F] hover:bg-[#CB5A3C]/10 transition-colors cursor-pointer"
             >
-              <SvgIcon path="M6 18L18 6M6 6l12 12" className="w-5 h-5 text-[#CB5A3C]" />
+              <SvgIcon path="M6 18L18 6M6 6l12 12" className="w-5 h-5" />
             </button>
 
-            <div className="w-14 h-14 rounded-full bg-[#FDF2F0] border-2 border-[#F5D8D1] flex items-center justify-center mb-3 shadow-sm">
-              <SvgIcon path="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" className="w-7 h-7 text-[#CB5A3C]" />
+            <div className="w-14 h-14 rounded-full bg-[#FDF2F0] dark:bg-red-950/40 border-2 border-[#F5D8D1] dark:border-red-900/50 flex items-center justify-center mb-3 shadow-sm shrink-0">
+              <SvgIcon path="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" className="w-7 h-7 text-[#CB5A3C] dark:text-[#FF7D4F]" />
             </div>
 
-            <h3 className="font-bold text-[#2E4233] text-lg mb-1">Excluir categoria?</h3>
-            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Tem certeza que deseja excluir a categoria <span className="font-bold text-gray-800">"{categoryToDelete.name}"</span>? Os produtos vinculados a ela não serão apagados.
+            <h3 id="delete-category-title" className="font-bold text-[#2E4233] dark:text-[#F2EFE9] text-lg mb-1">Excluir categoria?</h3>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              Tem certeza que deseja excluir a categoria <span className="font-bold text-gray-800 dark:text-[#F2EFE9]">&quot;{categoryToDelete.name}&quot;</span>? Os produtos vinculados a ela não serão apagados.
             </p>
 
-            <div className="flex w-full gap-3">
+            <div className="flex flex-wrap w-full gap-3">
               <button 
                 type="button" 
                 onClick={() => setCategoryToDelete(null)}
-                className="flex-1 py-2.5 rounded-xl border border-[#E9E4D4] text-[14px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 min-h-10 py-2.5 px-4 rounded-xl border border-[#E9E4D4] dark:border-[#2A382E] text-[14px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#222C25] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -1692,7 +1746,7 @@ export default function InventoryClient({
                     setIsDeletingCategory(false);
                   }
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-[#CB5A3C] hover:bg-[#A8452B] text-[14px] font-semibold text-white shadow-sm transition-all disabled:opacity-50"
+                className="flex-1 min-h-10 py-2.5 px-4 rounded-xl bg-[#B4482D] hover:bg-[#9C3B23] text-[14px] font-semibold text-white shadow-sm transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isDeletingCategory ? 'Excluindo...' : 'Excluir'}
               </button>

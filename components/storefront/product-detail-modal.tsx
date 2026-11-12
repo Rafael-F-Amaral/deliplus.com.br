@@ -1,10 +1,11 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useRef } from "react"
 import { useStorefrontCart } from "@/lib/storefront/storefront-cart-context"
 import { X, Plus, Minus, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react"
 import { StorefrontComplement, StorefrontProduct } from "@/types/storefront"
 import { normalizeSearch } from "@/lib/utils"
+import { StorefrontImage } from "./storefront-image"
 
 export interface StorefrontBeverageItem {
   id: string
@@ -12,6 +13,90 @@ export interface StorefrontBeverageItem {
   volume: string
   price_cents: number
   image_url?: string
+}
+
+function BeverageItemRow({
+  bev,
+  qty,
+  formatCurrency,
+  onUpdateQty,
+}: {
+  bev: StorefrontBeverageItem
+  qty: number
+  formatCurrency: (cents: number) => string
+  onUpdateQty: (bevId: string, delta: number) => void
+}) {
+  const isSelected = qty > 0
+  return (
+    <div
+      className={`flex items-center justify-between p-1.5 px-2 rounded-xl border text-left transition-all gap-1.5 ${
+        isSelected
+          ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80] dark:bg-[#2A4834] shadow-2xs"
+          : "border-[#E2DDD3] bg-[#F6F4EE] dark:border-[#2E4A36] dark:bg-[#203627] hover:border-[#D5CDBD] hover:bg-[#EFECE5] dark:hover:bg-[#253E2D]"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => {
+          if (qty === 0) {
+            onUpdateQty(bev.id, 1)
+          }
+        }}
+        className="flex min-h-9 lg:min-h-8 items-center gap-2 min-w-0 flex-1 text-left cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E6B3E]"
+        aria-label={qty === 0 ? `Adicionar ${bev.name}` : bev.name}
+      >
+        <StorefrontImage
+          src={bev.image_url}
+          alt={bev.name}
+          variant="drink"
+          className="w-8 h-8 rounded-lg object-cover shrink-0 bg-[#FAF8F5] border border-[#ECE7DE] dark:border-[#2E4A36]"
+          fallbackClassName="w-8 h-8 rounded-lg shrink-0 border border-[#ECE7DE] dark:border-[#2E4A36]"
+          iconClassName="h-4 w-4"
+        />
+        <div className="flex flex-col min-w-0 flex-1">
+          <span className="text-[11px] font-bold text-[#1F2922] dark:text-[#F2EFE9] leading-tight line-clamp-2">
+            {bev.name}
+          </span>
+          {bev.volume && (
+            <span className="text-[10px] text-[#525A54] dark:text-[#A0B0A4] font-medium leading-none mt-0.5 truncate">
+              {bev.volume}
+            </span>
+          )}
+        </div>
+      </button>
+
+      {/* Preço e Seletor de Quantidade (- e +) */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <span className={`text-[11px] font-bold whitespace-nowrap ${isSelected ? "text-[#166534] dark:text-[#4ADE80]" : "text-[#4B5563] dark:text-[#CBD5E1]"}`}>
+          + {formatCurrency(bev.price_cents)}
+        </span>
+        <div className="flex items-center gap-0.5 rounded-lg border border-[#DED7CB] dark:border-[#2E4A36] bg-[#FAF8F5] dark:bg-[#1A2E20] px-0.5 py-0.5">
+          <button
+            type="button"
+            disabled={qty <= 0}
+            onClick={() => onUpdateQty(bev.id, -1)}
+            className="h-9 w-9 min-h-9 min-w-9 lg:h-7 lg:w-7 lg:min-h-7 lg:min-w-7 flex items-center justify-center rounded-md text-[#4A534C] dark:text-[#CBD5E1] hover:text-black dark:hover:text-white disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E6B3E]"
+            aria-label={`Diminuir quantidade de ${bev.name}`}
+            title="Diminuir"
+          >
+            <Minus className="h-3.5 w-3.5 lg:h-3 lg:w-3" />
+          </button>
+          <span className={`text-xs font-bold min-w-[14px] text-center ${isSelected ? "text-[#166534] dark:text-[#4ADE80]" : "text-[#59615B] dark:text-[#A0B0A4]"}`}>
+            {qty}
+          </span>
+          <button
+            type="button"
+            onClick={() => onUpdateQty(bev.id, 1)}
+            className="h-9 w-9 min-h-9 min-w-9 lg:h-7 lg:w-7 lg:min-h-7 lg:min-w-7 flex items-center justify-center rounded-md text-[#4A534C] dark:text-[#CBD5E1] hover:text-[#B4482D] dark:hover:text-[#FF7D4F] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E6B3E]"
+            aria-label={`Aumentar quantidade de ${bev.name}`}
+            title="Aumentar"
+          >
+            <Plus className="h-3.5 w-3.5 lg:h-3 lg:w-3" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 interface ProductDetailModalProps {
@@ -73,7 +158,62 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
 
   const [beverageSearch, setBeverageSearch] = useState("")
   const [beveragePage, setBeveragePage] = useState(1)
-  const BEVERAGES_PER_PAGE = 3
+  const [beveragesPerPage, setBeveragesPerPage] = useState(5)
+  const beverageListRef = useRef<HTMLDivElement>(null)
+
+  // Adapta dinamicamente o número de bebidas para preencher o container sem deixar espaço em branco
+  useEffect(() => {
+    if (!selectedProduct || activeModal !== "product-detail") return
+
+    const updateBeveragesPerPage = () => {
+      // Mobile / Tablet (< 1024px): 4 bebidas mantêm o fluxo do modal equilibrado
+      if (typeof window !== "undefined" && window.innerWidth < 1024) {
+        setBeveragesPerPage(4)
+        return
+      }
+
+      // Desktop (>= 1024px): mede a altura real disponível no container
+      if (beverageListRef.current) {
+        const h = beverageListRef.current.clientHeight
+        if (h > 60) {
+          // Cada card com controles >= 36px tem ~56px de altura + 6px de gap = ~62px
+          const calculated = Math.floor((h + 6) / 62)
+          setBeveragesPerPage(Math.max(3, calculated))
+          return
+        }
+      }
+
+      // Fallback baseado na altura da tela se o ref ainda estiver estabilizando
+      if (typeof window !== "undefined") {
+        const winH = window.innerHeight
+        if (winH >= 950) {
+          setBeveragesPerPage(6)
+        } else if (winH >= 800) {
+          setBeveragesPerPage(5)
+        } else {
+          setBeveragesPerPage(4)
+        }
+      }
+    }
+
+    updateBeveragesPerPage()
+    const timer = setTimeout(updateBeveragesPerPage, 80)
+
+    let observer: ResizeObserver | null = null
+    if (beverageListRef.current && typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => {
+        updateBeveragesPerPage()
+      })
+      observer.observe(beverageListRef.current)
+    }
+
+    window.addEventListener("resize", updateBeveragesPerPage)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener("resize", updateBeveragesPerPage)
+      if (observer) observer.disconnect()
+    }
+  }, [selectedProduct?.id, activeModal])
 
   const filteredBeverages = useMemo(() => {
     const q = normalizeSearch(beverageSearch)
@@ -85,12 +225,19 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
     )
   }, [availableBeverages, beverageSearch])
 
-  const totalBeveragePages = Math.max(1, Math.ceil(filteredBeverages.length / BEVERAGES_PER_PAGE))
+  const totalBeveragePages = Math.max(1, Math.ceil(filteredBeverages.length / beveragesPerPage))
 
   const paginatedBeverages = useMemo(() => {
-    const start = (beveragePage - 1) * BEVERAGES_PER_PAGE
-    return filteredBeverages.slice(start, start + BEVERAGES_PER_PAGE)
-  }, [filteredBeverages, beveragePage])
+    const start = (beveragePage - 1) * beveragesPerPage
+    return filteredBeverages.slice(start, start + beveragesPerPage)
+  }, [filteredBeverages, beveragePage, beveragesPerPage])
+
+  // Ajusta a página atual se a quantidade de páginas mudar
+  useEffect(() => {
+    if (beveragePage > totalBeveragePages) {
+      setBeveragePage(1)
+    }
+  }, [totalBeveragePages, beveragePage])
 
   // Reset beverage filter on product switch
   useEffect(() => {
@@ -147,6 +294,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
   if (activeModal !== "product-detail" || !selectedProduct) return null
 
   const activeImage = galleryImages[activeImageIndex] || galleryImages[0] || selectedProduct.image_url
+  const isDrinkProduct = normalizeSearch(selectedProduct.category_name || "").includes("bebid")
 
   const toggleRemoved = (ing: string) => {
     setRemovedIngredients((prev) =>
@@ -253,55 +401,73 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
   return (
     <>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-xs"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 pt-safe pb-safe backdrop-blur-xs"
         onClick={handleCloseModal}
       >
         <div
-          className="relative flex w-full max-w-xl md:max-w-3xl lg:max-w-[850px] flex-col overflow-hidden bg-white dark:bg-[#17211A] text-[#1F2922] dark:text-[#F2EFE9] shadow-2xl rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] max-h-[90vh] md:max-h-[85vh]"
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedProduct.name}
+          className="relative flex w-full max-w-xl sm:max-lg:ultrashort:max-w-2xl lg:max-w-[840px] flex-col overflow-hidden bg-white dark:bg-[#17211A] text-[#1F2922] dark:text-[#F2EFE9] shadow-2xl rounded-2xl border border-[#ECE7DE] dark:border-[#2A382E] max-h-[92dvh] lg:max-h-[90dvh] ultrashort:max-h-[94dvh]"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Close Button Top Right */}
-          <button
-            onClick={handleCloseModal}
-            className="absolute right-3.5 top-3.5 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 dark:bg-[#1F2B22]/90 text-[#3C443E] dark:text-[#E2DED6] shadow-sm backdrop-blur-xs transition hover:bg-white dark:hover:bg-[#28382C] hover:text-black dark:hover:text-white border border-[#E8E2D5] dark:border-[#2A382E] cursor-pointer"
-            aria-label="Fechar modal"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          {/* Mobile/Tablet Header Bar (< lg): in-flow para nunca sobrepor o conteúdo ao rolar */}
+          <div className="flex lg:hidden items-center justify-between gap-2 px-3.5 sm:px-4 py-2 ultrashort:py-1.5 border-b border-[#ECE7DE] dark:border-[#2A382E] bg-[#FAF8F5] dark:bg-[#141C16] shrink-0">
+            <nav className="text-xs font-semibold flex items-center gap-1.5 min-w-0 truncate">
+              <span className="text-[#374151] dark:text-[#CBD5E1]">Cardápio</span>
+              <span className="text-[#6B7280] dark:text-[#94A3B8] font-normal">&gt;</span>
+              <span className="text-[#B4482D] dark:text-[#FF7D4F] font-semibold truncate">{selectedProduct.category_name}</span>
+            </nav>
+            <button
+              type="button"
+              onClick={handleCloseModal}
+              className="flex h-9 w-9 min-h-9 min-w-9 shrink-0 items-center justify-center rounded-full bg-white dark:bg-[#1F2B22] text-[#3C443E] dark:text-[#E2DED6] shadow-2xs transition hover:bg-[#EAE5DD] dark:hover:bg-[#28382C] hover:text-black dark:hover:text-white border border-[#E8E2D5] dark:border-[#2A382E] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E6B3E] dark:focus-visible:ring-[#4ADE80]"
+              aria-label="Fechar modal"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
 
-          {/* Modal Body: Compact 2-column layout on desktop, scrollable */}
-          <div className="flex flex-col md:flex-row flex-1 overflow-y-auto min-h-0">
+          {/* Modal Body: 1 coluna rolável até tablet (< lg), 2 colunas em landscape mobile (sm:max-lg:ultrashort) e desktop (>= lg) */}
+          <div className="flex flex-col sm:max-lg:ultrashort:flex-row lg:flex-row flex-1 overflow-y-auto sm:max-lg:ultrashort:overflow-y-hidden lg:overflow-y-hidden min-h-0 storefront-scrollbar">
             {/* Left: Food Gallery Showcase & Cross-sell de Bebidas */}
-            <div className="md:w-[325px] lg:w-[340px] shrink-0 bg-[#FAF8F5] dark:bg-[#131A15] p-3 md:p-4 md:border-r md:border-[#ECE7DE] dark:md:border-[#2A382E] flex flex-col gap-2.5">
+            <div className="sm:max-lg:ultrashort:w-[216px] md:max-lg:ultrashort:w-[240px] lg:w-[320px] xl:w-[348px] shrink-0 bg-[#FAF8F5] dark:bg-[#131A15] p-3 sm:p-4 sm:max-lg:ultrashort:p-2.5 short:lg:p-3 border-b sm:max-lg:ultrashort:border-b-0 sm:max-lg:ultrashort:border-r lg:border-b-0 lg:border-r border-[#ECE7DE] dark:border-[#2A382E] flex flex-col gap-2.5 short:lg:gap-2 sm:max-lg:ultrashort:overflow-y-auto lg:overflow-y-auto storefront-scrollbar">
               {/* Main Active Photo with Zoom trigger & Always Visible Navigation Arrows */}
-              <div
-                onClick={() => setIsZoomOpen(true)}
-                className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-white dark:bg-[#1B241E] border border-[#E8E2D5] dark:border-[#2A382E] shadow-2xs flex items-center justify-center group cursor-zoom-in"
-                title="Clique para dar zoom na imagem"
-              >
-                <img
-                  src={activeImage}
-                  alt={selectedProduct.name}
-                  className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
-                  loading="eager"
-                />
+              <div className="relative shrink-0 w-full aspect-[4/3] max-h-48 sm:max-h-56 max-sm:ultrashort:h-32 sm:max-lg:ultrashort:h-[136px] max-lg:ultrashort:aspect-auto lg:aspect-[16/11] lg:max-h-none short:lg:aspect-[16/10] ultrashort:lg:h-[156px] ultrashort:lg:aspect-auto rounded-xl overflow-hidden bg-white dark:bg-[#1B241E] border border-[#E8E2D5] dark:border-[#2A382E] shadow-2xs flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => setIsZoomOpen(true)}
+                  className="block h-full w-full cursor-zoom-in group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2E6B3E]"
+                  aria-label={`Ampliar imagem de ${selectedProduct.name}`}
+                  title="Clique para dar zoom na imagem"
+                >
+                  <StorefrontImage
+                    src={activeImage}
+                    alt={selectedProduct.name}
+                    variant={isDrinkProduct ? "drink" : "food"}
+                    className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
+                    fallbackClassName="h-full w-full"
+                    iconClassName="h-10 w-10"
+                    loading="eager"
+                  />
 
-                {/* Badge Zoom Indicator */}
-                <div className="absolute right-2 bottom-2 rounded-md bg-black/60 backdrop-blur-xs text-white px-2 py-0.5 text-[10px] font-semibold flex items-center gap-1 shadow-xs pointer-events-none transition group-hover:bg-black/80">
-                  <ZoomIn className="w-3 h-3" />
-                  <span>Ampliar</span>
-                </div>
+                  {/* Badge Zoom Indicator */}
+                  <span className="absolute right-2 bottom-2 rounded-md bg-black/70 backdrop-blur-xs text-white px-2 py-0.5 text-[10px] font-semibold flex items-center gap-1 shadow-xs pointer-events-none transition group-hover:bg-black/85">
+                    <ZoomIn className="w-3 h-3" />
+                    <span>Ampliar</span>
+                  </span>
+                </button>
 
-                {/* Always Visible Left & Right Arrows (Shows user it is clickable & cycleable) */}
+                {/* Always Visible Left & Right Arrows */}
                 {galleryImages.length > 1 && (
-                  <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 flex items-center justify-between pointer-events-none">
+                  <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 flex items-center justify-between pointer-events-none z-10">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation()
                         setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : galleryImages.length - 1))
                       }}
-                      className="pointer-events-auto h-7 w-7 rounded-full bg-black/55 hover:bg-black/85 text-white flex items-center justify-center shadow-md transition cursor-pointer backdrop-blur-xs"
+                      className="pointer-events-auto h-9 w-9 min-h-9 min-w-9 rounded-full bg-black/65 hover:bg-black/85 text-white flex items-center justify-center shadow-md transition cursor-pointer backdrop-blur-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                       aria-label="Foto anterior"
                     >
                       <ChevronLeft className="h-4 w-4" />
@@ -312,7 +478,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                         e.stopPropagation()
                         setActiveImageIndex((prev) => (prev < galleryImages.length - 1 ? prev + 1 : 0))
                       }}
-                      className="pointer-events-auto h-7 w-7 rounded-full bg-black/55 hover:bg-black/85 text-white flex items-center justify-center shadow-md transition cursor-pointer backdrop-blur-xs"
+                      className="pointer-events-auto h-9 w-9 min-h-9 min-w-9 rounded-full bg-black/65 hover:bg-black/85 text-white flex items-center justify-center shadow-md transition cursor-pointer backdrop-blur-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                       aria-label="Próxima foto"
                     >
                       <ChevronRight className="h-4 w-4" />
@@ -323,7 +489,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
 
               {/* Thumbnail Strip (up to 5 thumbnails) */}
               {galleryImages.length > 1 && (
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 w-full">
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 w-full shrink-0">
                   {galleryImages.map((imgUrl, idx) => {
                     const isActive = idx === activeImageIndex
                     return (
@@ -331,16 +497,20 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                         key={idx}
                         type="button"
                         onClick={() => setActiveImageIndex(idx)}
-                        className={`relative h-10 w-10 md:h-11 md:w-11 shrink-0 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                        aria-label={`Selecionar foto ${idx + 1} de ${selectedProduct.name}`}
+                        className={`relative h-10 w-10 min-h-10 min-w-10 lg:h-11 lg:w-11 shrink-0 rounded-lg overflow-hidden border-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E6B3E] ${
                           isActive
                             ? "border-[#2E6B3E] dark:border-[#4ADE80] ring-1 ring-[#2E6B3E]/30 scale-102"
-                            : "border-[#E8E2D5] dark:border-[#2A382E] opacity-70 hover:opacity-100"
+                            : "border-[#E8E2D5] dark:border-[#2A382E] opacity-75 hover:opacity-100"
                         }`}
                       >
-                        <img
+                        <StorefrontImage
                           src={imgUrl}
                           alt={`${selectedProduct.name} - foto ${idx + 1}`}
+                          variant={isDrinkProduct ? "drink" : "food"}
                           className="h-full w-full object-cover object-center"
+                          fallbackClassName="h-full w-full"
+                          iconClassName="h-4 w-4"
                         />
                       </button>
                     )
@@ -348,14 +518,14 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                 </div>
               )}
 
-              {/* Section: Bebidas (Cross-sell exclusivo Deli - visível na coluna esquerda no desktop) */}
+              {/* Section: Bebidas (Cross-sell exclusivo Deli - visível na coluna esquerda em desktop >= lg) */}
               {availableBeverages.length > 0 && (
-                <div className="hidden md:flex mt-2 pt-2.5 border-t border-[#ECE7DE] dark:border-[#2A382E] flex-col gap-2 flex-1 min-h-0">
+                <div className="hidden lg:flex mt-1.5 short:mt-0.5 pt-2.5 short:pt-2 border-t border-[#ECE7DE] dark:border-[#2A382E] flex-col gap-1.5 flex-1 short:flex-none min-h-0">
                   <div className="flex items-center justify-between shrink-0">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
                       Bebidas
                     </h3>
-                    <span className="rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    <span className="rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
                       Opcional
                     </span>
                   </div>
@@ -369,105 +539,39 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                         setBeverageSearch(e.target.value)
                         setBeveragePage(1)
                       }}
+                      aria-label="Buscar bebida"
                       placeholder="Buscar bebida..."
-                      className="w-full px-2.5 py-1 text-xs bg-white dark:bg-[#203627] border border-[#E8E2D5] dark:border-[#2E4A36] rounded-lg text-[#1F2922] dark:text-[#F2EFE9] placeholder-[#9CA3AF] dark:placeholder-[#A0B0A4] focus:outline-hidden focus:border-[#2E6B3E] dark:focus:border-[#4ADE80] transition-colors"
+                      className="w-full px-2.5 py-1 min-h-8 text-base lg:text-xs bg-[#F6F4EE] dark:bg-[#203627] border border-[#E2DDD3] dark:border-[#2E4A36] rounded-lg text-[#1F2922] dark:text-[#F2EFE9] placeholder-[#5D645E] dark:placeholder-[#9CA79E] focus:outline-hidden focus:border-[#2E6B3E] dark:focus:border-[#4ADE80] transition-colors"
                     />
                   </div>
 
-                  {/* Lista de Bebidas (3 itens por página para dar espaço para o contador de quantidade e paginação) */}
-                  <div className="flex flex-col gap-1.5 flex-1 overflow-y-auto pr-0.5">
+                  {/* Lista de Bebidas */}
+                  <div ref={beverageListRef} className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-y-auto storefront-scrollbar pr-0.5">
                     {paginatedBeverages.length === 0 ? (
-                      <div className="text-center py-3 text-xs text-gray-400 dark:text-gray-400">
+                      <div className="text-center py-3 text-xs text-[#59615B] dark:text-[#9CA79E]">
                         Nenhuma bebida encontrada
                       </div>
                     ) : (
-                      paginatedBeverages.map((bev) => {
-                        const qty = selectedBeverageQuantities[bev.id] || 0
-                        const isSelected = qty > 0
-                        return (
-                          <div
-                            key={bev.id}
-                            onClick={() => {
-                              if (qty === 0) {
-                                handleUpdateBeverageQty(bev.id, 1)
-                              }
-                            }}
-                            className={`flex items-center justify-between p-2 rounded-xl border text-left transition-all gap-2 cursor-pointer ${
-                              isSelected
-                                ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80] dark:bg-[#2A4834] shadow-2xs"
-                                : "border-[#E8E2D5] bg-white dark:border-[#2E4A36] dark:bg-[#203627] hover:border-[#CBD5E1] dark:hover:bg-[#253E2D]"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              {bev.image_url ? (
-                                <img
-                                  src={bev.image_url}
-                                  alt={bev.name}
-                                  className="w-8 h-8 rounded-lg object-cover shrink-0 bg-[#FAF8F5] border border-[#ECE7DE] dark:border-[#2E4A36]"
-                                />
-                              ) : (
-                                <div className="w-8 h-8 rounded-lg bg-[#FAF8F5] dark:bg-[#253E2D] border border-[#ECE7DE] dark:border-[#2E4A36] shrink-0" />
-                              )}
-                              <div className="flex flex-col min-w-0 flex-1">
-                                <span className="text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] leading-snug">
-                                  {bev.name}
-                                </span>
-                                {bev.volume && (
-                                  <span className="text-[10px] text-gray-500 dark:text-[#A0B0A4] font-medium leading-none mt-0.5">
-                                    {bev.volume}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Preço e Seletor de Quantidade (- e +) */}
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <span className={`text-[11px] font-bold ${isSelected ? "text-[#166534] dark:text-[#4ADE80]" : "text-[#4B5563] dark:text-[#CBD5E1]"}`}>
-                                + {formatCurrency(bev.price_cents)}
-                              </span>
-                              <div className="flex items-center gap-1 rounded-lg border border-[#DED7CB] dark:border-[#2E4A36] bg-[#FAF8F5] dark:bg-[#1A2E20] px-1.5 py-0.5">
-                                <button
-                                  type="button"
-                                  disabled={qty <= 0}
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleUpdateBeverageQty(bev.id, -1)
-                                  }}
-                                  className="text-[#68706A] dark:text-[#CBD5E1] hover:text-black dark:hover:text-white disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer p-0.5"
-                                  title="Diminuir"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </button>
-                                <span className={`text-xs font-bold min-w-[14px] text-center ${isSelected ? "text-[#166534] dark:text-[#4ADE80]" : "text-gray-400 dark:text-[#A0B0A4]"}`}>
-                                  {qty}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleUpdateBeverageQty(bev.id, 1)
-                                  }}
-                                  className="text-[#68706A] dark:text-[#CBD5E1] hover:text-[#CB5A3C] dark:hover:text-[#FF7D4F] cursor-pointer p-0.5"
-                                  title="Aumentar"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })
+                      paginatedBeverages.map((bev) => (
+                        <BeverageItemRow
+                          key={bev.id}
+                          bev={bev}
+                          qty={selectedBeverageQuantities[bev.id] || 0}
+                          formatCurrency={formatCurrency}
+                          onUpdateQty={handleUpdateBeverageQty}
+                        />
+                      ))
                     )}
                   </div>
 
-                  {/* Paginação de Bebidas no padrão DeliPlus (em laranja, sem vazar do container) */}
+                  {/* Paginação de Bebidas */}
                   {totalBeveragePages > 1 && (
-                    <div className="flex items-center justify-center gap-1.5 pt-2 border-t border-[#ECE7DE] dark:border-[#2A382E] text-[11px] shrink-0 w-full">
+                    <div className="flex flex-wrap items-center justify-center gap-1.5 pt-2 border-t border-[#ECE7DE] dark:border-[#2A382E] text-[11px] shrink-0 w-full">
                       <button
                         type="button"
                         disabled={beveragePage <= 1}
                         onClick={() => setBeveragePage((p) => Math.max(1, p - 1))}
-                        className="px-2.5 py-1 rounded-lg text-xs font-bold text-[#CB5A3C] dark:text-[#FF7D4F] bg-[#CB5A3C]/10 hover:bg-[#CB5A3C] hover:text-white dark:bg-[#FF7D4F]/10 dark:hover:bg-[#FF7D4F] dark:hover:text-black border border-[#CB5A3C]/30 dark:border-[#FF7D4F]/30 transition-all shadow-2xs disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer"
+                        className="min-h-9 px-2.5 py-1 rounded-lg text-xs font-bold text-[#B4482D] dark:text-[#FF7D4F] bg-[#B4482D]/10 hover:bg-[#B4482D] hover:text-white dark:bg-[#FF7D4F]/10 dark:hover:bg-[#FF7D4F] dark:hover:text-black border border-[#B4482D]/30 dark:border-[#FF7D4F]/30 transition-all shadow-2xs disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer"
                       >
                         Anterior
                       </button>
@@ -477,10 +581,11 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                             key={i}
                             type="button"
                             onClick={() => setBeveragePage(i + 1)}
-                            className={`w-6 h-6 rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
+                            aria-label={`Página ${i + 1} de bebidas`}
+                            className={`h-9 min-w-9 px-2 rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
                               beveragePage === i + 1
-                                ? "bg-[#CB5A3C] text-white shadow-sm"
-                                : "bg-white dark:bg-[#1B241E] text-[#637267] dark:text-[#9CA3AF] border border-[#E9E4D4] dark:border-[#2A382E] hover:border-[#CB5A3C] hover:text-[#CB5A3C]"
+                                ? "bg-[#B4482D] text-white shadow-sm"
+                                : "bg-[#F6F4EE] dark:bg-[#1B241E] text-[#4A534C] dark:text-[#CBD5E1] border border-[#E2DDD3] dark:border-[#2A382E] hover:border-[#B4482D] hover:text-[#B4482D]"
                             }`}
                           >
                             {i + 1}
@@ -491,7 +596,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                         type="button"
                         disabled={beveragePage >= totalBeveragePages}
                         onClick={() => setBeveragePage((p) => Math.min(totalBeveragePages, p + 1))}
-                        className="px-2.5 py-1 rounded-lg text-xs font-bold text-[#CB5A3C] dark:text-[#FF7D4F] bg-[#CB5A3C]/10 hover:bg-[#CB5A3C] hover:text-white dark:bg-[#FF7D4F]/10 dark:hover:bg-[#FF7D4F] dark:hover:text-black border border-[#CB5A3C]/30 dark:border-[#FF7D4F]/30 transition-all shadow-2xs disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer"
+                        className="min-h-9 px-2.5 py-1 rounded-lg text-xs font-bold text-[#B4482D] dark:text-[#FF7D4F] bg-[#B4482D]/10 hover:bg-[#B4482D] hover:text-white dark:bg-[#FF7D4F]/10 dark:hover:bg-[#FF7D4F] dark:hover:text-black border border-[#B4482D]/30 dark:border-[#FF7D4F]/30 transition-all shadow-2xs disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer"
                       >
                         Próxima
                       </button>
@@ -502,27 +607,40 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
             </div>
 
             {/* Right: Customization Form & Info */}
-            <div className="flex-1 p-4 md:p-5 flex flex-col space-y-4 md:overflow-y-auto">
-              {/* Header info */}
-              <div>
-                <nav className="text-xs sm:text-sm font-semibold mb-1 flex items-center gap-1.5">
+            <div className="flex-1 flex flex-col min-w-0 min-h-0">
+              {/* Top Breadcrumb + Desktop Close Button Bar (in-flow para nunca sobrepor preços ao rolar) */}
+              <div className="hidden lg:flex items-center justify-between gap-2 px-4 md:px-5 pt-3.5 pb-2 short:lg:pt-2.5 short:lg:pb-1.5 border-b border-[#ECE7DE]/60 dark:border-[#2A382E]/60 shrink-0">
+                <nav className="text-xs font-semibold flex items-center gap-1.5 min-w-0 truncate">
                   <span className="text-[#374151] dark:text-[#CBD5E1]">Cardápio</span>
-                  <span className="text-[#9CA3AF] dark:text-[#64748B] font-normal">&gt;</span>
-                  <span className="text-[#E76F41] font-semibold">{selectedProduct.category_name}</span>
+                  <span className="text-[#6B7280] dark:text-[#94A3B8] font-normal">&gt;</span>
+                  <span className="text-[#B4482D] dark:text-[#FF7D4F] font-semibold truncate">{selectedProduct.category_name}</span>
                 </nav>
-                <h2 className="font-serif text-2xl md:text-3xl font-bold tracking-tight text-[#111827] dark:text-[#F9FAFB] pr-6 leading-tight">
-                  {selectedProduct.name.replace(/^M\s+/i, '')}
-                </h2>
-                {selectedProduct.description && (
-                  <p className="mt-1.5 text-sm leading-relaxed text-[#374151] dark:text-[#D1D5DB] font-normal">
-                    {selectedProduct.description}
-                  </p>
-                )}
-                <div className="mt-2 text-base sm:text-lg font-bold text-[#166534] dark:text-[#4ADE80]">
-                  {selectedProduct.sizes && selectedProduct.sizes.length > 1 ? "A partir de " : ""}
-                  {formatCurrency(basePrice)}
-                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="hidden lg:flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F6F4EE] dark:bg-[#1F2B22] text-[#3C443E] dark:text-[#E2DED6] transition hover:bg-[#EAE5DD] dark:hover:bg-[#28382C] hover:text-black dark:hover:text-white border border-[#E8E2D5] dark:border-[#2A382E] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E6B3E] dark:focus-visible:ring-[#4ADE80]"
+                  aria-label="Fechar modal"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
+
+              <div className="flex-1 p-4 md:p-5 sm:max-lg:ultrashort:p-3 short:lg:p-3.5 ultrashort:lg:p-3 flex flex-col space-y-3.5 sm:max-lg:ultrashort:space-y-2.5 short:lg:space-y-2.5 sm:max-lg:ultrashort:overflow-y-auto lg:overflow-y-auto storefront-scrollbar min-h-0">
+                {/* Header info */}
+                <div>
+                  <h2 className="font-serif text-xl sm:text-2xl lg:text-[26px] short:lg:text-xl ultrashort:lg:text-lg font-bold tracking-tight text-[#111827] dark:text-[#F9FAFB] leading-tight">
+                    {selectedProduct.name.replace(/^M\s+/i, '')}
+                  </h2>
+                  {selectedProduct.description && (
+                    <p className="mt-1 text-xs sm:text-sm short:lg:text-xs leading-relaxed text-[#374151] dark:text-[#D1D5DB] font-normal">
+                      {selectedProduct.description}
+                    </p>
+                  )}
+                  <div className="mt-1.5 text-sm sm:text-base short:lg:text-sm font-bold text-[#166534] dark:text-[#4ADE80]">
+                    {selectedProduct.sizes && selectedProduct.sizes.length > 1 ? "A partir de " : ""}
+                    {formatCurrency(basePrice)}
+                  </div>
+                </div>
 
               <div className="border-t border-[#ECE7DE] dark:border-[#2A382E]" />
 
@@ -544,10 +662,10 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                       return (
                         <label
                           key={sz.id}
-                          className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 sm:p-3 transition text-xs sm:text-sm ${
+                          className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 sm:p-3 short:lg:p-2 transition text-xs sm:text-sm short:lg:text-xs ${
                             isSelected
                               ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80] dark:bg-[#2A4834] shadow-2xs"
-                              : "border-[#E5E7EB] bg-white dark:border-[#2E4A36] dark:bg-[#203627] hover:border-[#D1D5DB] dark:hover:bg-[#253E2D]"
+                              : "border-[#E2DDD3] bg-[#F6F4EE] dark:border-[#2E4A36] dark:bg-[#203627] hover:border-[#D5CDBD] hover:bg-[#EFECE5] dark:hover:bg-[#253E2D]"
                           }`}
                         >
                           <div className="flex items-center gap-2.5">
@@ -601,7 +719,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                             className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition text-xs ${
                               isSelected
                                 ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80] dark:bg-[#2A4834]"
-                                : "border-[#E8E2D7] bg-white dark:border-[#2E4A36] dark:bg-[#203627] hover:border-[#D5CDBD] dark:hover:bg-[#253E2D]"
+                                : "border-[#E2DDD3] bg-[#F6F4EE] dark:border-[#2E4A36] dark:bg-[#203627] hover:border-[#D5CDBD] hover:bg-[#EFECE5] dark:hover:bg-[#253E2D]"
                             }`}
                           >
                             <div className="flex items-center gap-2">
@@ -648,7 +766,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                           className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition text-xs ${
                             isSelected
                               ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80] dark:bg-[#2A4834]"
-                              : "border-[#E8E2D7] bg-white dark:border-[#2E4A36] dark:bg-[#203627] hover:border-[#D5CDBD] dark:hover:bg-[#253E2D]"
+                              : "border-[#E2DDD3] bg-[#F6F4EE] dark:border-[#2E4A36] dark:bg-[#203627] hover:border-[#D5CDBD] hover:bg-[#EFECE5] dark:hover:bg-[#253E2D]"
                           }`}
                         >
                           <div className="flex items-center gap-2">
@@ -695,10 +813,10 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                             key={ing}
                             type="button"
                             onClick={() => toggleRemoved(ing)}
-                            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition cursor-pointer ${
+                            className={`flex items-center gap-1 rounded-full px-3 py-1.5 min-h-9 text-xs font-medium transition cursor-pointer ${
                               isRemoved
-                                ? "bg-[#CB5A3C] text-white shadow-2xs"
-                                : "border border-[#DED7CB] dark:border-[#2E4A36] bg-white dark:bg-[#203627] text-[#4A534B] dark:text-[#E2E8F0] hover:bg-[#F7F5F0] dark:hover:bg-[#253E2D]"
+                                ? "bg-[#B4482D] text-white shadow-2xs"
+                                : "border border-[#E2DDD3] dark:border-[#2E4A36] bg-[#F6F4EE] dark:bg-[#203627] text-[#4A534B] dark:text-[#E2E8F0] hover:bg-[#EFECE5] dark:hover:bg-[#253E2D]"
                             }`}
                           >
                             <X className="h-3 w-3" />
@@ -711,35 +829,35 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                 )}
 
               {/* Section: Produto Principal & Quantidade */}
-              <div className="rounded-xl border border-[#E5E7EB] dark:border-[#2E4A36] bg-[#FAF8F5] dark:bg-[#203627] p-3 sm:p-3.5 flex items-center justify-between shadow-2xs">
+              <div className="rounded-xl border border-[#E5E7EB] dark:border-[#2E4A36] bg-[#FAF8F5] dark:bg-[#203627] p-3 sm:p-3.5 short:lg:p-2.5 flex items-center justify-between shadow-2xs">
                 <div className="flex flex-col min-w-0 pr-3">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#E76F41] dark:text-[#FF7D4F]">
+                  <span className="text-[11px] short:lg:text-[10px] font-bold uppercase tracking-wider text-[#B4482D] dark:text-[#FF7D4F]">
                     Produto Principal
                   </span>
-                  <span className="text-sm font-semibold text-[#111827] dark:text-white truncate">
+                  <span className="text-sm short:lg:text-xs font-semibold text-[#111827] dark:text-white truncate">
                     {selectedProduct.name.replace(/^M\s+/i, '')}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 rounded-full border border-[#D1D5DB] dark:border-[#3A5C44] bg-white dark:bg-[#284933] px-3 py-1.5 shadow-2xs shrink-0">
+                <div className="flex items-center gap-1.5 rounded-full border border-[#D1D5DB] dark:border-[#3A5C44] bg-white dark:bg-[#284933] px-1.5 py-1 short:lg:py-0.5 shadow-2xs shrink-0">
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                     disabled={quantity <= 1}
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-[#1F2922] dark:text-[#F3F4F6] transition hover:bg-[#F3F4F6] dark:hover:bg-[#345A3E] disabled:opacity-30 cursor-pointer"
+                    className="flex h-9 w-9 min-h-9 min-w-9 lg:h-7 lg:w-7 lg:min-h-7 lg:min-w-7 items-center justify-center rounded-full text-[#1F2922] dark:text-[#F3F4F6] transition hover:bg-[#F3F4F6] dark:hover:bg-[#345A3E] disabled:opacity-30 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E6B3E]"
                     aria-label="Diminuir quantidade"
                   >
-                    <Minus className="h-4 w-4" />
+                    <Minus className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
                   </button>
-                  <span className="min-w-6 text-center text-sm font-bold text-[#111827] dark:text-white">
+                  <span className="min-w-6 text-center text-sm short:lg:text-xs font-bold text-[#111827] dark:text-white">
                     {quantity}
                   </span>
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => q + 1)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-[#1F2922] dark:text-[#F3F4F6] transition hover:bg-[#F3F4F6] dark:hover:bg-[#345A3E] cursor-pointer"
+                    className="flex h-9 w-9 min-h-9 min-w-9 lg:h-7 lg:w-7 lg:min-h-7 lg:min-w-7 items-center justify-center rounded-full text-[#1F2922] dark:text-[#F3F4F6] transition hover:bg-[#F3F4F6] dark:hover:bg-[#345A3E] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E6B3E]"
                     aria-label="Aumentar quantidade"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
                   </button>
                 </div>
               </div>
@@ -765,7 +883,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                           className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 sm:p-3 transition ${
                             isSelected
                               ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80] dark:bg-[#2A4834] shadow-2xs"
-                              : "border-[#E5E7EB] bg-white dark:border-[#2E4A36] dark:bg-[#203627] hover:border-[#D1D5DB] dark:hover:bg-[#253E2D]"
+                              : "border-[#E2DDD3] bg-[#F6F4EE] dark:border-[#2E4A36] dark:bg-[#203627] hover:border-[#D5CDBD] hover:bg-[#EFECE5] dark:hover:bg-[#253E2D]"
                           }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
@@ -796,14 +914,14 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                 </div>
               )}
 
-              {/* Section: Bebidas (Versão Mobile no fluxo de rolagem) */}
+              {/* Section: Bebidas (Versão Mobile/Tablet/Landscape < lg no fluxo de rolagem) */}
               {availableBeverages.length > 0 && (
-                <div className="flex md:hidden flex-col gap-2 pt-2 border-t border-[#ECE7DE] dark:border-[#2A382E]">
+                <div className="flex lg:hidden flex-col gap-2 pt-2 border-t border-[#ECE7DE] dark:border-[#2A382E]">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2922] dark:text-[#F2EFE9]">
                       Bebidas
                     </h3>
-                    <span className="rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    <span className="rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
                       Opcional
                     </span>
                   </div>
@@ -817,104 +935,38 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                         setBeverageSearch(e.target.value)
                         setBeveragePage(1)
                       }}
+                      aria-label="Buscar bebida"
                       placeholder="Buscar bebida..."
-                      className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-[#203627] border border-[#E8E2D5] dark:border-[#2E4A36] rounded-lg text-[#1F2922] dark:text-[#F2EFE9] placeholder-[#9CA3AF] dark:placeholder-[#A0B0A4] focus:outline-hidden focus:border-[#2E6B3E] dark:focus:border-[#4ADE80] transition-colors"
+                      className="w-full px-3 py-2 min-h-10 text-base lg:text-sm bg-[#F6F4EE] dark:bg-[#203627] border border-[#E2DDD3] dark:border-[#2E4A36] rounded-lg text-[#1F2922] dark:text-[#F2EFE9] placeholder-[#5D645E] dark:placeholder-[#9CA79E] focus:outline-hidden focus:border-[#2E6B3E] dark:focus:border-[#4ADE80] transition-colors"
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
                     {paginatedBeverages.length === 0 ? (
-                      <div className="text-center py-3 text-xs text-gray-400 dark:text-gray-400">
+                      <div className="text-center py-3 text-xs text-[#59615B] dark:text-[#9CA79E]">
                         Nenhuma bebida encontrada
                       </div>
                     ) : (
-                      paginatedBeverages.map((bev) => {
-                        const qty = selectedBeverageQuantities[bev.id] || 0
-                        const isSelected = qty > 0
-                        return (
-                          <div
-                            key={bev.id}
-                            onClick={() => {
-                              if (qty === 0) {
-                                handleUpdateBeverageQty(bev.id, 1)
-                              }
-                            }}
-                            className={`flex items-center justify-between p-2 rounded-xl border text-left transition-all gap-2 cursor-pointer ${
-                              isSelected
-                                ? "border-[#2E6B3E] bg-[#F4F9F5] dark:border-[#4ADE80] dark:bg-[#2A4834] shadow-2xs"
-                                : "border-[#E8E2D5] bg-white dark:border-[#2E4A36] dark:bg-[#203627] hover:border-[#CBD5E1] dark:hover:bg-[#253E2D]"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              {bev.image_url ? (
-                                <img
-                                  src={bev.image_url}
-                                  alt={bev.name}
-                                  className="w-8 h-8 rounded-lg object-cover shrink-0 bg-[#FAF8F5] border border-[#ECE7DE] dark:border-[#2E4A36]"
-                                />
-                              ) : (
-                                <div className="w-8 h-8 rounded-lg bg-[#FAF8F5] dark:bg-[#253E2D] border border-[#ECE7DE] dark:border-[#2E4A36] shrink-0" />
-                              )}
-                              <div className="flex flex-col min-w-0 flex-1">
-                                <span className="text-xs font-bold text-[#1F2922] dark:text-[#F2EFE9] leading-snug">
-                                  {bev.name}
-                                </span>
-                                {bev.volume && (
-                                  <span className="text-[10px] text-gray-500 dark:text-[#A0B0A4] font-medium leading-none mt-0.5">
-                                    {bev.volume}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Preço e Seletor de Quantidade (- e +) */}
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <span className={`text-[11px] font-bold ${isSelected ? "text-[#166534] dark:text-[#4ADE80]" : "text-[#4B5563] dark:text-[#CBD5E1]"}`}>
-                                + {formatCurrency(bev.price_cents)}
-                              </span>
-                              <div className="flex items-center gap-1 rounded-lg border border-[#DED7CB] dark:border-[#2E4A36] bg-[#FAF8F5] dark:bg-[#1A2E20] px-1.5 py-0.5">
-                                <button
-                                  type="button"
-                                  disabled={qty <= 0}
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleUpdateBeverageQty(bev.id, -1)
-                                  }}
-                                  className="text-[#68706A] dark:text-[#CBD5E1] hover:text-black dark:hover:text-white disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer p-0.5"
-                                  title="Diminuir"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </button>
-                                <span className={`text-xs font-bold min-w-[14px] text-center ${isSelected ? "text-[#166534] dark:text-[#4ADE80]" : "text-gray-400 dark:text-[#A0B0A4]"}`}>
-                                  {qty}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleUpdateBeverageQty(bev.id, 1)
-                                  }}
-                                  className="text-[#68706A] dark:text-[#CBD5E1] hover:text-[#CB5A3C] dark:hover:text-[#FF7D4F] cursor-pointer p-0.5"
-                                  title="Aumentar"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })
+                      paginatedBeverages.map((bev) => (
+                        <BeverageItemRow
+                          key={bev.id}
+                          bev={bev}
+                          qty={selectedBeverageQuantities[bev.id] || 0}
+                          formatCurrency={formatCurrency}
+                          onUpdateQty={handleUpdateBeverageQty}
+                        />
+                      ))
                     )}
                   </div>
 
-                  {/* Paginação de Bebidas no Mobile no padrão DeliPlus (em laranja, sem vazar do container) */}
+                  {/* Paginação de Bebidas no Mobile/Tablet */}
                   {totalBeveragePages > 1 && (
-                    <div className="flex items-center justify-center gap-1.5 pt-2 border-t border-[#ECE7DE] dark:border-[#2A382E] text-[11px] shrink-0 w-full">
+                    <div className="flex flex-wrap items-center justify-center gap-1.5 pt-2 border-t border-[#ECE7DE] dark:border-[#2A382E] text-[11px] shrink-0 w-full">
                       <button
                         type="button"
                         disabled={beveragePage <= 1}
                         onClick={() => setBeveragePage((p) => Math.max(1, p - 1))}
-                        className="px-2.5 py-1 rounded-lg text-xs font-bold text-[#CB5A3C] dark:text-[#FF7D4F] bg-[#CB5A3C]/10 hover:bg-[#CB5A3C] hover:text-white dark:bg-[#FF7D4F]/10 dark:hover:bg-[#FF7D4F] dark:hover:text-black border border-[#CB5A3C]/30 dark:border-[#FF7D4F]/30 transition-all shadow-2xs disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer"
+                        className="min-h-9 px-3 py-1 rounded-lg text-xs font-bold text-[#B4482D] dark:text-[#FF7D4F] bg-[#B4482D]/10 hover:bg-[#B4482D] hover:text-white dark:bg-[#FF7D4F]/10 dark:hover:bg-[#FF7D4F] dark:hover:text-black border border-[#B4482D]/30 dark:border-[#FF7D4F]/30 transition-all shadow-2xs disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer"
                       >
                         Anterior
                       </button>
@@ -924,10 +976,11 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                             key={i}
                             type="button"
                             onClick={() => setBeveragePage(i + 1)}
-                            className={`w-6 h-6 rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
+                            aria-label={`Página ${i + 1} de bebidas`}
+                            className={`h-9 min-w-9 px-2 rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
                               beveragePage === i + 1
-                                ? "bg-[#CB5A3C] text-white shadow-sm"
-                                : "bg-white dark:bg-[#203627] text-[#637267] dark:text-[#E2E8F0] border border-[#E9E4D4] dark:border-[#2E4A36] hover:border-[#CB5A3C] hover:text-[#CB5A3C]"
+                                ? "bg-[#B4482D] text-white shadow-sm"
+                                : "bg-[#F6F4EE] dark:bg-[#203627] text-[#4A534C] dark:text-[#E2E8F0] border border-[#E2DDD3] dark:border-[#2E4A36] hover:border-[#B4482D] hover:text-[#B4482D]"
                             }`}
                           >
                             {i + 1}
@@ -938,7 +991,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                         type="button"
                         disabled={beveragePage >= totalBeveragePages}
                         onClick={() => setBeveragePage((p) => Math.min(totalBeveragePages, p + 1))}
-                        className="px-2.5 py-1 rounded-lg text-xs font-bold text-[#CB5A3C] dark:text-[#FF7D4F] bg-[#CB5A3C]/10 hover:bg-[#CB5A3C] hover:text-white dark:bg-[#FF7D4F]/10 dark:hover:bg-[#FF7D4F] dark:hover:text-black border border-[#CB5A3C]/30 dark:border-[#FF7D4F]/30 transition-all shadow-2xs disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer"
+                        className="min-h-9 px-3 py-1 rounded-lg text-xs font-bold text-[#B4482D] dark:text-[#FF7D4F] bg-[#B4482D]/10 hover:bg-[#B4482D] hover:text-white dark:bg-[#FF7D4F]/10 dark:hover:bg-[#FF7D4F] dark:hover:text-black border border-[#B4482D]/30 dark:border-[#FF7D4F]/30 transition-all shadow-2xs disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer"
                       >
                         Próxima
                       </button>
@@ -948,9 +1001,9 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
               )}
 
               {/* Section: Observações para a cozinha */}
-              <div className="space-y-1.5 pt-1">
+              <div className="space-y-1.5 pt-0.5">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#111827] dark:text-[#F9FAFB]">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-[#111827] dark:text-[#F9FAFB]">
                     Observações para a cozinha
                   </h3>
                   <span className="text-xs font-semibold text-[#4B5563] dark:text-[#CBD5E1]">
@@ -962,22 +1015,24 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                   maxLength={120}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Ex: tirar o sal, molho à parte, enviar talher descartável..."
-                  className="w-full rounded-xl border border-[#D1D5DB] dark:border-[#2E4A36] bg-[#FAF8F5] dark:bg-[#203627] p-3 text-sm font-medium text-[#111827] dark:text-white placeholder-[#6B7280] dark:placeholder-[#A0B0A4] outline-hidden focus:border-[#2E6B3E] dark:focus:border-[#4ADE80] focus:bg-white dark:focus:bg-[#203627] focus:ring-1 focus:ring-[#2E6B3E]"
+                  className="w-full rounded-xl border border-[#D1D5DB] dark:border-[#2E4A36] bg-[#FAF8F5] dark:bg-[#203627] p-2.5 text-base lg:text-xs font-medium text-[#111827] dark:text-white placeholder-[#5D645E] dark:placeholder-[#9CA79E] outline-hidden focus:border-[#2E6B3E] dark:focus:border-[#4ADE80] focus:bg-white dark:focus:bg-[#203627] focus:ring-1 focus:ring-[#2E6B3E]"
                   rows={2}
                 />
+              </div>
               </div>
             </div>
           </div>
 
           {/* Sticky Modal Footer */}
-          <div className="shrink-0 border-t border-[#E5E7EB] dark:border-[#2A382E] bg-white dark:bg-[#141C16] p-3 px-4 sm:px-5">
+          <div className="shrink-0 border-t border-[#E5E7EB] dark:border-[#2A382E] bg-white dark:bg-[#141C16] p-2.5 sm:p-3 px-4 sm:px-5 short:lg:py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <button
+              type="button"
               onClick={handleAdd}
-              className="w-full flex items-center justify-between rounded-xl bg-[#1B2A20] hover:bg-[#273B2E] dark:bg-[#2E4233] dark:hover:bg-[#3B5441] px-5 sm:px-6 py-3.5 text-sm sm:text-base font-semibold text-white shadow-md transition cursor-pointer"
+              className="w-full min-h-10 short:lg:min-h-9 flex items-center justify-between rounded-xl bg-[#1B2A20] hover:bg-[#273B2E] dark:bg-[#2E4233] dark:hover:bg-[#3B5441] px-4 sm:px-5 py-2.5 short:lg:py-2 text-sm sm:text-base short:lg:text-sm font-semibold text-white shadow-md transition cursor-pointer"
             >
               <span>Adicionar ao carrinho</span>
               <span className="flex items-center gap-2">
-                <span className="text-white/60">•</span>
+                <span className="text-white/75">•</span>
                 <span className="text-[#86EFAC] font-bold">{formatCurrency(grandTotalCents)}</span>
               </span>
             </button>
@@ -990,18 +1045,23 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
       {/* ============================================================== */}
       {isZoomOpen && (
         <div
-          className="fixed inset-0 z-60 flex flex-col items-center justify-center bg-black/92 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Galeria ampliada de ${selectedProduct.name}`}
+          className="fixed inset-0 z-60 flex flex-col justify-between gap-2 bg-black/92 backdrop-blur-md p-3 sm:p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] animate-in fade-in duration-200"
           onClick={() => setIsZoomOpen(false)}
         >
-          {/* Top Bar with title and Close Button */}
+          {/* Top Bar with title and Close Button (in-flow flex item para evitar colisão em landscape) */}
           <div
-            className="absolute top-4 inset-x-4 md:inset-x-8 flex items-center justify-between text-white z-20"
+            className="flex w-full items-center justify-between gap-2 px-1 md:px-4 text-white shrink-0 z-20"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2">
-              <span className="font-serif text-base md:text-lg font-bold">{selectedProduct.name}</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-serif text-sm sm:text-base md:text-lg font-bold truncate">
+                {selectedProduct.name}
+              </span>
               {galleryImages.length > 1 && (
-                <span className="text-xs text-gray-300 bg-white/15 px-2.5 py-0.5 rounded-full font-medium">
+                <span className="text-xs text-gray-200 bg-white/15 px-2.5 py-0.5 rounded-full font-medium shrink-0">
                   {activeImageIndex + 1} de {galleryImages.length}
                 </span>
               )}
@@ -1009,25 +1069,28 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
             <button
               type="button"
               onClick={() => setIsZoomOpen(false)}
-              className="h-9 w-9 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition cursor-pointer"
+              className="h-11 w-11 min-h-11 min-w-11 shrink-0 rounded-full bg-white/20 hover:bg-white/35 text-white flex items-center justify-center transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               aria-label="Fechar zoom"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
-          {/* Main Large Image */}
+          {/* Main Large Image Stage (sem overflow-hidden para nunca cortar setas) */}
           <div
-            className="relative max-w-4xl max-h-[75vh] flex items-center justify-center overflow-hidden"
+            className="relative flex-1 min-h-0 w-full flex items-center justify-center px-2 md:px-14"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
+            <StorefrontImage
               src={activeImage}
               alt={selectedProduct.name}
-              className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl transition-all duration-300 select-none"
+              variant={isDrinkProduct ? "drink" : "food"}
+              className="max-w-full max-h-full w-auto h-auto object-contain rounded-xl shadow-2xl transition-all duration-300 select-none"
+              fallbackClassName="h-56 w-72 rounded-xl border border-white/15"
+              iconClassName="h-12 w-12"
             />
 
-            {/* Setas Visíveis e Destacadas nas laterais no modo Zoom */}
+            {/* Setas Visíveis sempre dentro da viewport */}
             {galleryImages.length > 1 && (
               <>
                 <button
@@ -1036,7 +1099,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                     e.stopPropagation()
                     setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : galleryImages.length - 1))
                   }}
-                  className="absolute left-2 md:-left-16 top-1/2 -translate-y-1/2 h-11 w-11 md:h-12 md:w-12 rounded-full bg-black/70 hover:bg-black/90 md:bg-white/20 md:hover:bg-white/40 text-white flex items-center justify-center shadow-xl transition cursor-pointer"
+                  className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-11 w-11 min-h-11 min-w-11 md:h-12 md:w-12 rounded-full bg-black/75 hover:bg-black/90 text-white border border-white/15 flex items-center justify-center shadow-xl transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   aria-label="Foto anterior"
                 >
                   <ChevronLeft className="h-6 w-6" />
@@ -1047,7 +1110,7 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                     e.stopPropagation()
                     setActiveImageIndex((prev) => (prev < galleryImages.length - 1 ? prev + 1 : 0))
                   }}
-                  className="absolute right-2 md:-right-16 top-1/2 -translate-y-1/2 h-11 w-11 md:h-12 md:w-12 rounded-full bg-black/70 hover:bg-black/90 md:bg-white/20 md:hover:bg-white/40 text-white flex items-center justify-center shadow-xl transition cursor-pointer"
+                  className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 h-11 w-11 min-h-11 min-w-11 md:h-12 md:w-12 rounded-full bg-black/75 hover:bg-black/90 text-white border border-white/15 flex items-center justify-center shadow-xl transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   aria-label="Próxima foto"
                 >
                   <ChevronRight className="h-6 w-6" />
@@ -1056,10 +1119,10 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
             )}
           </div>
 
-          {/* Thumbnails na base do Zoom */}
+          {/* Thumbnails na base do Zoom (in-flow para evitar sobreposição em landscape) */}
           {galleryImages.length > 1 && (
             <div
-              className="absolute bottom-4 flex items-center gap-2 overflow-x-auto p-2 rounded-xl bg-black/50 backdrop-blur-xs max-w-sm z-20"
+              className="mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar p-1.5 sm:p-2 rounded-xl bg-black/60 backdrop-blur-xs max-w-full shrink-0 z-20"
               onClick={(e) => e.stopPropagation()}
             >
               {galleryImages.map((imgUrl, idx) => (
@@ -1067,13 +1130,21 @@ export function ProductDetailModal({ storeProducts }: ProductDetailModalProps = 
                   key={idx}
                   type="button"
                   onClick={() => setActiveImageIndex(idx)}
-                  className={`h-11 w-11 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                  aria-label={`Ver foto ${idx + 1} de ${selectedProduct.name}`}
+                  className={`h-10 w-10 min-h-10 min-w-10 sm:h-11 sm:w-11 shrink-0 rounded-lg overflow-hidden border-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4ADE80] ${
                     idx === activeImageIndex
                       ? "border-[#4ADE80] scale-105 shadow-md"
-                      : "border-white/30 opacity-60 hover:opacity-100"
+                      : "border-white/30 opacity-70 hover:opacity-100"
                   }`}
                 >
-                  <img src={imgUrl} alt="" className="h-full w-full object-cover" />
+                  <StorefrontImage
+                    src={imgUrl}
+                    alt=""
+                    variant={isDrinkProduct ? "drink" : "food"}
+                    className="h-full w-full object-cover"
+                    fallbackClassName="h-full w-full"
+                    iconClassName="h-4 w-4"
+                  />
                 </button>
               ))}
             </div>

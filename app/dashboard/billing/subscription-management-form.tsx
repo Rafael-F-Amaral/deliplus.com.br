@@ -71,9 +71,9 @@ function RefreshProjection({
   if (!active || complete) return null
   const timedOut = timedOutFor === confirmationKey
   return (
-    <Alert role="status">
-      <AlertTitle>{timedOut ? "Confirmação em andamento" : label}</AlertTitle>
-      <AlertDescription>
+    <Alert role="status" className="dark:bg-[#1B241E] dark:border-[#2A382E]">
+      <AlertTitle className="dark:text-[#F2EFE9]">{timedOut ? "Confirmação em andamento" : label}</AlertTitle>
+      <AlertDescription className="dark:text-[#A1ADA4]">
         {timedOut
           ? "Ainda estamos confirmando a alteração do seu plano. O status será atualizado normalmente quando o webhook for processado."
           : "Aguardando a confirmação segura da projeção local."}
@@ -88,13 +88,14 @@ function Feedback({ state }: { state: SubscriptionManagementActionState }) {
     <Alert
       role="status"
       variant={state.kind === "error" ? "destructive" : "default"}
+      className="dark:bg-[#1B241E] dark:border-[#2A382E]"
     >
-      <AlertTitle>
+      <AlertTitle className="dark:text-[#F2EFE9]">
         {state.kind === "error"
           ? "Alteração indisponível"
           : "Sobre sua assinatura"}
       </AlertTitle>
-      <AlertDescription>
+      <AlertDescription className="dark:text-[#A1ADA4]">
         {state.kind === "error"
           ? "Não foi possível alterar a assinatura agora. Tente novamente mais tarde."
           : subscriptionManagementMessages[state.status]}
@@ -112,9 +113,9 @@ function PortalReturnFeedback({
 }) {
   if (!targetPlanCode || targetPlanCode !== currentPlanCode) return null
   return (
-    <Alert role="status">
-      <AlertTitle>Plano atualizado</AlertTitle>
-      <AlertDescription>
+    <Alert role="status" className="dark:bg-[#1B241E] dark:border-[#2A382E]">
+      <AlertTitle className="dark:text-[#F2EFE9]">Plano atualizado</AlertTitle>
+      <AlertDescription className="dark:text-[#A1ADA4]">
         O Stripe confirmou o upgrade para {planName(targetPlanCode)} e a
         projeção local já foi atualizada.
       </AlertDescription>
@@ -203,6 +204,8 @@ export function SubscriptionManagementForm({
               <Button
                 type="submit"
                 variant="outline"
+                size="lg"
+                className="min-h-10 whitespace-normal h-auto py-2 dark:border-[#2A382E] dark:bg-[#25332A] dark:text-[#F2EFE9] dark:hover:bg-[#2E3F34]"
                 disabled={disabled || canceling}
               >
                 {canceling ? "Cancelando…" : "Cancelar redução agendada"}
@@ -223,7 +226,7 @@ export function SubscriptionManagementForm({
           disabled={
             disabled || upgrading || downgrading || Boolean(pendingPlanCode)
           }
-          className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-3"
+          className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
         >
           <legend className="sr-only">Alterar plano mensal</legend>
           {children}
@@ -293,8 +296,8 @@ function SubscriptionManagementButton({
       size="lg"
       className={
         planCode === "essential"
-          ? "w-full bg-[#CB5A3C] hover:bg-[#b04a2f] text-white font-semibold shadow-sm cursor-pointer"
-          : "w-full bg-[#2E4233] hover:bg-[#1f2c22] dark:bg-[#28382D] dark:hover:bg-[#34483B] dark:border dark:border-[#3D5444] text-white font-semibold shadow-sm cursor-pointer"
+          ? "w-full whitespace-normal h-auto min-h-10 py-2 text-center bg-[#B4482D] hover:bg-[#9E3E26] dark:bg-[#E76F41] dark:hover:bg-[#FF7D4F] text-white dark:text-[#131A15] font-semibold shadow-sm cursor-pointer"
+          : "w-full whitespace-normal h-auto min-h-10 py-2 text-center bg-[#2E4233] hover:bg-[#1f2c22] dark:bg-[#28382D] dark:hover:bg-[#34483B] dark:border dark:border-[#3D5444] text-white font-semibold shadow-sm cursor-pointer"
       }
       disabled={disabled || pending || current}
     >

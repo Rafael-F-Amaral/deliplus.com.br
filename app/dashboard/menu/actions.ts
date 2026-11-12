@@ -505,3 +505,73 @@ export async function updateProductSizesAndPrice(
   revalidatePath("/dashboard/menu")
   return { success: true }
 }
+
+/**
+ * Duplica um produto do cardápio copiando dados e seus adicionais
+ */
+export async function duplicateMenuProduct(productId: string) {
+  const { storeId, supabase } = await resolveActionContext()
+
+  // Buscar produto original
+  const { data: original, error: fetchErr } = await supabase
+    .from("products" as any)
+    .select("*")
+    .eq("id", productId)
+    .eq("store_id", storeId)
+    .single()
+
+  if (fetchErr || !original) {
+    throw new Error("Produto original não encontrado")
+  }
+
+  // Inserir cópia
+  const { data: newProd, error: insertErr } = await supabase
+    .from("products" as any)
+    .insert({
+      store_id: storeId,
+      category_id: (original as any).category_id,
+      name: `${(original as any).name} (Cópia)`,
+      description: (original as any).description,
+      price_cents: (original as any).price_cents,
+      is_active: (original as any).is_active,
+      daily_limit: (original as any).daily_limit,
+      daily_remaining: (original as any).daily_remaining,
+      image_url: (original as any).image_url,
+      images: (original as any).images,
+      tags: (original as any).tags,
+      sizes: (original as any).sizes,
+      in_promo: false
+    } as any)
+    .select("id, name, price_cents")
+    .single()
+
+  if (insertErr || !newProd) {
+    console.error("Erro ao inserir produto duplicado:", insertErr)
+    throw new Error("Erro ao duplicar produto")
+  }
+
+  // Clonar adicionais se houver
+  const { data: comps } = await supabase
+    .from("product_complements" as any)
+    .select("name, description, price_cents, image_url, is_active, sort_order")
+    .eq("product_id", productId)
+    .eq("store_id", storeId)
+
+  if (comps && comps.length > 0) {
+    await supabase.from("product_complements" as any).insert(
+      comps.map((c: any) => ({
+        store_id: storeId,
+        product_id: (newProd as any).id,
+        name: c.name,
+        description: c.description,
+        price_cents: c.price_cents,
+        image_url: c.image_url,
+        is_active: c.is_active,
+        sort_order: c.sort_order
+      }))
+    )
+  }
+
+  revalidatePath("/dashboard/menu")
+  return { success: true, newProduct: newProd }
+}

@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "test:public-store": "node --test tests/public-store/public-store.test.mjs",
+    "test:sidebar-storefront": "node --test tests/sidebar-storefront-integration/sidebar-storefront-integration.test.mjs",
     "test:accessible-store-links": "node --test tests/public-store/accessible-store-links.test.mjs",
     "test:public-store:integration": "node --test tests/public-store/public-store.integration.mjs",
     "test:dashboard-overview": "node --conditions=react-server --experimental-strip-types --test tests/dashboard-overview/dashboard-overview.test.mjs && node --test tests/dashboard-overview/dashboard-ui.test.mjs",

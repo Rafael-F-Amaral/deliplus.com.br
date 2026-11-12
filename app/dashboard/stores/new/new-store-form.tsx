@@ -14,6 +14,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 
 import {
   createAndPublishStoreAction,
@@ -56,7 +57,12 @@ function CreateStoreButton({ stage }: { stage?: "draft" | "ready" }) {
         : "Criar e publicar minha loja"
 
   return (
-    <Button type="submit" size="lg" disabled={pending}>
+    <Button
+      type="submit"
+      size="lg"
+      className="min-h-10 w-full sm:w-auto bg-[#B4482D] hover:bg-[#9E3E26] dark:bg-[#E76F41] dark:hover:bg-[#FF7D4F] text-white dark:text-[#131A15] font-semibold cursor-pointer"
+      disabled={pending}
+    >
       {pending ? "Criando e publicando…" : label}
     </Button>
   )
@@ -82,7 +88,7 @@ export function NewStoreForm({ initialName = "" }: { initialName?: string }) {
           data-disabled={fieldsLocked || undefined}
           data-invalid={nameInvalid || undefined}
         >
-          <FieldLabel htmlFor="store-name">Nome da loja</FieldLabel>
+          <FieldLabel htmlFor="store-name" className="text-[#1F2E22] dark:text-[#F2EFE9]">Nome da loja</FieldLabel>
           <Input
             id="store-name"
             name="name"
@@ -96,6 +102,7 @@ export function NewStoreForm({ initialName = "" }: { initialName?: string }) {
             placeholder="Pizzaria do Bairro"
             disabled={fieldsLocked}
             aria-invalid={nameInvalid || undefined}
+            className="min-h-10 text-base lg:text-sm bg-white dark:bg-[#131A15] border-[#E9E4D4] dark:border-[#2A382E] text-[#1F2E22] dark:text-[#F2EFE9]"
             required
           />
           <FieldError>
@@ -106,7 +113,7 @@ export function NewStoreForm({ initialName = "" }: { initialName?: string }) {
           data-disabled={fieldsLocked || undefined}
           data-invalid={slugInvalid || undefined}
         >
-          <FieldLabel htmlFor="store-slug">Endereço público</FieldLabel>
+          <FieldLabel htmlFor="store-slug" className="text-[#1F2E22] dark:text-[#F2EFE9]">Endereço público</FieldLabel>
           <Input
             id="store-slug"
             name="slug"
@@ -120,9 +127,10 @@ export function NewStoreForm({ initialName = "" }: { initialName?: string }) {
             placeholder="pizzaria-do-bairro"
             disabled={fieldsLocked}
             aria-invalid={slugInvalid || undefined}
+            className="min-h-10 text-base lg:text-sm bg-white dark:bg-[#131A15] border-[#E9E4D4] dark:border-[#2A382E] text-[#1F2E22] dark:text-[#F2EFE9]"
             required
           />
-          <FieldDescription>
+          <FieldDescription className="text-[#525B4E] dark:text-[#9CA79E]">
             {fieldsLocked
               ? "A loja já foi criada. Use a recuperação abaixo para continuar."
               : `Seu endereço público será /${fields.slug || "endereco-da-loja"}.`}
@@ -134,8 +142,11 @@ export function NewStoreForm({ initialName = "" }: { initialName?: string }) {
       </FieldGroup>
 
       {state.kind !== "idle" ? (
-        <Alert variant={state.kind === "error" ? "destructive" : "default"}>
-          <AlertTitle>
+        <Alert
+          variant={state.kind === "error" ? "destructive" : "default"}
+          className="dark:bg-[#25332A] dark:border-[#2A382E]"
+        >
+          <AlertTitle className="dark:text-[#F2EFE9]">
             {recovery
               ? recovery.stage === "draft"
                 ? "Sua loja foi criada"
@@ -144,7 +155,7 @@ export function NewStoreForm({ initialName = "" }: { initialName?: string }) {
                 ? "Não foi possível criar a loja"
                 : "Revise esta etapa"}
           </AlertTitle>
-          <AlertDescription>
+          <AlertDescription className="dark:text-[#9CA79E]">
             <p>
               {state.kind === "error"
                 ? recovery
@@ -153,10 +164,13 @@ export function NewStoreForm({ initialName = "" }: { initialName?: string }) {
                 : businessMessages[state.status]}
             </p>
             {recovery ? (
-              <div className="flex flex-wrap gap-3">
+              <div className="mt-3 flex flex-wrap gap-3">
                 <Link
                   href={`/dashboard/stores/${recovery.storeId}/setup`}
-                  className={buttonVariants({ variant: "outline" })}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "lg" }),
+                    "dark:border-[#2A382E] dark:bg-[#1B241E] dark:text-[#F2EFE9] dark:hover:bg-[#2E3F34]"
+                  )}
                 >
                   Abrir configuração da loja
                 </Link>
@@ -165,7 +179,10 @@ export function NewStoreForm({ initialName = "" }: { initialName?: string }) {
                   state.status === "capacity_reached") ? (
                   <Link
                     href="/dashboard/billing"
-                    className={buttonVariants({ variant: "outline" })}
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "lg" }),
+                      "dark:border-[#2A382E] dark:bg-[#1B241E] dark:text-[#F2EFE9] dark:hover:bg-[#2E3F34]"
+                    )}
                   >
                     Ver planos e assinatura
                   </Link>

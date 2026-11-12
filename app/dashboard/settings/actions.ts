@@ -6,30 +6,40 @@ import { getActiveStoreId } from "@/lib/stores/get-active-store";
 
 async function resolveActionContext() {
   const storeId = await getActiveStoreId().catch(() => null);
-  if (storeId) {
-    return {
-      storeId,
-      supabase: createServerSupabaseClient(),
-    };
-  }
+  let resolvedStoreId = storeId;
+  let supabase = createServerSupabaseClient();
 
-  if (process.env.NODE_ENV === "development") {
+  if (!resolvedStoreId && process.env.NODE_ENV === "development") {
     const { createAdminSupabaseClient } = await import("@/lib/supabase/admin");
     const adminClient = createAdminSupabaseClient();
     const { data: firstStore } = await adminClient
       .from("stores")
-      .select("id")
+      .select("id, slug")
       .limit(1)
       .maybeSingle();
     if (firstStore?.id) {
       return {
         storeId: firstStore.id,
+        storeSlug: firstStore.slug || "minha-loja",
         supabase: adminClient,
       };
     }
   }
 
-  throw new Error("Loja ativa não encontrada");
+  if (!resolvedStoreId) {
+    throw new Error("Loja ativa não encontrada");
+  }
+
+  const { data: storeInfo } = await (supabase.from("stores") as any)
+    .select("slug")
+    .eq("id", resolvedStoreId)
+    .maybeSingle();
+
+  return {
+    storeId: resolvedStoreId,
+    storeSlug: storeInfo?.slug || "minha-loja",
+    supabase,
+  };
 }
 
 /* ============================================================== */
@@ -54,7 +64,7 @@ export async function updateStoreProfile(data: {
     kwai?: string;
   };
 }) {
-  const { storeId, supabase } = await resolveActionContext();
+  const { storeId, storeSlug, supabase } = await resolveActionContext();
 
   const trimmedName = data.name.trim();
   if (!trimmedName) {
@@ -106,7 +116,7 @@ export async function updateStoreProfile(data: {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
-  revalidatePath("/casa-noma");
+  if (storeSlug) revalidatePath("/" + storeSlug);
   revalidatePath("/[storeSlug]", "page");
   return { success: true };
 }
@@ -129,7 +139,7 @@ export async function updateDeliverySettings(data: {
     { open: string; close: string; enabled: boolean }
   >;
 }) {
-  const { storeId, supabase } = await resolveActionContext();
+  const { storeId, storeSlug, supabase } = await resolveActionContext();
 
   const updatePayload: Record<string, any> = {
     accepts_delivery: data.accepts_delivery,
@@ -164,13 +174,13 @@ export async function updateDeliverySettings(data: {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
-  revalidatePath("/casa-noma");
+  if (storeSlug) revalidatePath("/" + storeSlug);
   revalidatePath("/[storeSlug]", "page");
   return { success: true };
 }
 
 export async function toggleStoreOpenStatus(isOpen: boolean) {
-  const { storeId, supabase } = await resolveActionContext();
+  const { storeId, storeSlug, supabase } = await resolveActionContext();
 
   const { error } = await (supabase.from("store_delivery_settings" as any) as any)
     .update({
@@ -186,7 +196,7 @@ export async function toggleStoreOpenStatus(isOpen: boolean) {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
-  revalidatePath("/casa-noma");
+  if (storeSlug) revalidatePath("/" + storeSlug);
   revalidatePath("/[storeSlug]", "page");
   return { success: true };
 }
@@ -204,7 +214,7 @@ export async function updatePaymentSettings(data: {
   accept_pix: boolean;
   accept_meal_voucher: boolean;
 }) {
-  const { storeId, supabase } = await resolveActionContext();
+  const { storeId, storeSlug, supabase } = await resolveActionContext();
 
   const { error } = await (supabase.from("store_delivery_settings" as any) as any)
     .update({
@@ -238,7 +248,7 @@ export async function updatePrinterSettings(data: {
   copies: number;
   sound_alerts: boolean;
 }) {
-  const { storeId, supabase } = await resolveActionContext();
+  const { storeId, storeSlug, supabase } = await resolveActionContext();
 
   const { error } = await (supabase.from("store_delivery_settings" as any) as any)
     .update({
@@ -267,7 +277,7 @@ export async function updatePrinterSettings(data: {
 
 export async function uploadStoreAsset(formData: FormData) {
   try {
-    const { storeId, supabase } = await resolveActionContext();
+    const { storeId, storeSlug, supabase } = await resolveActionContext();
     const file = formData.get("file") as File | null;
     const assetType = (formData.get("type") as string) || "logo";
 
@@ -294,9 +304,40 @@ export async function uploadStoreAsset(formData: FormData) {
       .from("store-assets")
       .getPublicUrl(fileName);
 
-    return { success: true, url: publicUrlData.publicUrl };
+    const publicUrl = publicUrlData.publicUrl;
+
+    // Salvar imediatamente no banco para nunca perder o logo ou capa
+    if (assetType === "logo") {
+      await (supabase.from("store_delivery_settings" as any) as any)
+        .update({ logo_url: publicUrl, updated_at: new Date().toISOString() })
+        .eq("store_id", storeId);
+    } else if (assetType === "banner") {
+      await (supabase.from("store_delivery_settings" as any) as any)
+        .update({ banner_url: publicUrl, updated_at: new Date().toISOString() })
+        .eq("store_id", storeId);
+    }
+
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard");
+    if (storeSlug) revalidatePath("/" + storeSlug);
+    revalidatePath("/[storeSlug]", "page");
+
+    return { success: true, url: publicUrl };
   } catch (err: any) {
     console.error("Erro inesperado no uploadStoreAsset:", err);
     return { success: false, error: err?.message || "Erro ao fazer upload da imagem." };
+  }
+}
+
+export async function getStoreOpenStatus() {
+  try {
+    const { storeId, supabase } = await resolveActionContext();
+    const { data } = await (supabase.from("store_delivery_settings" as any) as any)
+      .select("is_open_override")
+      .eq("store_id", storeId)
+      .maybeSingle();
+    return { success: true, isOpen: data?.is_open_override ?? true };
+  } catch (err: any) {
+    return { success: false, isOpen: true };
   }
 }

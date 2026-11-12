@@ -4,15 +4,15 @@
 
 export function getCategoryBadgeStyle(catName: string): { bg: string; text: string } {
   const lower = catName.toLowerCase()
-  if (lower.includes("bowl")) return { bg: "bg-[#EBF5ED]", text: "text-[#477A55]" }
-  if (lower.includes("bebid")) return { bg: "bg-[#FDF4E7]", text: "text-[#BA732F]" }
-  if (lower.includes("sobrem")) return { bg: "bg-[#F7EDF9]", text: "text-[#8E5296]" }
-  if (lower.includes("entrad")) return { bg: "bg-[#EFF6FF]", text: "text-[#2563EB]" }
-  if (lower.includes("promo") || lower.includes("oferta")) return { bg: "bg-[#FDF2F0]", text: "text-[#CB5A3C]" }
-  if (lower.includes("mais pedido") || lower.includes("destaque")) return { bg: "bg-[#FEF3C7]", text: "text-[#B45309]" }
-  if (lower.includes("organ") || lower.includes("vegan")) return { bg: "bg-[#DCFCE7]", text: "text-[#15803D]" }
-  if (lower.includes("gluten") || lower.includes("glúten")) return { bg: "bg-[#F1F5F9]", text: "text-[#475569]" }
-  return { bg: "bg-gray-100", text: "text-gray-700" }
+  if (lower.includes("bowl")) return { bg: "bg-[#EBF5ED] dark:bg-[#1A2E20] dark:border dark:border-[#2E543A]", text: "text-[#477A55] dark:text-[#86EFAC]" }
+  if (lower.includes("bebid")) return { bg: "bg-[#FDF4E7] dark:bg-[#342410] dark:border dark:border-[#5C3F20]", text: "text-[#BA732F] dark:text-[#FBBF24]" }
+  if (lower.includes("sobrem")) return { bg: "bg-[#F7EDF9] dark:bg-[#2F1835] dark:border dark:border-[#522D5A]", text: "text-[#8E5296] dark:text-[#E879F9]" }
+  if (lower.includes("entrad")) return { bg: "bg-[#EFF6FF] dark:bg-[#16214A] dark:border dark:border-[#1E3A8A]", text: "text-[#2563EB] dark:text-[#93C5FD]" }
+  if (lower.includes("promo") || lower.includes("oferta")) return { bg: "bg-[#FDF2F0] dark:bg-[#381812] dark:border dark:border-[#6B2A1E]", text: "text-[#CB5A3C] dark:text-[#FF7D4F]" }
+  if (lower.includes("mais pedido") || lower.includes("destaque")) return { bg: "bg-[#FEF3C7] dark:bg-[#352305] dark:border dark:border-[#6B470A]", text: "text-[#B45309] dark:text-[#FCD34D]" }
+  if (lower.includes("organ") || lower.includes("vegan")) return { bg: "bg-[#DCFCE7] dark:bg-[#11311C] dark:border dark:border-[#1F5C34]", text: "text-[#15803D] dark:text-[#86EFAC]" }
+  if (lower.includes("gluten") || lower.includes("glúten")) return { bg: "bg-[#F1F5F9] dark:bg-[#1A2433] dark:border dark:border-[#334155]", text: "text-[#475569] dark:text-[#CBD5E1]" }
+  return { bg: "bg-gray-100 dark:bg-[#222C25] dark:border dark:border-[#2A382E]", text: "text-gray-700 dark:text-[#F2EFE9]" }
 }
 
 export function formatPromoPeriod(

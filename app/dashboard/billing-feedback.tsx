@@ -22,14 +22,14 @@ export function BillingFeedback({ confirmed }: { confirmed: boolean }) {
   if (!visible) return null
 
   return (
-    <Alert role="status">
-      <AlertTitle>
+    <Alert role="status" className="bg-[#FAF8F0] dark:bg-[#1B241E] border-[#E9E4D4] dark:border-[#2A382E] text-[#1F2E22] dark:text-[#F2EFE9]">
+      <AlertTitle className="dark:text-[#F2EFE9]">
         {confirmed
           ? "Assinatura ativada com sucesso."
           : "Estamos confirmando sua assinatura."}
       </AlertTitle>
       {!confirmed ? (
-        <AlertDescription>
+        <AlertDescription className="dark:text-[#9CA79E]">
           O status será atualizado assim que a confirmação for processada.
         </AlertDescription>
       ) : null}

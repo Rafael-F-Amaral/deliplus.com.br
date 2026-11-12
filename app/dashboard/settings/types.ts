@@ -14,6 +14,53 @@ export type BusinessHours = {
   dom: DaySchedule;
 };
 
+export interface ScheduleShift {
+  id: string;
+  name?: string; // "Almoço", "Jantar", "Geral"
+  open: string;  // "11:30"
+  close: string; // "14:30"
+}
+
+export interface ModernDaySchedule {
+  enabled: boolean;
+  shifts: ScheduleShift[];
+}
+
+export type ModernBusinessHours = Record<
+  "seg" | "ter" | "qua" | "qui" | "sex" | "sab" | "dom",
+  ModernDaySchedule
+>;
+
+export interface StorefrontPreviewData {
+  name: string;
+  slug: string;
+  bio: string;
+  category: string;
+  logoUrl: string | null;
+  bannerUrl: string | null;
+  isOpen: boolean;
+  acceptsDelivery: boolean;
+  acceptsPickup: boolean;
+  prepTimeMin: number;
+  prepTimeMax: number;
+  deliveryFeeCents: number;
+  minOrderCents: number;
+  freeDeliveryAboveCents: number | null;
+  whatsapp: string;
+  instagram: string;
+}
+
+export interface DeliveryZone {
+  id: string;
+  store_id?: string;
+  neighborhood_name: string;
+  fee_cents: number;
+  min_order_cents: number | null;
+  estimated_min_minutes: number;
+  estimated_max_minutes: number;
+  is_active: boolean;
+}
+
 export interface PrinterSettings {
   auto_print: boolean;
   paper_width: "58mm" | "80mm";
@@ -59,9 +106,10 @@ export interface StoreSettingsData {
     accept_card: boolean;
     accept_pix: boolean;
     accept_meal_voucher: boolean;
-    business_hours: BusinessHours;
+    business_hours: BusinessHours | Record<string, any>;
     printer_settings: PrinterSettings;
   };
+  delivery_zones?: DeliveryZone[];
   billing?: {
     planCode: string;
     planName: string;

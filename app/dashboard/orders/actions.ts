@@ -201,3 +201,58 @@ export async function updateOrderItemsAction(orderId: string, items: EditableOrd
     totalAmountCents
   }
 }
+
+export interface ManualOrderInput {
+  customerName: string
+  customerPhone?: string
+  deliveryType: 'Delivery' | 'Retirada'
+  deliveryAddress?: string
+  paymentMethod: string
+  changeForCents?: number | null
+  notes?: string
+  items: Array<{
+    product_id: string
+    name: string
+    qty: number
+    unit_price_cents: number
+    details?: string
+    complements?: Array<{ name: string; price_cents: number }>
+  }>
+}
+
+/**
+ * Cria um pedido manual (balcão/telefone) usando a RPC oficial create_public_order
+ */
+export async function createManualOrderAction(input: ManualOrderInput) {
+  const { storeId, supabase } = await resolveActionContext()
+
+  const { data: store, error: storeErr } = await supabase
+    .from('stores')
+    .select('slug')
+    .eq('id', storeId)
+    .single()
+
+  if (storeErr || !store?.slug) {
+    throw new Error('Loja não encontrada')
+  }
+
+  const { data, error } = await supabase.rpc('create_public_order' as any, {
+    p_store_slug: store.slug,
+    p_customer_name: input.customerName.trim() || 'Balcão / Telefone',
+    p_customer_phone: input.customerPhone?.trim() || null,
+    p_delivery_type: input.deliveryType,
+    p_delivery_address: input.deliveryType === 'Delivery' ? input.deliveryAddress?.trim() || 'Endereço não informado' : null,
+    p_payment_method: input.paymentMethod || 'Em Dinheiro',
+    p_change_for_cents: input.changeForCents || null,
+    p_notes: input.notes?.trim() || null,
+    p_items: input.items
+  } as any)
+
+  if (error) {
+    console.error('Erro na RPC create_public_order manual:', error)
+    throw new Error(error.message || 'Erro ao criar pedido manual')
+  }
+
+  revalidatePath('/dashboard/orders')
+  return data as { success: boolean; order_id: string; order_number: number; display_id: string }
+}

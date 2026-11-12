@@ -2,6 +2,26 @@
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant short (@media (max-height: 780px));
+@custom-variant ultrashort (@media (max-height: 660px));
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
 
 /* Theme: DeliPlus Design System */
 
@@ -12,19 +32,19 @@
   --card-foreground: oklch(0.2393 0 0);
   --popover: oklch(0.9938 0.0013 106.4231);
   --popover-foreground: oklch(0.2393 0 0);
-  --primary: oklch(0.8223 0.1648 86.7192);
-  --primary-foreground: oklch(0.3407 0 0);
+  --primary: #B4482D;
+  --primary-foreground: #FFFFFF;
   --secondary: oklch(0.9700 0 0);
   --secondary-foreground: oklch(0.2686 0 0);
   --muted: oklch(0.9700 0 0);
   --muted-foreground: oklch(0.4640 0 0);
   --accent: oklch(0.9700 0 0);
-  --accent-foreground: oklch(0.5348 0.1072 86.8308);
-  --destructive: oklch(0.5770 0.2450 27.3250);
-  --destructive-foreground: oklch(1.0000 0 0);
+  --accent-foreground: #9A3B22;
+  --destructive: #C81E1E;
+  --destructive-foreground: #FFFFFF;
   --border: oklch(0.9220 0 0);
   --input: oklch(0.8852 0.0126 91.5295);
-  --ring: oklch(0.8223 0.1648 86.7192);
+  --ring: #B4482D;
   --chart-1: oklch(0.8100 0.1000 252);
   --chart-2: oklch(0.7204 0.1473 60.6715);
   --chart-3: oklch(0.6323 0.1623 252.0967);
@@ -32,12 +52,12 @@
   --chart-5: oklch(0.6759 0.1634 150.2272);
   --sidebar: oklch(0.9850 0 0);
   --sidebar-foreground: oklch(0.2178 0 0);
-  --sidebar-primary: oklch(0.8223 0.1648 86.7192);
-  --sidebar-primary-foreground: oklch(0 0 0);
+  --sidebar-primary: #2E4233;
+  --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: oklch(0.9229 0.0505 90.9613);
-  --sidebar-accent-foreground: oklch(0.5863 0.1180 86.1524);
+  --sidebar-accent-foreground: #2E4233;
   --sidebar-border: oklch(0.8723 0.0153 94.2191);
-  --sidebar-ring: oklch(0.8223 0.1648 86.7192);
+  --sidebar-ring: #B4482D;
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -48,14 +68,14 @@
   --shadow-spread: 0px;
   --shadow-opacity: 0.01;
   --shadow-color: oklch(0 0 0);
-  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.01);
-  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.01);
-  --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.01), 0 1px 2px -1px hsl(0 0% 0% / 0.01);
-  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.01), 0 1px 2px -1px hsl(0 0% 0% / 0.01);
-  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.01), 0 2px 4px -1px hsl(0 0% 0% / 0.01);
-  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.01), 0 4px 6px -1px hsl(0 0% 0% / 0.01);
-  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.01), 0 8px 10px -1px hsl(0 0% 0% / 0.01);
-  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.03);
+  --shadow-2xs: 0 1px 2px 0 rgba(46, 66, 51, 0.04);
+  --shadow-xs: 0 1px 3px 0 rgba(46, 66, 51, 0.05), 0 1px 2px -1px rgba(46, 66, 51, 0.03);
+  --shadow-sm: 0 2px 6px -1px rgba(46, 66, 51, 0.06), 0 1px 4px -1px rgba(46, 66, 51, 0.04);
+  --shadow: 0 4px 12px -2px rgba(46, 66, 51, 0.07), 0 2px 6px -1px rgba(46, 66, 51, 0.04);
+  --shadow-md: 0 6px 16px -3px rgba(46, 66, 51, 0.08), 0 2px 8px -1px rgba(46, 66, 51, 0.04);
+  --shadow-lg: 0 10px 24px -4px rgba(46, 66, 51, 0.10), 0 4px 12px -2px rgba(46, 66, 51, 0.05);
+  --shadow-xl: 0 20px 32px -6px rgba(46, 66, 51, 0.12), 0 8px 16px -3px rgba(46, 66, 51, 0.06);
+  --shadow-2xl: 0 25px 50px -12px rgba(46, 66, 51, 0.20);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 }
@@ -69,15 +89,15 @@
   --popover: #1B241E;
   --popover-foreground: #F2EFE9;
   --primary: #E76F41;
-  --primary-foreground: #FFFFFF;
+  --primary-foreground: #131A15;
   --secondary: #222C25;
   --secondary-foreground: #F2EFE9;
   --muted: #1E2721;
   --muted-foreground: #9CA79E;
   --accent: #25332A;
   --accent-foreground: #FF7D4F;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
+  --destructive: #F87171;
+  --destructive-foreground: #131A15;
   --border: #2A382E;
   --input: #243027;
   --ring: #E76F41;
@@ -89,7 +109,7 @@
   --sidebar: #17211A;
   --sidebar-foreground: #F2EFE9;
   --sidebar-primary: #E76F41;
-  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-primary-foreground: #131A15;
   --sidebar-accent: #233126;
   --sidebar-accent-foreground: #FF7D4F;
   --sidebar-border: #233026;
@@ -104,14 +124,14 @@
   --shadow-spread: 0px;
   --shadow-opacity: 0.05;
   --shadow-color: #000000;
-  --shadow-2xs: 0 1px 3px 0px rgba(0, 0, 0, 0.2);
-  --shadow-xs: 0 1px 3px 0px rgba(0, 0, 0, 0.2);
-  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
-  --shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 2px 4px -1px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-  --shadow-xl: 0 8px 10px -1px rgba(0, 0, 0, 0.35);
-  --shadow-2xl: 0 12px 20px -2px rgba(0, 0, 0, 0.4);
+  --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --shadow-xs: 0 1px 3px 0 rgba(0, 0, 0, 0.40);
+  --shadow-sm: 0 2px 6px -1px rgba(0, 0, 0, 0.45), 0 1px 4px -1px rgba(0, 0, 0, 0.30);
+  --shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.50), 0 2px 6px -1px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 6px 16px -3px rgba(0, 0, 0, 0.55), 0 2px 8px -1px rgba(0, 0, 0, 0.40);
+  --shadow-lg: 0 10px 24px -4px rgba(0, 0, 0, 0.60), 0 4px 12px -2px rgba(0, 0, 0, 0.45);
+  --shadow-xl: 0 20px 32px -6px rgba(0, 0, 0, 0.65), 0 8px 16px -3px rgba(0, 0, 0, 0.50);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
 }
 
 @theme inline {
@@ -192,46 +212,62 @@
   }
 }
 
-/* Force Clerk Card to stretch full width of our container */
-.cl-rootBox, .cl-cardBox, .cl-card {
+/* Anti-zoom iOS para dispositivos touch (inclui mobile landscape 667x375 / 844x390) */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea,
+  .deliplus-clerk-auth .cl-formFieldInput {
+    font-size: max(16px, 1rem) !important;
+  }
+}
+
+/* Force Clerk Auth Card to stretch full width inside scoped .deliplus-clerk-auth */
+.deliplus-clerk-auth .cl-rootBox,
+.deliplus-clerk-auth .cl-cardBox,
+.deliplus-clerk-auth .cl-card {
   width: 100% !important;
   max-width: 100% !important;
 }
 
-/* Hide the Ultimo uso badge aggressively */
-.cl-badge, 
-.cl-socialButtonsBlockButton .cl-badge,
-[data-localization-key="badge__lastUsed"],
-.cl-socialButtonsBlockButton [data-localization-key="badge__lastUsed"] {
+/* Hide the Ultimo uso badge aggressively within Auth screens */
+.deliplus-clerk-auth .cl-badge,
+.deliplus-clerk-auth .cl-socialButtonsBlockButton .cl-badge,
+.deliplus-clerk-auth [data-localization-key="badge__lastUsed"],
+.deliplus-clerk-auth .cl-socialButtonsBlockButton [data-localization-key="badge__lastUsed"] {
   display: none !important;
 }
 
 /* Hide any extra children in the social button (like the badge) */
-.cl-socialButtonsBlockButton > *:nth-child(3),
-.cl-socialButtonsBlockButton > *:nth-child(4) {
+.deliplus-clerk-auth .cl-socialButtonsBlockButton > *:nth-child(3),
+.deliplus-clerk-auth .cl-socialButtonsBlockButton > *:nth-child(4) {
   display: none !important;
 }
 
 /* Esconder o icone nativo > do botao do Clerk */
-.cl-formButtonPrimary svg {
+.deliplus-clerk-auth .cl-formButtonPrimary svg {
   display: none !important;
 }
-.cl-main { display: flex !important; flex-direction: column !important; }
-.cl-form { order: 1 !important; }
-.cl-dividerRow { order: 2 !important; }
-.cl-socialButtonsRoot { order: 3 !important; }
+.deliplus-clerk-auth .cl-main { display: flex !important; flex-direction: column !important; }
+.deliplus-clerk-auth .cl-form { order: 1 !important; }
+.deliplus-clerk-auth .cl-dividerRow { order: 2 !important; }
+.deliplus-clerk-auth .cl-socialButtonsRoot { order: 3 !important; }
 
-/* FIX CLERK NATIVE HEADER AND BADGES */
-.cl-header { display: none !important; }
-.cl-headerSubtitle { display: none !important; }
-.cl-headerTitle { display: none !important; }
+/* FIX CLERK NATIVE HEADER AND BADGES (Scoped to .deliplus-clerk-auth) */
+.deliplus-clerk-auth .cl-header { display: none !important; }
+.deliplus-clerk-auth .cl-headerSubtitle { display: none !important; }
+.deliplus-clerk-auth .cl-headerTitle { display: none !important; }
 
-.cl-footerAction { display: none !important; }
-.cl-internal-b3al4t { display: none !important; }
+.deliplus-clerk-auth .cl-footerAction { display: none !important; }
+.deliplus-clerk-auth .cl-internal-b3al4t { display: none !important; }
 
-.cl-footer { background-color: transparent !important; color: #666 !important; }
-.cl-footer * { color: #666 !important; }
-.cl-internal-d4j0pk, .cl-internal-r93pb5, [data-clerk-dev-mode-overlay] {
+.deliplus-clerk-auth .cl-footer { background-color: transparent !important; color: #595959 !important; }
+.deliplus-clerk-auth .cl-footer * { color: #595959 !important; }
+.dark .deliplus-clerk-auth .cl-footer,
+.dark .deliplus-clerk-auth .cl-footer * { color: #9CA79E !important; }
+.deliplus-clerk-auth .cl-internal-d4j0pk,
+.deliplus-clerk-auth .cl-internal-r93pb5,
+.deliplus-clerk-auth [data-clerk-dev-mode-overlay] {
   background-color: transparent !important;
   background: transparent !important;
 }
@@ -239,18 +275,6 @@
 ::selection {
   background-color: #CB5A3C;
   color: white;
-}
-
-/* Custom filter container: browser scrollbars completely hidden */
-.filter-scrollbar {
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.filter-scrollbar::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
 }
 
 @keyframes shake {
@@ -263,26 +287,233 @@
   animation: shake 0.4s ease-in-out;
 }
 
-/* Hide scrollbars globally across the entire site */
-html, body, div, main, aside, section, * {
+@keyframes sunSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes cloudDrift {
+  0%, 100% { transform: translateX(-4px) translateY(0); opacity: 0.55; }
+  50% { transform: translateX(4px) translateY(-1px); opacity: 0.85; }
+}
+
+@keyframes starTwinkle {
+  0%, 100% { transform: scale(0.6); opacity: 0.25; }
+  50% { transform: scale(1.25); opacity: 1; }
+}
+
+@keyframes moonGlow {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(199, 210, 254, 0.4)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 8px rgba(199, 210, 254, 0.95)); transform: scale(1.06); }
+}
+
+.sun-spinning-icon {
+  transition: transform 0.3s ease, color 0.3s ease, filter 0.3s ease;
+}
+.group:hover .sun-spinning-icon,
+button:hover .sun-spinning-icon {
+  animation: sunSpin 3.5s linear infinite !important;
+}
+
+.moon-glowing-icon {
+  animation: moonGlow 3s ease-in-out infinite !important;
+}
+
+.cloud-drifting-svg {
+  animation: cloudDrift 5s ease-in-out infinite !important;
+}
+
+.star-twinkling-1 {
+  animation: starTwinkle 2s infinite ease-in-out !important;
+}
+
+.star-twinkling-2 {
+  animation: starTwinkle 2.4s infinite ease-in-out 0.8s !important;
+}
+
+.star-twinkling-3 {
+  animation: starTwinkle 1.6s infinite ease-in-out 0.4s !important;
+}
+
+/* Desktop scrollbars (pointer: fine): finas e legíveis em Light e Dark Mode */
+@media (pointer: fine) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(46, 66, 51, 0.28) transparent;
+  }
+
+  .dark,
+  .dark * {
+    scrollbar-color: rgba(242, 239, 233, 0.24) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(46, 66, 51, 0.28);
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(46, 66, 51, 0.48);
+  }
+
+  .dark::-webkit-scrollbar-thumb,
+  .dark *::-webkit-scrollbar-thumb {
+    background-color: rgba(242, 239, 233, 0.24);
+  }
+
+  .dark::-webkit-scrollbar-thumb:hover,
+  .dark *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(242, 239, 233, 0.42);
+  }
+}
+
+/* Ocultação pontual para carrosséis/barras horizontais com navegação própria */
+.no-scrollbar,
+.filter-scrollbar {
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
 }
-
-*::-webkit-scrollbar {
+.no-scrollbar::-webkit-scrollbar,
+.filter-scrollbar::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
 }
 
-/* Safeguard for thermal printing comandas (80mm) - ALWAYS black & white */
+/* Storefront vertical scrollbar: elegante, fino e na cor laranja da logo DeliPlus */
+html.storefront-active,
+html:has([data-storefront-root]),
+.storefront-scrollbar {
+  scrollbar-width: thin !important;
+  scrollbar-color: #E76F41 transparent !important;
+}
+
+html.storefront-active.dark,
+html:has([data-storefront-root]).dark,
+.dark .storefront-scrollbar,
+html.dark .storefront-scrollbar {
+  scrollbar-color: #FF7D4F transparent !important;
+}
+
+html.storefront-active::-webkit-scrollbar,
+html:has([data-storefront-root])::-webkit-scrollbar,
+.storefront-scrollbar::-webkit-scrollbar {
+  display: block !important;
+  width: 6px !important;
+}
+
+html.storefront-active::-webkit-scrollbar-track,
+html:has([data-storefront-root])::-webkit-scrollbar-track,
+.storefront-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+html.storefront-active::-webkit-scrollbar-thumb,
+html:has([data-storefront-root])::-webkit-scrollbar-thumb,
+.storefront-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #E76F41 !important;
+  border-radius: 9999px !important;
+  border: 1px solid transparent !important;
+  background-clip: padding-box !important;
+}
+
+html.storefront-active.dark::-webkit-scrollbar-thumb,
+html:has([data-storefront-root]).dark::-webkit-scrollbar-thumb,
+.dark .storefront-scrollbar::-webkit-scrollbar-thumb,
+html.dark .storefront-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #FF7D4F !important;
+}
+
+html.storefront-active::-webkit-scrollbar-thumb:hover,
+html:has([data-storefront-root])::-webkit-scrollbar-thumb:hover,
+.storefront-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #CB5A3C !important;
+}
+
+/* Impressão: preserva cupom térmico 78mm/80mm, lista de compras e display QR sem tela em branco */
 @media print {
-  * {
-    background: transparent !important;
-    background-color: #ffffff !important;
+  @page {
+    margin: 0;
+    size: auto;
+  }
+
+  html,
+  body,
+  main,
+  [data-dashboard-scroll] {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    position: static !important;
+    background: #ffffff !important;
+  }
+
+  body:has(#thermal-receipt),
+  body:has(#print-sheet-root),
+  body:has(#store-qr-print) {
+    visibility: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body:has(#thermal-receipt) *:has(#thermal-receipt),
+  body:has(#print-sheet-root) *:has(#print-sheet-root),
+  body:has(#store-qr-print) *:has(#store-qr-print) {
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  #thermal-receipt,
+  #thermal-receipt * {
+    visibility: visible !important;
     color: #000000 !important;
-    border-color: #cccccc !important;
+    background: #ffffff !important;
+  }
+
+  #thermal-receipt {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 78mm !important;
+    max-width: 80mm !important;
+    padding: 2mm 3mm !important;
+    margin: 0 auto !important;
+    border: none !important;
     box-shadow: none !important;
-    text-shadow: none !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+
+  #print-sheet-root,
+  #print-sheet-root *,
+  #store-qr-print,
+  #store-qr-print * {
+    visibility: visible !important;
+  }
+
+  #print-sheet-root,
+  #store-qr-print {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }

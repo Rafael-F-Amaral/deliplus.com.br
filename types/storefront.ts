@@ -122,6 +122,7 @@ export interface CustomerData {
   phone: string
   whatsapp: string
   email?: string
+  receive_promotions?: boolean
   address: string
   complement?: string
   neighborhood?: string

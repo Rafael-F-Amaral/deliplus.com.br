@@ -307,7 +307,7 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     name: "Água Mineral com Gás",
     description: "Garrafa 500ml",
     price_cents: 600,
-    image_url: "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=400&h=400&q=80",
+    image_url: "https://images.unsplash.com/photo-1559839914-17aae19cec71?auto=format&fit=crop&w=400&h=400&q=80",
     tags: ["Águas", "Bebidas"],
   },
   {
@@ -317,7 +317,7 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     name: "Água Mineral sem Gás",
     description: "Garrafa 500ml",
     price_cents: 500,
-    image_url: "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=400&h=400&q=80",
+    image_url: "https://images.unsplash.com/photo-1559839914-17aae19cec71?auto=format&fit=crop&w=400&h=400&q=80",
     tags: ["Águas", "Bebidas"],
   },
   {
@@ -327,7 +327,7 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     name: "Copo de Água",
     description: "Copo 300ml",
     price_cents: 300,
-    image_url: "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=400&h=400&q=80",
+    image_url: "https://images.unsplash.com/photo-1559839914-17aae19cec71?auto=format&fit=crop&w=400&h=400&q=80",
     tags: ["Águas", "Bebidas"],
   },
   {
@@ -409,7 +409,7 @@ export const MOCK_PRODUCTS: StorefrontProduct[] = [
     name: "Cerveja Artesanal IPA",
     description: "Garrafa 355ml",
     price_cents: 1890,
-    image_url: "https://images.unsplash.com/photo-1608270199042-4e4b52b313ef?auto=format&fit=crop&w=400&h=400&q=80",
+    image_url: "https://images.unsplash.com/photo-1535958636474-b021ee887b13?auto=format&fit=crop&w=400&h=400&q=80",
     tags: ["Cervejas", "Artesanal", "Bebidas"],
   },
 

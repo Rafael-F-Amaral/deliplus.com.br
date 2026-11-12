@@ -1,257 +1,292 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
+import { useRouter } from "next/navigation";
 import {
+  ExternalLink,
+  Smartphone,
+  CheckCircle2,
+  AlertCircle,
+  X,
   Store,
   Truck,
   CreditCard,
-  BellRing,
-  Award,
-  CheckCircle2,
-  AlertCircle,
-  Copy,
-  ExternalLink,
-  Save,
-  Volume2,
-  Printer,
-  Clock,
-  Sparkles,
-  Camera,
-  MapPin,
-  Phone,
-  FileText,
-  DollarSign,
   QrCode,
-  ShieldCheck,
-  Check,
-  Download,
-  X,
-  Image as ImageIcon,
-  Trash2,
 } from "lucide-react";
-import { CoverPhotoPickerModal } from "@/components/dashboard/cover-photo-picker-modal";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import {
-  WhatsAppIcon,
-  InstagramIcon,
-  FacebookIcon,
-  YouTubeIcon,
-  TikTokIcon,
-  KwaiIcon,
-} from "@/components/ui/social-icons";
-import {
-  BusinessHours,
-  PrinterSettings,
   StoreSettingsData,
+  ModernBusinessHours,
+  StorefrontPreviewData,
 } from "./types";
 import {
   updateStoreProfile,
   updateDeliverySettings,
   updatePaymentSettings,
-  updatePrinterSettings,
   toggleStoreOpenStatus,
   uploadStoreAsset,
 } from "./actions";
+import { StorefrontPhoneMockup } from "@/components/dashboard/settings/storefront-phone-mockup";
+import { FloatingActionBar } from "@/components/dashboard/settings/floating-action-bar";
+import { StoreQrModal } from "@/components/dashboard/settings/store-qr-modal";
+import { ProfileBrandSection } from "@/components/dashboard/settings/sections/profile-brand-section";
+import { DeliveryFeesSection } from "@/components/dashboard/settings/sections/delivery-fees-section";
+import { PaymentsSection } from "@/components/dashboard/settings/sections/payments-section";
+import { normalizeBusinessHours } from "@/components/dashboard/settings/weekly-schedule-manager";
+import { PaymentSettingsState } from "@/components/dashboard/settings/payment-method-card";
 
-const CATEGORIES = [
-  "Restaurante Geral",
-  "Pizzaria",
-  "Hamburgueria",
-  "Comida Japonesa",
-  "Pastelaria",
-  "Açaí & Sorvetes",
-  "Doceria & Bolos",
-  "Marmitaria / Prato Feito",
-  "Churrascaria & Carnes",
-  "Bebidas & Distribuidora",
-  "Lanchonete & Salgados",
-  "Cafeteria & Padaria",
-  "Comida Saudável / Fit",
-];
+export type SettingsTabId = "profile" | "delivery" | "payments";
 
-const WEEK_DAYS: { key: keyof BusinessHours; label: string }[] = [
-  { key: "seg", label: "Segunda-feira" },
-  { key: "ter", label: "Terça-feira" },
-  { key: "qua", label: "Quarta-feira" },
-  { key: "qui", label: "Quinta-feira" },
-  { key: "sex", label: "Sexta-feira" },
-  { key: "sab", label: "Sábado" },
-  { key: "dom", label: "Domingo" },
-];
+interface SettingsBaselineSnapshot {
+  storeName: string;
+  bio: string;
+  category: string;
+  phone: string;
+  instagram: string;
+  address: string;
+  logoUrl: string | null;
+  bannerUrl: string | null;
+  acceptsDelivery: boolean;
+  acceptsPickup: boolean;
+  prepMin: string;
+  prepMax: string;
+  minOrder: string;
+  deliveryFee: string;
+  freeDeliveryAbove: string;
+  businessHours: ModernBusinessHours;
+  paymentState: PaymentSettingsState;
+}
+
+function createSnapshotFromInitial(data: StoreSettingsData): SettingsBaselineSnapshot {
+  return {
+    storeName: data.store.name,
+    bio: data.delivery.bio || "",
+    category: data.delivery.category || "Restaurante Geral",
+    phone: data.delivery.social_links?.whatsapp || data.delivery.phone || "",
+    instagram: data.delivery.social_links?.instagram || data.delivery.instagram || "",
+    address: data.delivery.address || "",
+    logoUrl: data.delivery.logo_url,
+    bannerUrl: data.delivery.banner_url,
+    acceptsDelivery: data.delivery.accepts_delivery,
+    acceptsPickup: data.delivery.accepts_pickup,
+    prepMin: data.delivery.default_prep_min.toString(),
+    prepMax: data.delivery.default_prep_max.toString(),
+    minOrder: (data.delivery.min_order_cents / 100).toFixed(2).replace(".", ","),
+    deliveryFee: (data.delivery.delivery_fee_cents / 100).toFixed(2).replace(".", ","),
+    freeDeliveryAbove: data.delivery.free_delivery_above_cents
+      ? (data.delivery.free_delivery_above_cents / 100).toFixed(2).replace(".", ",")
+      : "",
+    businessHours: normalizeBusinessHours(data.delivery.business_hours),
+    paymentState: {
+      acceptPix: data.delivery.accept_pix,
+      pixKey: data.delivery.pix_key || "",
+      pixKeyType: data.delivery.pix_key_type || "cpf",
+      acceptCard: data.delivery.accept_card,
+      acceptCash: data.delivery.accept_cash,
+      needChangeOption: data.delivery.need_change_option,
+      acceptMealVoucher: data.delivery.accept_meal_voucher,
+    },
+  };
+}
 
 export default function SettingsClient({
   initialData,
 }: {
   initialData: StoreSettingsData;
 }) {
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "schedule" | "payment" | "printer" | "plan"
-  >("overview");
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<SettingsTabId>("profile");
+  const [showStudioDrawer, setShowStudioDrawer] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
 
-  // Feedback states
+  const [savedSnapshot, setSavedSnapshot] = useState<SettingsBaselineSnapshot>(() =>
+    createSnapshotFromInitial(initialData)
+  );
+
+  useEffect(() => {
+    if (!showStudioDrawer) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowStudioDrawer(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showStudioDrawer]);
+
+  // Toast feedback
   const [toastMessage, setToastMessage] = useState<{
     text: string;
     type: "success" | "error";
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
-  const [copiedPix, setCopiedPix] = useState(false);
-  const [showPrintModal, setShowPrintModal] = useState(false);
-
-  // Perfil da Loja
-  const [storeName, setStoreName] = useState(initialData.store.name);
-  const [bio, setBio] = useState(
-    initialData.delivery.bio ||
-      "Os melhores sabores preparados com ingredientes selecionados e entrega rápida na sua casa."
-  );
-  const [category, setCategory] = useState(
-    initialData.delivery.category || "Restaurante Geral"
-  );
-  const [phone, setPhone] = useState(
-    initialData.delivery.social_links?.whatsapp || initialData.delivery.phone || ""
-  );
-  const [instagram, setInstagram] = useState(
-    initialData.delivery.social_links?.instagram || initialData.delivery.instagram || ""
-  );
-  const [facebook, setFacebook] = useState(
-    initialData.delivery.social_links?.facebook || ""
-  );
-  const [youtube, setYouTube] = useState(
-    initialData.delivery.social_links?.youtube || ""
-  );
-  const [tiktok, setTikTok] = useState(
-    initialData.delivery.social_links?.tiktok || ""
-  );
-  const [kwai, setKwai] = useState(
-    initialData.delivery.social_links?.kwai || ""
-  );
-  const [address, setAddress] = useState(initialData.delivery.address || "");
-  const [logoUrl, setLogoUrl] = useState<string | null>(
-    initialData.delivery.logo_url
-  );
-  const [bannerUrl, setBannerUrl] = useState<string | null>(
-    initialData.delivery.banner_url
-  );
-  const [showCoverPickerModal, setShowCoverPickerModal] = useState(false);
-
-  // Delivery & Operação
-  const [isOpen, setIsOpen] = useState(
-    initialData.delivery.is_open_override ?? true
-  );
-  const [acceptsDelivery, setAcceptsDelivery] = useState(
-    initialData.delivery.accepts_delivery
-  );
-  const [acceptsPickup, setAcceptsPickup] = useState(
-    initialData.delivery.accepts_pickup
-  );
-  const [prepMin, setPrepMin] = useState(
-    initialData.delivery.default_prep_min.toString()
-  );
-  const [prepMax, setPrepMax] = useState(
-    initialData.delivery.default_prep_max.toString()
-  );
-  const [minOrder, setMinOrder] = useState(
-    (initialData.delivery.min_order_cents / 100).toFixed(2).replace(".", ",")
-  );
-  const [deliveryFee, setDeliveryFee] = useState(
-    (initialData.delivery.delivery_fee_cents / 100).toFixed(2).replace(".", ",")
-  );
-  const [freeDeliveryAbove, setFreeDeliveryAbove] = useState(
-    initialData.delivery.free_delivery_above_cents
-      ? (initialData.delivery.free_delivery_above_cents / 100)
-          .toFixed(2)
-          .replace(".", ",")
-      : ""
-  );
-  const [businessHours, setBusinessHours] = useState<BusinessHours>(
-    initialData.delivery.business_hours
-  );
-
-  // Pagamentos & Pix
-  const [pixKey, setPixKey] = useState(initialData.delivery.pix_key || "");
-  const [pixKeyType, setPixKeyType] = useState(
-    initialData.delivery.pix_key_type || "cpf"
-  );
-  const [acceptCash, setAcceptCash] = useState(
-    initialData.delivery.accept_cash
-  );
-  const [needChangeOption, setNeedChangeOption] = useState(
-    initialData.delivery.need_change_option
-  );
-  const [acceptCard, setAcceptCard] = useState(
-    initialData.delivery.accept_card
-  );
-  const [acceptPix, setAcceptPix] = useState(initialData.delivery.accept_pix);
-  const [acceptMealVoucher, setAcceptMealVoucher] = useState(
-    initialData.delivery.accept_meal_voucher
-  );
-
-  // Alertas & Impressão
-  const [printerSettings, setPrinterSettings] = useState<PrinterSettings>(
-    initialData.delivery.printer_settings
-  );
 
   const showToast = (text: string, type: "success" | "error" = "success") => {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  // 1. Estados de Vitrine & Contato
+  const [storeName, setStoreName] = useState(savedSnapshot.storeName);
+  const [bio, setBio] = useState(savedSnapshot.bio);
+  const [category, setCategory] = useState(savedSnapshot.category);
+  const [phone, setPhone] = useState(savedSnapshot.phone);
+  const [instagram, setInstagram] = useState(savedSnapshot.instagram);
+  const [address, setAddress] = useState(savedSnapshot.address);
+  const [logoUrl, setLogoUrl] = useState<string | null>(savedSnapshot.logoUrl);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(savedSnapshot.bannerUrl);
+  const [showCoverPickerModal, setShowCoverPickerModal] = useState(false);
+
+  // 2. Estados de Entrega & Horários
+  const [isOpen, setIsOpen] = useState(initialData.delivery.is_open_override ?? true);
+  const [acceptsDelivery, setAcceptsDelivery] = useState(savedSnapshot.acceptsDelivery);
+  const [acceptsPickup, setAcceptsPickup] = useState(savedSnapshot.acceptsPickup);
+  const [prepMin, setPrepMin] = useState(savedSnapshot.prepMin);
+  const [prepMax, setPrepMax] = useState(savedSnapshot.prepMax);
+  const [minOrder, setMinOrder] = useState(savedSnapshot.minOrder);
+  const [deliveryFee, setDeliveryFee] = useState(savedSnapshot.deliveryFee);
+  const [freeDeliveryAbove, setFreeDeliveryAbove] = useState(
+    savedSnapshot.freeDeliveryAbove
+  );
+  const [businessHours, setBusinessHours] = useState<ModernBusinessHours>(
+    savedSnapshot.businessHours
+  );
+
+  // 3. Pagamentos & Pix
+  const [paymentState, setPaymentState] = useState<PaymentSettingsState>(
+    savedSnapshot.paymentState
+  );
+
+  // Parsing monetário
   const parseCurrencyInput = (val: string): number => {
     const clean = val.replace(/[^\d,.-]/g, "").replace(",", ".");
     const num = parseFloat(clean);
     return isNaN(num) ? 0 : Math.round(num * 100);
   };
 
-  const playTestAlertSound = () => {
-    try {
-      const AudioCtx =
-        window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+  // Cálculo de Dirty State (inclui horários semanais!)
+  const dirtyChanges = useMemo(() => {
+    const changes: string[] = [];
+    if (storeName !== savedSnapshot.storeName) changes.push("storeName");
+    if (bio !== savedSnapshot.bio) changes.push("bio");
+    if (category !== savedSnapshot.category) changes.push("category");
+    if (phone !== savedSnapshot.phone) changes.push("phone");
+    if (instagram !== savedSnapshot.instagram) changes.push("instagram");
+    if (address !== savedSnapshot.address) changes.push("address");
+    if (logoUrl !== savedSnapshot.logoUrl) changes.push("logoUrl");
+    if (bannerUrl !== savedSnapshot.bannerUrl) changes.push("bannerUrl");
+    if (acceptsDelivery !== savedSnapshot.acceptsDelivery) changes.push("acceptsDelivery");
+    if (acceptsPickup !== savedSnapshot.acceptsPickup) changes.push("acceptsPickup");
+    if (prepMin !== savedSnapshot.prepMin) changes.push("prepMin");
+    if (prepMax !== savedSnapshot.prepMax) changes.push("prepMax");
+    if (minOrder !== savedSnapshot.minOrder) changes.push("minOrder");
+    if (deliveryFee !== savedSnapshot.deliveryFee) changes.push("deliveryFee");
+    if (freeDeliveryAbove !== savedSnapshot.freeDeliveryAbove) {
+      changes.push("freeDeliveryAbove");
+    }
 
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = "sine";
-      osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
-      gain1.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      osc1.start(ctx.currentTime);
-      osc1.stop(ctx.currentTime + 0.35);
+    if (
+      JSON.stringify(normalizeBusinessHours(businessHours)) !==
+      JSON.stringify(normalizeBusinessHours(savedSnapshot.businessHours))
+    ) {
+      changes.push("businessHours");
+    }
 
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = "sine";
-      osc2.frequency.setValueAtTime(880.0, ctx.currentTime + 0.18);
-      gain2.gain.setValueAtTime(0.4, ctx.currentTime + 0.18);
-      gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start(ctx.currentTime + 0.18);
-      osc2.stop(ctx.currentTime + 0.6);
+    if (paymentState.acceptPix !== savedSnapshot.paymentState.acceptPix) {
+      changes.push("acceptPix");
+    }
+    if (paymentState.pixKey !== savedSnapshot.paymentState.pixKey) {
+      changes.push("pixKey");
+    }
+    if (paymentState.pixKeyType !== savedSnapshot.paymentState.pixKeyType) {
+      changes.push("pixKeyType");
+    }
+    if (paymentState.acceptCard !== savedSnapshot.paymentState.acceptCard) {
+      changes.push("acceptCard");
+    }
+    if (paymentState.acceptCash !== savedSnapshot.paymentState.acceptCash) {
+      changes.push("acceptCash");
+    }
 
-      showToast("Alerta sonoro testado! 🔔");
-    } catch (e) {
-      console.warn("Falha ao tocar som Web Audio:", e);
+    return changes;
+  }, [
+    storeName,
+    bio,
+    category,
+    phone,
+    instagram,
+    address,
+    logoUrl,
+    bannerUrl,
+    acceptsDelivery,
+    acceptsPickup,
+    prepMin,
+    prepMax,
+    minOrder,
+    deliveryFee,
+    freeDeliveryAbove,
+    businessHours,
+    paymentState,
+    savedSnapshot,
+  ]);
+
+  const isDirty = dirtyChanges.length > 0;
+
+  // Descartar alterações
+  const handleDiscardChanges = () => {
+    setStoreName(savedSnapshot.storeName);
+    setBio(savedSnapshot.bio);
+    setCategory(savedSnapshot.category);
+    setPhone(savedSnapshot.phone);
+    setInstagram(savedSnapshot.instagram);
+    setAddress(savedSnapshot.address);
+    setLogoUrl(savedSnapshot.logoUrl);
+    setBannerUrl(savedSnapshot.bannerUrl);
+    setAcceptsDelivery(savedSnapshot.acceptsDelivery);
+    setAcceptsPickup(savedSnapshot.acceptsPickup);
+    setPrepMin(savedSnapshot.prepMin);
+    setPrepMax(savedSnapshot.prepMax);
+    setMinOrder(savedSnapshot.minOrder);
+    setDeliveryFee(savedSnapshot.deliveryFee);
+    setFreeDeliveryAbove(savedSnapshot.freeDeliveryAbove);
+    setBusinessHours(savedSnapshot.businessHours);
+    setPaymentState(savedSnapshot.paymentState);
+    showToast("Alterações descartadas! Valores anteriores restaurados.");
+  };
+
+  // Upload instantâneo com URL.createObjectURL para latência 0ms
+  const handleUploadImage = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "logo" | "banner"
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const localBlobUrl = URL.createObjectURL(file);
+    if (type === "logo") setLogoUrl(localBlobUrl);
+    else setBannerUrl(localBlobUrl);
+
+    showToast(`Enviando ${type === "logo" ? "logotipo" : "capa"}...`);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("type", type);
+
+    const res = await uploadStoreAsset(formData);
+    if (res.success && res.url) {
+      if (type === "logo") setLogoUrl(res.url);
+      else setBannerUrl(res.url);
+      URL.revokeObjectURL(localBlobUrl);
+      showToast(
+        `${type === "logo" ? "Logotipo" : "Capa"} carregada! Clique em Salvar para confirmar.`
+      );
+    } else {
+      showToast(res.error || "Erro no upload da imagem.", "error");
     }
   };
 
-  const checklist = [
-    { label: "Nome do estabelecimento", ok: !!storeName.trim() },
-    { label: "Segmento culinário", ok: !!category.trim() },
-    { label: "WhatsApp de atendimento", ok: !!phone.trim() },
-    { label: "Endereço físico informado", ok: !!address.trim() },
-    { label: "Chave Pix para recebimento", ok: !!pixKey.trim() },
-    { label: "Regras de taxa e delivery", ok: acceptsDelivery || acceptsPickup },
-    { label: "Logo oficial da loja", ok: !!logoUrl },
-    { label: "Banner de capa da vitrine", ok: !!bannerUrl },
-  ];
-  const completedCount = checklist.filter((item) => item.ok).length;
-  const healthPercent = Math.round((completedCount / checklist.length) * 100);
-
-  // Ação mestre de salvar (Salva Perfil + Delivery + Pagamentos)
+  // Salvar todas as configurações ativas
   const handleSaveAll = async () => {
     setIsSaving(true);
     const minOrderCents = parseCurrencyInput(minOrder);
@@ -259,6 +294,7 @@ export default function SettingsClient({
     const freeDeliveryCents = freeDeliveryAbove
       ? parseCurrencyInput(freeDeliveryAbove)
       : null;
+    const normalizedHours = normalizeBusinessHours(businessHours);
 
     const [resProfile, resDelivery, resPayment] = await Promise.all([
       updateStoreProfile({
@@ -273,10 +309,6 @@ export default function SettingsClient({
         social_links: {
           whatsapp: phone,
           instagram,
-          facebook,
-          youtube,
-          tiktok,
-          kwai,
         },
       }),
       updateDeliverySettings({
@@ -288,1542 +320,370 @@ export default function SettingsClient({
         free_delivery_above_cents: freeDeliveryCents,
         default_prep_min: parseInt(prepMin, 10) || 30,
         default_prep_max: parseInt(prepMax, 10) || 50,
-        business_hours: businessHours,
+        business_hours: normalizedHours as unknown as Parameters<
+          typeof updateDeliverySettings
+        >[0]["business_hours"],
       }),
       updatePaymentSettings({
-        pix_key: pixKey,
-        pix_key_type: pixKeyType,
-        accept_cash: acceptCash,
-        need_change_option: needChangeOption,
-        accept_card: acceptCard,
-        accept_pix: acceptPix,
-        accept_meal_voucher: acceptMealVoucher,
+        pix_key: paymentState.pixKey,
+        pix_key_type: paymentState.pixKeyType,
+        accept_cash: paymentState.acceptCash,
+        need_change_option: paymentState.needChangeOption,
+        accept_card: paymentState.acceptCard,
+        accept_pix: paymentState.acceptPix,
+        accept_meal_voucher: paymentState.acceptMealVoucher,
       }),
     ]);
 
     setIsSaving(false);
 
     if (resProfile.success && resDelivery.success && resPayment.success) {
-      showToast("Todas as configurações da loja foram salvas! 🎉");
+      setSavedSnapshot({
+        storeName,
+        bio,
+        category,
+        phone,
+        instagram,
+        address,
+        logoUrl,
+        bannerUrl,
+        acceptsDelivery,
+        acceptsPickup,
+        prepMin,
+        prepMax,
+        minOrder,
+        deliveryFee,
+        freeDeliveryAbove,
+        businessHours: normalizedHours,
+        paymentState: { ...paymentState },
+      });
+      showToast("Configurações da loja salvas!");
+      router.refresh();
     } else {
       showToast(
-        resProfile.error || resDelivery.error || resPayment.error || "Erro ao salvar alterações.",
+        resProfile.error ||
+          resDelivery.error ||
+          resPayment.error ||
+          "Erro ao salvar alterações.",
         "error"
       );
     }
   };
 
+  // Toggle status aberto/fechado (salvamento imediato)
   const handleToggleStoreStatus = async (newStatus: boolean) => {
     setIsOpen(newStatus);
     const res = await toggleStoreOpenStatus(newStatus);
     if (res.success) {
       showToast(
-        newStatus ? "Loja aberta para pedidos! 🟢" : "Loja fechada temporariamente! 🔴"
+        newStatus ? "Loja aberta para pedidos!" : "Loja pausada temporariamente."
       );
+      router.refresh();
     } else {
       setIsOpen(!newStatus);
       showToast(res.error || "Erro ao alternar status.", "error");
     }
   };
 
-  const handleUploadImage = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: "logo" | "banner"
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("type", type);
-
-    showToast(`Enviando ${type === "logo" ? "logo" : "capa"}...`);
-    const res = await uploadStoreAsset(formData);
-    if (res.success && res.url) {
-      if (type === "logo") setLogoUrl(res.url);
-      else setBannerUrl(res.url);
-      showToast(
-        `${type === "logo" ? "Logo" : "Capa"} carregada! Clique em Salvar Alterações para confirmar.`
-      );
-    } else {
-      showToast(res.error || "Erro no upload da imagem.", "error");
-    }
+  // Dados reativos para o Live Phone Mockup
+  const previewData: StorefrontPreviewData = {
+    name: storeName,
+    slug: initialData.store.slug,
+    bio,
+    category,
+    logoUrl,
+    bannerUrl,
+    isOpen,
+    acceptsDelivery,
+    acceptsPickup,
+    prepTimeMin: parseInt(prepMin, 10) || 30,
+    prepTimeMax: parseInt(prepMax, 10) || 50,
+    deliveryFeeCents: parseCurrencyInput(deliveryFee),
+    minOrderCents: parseCurrencyInput(minOrder),
+    freeDeliveryAboveCents: freeDeliveryAbove ? parseCurrencyInput(freeDeliveryAbove) : null,
+    whatsapp: phone,
+    instagram,
   };
 
-  const downloadQRCode = () => {
-    const canvas = document.getElementById("store-qr-canvas") as HTMLCanvasElement;
-    if (!canvas) return;
-    const pngUrl = canvas.toDataURL("image/png");
-    const downloadLink = document.createElement("a");
-    downloadLink.href = pngUrl;
-    downloadLink.download = `qrcode-${initialData.store.slug}.png`;
-    downloadLink.click();
-    showToast("QR Code baixado com sucesso! 📥");
-  };
-
-  const publicUrl = `/${initialData.store.slug}`;
-  const fullPublicUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${publicUrl}`
-      : `https://deliplus.com.br${publicUrl}`;
+  const tabsConfig = [
+    {
+      id: "profile" as const,
+      label: "Vitrine & Contato",
+      icon: Store,
+    },
+    {
+      id: "delivery" as const,
+      label: "Entrega & Horários",
+      icon: Truck,
+      badge: (
+        <span
+          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+            isOpen
+              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+              : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
+          }`}
+        >
+          {isOpen ? "Aberta" : "Fechada"}
+        </span>
+      ),
+    },
+    {
+      id: "payments" as const,
+      label: "Pagamentos",
+      icon: CreditCard,
+      badge: paymentState.pixKey.trim() ? (
+        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+          ✓ Pix
+        </span>
+      ) : (
+        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400">
+          Sem Pix
+        </span>
+      ),
+    },
+  ];
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto p-4 lg:p-6 flex flex-col gap-5 min-h-[calc(100vh-64px)]">
-      {/* Toast Feedback */}
+    <div className="w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6 min-h-[calc(100dvh-64px)] pb-32">
+      {/* TOAST DE FEEDBACK */}
       {toastMessage && (
         <div
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border transition-all text-xs font-bold animate-in fade-in slide-in-from-bottom-3 ${
+          role="status"
+          className={`fixed top-5 left-1/2 -translate-x-1/2 lg:left-[calc(50%+var(--sidebar-w,260px)/2)] w-[calc(100vw-2rem)] sm:w-auto sm:max-w-md z-[55] flex items-center gap-2 px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold animate-in fade-in slide-in-from-top-4 duration-300 print:hidden ${
             toastMessage.type === "success"
-              ? "bg-[#2E4233] text-white border-[#2E4233]"
-              : "bg-red-600 text-white border-red-700"
+              ? "bg-[#2E4233] text-white border border-emerald-500/30"
+              : "bg-red-700 text-white border border-red-500/30"
           }`}
         >
           {toastMessage.type === "success" ? (
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           ) : (
-            <AlertCircle className="w-4 h-4 text-white shrink-0" />
+            <AlertCircle className="w-4 h-4 text-red-200 shrink-0" />
           )}
           <span>{toastMessage.text}</span>
         </div>
       )}
 
-      {/* Modal de Impressão da Placa de Balcão / Mesa */}
-      {showPrintModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E9E4D4] space-y-4">
-            <div className="flex items-center justify-between border-b pb-3 border-[#ECEAE2]">
-              <h3 className="font-black text-base text-[#111827]">
-                Plaquinha de Balcão & Mesa
-              </h3>
+      {/* CABEÇALHO DE "MINHA LOJA" */}
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-border/80 print:hidden">
+        <div>
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            <h1 className="font-serif text-2xl lg:text-3xl font-bold tracking-tight text-[#1A241E] dark:text-[#F2EFE9]">
+              Minha Loja
+            </h1>
+            <HelpTooltip
+              title="Gestão da Vitrine & Operação"
+              description="Gerencie sua vitrine, regras de entrega, horários semanais e pagamentos em 3 áreas simples."
+              tip="Use Pré-visualizar Vitrine para conferir o cardápio ao vivo no celular antes de salvar."
+            />
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                isOpen
+                  ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20"
+                  : "bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20"
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isOpen ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                }`}
+              />
+              {isOpen ? "Aberta para Pedidos" : "Fechada Temporariamente"}
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Configure identidade da vitrine, operação de entrega, horários e formas de recebimento.
+          </p>
+        </div>
+
+        {/* AÇÕES RÁPIDAS */}
+        <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
+          <button
+            type="button"
+            onClick={() => setShowQrModal(true)}
+            className="flex items-center gap-1.5 min-h-9 px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[#1B241E] border border-border text-foreground hover:bg-[#FAF8F0] dark:hover:bg-[#25332A] transition-colors shadow-2xs cursor-pointer"
+          >
+            <QrCode className="w-4 h-4 text-[#B4482D] dark:text-[#FF7D4F]" />
+            <span>QR Code</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowStudioDrawer(true)}
+            className="flex items-center gap-2 min-h-9 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[#1B241E] border border-border text-foreground hover:bg-[#FAF8F0] dark:hover:bg-[#25332A] transition-all shadow-2xs cursor-pointer group"
+          >
+            <Smartphone className="w-4 h-4 text-[#B4482D] dark:text-[#FF7D4F] group-hover:scale-110 transition-transform" />
+            <span>Pré-visualizar Vitrine</span>
+          </button>
+
+          <Link
+            href={`/${initialData.store.slug}`}
+            target="_blank"
+            className="flex items-center gap-1.5 min-h-9 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#2E4233] text-white hover:bg-[#25352A] transition-colors shadow-2xs"
+          >
+            <span>Ver Vitrine Pública</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </header>
+
+      {/* 3 ABAS PRINCIPAIS */}
+      <div className="relative print:hidden">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar sm:flex-wrap p-1.5 pr-8 sm:pr-1.5 rounded-2xl bg-[#F5F1E6] dark:bg-[#162019] border border-[#E5DFD1] dark:border-[#28382D]">
+          {tabsConfig.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 min-h-9 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                  isActive
+                    ? "bg-white dark:bg-[#243329] text-[#2E4233] dark:text-[#F2EFE9] shadow-xs border border-[#E2DDD0] dark:border-[#344638]"
+                    : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                }`}
+              >
+                <Icon
+                  className={`w-4 h-4 ${
+                    isActive ? "text-[#B4482D] dark:text-[#FF7D4F]" : "text-muted-foreground"
+                  }`}
+                />
+                <span>{tab.label}</span>
+                {tab.badge && <span className="ml-0.5">{tab.badge}</span>}
+              </button>
+            );
+          })}
+        </div>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 rounded-r-2xl bg-gradient-to-l from-[#F5F1E6] dark:from-[#162019] to-transparent sm:hidden"
+        />
+      </div>
+
+      {/* CONTEÚDO DA ABA SELECIONADA */}
+      <section aria-label="Configurações da loja" className="w-full min-w-0 print:hidden">
+        {activeTab === "profile" && (
+          <ProfileBrandSection
+            storeName={storeName}
+            setStoreName={setStoreName}
+            category={category}
+            setCategory={setCategory}
+            bio={bio}
+            setBio={setBio}
+            address={address}
+            setAddress={setAddress}
+            phone={phone}
+            setPhone={setPhone}
+            instagram={instagram}
+            setInstagram={setInstagram}
+            logoUrl={logoUrl}
+            setLogoUrl={setLogoUrl}
+            bannerUrl={bannerUrl}
+            setBannerUrl={setBannerUrl}
+            onUploadImage={handleUploadImage}
+            showCoverPickerModal={showCoverPickerModal}
+            setShowCoverPickerModal={setShowCoverPickerModal}
+          />
+        )}
+
+        {activeTab === "delivery" && (
+          <DeliveryFeesSection
+            isOpen={isOpen}
+            onToggleStatus={handleToggleStoreStatus}
+            acceptsDelivery={acceptsDelivery}
+            setAcceptsDelivery={setAcceptsDelivery}
+            acceptsPickup={acceptsPickup}
+            setAcceptsPickup={setAcceptsPickup}
+            prepMin={prepMin}
+            setPrepMin={setPrepMin}
+            prepMax={prepMax}
+            setPrepMax={setPrepMax}
+            deliveryFee={deliveryFee}
+            setDeliveryFee={setDeliveryFee}
+            minOrder={minOrder}
+            setMinOrder={setMinOrder}
+            freeDeliveryAbove={freeDeliveryAbove}
+            setFreeDeliveryAbove={setFreeDeliveryAbove}
+            businessHours={businessHours}
+            onChangeHours={setBusinessHours}
+            onToast={showToast}
+          />
+        )}
+
+        {activeTab === "payments" && (
+          <PaymentsSection
+            state={paymentState}
+            onChange={setPaymentState}
+            onToast={showToast}
+          />
+        )}
+      </section>
+
+      {/* MODAL DE QR CODE DA VITRINE */}
+      <StoreQrModal
+        isOpen={showQrModal}
+        onClose={() => setShowQrModal(false)}
+        storeName={storeName}
+        storeSlug={initialData.store.slug}
+        onToast={showToast}
+      />
+
+      {/* GAVETA / DRAWER SLIDE-OVER DO LIVE STUDIO (IPHONE 15 PRO) */}
+      {showStudioDrawer && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Studio da Vitrine ao Vivo"
+          className="fixed inset-0 z-[60] flex items-center justify-end overflow-hidden bg-black/55 backdrop-blur-xs animate-in fade-in duration-200 print:hidden"
+        >
+          <div
+            className="absolute inset-0 cursor-pointer"
+            onClick={() => setShowStudioDrawer(false)}
+          />
+
+          <div className="relative z-10 h-full w-full max-w-md bg-card border-l border-border shadow-2xl p-3 sm:p-6 ultrashort:py-3 ultrashort:px-4 flex flex-col items-center justify-between overflow-y-auto no-scrollbar animate-in slide-in-from-right duration-300 pb-safe">
+            <div className="w-full shrink-0 flex items-center justify-between gap-2 pb-3 ultrashort:pb-2 border-b border-border/80 mb-3 ultrashort:mb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <h3 className="font-serif font-bold text-base text-foreground truncate">
+                  Studio da Vitrine ao Vivo
+                </h3>
+              </div>
+
               <button
                 type="button"
-                onClick={() => setShowPrintModal(false)}
-                className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 cursor-pointer"
+                onClick={() => setShowStudioDrawer(false)}
+                aria-label="Fechar Studio da Vitrine"
+                className="min-h-9 min-w-9 flex items-center justify-center p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
+                title="Fechar Studio"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Template da Plaquinha para Impressão */}
-            <div
-              id="printable-tent"
-              className="p-6 rounded-2xl border-2 border-dashed border-[#CB5A3C] bg-[#FAF8F0] flex flex-col items-center text-center space-y-3"
-            >
-              <div className="w-12 h-12 rounded-full bg-white border border-[#E9E4D4] shadow-xs flex items-center justify-center overflow-hidden">
-                {logoUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                ) : (
-                  <Store className="w-6 h-6 text-[#2E4233]" />
-                )}
-              </div>
-
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-[#CB5A3C] block">
-                  Cardápio Digital Oficial
-                </span>
-                <h4 className="text-lg font-black text-[#111827]">{storeName}</h4>
-              </div>
-
-              <div className="p-3 bg-white rounded-xl shadow-xs border border-[#E9E4D4]">
-                <QRCodeSVG value={fullPublicUrl} size={150} level="H" />
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-[#2E4233]">
-                  Aponte a câmera do seu celular
-                </p>
-                <p className="text-[11px] text-[#637267]">
-                  Acesse nosso cardápio completo, veja fotos e faça seu pedido direto!
-                </p>
-                <span className="text-[10px] font-mono text-gray-400 block pt-1">
-                  deliplus.com.br{publicUrl}
-                </span>
-              </div>
+            <div className="w-full flex-1 flex items-center justify-center py-2 ultrashort:py-1">
+              <StorefrontPhoneMockup data={previewData} isDirty={isDirty} />
             </div>
 
-            <div className="flex items-center gap-2 justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setShowPrintModal(false)}
-                className="px-3.5 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl cursor-pointer"
-              >
-                Fechar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  window.print();
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-xs transition-colors cursor-pointer"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Imprimir Plaquinha</span>
-              </button>
+            <div className="w-full shrink-0 pt-3 ultrashort:pt-2 border-t border-border/80 text-center text-xs text-muted-foreground">
+              Qualquer alteração digitada é refletida instantaneamente na prévia.
             </div>
           </div>
         </div>
       )}
 
-      {/* Barra de Navegação e Ações Rápidas */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#E9E4D4] pb-2.5">
-        {/* Abas */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setActiveTab("overview")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === "overview"
-                ? "bg-[#2E4233] text-white shadow-xs"
-                : "bg-white text-[#637267] border border-[#E9E4D4] hover:bg-[#FAF8F0]"
-            }`}
-          >
-            <Store className="w-3.5 h-3.5" />
-            <span>Minha Vitrine & Perfil</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("schedule")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === "schedule"
-                ? "bg-[#2E4233] text-white shadow-xs"
-                : "bg-white text-[#637267] border border-[#E9E4D4] hover:bg-[#FAF8F0]"
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Horários da Semana</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("payment")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === "payment"
-                ? "bg-[#2E4233] text-white shadow-xs"
-                : "bg-white text-[#637267] border border-[#E9E4D4] hover:bg-[#FAF8F0]"
-            }`}
-          >
-            <CreditCard className="w-3.5 h-3.5" />
-            <span>Formas de Pagamento</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("printer")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === "printer"
-                ? "bg-[#2E4233] text-white shadow-xs"
-                : "bg-white text-[#637267] border border-[#E9E4D4] hover:bg-[#FAF8F0]"
-            }`}
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Impressão & Cozinha</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("plan")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === "plan"
-                ? "bg-[#2E4233] text-white shadow-xs"
-                : "bg-white text-[#637267] border border-[#E9E4D4] hover:bg-[#FAF8F0]"
-            }`}
-          >
-            <Award className="w-3.5 h-3.5" />
-            <span>Plano & Diagnóstico</span>
-            <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-[#CB5A3C] text-white">
-              {healthPercent}%
-            </span>
-          </button>
-        </div>
-
-        {/* Ações Rápidas Direitas */}
-        <div className="flex items-center gap-2 shrink-0 self-end lg:self-center">
-          {/* Status Loja Aberta/Fechada */}
-          <button
-            type="button"
-            onClick={() => handleToggleStoreStatus(!isOpen)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-              isOpen
-                ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
-                : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-            }`}
-            title="Alternar entre loja aberta e fechada"
-          >
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isOpen ? "bg-emerald-500 animate-pulse" : "bg-red-500"
-              }`}
-            />
-            <span>{isOpen ? "Loja Aberta" : "Loja Fechada"}</span>
-          </button>
-
-          {/* Ver Vitrine */}
-          <Link
-            href={publicUrl}
-            target="_blank"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-[#2E4233] border border-[#E9E4D4] hover:bg-[#FAF8F0] transition-colors cursor-pointer"
-          >
-            <span>Ver Vitrine</span>
-            <ExternalLink className="w-3.5 h-3.5 text-[#637267]" />
-          </Link>
-
-          {/* Botão Mestre Salvar */}
-          <button
-            type="button"
-            onClick={handleSaveAll}
-            disabled={isSaving}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>{isSaving ? "Salvando..." : "Salvar Alterações"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Canvas escondido para download do QR Code */}
-      <div className="hidden">
-        <QRCodeCanvas
-          id="store-qr-canvas"
-          value={fullPublicUrl}
-          size={500}
-          level="H"
-          includeMargin={true}
-        />
-      </div>
-
-      {/* ================================================================ */}
-      {/* ABA 1: MINHA VITRINE & PERFIL                                    */}
-      {/* ================================================================ */}
-      {activeTab === "overview" && (
-        <div className="space-y-4 animate-in fade-in duration-200">
-          {/* Card de Controle: Abrir e Fechar Loja */}
-          <div className="bg-white rounded-2xl border border-[#E9E4D4] p-4 sm:p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${
-                  isOpen
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : "bg-red-50 text-red-600 border-red-200"
-                }`}
-              >
-                <Store className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-[#1A241E]">
-                    {isOpen ? "Sua Loja está Aberta para Pedidos" : "Sua Loja está Fechada"}
-                  </h3>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                      isOpen
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {isOpen ? "Online" : "Pausada"}
-                  </span>
-                </div>
-                <p className="text-xs text-[#637267] mt-0.5">
-                  {isOpen
-                    ? "O link público da loja está ativo e recebendo pedidos normalmente."
-                    : "O link da loja está exibindo a imagem de aviso e que a loja está fechada temporariamente."}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-              <button
-                type="button"
-                onClick={() => handleToggleStoreStatus(!isOpen)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2 ${
-                  isOpen
-                    ? "bg-red-50 text-red-700 border border-red-300 hover:bg-red-100"
-                    : "bg-[#2E4233] text-white hover:bg-[#233327]"
-                }`}
-              >
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    isOpen ? "bg-red-500" : "bg-emerald-400 animate-pulse"
-                  }`}
-                />
-                <span>{isOpen ? "Fechar Loja (Mostrar Aviso)" : "Abrir Loja Agora"}</span>
-              </button>
-            </div>
-          </div>
-          {/* Bloco 1: Capa Panorâmica + Avatar da Loja Integrados */}
-          <div className="bg-white rounded-2xl border border-[#E9E4D4] overflow-hidden shadow-2xs">
-            {/* Capa */}
-            <div className="relative h-28 sm:h-36 bg-linear-to-r from-[#2E4233] via-[#374f3d] to-[#1c2920] flex items-center justify-center overflow-hidden">
-              {bannerUrl ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={bannerUrl}
-                  alt="Capa da Loja"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="text-white/40 text-xs flex items-center gap-2 font-medium">
-                  <Camera className="w-5 h-5" />
-                  <span>Clique em &ldquo;Alterar Capa&rdquo; para personalizar o topo da sua vitrine</span>
-                </div>
-              )}
-
-              <div className="absolute top-3 right-3 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCoverPickerModal(true)}
-                  className="px-3 py-1.5 rounded-xl bg-[#2E6B3E] hover:bg-[#255732] text-white text-xs font-bold cursor-pointer transition-colors shadow-md flex items-center gap-1.5"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
-                  <span>Galeria de Fotos</span>
-                </button>
-
-                <label className="px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs font-bold cursor-pointer transition-colors backdrop-blur-xs flex items-center gap-1.5">
-                  <Camera className="w-3.5 h-3.5" />
-                  <span>Enviar Foto</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleUploadImage(e, "banner")}
-                  />
-                </label>
-
-                {bannerUrl && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBannerUrl(null);
-                      showToast("Capa removida. Clique em Salvar Alterações para confirmar.");
-                    }}
-                    title="Remover capa"
-                    className="p-1.5 rounded-xl bg-black/60 hover:bg-red-600/80 text-white transition-colors backdrop-blur-xs cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Barra de Perfil e Link Compartilhável */}
-            <div className="p-4 sm:p-5 pt-0 relative flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-              <div className="flex items-end gap-3.5 -mt-10 sm:-mt-12">
-                {/* Avatar da Logo */}
-                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 border-white bg-[#FAF8F0] shadow-md overflow-hidden flex items-center justify-center shrink-0 group">
-                  {logoUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={logoUrl}
-                      alt="Logo"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Store className="w-8 h-8 text-gray-400" />
-                  )}
-                  <label className="absolute inset-0 bg-black/60 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                    <Camera className="w-4 h-4 mb-0.5" />
-                    <span className="text-[10px] font-bold">Trocar</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => handleUploadImage(e, "logo")}
-                    />
-                  </label>
-                </div>
-
-                {/* Nome e Categoria */}
-                <div className="pb-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-xl sm:text-2xl font-black text-[#111827]">
-                      {storeName || "Nome do Estabelecimento"}
-                    </h2>
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] text-[#CB5A3C] text-[11px] font-black uppercase tracking-wider">
-                      {category}
-                    </span>
-                  </div>
-                  <span className="text-xs text-[#637267] font-medium block">
-                    Vitrine ativa: <strong className="text-[#2E4233]">deliplus.com.br{publicUrl}</strong>
-                  </span>
-                </div>
-              </div>
-
-              {/* Botões de Acesso Rápido */}
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(fullPublicUrl);
-                    setCopiedLink(true);
-                    setTimeout(() => setCopiedLink(false), 2000);
-                    showToast("Link da vitrine copiado!");
-                  }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0] text-xs font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer"
-                >
-                  {copiedLink ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-                  <span>{copiedLink ? "Copiado!" : "Copiar Link"}</span>
-                </button>
-
-                <Link
-                  href={publicUrl}
-                  target="_blank"
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#2E4233] text-white text-xs font-bold hover:bg-[#233327] transition-colors cursor-pointer"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Ver Vitrine</span>
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Grade de 2 Colunas Balanceadas: Dados da Loja e Regras de Entrega */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 items-start">
-            {/* ============================================================ */}
-            {/* COLUNA 1: DADOS DO ESTABELECIMENTO & CANAIS DE ATENDIMENTO  */}
-            {/* ============================================================ */}
-            <div className="bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between border-b pb-2.5 border-[#ECEAE2]">
-                <h3 className="text-xs font-black text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-[#CB5A3C]" />
-                  <span>Dados do Estabelecimento & Canais</span>
-                </h3>
-                <span className="text-[11px] text-[#637267]">
-                  Exibidos na sua vitrine pública
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Nome de Exibição */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#2E4233]">
-                    Nome de Exibição na Vitrine <span className="text-[#CB5A3C]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={storeName}
-                    onChange={(e) => setStoreName(e.target.value)}
-                    placeholder="Ex: Pizzaria Forno Nobre"
-                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                  />
-                </div>
-
-                {/* Segmento / Categoria */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#2E4233]">
-                    Segmento Gastronômico
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                  >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* WhatsApp */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1.5">
-                      <WhatsAppIcon className="w-4 h-4 shrink-0" />
-                      <span>WhatsApp de Atendimento</span>
-                    </label>
-                    {phone && (
-                      <a
-                        href={`https://wa.me/55${phone.replace(/\D/g, "")}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[10px] text-emerald-700 font-bold hover:underline"
-                      >
-                        Testar ↗
-                      </a>
-                    )}
-                  </div>
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="(11) 99999-9999"
-                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                  />
-                </div>
-
-                {/* Instagram */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1.5">
-                    <InstagramIcon className="w-4 h-4 shrink-0" />
-                    <span>Instagram Oficial</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
-                      @
-                    </span>
-                    <input
-                      type="text"
-                      value={instagram.replace(/^@/, "")}
-                      onChange={(e) => setInstagram(e.target.value)}
-                      placeholder="sualoja.oficial"
-                      className="w-full pl-8 pr-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                    />
-                  </div>
-                </div>
-
-                {/* Facebook */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1.5">
-                    <FacebookIcon className="w-4 h-4 shrink-0" />
-                    <span>Facebook Oficial</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={facebook}
-                    onChange={(e) => setFacebook(e.target.value)}
-                    placeholder="facebook.com/sualoja ou @sualoja"
-                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                  />
-                </div>
-
-                {/* YouTube */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1.5">
-                    <YouTubeIcon className="w-4 h-4 shrink-0" />
-                    <span>Canal no YouTube</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={youtube}
-                    onChange={(e) => setYouTube(e.target.value)}
-                    placeholder="youtube.com/@seucanal ou @seucanal"
-                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                  />
-                </div>
-
-                {/* TikTok */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1.5">
-                    <TikTokIcon className="w-4 h-4 shrink-0" />
-                    <span>TikTok</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
-                      @
-                    </span>
-                    <input
-                      type="text"
-                      value={tiktok.replace(/^@/, "")}
-                      onChange={(e) => setTikTok(e.target.value)}
-                      placeholder="seutiktok"
-                      className="w-full pl-8 pr-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                    />
-                  </div>
-                </div>
-
-                {/* Kwai */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1.5">
-                    <KwaiIcon className="w-4 h-4 shrink-0" />
-                    <span>Kwai</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
-                      @
-                    </span>
-                    <input
-                      type="text"
-                      value={kwai.replace(/^@/, "")}
-                      onChange={(e) => setKwai(e.target.value)}
-                      placeholder="seukwai"
-                      className="w-full pl-8 pr-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-bold text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                    />
-                  </div>
-                </div>
-
-                {/* Aviso sobre canais na vitrine */}
-                <div className="sm:col-span-2 py-2 px-3 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4]/80 text-[11px] text-[#637267] flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-[#CB5A3C] shrink-0" />
-                  <span>
-                    <strong>Canais na Vitrine:</strong> Até 4 redes cadastradas (com links oficiais clicáveis) são exibidas no topo da sua vitrine pública para facilitar o contato com seus clientes.
-                  </span>
-                </div>
-
-                {/* Endereço Físico */}
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-bold text-[#2E4233] flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-red-500" />
-                    <span>Endereço Físico (Ponto de Retirada / Cozinha)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Ex: Av. Paulista, 1000 - Bela Vista, São Paulo - SP"
-                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm font-medium text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30"
-                  />
-                </div>
-
-                {/* Bio / Slogan */}
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-bold text-[#2E4233] flex items-center justify-between">
-                    <span>Biografia / Slogan da Vitrine</span>
-                    <span className="text-[10px] text-gray-400">
-                      {bio.length}/150 caracteres
-                    </span>
-                  </label>
-                  <textarea
-                    rows={2}
-                    maxLength={150}
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Ex: Pizzas artesanais assadas em forno à lenha com ingredientes selecionados."
-                    className="w-full px-3.5 py-2 rounded-xl border border-[#E9E4D4] text-xs sm:text-sm text-[#111827] focus:outline-none focus:border-[#CB5A3C] transition-all bg-[#FAF8F0]/30 resize-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* ============================================================ */}
-            {/* COLUNA 2: REGRAS OPERACIONAIS DE ENTREGA & TAXAS            */}
-            {/* ============================================================ */}
-            <div className="bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between border-b pb-2.5 border-[#ECEAE2]">
-                <h3 className="text-xs font-black text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
-                  <Truck className="w-4 h-4 text-[#CB5A3C]" />
-                  <span>Regras de Entrega, Prazos & Pedido Mínimo</span>
-                </h3>
-                <span className="text-[11px] text-[#637267]">
-                  Parâmetros de atendimento
-                </span>
-              </div>
-
-              {/* CONTAINER 1: MODALIDADES DE ATENDIMENTO */}
-              <div className="p-3.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-[#2E4233] flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                    <span>Modalidades de Pedido</span>
-                  </span>
-                  <span className="text-[10px] text-[#637267]">
-                    Opções disponíveis ao cliente
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {/* Delivery */}
-                  <div
-                    onClick={() => setAcceptsDelivery(!acceptsDelivery)}
-                    className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      acceptsDelivery
-                        ? "border-[#CB5A3C] bg-white shadow-xs"
-                        : "border-gray-200 bg-gray-50/70 opacity-60 hover:opacity-80"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                          acceptsDelivery
-                            ? "bg-[#CB5A3C] text-white"
-                            : "bg-gray-200 text-gray-500"
-                        }`}
-                      >
-                        <Truck className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-black text-[#111827]">
-                            Delivery
-                          </span>
-                          <span
-                            className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
-                              acceptsDelivery
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-gray-200 text-gray-600"
-                            }`}
-                          >
-                            {acceptsDelivery ? "Ativo" : "Inativo"}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-[#637267] block truncate">
-                          Entrega por motoboy
-                        </span>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={acceptsDelivery}
-                      onChange={(e) => setAcceptsDelivery(e.target.checked)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer shrink-0"
-                    />
-                  </div>
-
-                  {/* Retirada */}
-                  <div
-                    onClick={() => setAcceptsPickup(!acceptsPickup)}
-                    className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      acceptsPickup
-                        ? "border-emerald-600 bg-white shadow-xs"
-                        : "border-gray-200 bg-gray-50/70 opacity-60 hover:opacity-80"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                          acceptsPickup
-                            ? "bg-[#2E4233] text-white"
-                            : "bg-gray-200 text-gray-500"
-                        }`}
-                      >
-                        <Store className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-black text-[#111827]">
-                            Retirada
-                          </span>
-                          <span
-                            className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
-                              acceptsPickup
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-gray-200 text-gray-600"
-                            }`}
-                          >
-                            {acceptsPickup ? "Ativo" : "Inativo"}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-[#637267] block truncate">
-                          Busca no balcão
-                        </span>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={acceptsPickup}
-                      onChange={(e) => setAcceptsPickup(e.target.checked)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 accent-[#2E4233] rounded cursor-pointer shrink-0"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* CONTAINER 2: ESTIMATIVA DE TEMPO DE PREPARO */}
-              <div className="p-3.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-[#2E4233] flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-[#CB5A3C]" />
-                    <span>Tempo de Preparo & Espera</span>
-                  </span>
-                  <span className="text-[10px] font-bold text-[#2E4233] bg-white px-2 py-0.5 rounded-md border border-[#E9E4D4]">
-                    ⏱️ Vitrine: {prepMin || 0} a {prepMax || 0} min
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-2.5 rounded-xl bg-white border border-[#E9E4D4] shadow-2xs space-y-1">
-                    <label className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
-                      Tempo Mínimo
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        min="5"
-                        max="180"
-                        value={prepMin}
-                        onChange={(e) => setPrepMin(e.target.value)}
-                        className="w-full px-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-[#FAF8F0]/30 text-center focus:outline-none focus:border-[#CB5A3C]"
-                      />
-                      <span className="text-xs font-bold text-[#637267]">min</span>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-white border border-[#E9E4D4] shadow-2xs space-y-1">
-                    <label className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
-                      Tempo Máximo
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        min="5"
-                        max="240"
-                        value={prepMax}
-                        onChange={(e) => setPrepMax(e.target.value)}
-                        className="w-full px-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-[#FAF8F0]/30 text-center focus:outline-none focus:border-[#CB5A3C]"
-                      />
-                      <span className="text-xs font-bold text-[#637267]">min</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* CONTAINER 3: TAXA DE ENTREGA & PEDIDO MÍNIMO */}
-              <div className="p-3.5 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-[#2E4233] flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Taxa de Entrega & Pedido Mínimo</span>
-                  </span>
-                  <span className="text-[10px] text-[#637267]">
-                    Cobrança no fechamento
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-2.5 rounded-xl bg-white border border-[#E9E4D4] shadow-2xs space-y-1">
-                    <label className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
-                      Taxa de Entrega
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-black text-[#637267]">
-                        R$
-                      </span>
-                      <input
-                        type="text"
-                        value={deliveryFee}
-                        onChange={(e) => setDeliveryFee(e.target.value)}
-                        placeholder="5,00"
-                        className="w-full pl-8 pr-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-[#FAF8F0]/30 focus:outline-none focus:border-[#CB5A3C]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-white border border-[#E9E4D4] shadow-2xs space-y-1">
-                    <label className="text-[10px] font-bold text-[#637267] uppercase tracking-wider block">
-                      Pedido Mínimo
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-black text-[#637267]">
-                        R$
-                      </span>
-                      <input
-                        type="text"
-                        value={minOrder}
-                        onChange={(e) => setMinOrder(e.target.value)}
-                        placeholder="0,00"
-                        className="w-full pl-8 pr-2 py-1 rounded-lg border border-[#E9E4D4] text-sm font-black text-[#111827] bg-[#FAF8F0]/30 focus:outline-none focus:border-[#CB5A3C]"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* CONTAINER 4: FRETE GRÁTIS PROMOCIONAL */}
-              <div className="p-3.5 rounded-xl border border-amber-200/90 bg-amber-50/40 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Frete Grátis Promocional</span>
-                  </span>
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
-                    Opcional
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="relative w-44 shrink-0">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-amber-800">
-                      R$
-                    </span>
-                    <input
-                      type="text"
-                      value={freeDeliveryAbove}
-                      onChange={(e) => setFreeDeliveryAbove(e.target.value)}
-                      placeholder="Ex: 80,00"
-                      className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-amber-300 bg-white text-xs font-black text-[#111827] focus:outline-none focus:border-[#CB5A3C]"
-                    />
-                  </div>
-                  <span className="text-[11px] text-[#637267] leading-tight">
-                    Isenta a taxa quando o pedido atinge este valor. Deixe em branco para desativar.
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ================================================================ */}
-      {/* ABA 2: HORÁRIOS DA SEMANA                                       */}
-      {/* ================================================================ */}
-      {activeTab === "schedule" && (
-        <div className="bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs max-w-4xl space-y-4 animate-in fade-in duration-150">
-          <div>
-            <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#CB5A3C]" />
-              <span>Grade Semanal de Funcionamento da Loja</span>
-            </h3>
-            <p className="text-xs text-[#637267] mt-0.5">
-              Defina os dias em que a sua vitrine aceita pedidos automaticamente. Fora desses horários, a vitrine fica em modo &ldquo;Fechada&rdquo;.
-            </p>
-          </div>
-
-          <div className="divide-y divide-[#ECEAE2] border-t border-[#ECEAE2]">
-            {WEEK_DAYS.map(({ key, label }) => {
-              const day = businessHours[key] || {
-                open: "18:00",
-                close: "23:00",
-                enabled: true,
-              };
-              return (
-                <div
-                  key={key}
-                  className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-                >
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setBusinessHours((prev) => ({
-                          ...prev,
-                          [key]: { ...day, enabled: !day.enabled },
-                        }));
-                      }}
-                      className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer ${
-                        day.enabled ? "bg-emerald-500" : "bg-gray-300"
-                      }`}
-                    >
-                      <span
-                        className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${
-                          day.enabled ? "left-5" : "left-0.5"
-                        }`}
-                      />
-                    </button>
-                    <span
-                      className={`font-black text-sm ${
-                        day.enabled ? "text-[#111827]" : "text-gray-400"
-                      }`}
-                    >
-                      {label}
-                    </span>
-                  </div>
-
-                  {day.enabled ? (
-                    <div className="flex items-center gap-2 text-xs font-bold text-[#2E4233]">
-                      <span>Abertura:</span>
-                      <input
-                        type="time"
-                        value={day.open}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setBusinessHours((prev) => ({
-                            ...prev,
-                            [key]: { ...day, open: val },
-                          }));
-                        }}
-                        className="px-2.5 py-1 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0] font-bold text-xs"
-                      />
-                      <span>Fechamento:</span>
-                      <input
-                        type="time"
-                        value={day.close}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setBusinessHours((prev) => ({
-                            ...prev,
-                            [key]: { ...day, close: val },
-                          }));
-                        }}
-                        className="px-2.5 py-1 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0] font-bold text-xs"
-                      />
-                    </div>
-                  ) : (
-                    <span className="text-xs font-bold text-gray-400 italic">
-                      Fechado o dia todo
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="pt-3 border-t border-[#ECEAE2] flex justify-end">
-            <button
-              type="button"
-              onClick={handleSaveAll}
-              disabled={isSaving}
-              className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>{isSaving ? "Salvando..." : "Salvar Horários da Semana"}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ================================================================ */}
-      {/* ABA 3: FORMAS DE PAGAMENTO & QR CODE                            */}
-      {/* ================================================================ */}
-      {activeTab === "payment" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start max-w-6xl animate-in fade-in duration-150">
-          {/* Coluna Esquerda: Métodos e Chave Pix (lg:col-span-7) */}
-          <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-5">
-            <div>
-              <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-[#CB5A3C]" />
-                <span>Formas de Pagamento no Pedido & Entrega</span>
-              </h3>
-              <p className="text-xs text-[#637267] mt-0.5">
-                Escolha quais opções de pagamento estarão disponíveis para o cliente no fechamento do pedido.
-              </p>
-            </div>
-
-            {/* Card Chave Pix */}
-            <div className="p-4 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-[#111827] flex items-center gap-1.5">
-                  <QrCode className="w-4 h-4 text-emerald-600" />
-                  <span>Chave Pix Oficial da Loja</span>
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
-                  Recebimento Imediato
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#2E4233]">
-                    Tipo de Chave
-                  </label>
-                  <select
-                    value={pixKeyType}
-                    onChange={(e) => setPixKeyType(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-white focus:outline-none focus:border-[#CB5A3C]"
-                  >
-                    <option value="cpf">CPF</option>
-                    <option value="cnpj">CNPJ</option>
-                    <option value="phone">Celular</option>
-                    <option value="email">E-mail</option>
-                    <option value="random">Chave Aleatória (EVP)</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="text-[11px] font-bold text-[#2E4233]">
-                    Chave Pix
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={pixKey}
-                      onChange={(e) => setPixKey(e.target.value)}
-                      placeholder="Insira sua chave Pix oficial"
-                      className="w-full pl-3 pr-20 py-1.5 rounded-xl border border-[#E9E4D4] text-xs font-bold text-[#111827] bg-white focus:outline-none focus:border-[#CB5A3C]"
-                    />
-                    {pixKey && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(pixKey);
-                          setCopiedPix(true);
-                          setTimeout(() => setCopiedPix(false), 2000);
-                          showToast("Chave Pix copiada!");
-                        }}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-lg bg-[#FAF8F0] border border-[#E9E4D4] text-[10px] font-bold text-[#2E4233] hover:text-[#CB5A3C] transition-colors cursor-pointer flex items-center gap-1"
-                      >
-                        {copiedPix ? (
-                          <Check className="w-3 h-3 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3 h-3" />
-                        )}
-                        <span>{copiedPix ? "Copiada" : "Copiar"}</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Grid de Métodos Aceitos */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer hover:border-[#CB5A3C]/40 transition-colors">
-                <div>
-                  <span className="text-xs font-bold text-[#111827] block">
-                    Pix no Pedido
-                  </span>
-                  <span className="text-[11px] text-[#637267]">
-                    Chave Pix e QR Code direto no cardápio
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={acceptPix}
-                  onChange={(e) => setAcceptPix(e.target.checked)}
-                  className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                />
-              </label>
-
-              <div className="p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 space-y-1.5">
-                <label className="flex items-center justify-between cursor-pointer">
-                  <div>
-                    <span className="text-xs font-bold text-[#111827] block">
-                      Dinheiro em Espécie
-                    </span>
-                    <span className="text-[11px] text-[#637267]">
-                      Pagamento ao entregador ou balcão
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={acceptCash}
-                    onChange={(e) => setAcceptCash(e.target.checked)}
-                    className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                  />
-                </label>
-                {acceptCash && (
-                  <label className="flex items-center gap-1.5 text-[11px] font-semibold text-[#637267] cursor-pointer pt-1 border-t border-[#ECEAE2]">
-                    <input
-                      type="checkbox"
-                      checked={needChangeOption}
-                      onChange={(e) => setNeedChangeOption(e.target.checked)}
-                      className="w-3.5 h-3.5 accent-[#CB5A3C] rounded cursor-pointer"
-                    />
-                    <span>Perguntar se o cliente precisa de troco</span>
-                  </label>
-                )}
-              </div>
-
-              <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer hover:border-[#CB5A3C]/40 transition-colors">
-                <div>
-                  <span className="text-xs font-bold text-[#111827] block">
-                    Cartão na Entrega / Balcão
-                  </span>
-                  <span className="text-[11px] text-[#637267]">
-                    Débito e Crédito na maquininha
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={acceptCard}
-                  onChange={(e) => setAcceptCard(e.target.checked)}
-                  className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-3 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/30 cursor-pointer hover:border-[#CB5A3C]/40 transition-colors">
-                <div>
-                  <span className="text-xs font-bold text-[#111827] block">
-                    Vale-Refeição / Alimentação
-                  </span>
-                  <span className="text-[11px] text-[#637267]">
-                    VR, Sodexo, Ticket e Alelo na maquininha
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={acceptMealVoucher}
-                  onChange={(e) => setAcceptMealVoucher(e.target.checked)}
-                  className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                />
-              </label>
-            </div>
-
-            <div className="pt-3 border-t border-[#ECEAE2] flex justify-end">
-              <button
-                type="button"
-                onClick={handleSaveAll}
-                disabled={isSaving}
-                className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>{isSaving ? "Salvando..." : "Salvar Formas de Pagamento"}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Coluna Direita: QR Code da Vitrine & Pagamento (lg:col-span-5) */}
-          <div className="lg:col-span-5 bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <QrCode className="w-4 h-4 text-[#CB5A3C]" />
-                <span className="text-xs font-black text-[#111827] uppercase tracking-wider">
-                  QR Code da Vitrine & Pagamento
-                </span>
-              </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
-                Mesa & Balcão
-              </span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[#FAF8F0] border border-[#E9E4D4] flex flex-col items-center text-center space-y-3">
-              <div className="p-3 bg-white rounded-2xl shadow-xs border border-[#E9E4D4]">
-                <QRCodeSVG value={fullPublicUrl} size={150} level="H" />
-              </div>
-
-              <div>
-                <h4 className="text-xs font-black text-[#111827]">
-                  Aponte a câmera para pedir & pagar
-                </h4>
-                <p className="text-[11px] text-[#637267] max-w-[260px] mt-1">
-                  Imprima para colocar nas mesas, balcão de atendimento ou embalagens! O cliente escaneia com o celular, acessa o cardápio e faz o pedido com pagamento Pix imediato.
-                </p>
-                <span className="text-[10px] font-mono text-gray-400 block pt-1.5">
-                  deliplus.com.br{publicUrl}
-                </span>
-              </div>
-
-              {/* Botões do QR Code */}
-              <div className="flex items-center gap-2 w-full pt-1">
-                <button
-                  type="button"
-                  onClick={downloadQRCode}
-                  className="flex-1 py-2 px-3 rounded-xl bg-white border border-[#E9E4D4] text-xs font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Baixar PNG</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowPrintModal(true)}
-                  className="flex-1 py-2 px-3 rounded-xl bg-[#2E4233] text-white text-xs font-bold hover:bg-[#233327] transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Imprimir Placa</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ================================================================ */}
-      {/* ABA 4: IMPRESSÃO & COZINHA                                      */}
-      {/* ================================================================ */}
-      {activeTab === "printer" && (
-        <div className="bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs max-w-4xl space-y-5 animate-in fade-in duration-150">
-          <div>
-            <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider flex items-center gap-2">
-              <Printer className="w-4 h-4 text-[#CB5A3C]" />
-              <span>Alertas Sonoros & Impressão de Comandas</span>
-            </h3>
-            <p className="text-xs text-[#637267] mt-0.5">
-              Configure como a sua cozinha recebe os novos pedidos que chegam pelo cardápio digital.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Alerta Sonoro */}
-            <div className="p-4 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-[#111827] flex items-center gap-1.5">
-                  <Volume2 className="w-4 h-4 text-[#CB5A3C]" />
-                  <span>Campainha de Novo Pedido</span>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={printerSettings.sound_alerts}
-                  onChange={(e) =>
-                    setPrinterSettings((prev) => ({
-                      ...prev,
-                      sound_alerts: e.target.checked,
-                    }))
-                  }
-                  className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                />
-              </div>
-
-              <p className="text-[11px] text-[#637267]">
-                Toca um som em tempo real no dashboard toda vez que um cliente envia um pedido.
-              </p>
-
-              <button
-                type="button"
-                onClick={playTestAlertSound}
-                className="w-full py-2 px-3 rounded-xl bg-white border border-[#E9E4D4] text-xs font-bold text-[#2E4233] hover:text-[#CB5A3C] hover:border-[#CB5A3C] transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <Volume2 className="w-4 h-4 text-[#CB5A3C]" />
-                <span>Testar Som da Cozinha Agora</span>
-              </button>
-            </div>
-
-            {/* Impressora Térmica */}
-            <div className="p-4 rounded-xl border border-[#E9E4D4] bg-[#FAF8F0]/50 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-[#111827] flex items-center gap-1.5">
-                  <Printer className="w-4 h-4 text-[#CB5A3C]" />
-                  <span>Impressão Automática</span>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={printerSettings.auto_print}
-                  onChange={(e) =>
-                    setPrinterSettings((prev) => ({
-                      ...prev,
-                      auto_print: e.target.checked,
-                    }))
-                  }
-                  className="w-4 h-4 accent-[#CB5A3C] rounded cursor-pointer"
-                />
-              </div>
-
-              <p className="text-[11px] text-[#637267]">
-                Abre a janela de impressão da comanda térmica automaticamente ao confirmar o pedido.
-              </p>
-
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setPrinterSettings((prev) => ({
-                      ...prev,
-                      paper_width: "80mm",
-                    }))
-                  }
-                  className={`py-1.5 px-2 rounded-xl border text-center transition-all cursor-pointer ${
-                    printerSettings.paper_width === "80mm"
-                      ? "border-[#CB5A3C] bg-orange-50 font-black text-[#CB5A3C]"
-                      : "border-[#E9E4D4] bg-white text-gray-600 font-bold"
-                  }`}
-                >
-                  <span className="text-xs block">Bobina 80 mm</span>
-                  <span className="text-[9px] block">Padrão Restaurante</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setPrinterSettings((prev) => ({
-                      ...prev,
-                      paper_width: "58mm",
-                    }))
-                  }
-                  className={`py-1.5 px-2 rounded-xl border text-center transition-all cursor-pointer ${
-                    printerSettings.paper_width === "58mm"
-                      ? "border-[#CB5A3C] bg-orange-50 font-black text-[#CB5A3C]"
-                      : "border-[#E9E4D4] bg-white text-gray-600 font-bold"
-                  }`}
-                >
-                  <span className="text-xs block">Bobina 58 mm</span>
-                  <span className="text-[9px] block">Mini Portátil</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-[#ECEAE2] flex justify-end">
-            <button
-              type="button"
-              onClick={async () => {
-                setIsSaving(true);
-                const res = await updatePrinterSettings(printerSettings);
-                setIsSaving(false);
-                if (res.success) {
-                  showToast("Preferências de comanda e som salvas!");
-                } else {
-                  showToast(res.error || "Erro ao salvar impressora.", "error");
-                }
-              }}
-              disabled={isSaving}
-              className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#CB5A3C] text-white text-xs font-bold hover:bg-[#b04b30] shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>{isSaving ? "Salvando..." : "Salvar Impressão"}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ================================================================ */}
-      {/* ABA 5: PLANO & DIAGNÓSTICO                                      */}
-      {/* ================================================================ */}
-      {activeTab === "plan" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start max-w-5xl animate-in fade-in duration-150">
-          <div className="lg:col-span-5 bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-4">
-            <div className="space-y-1">
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#637267] block">
-                Assinatura SaaS Ativa
-              </span>
-              <div className="flex items-center gap-2">
-                <h3 className="text-xl font-black text-[#111827]">
-                  Plano {initialData.billing?.planName || "Essencial"}
-                </h3>
-                {initialData.billing?.isTrial && (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black">
-                    Período de Testes
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-[#637267]">
-                Capacidade: {initialData.billing?.activeStoresCount || 1} de{" "}
-                {initialData.billing?.maxStores || 1} loja(s) ativa(s).
-              </p>
-            </div>
-
-            <Link
-              href="/dashboard/billing"
-              className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#2E4233] text-white text-xs font-bold hover:bg-[#233327] transition-colors cursor-pointer"
-            >
-              <CreditCard className="w-3.5 h-3.5" />
-              <span>Gerenciar Assinatura & Faturas</span>
-            </Link>
-          </div>
-
-          <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E9E4D4] p-5 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs font-black text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Saúde & Checklist da Vitrine</span>
-                </h3>
-                <p className="text-xs text-[#637267] mt-0.5">
-                  Complete todas as etapas para maximizar as vendas pelo cardápio.
-                </p>
-              </div>
-              <span className="text-xl font-black text-[#CB5A3C]">
-                {healthPercent}%
-              </span>
-            </div>
-
-            <div className="w-full h-2 rounded-full bg-[#FAF8F0] border border-[#E9E4D4] overflow-hidden">
-              <div
-                className="h-full bg-linear-to-r from-emerald-500 to-[#059669] transition-all duration-300 rounded-full"
-                style={{ width: `${healthPercent}%` }}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-              {checklist.map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-bold ${
-                    item.ok
-                      ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
-                      : "bg-gray-50 border-gray-200 text-gray-500"
-                  }`}
-                >
-                  {item.ok ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-gray-400 shrink-0" />
-                  )}
-                  <span>{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Escolha de Capa de Banco Profissional */}
-      <CoverPhotoPickerModal
-        isOpen={showCoverPickerModal}
-        onClose={() => setShowCoverPickerModal(false)}
-        currentBannerUrl={bannerUrl}
-        onSelectCover={(photoUrl) => {
-          setBannerUrl(photoUrl);
-          showToast(
-            "Capa selecionada com sucesso! Clique em 'Salvar Alterações' para atualizar sua vitrine."
-          );
-        }}
+      {/* FLOATING ACTION BAR */}
+      <FloatingActionBar
+        isDirty={isDirty}
+        isSaving={isSaving}
+        dirtyCount={dirtyChanges.length}
+        onSave={handleSaveAll}
+        onDiscard={handleDiscardChanges}
       />
     </div>
   );

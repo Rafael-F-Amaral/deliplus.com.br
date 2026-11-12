@@ -212,7 +212,7 @@ export default async function PromotionsPage() {
   }
 
   return (
-    <Suspense fallback={<div className="flex-1 bg-[#F7F6F2] min-h-screen p-8 text-[#556358]">Carregando promoções...</div>}>
+    <Suspense fallback={<div className="flex-1 bg-[#F7F6F2] dark:bg-[#131A15] min-h-screen p-4 sm:p-8 text-[#556358] dark:text-[#9CA79E]">Carregando promoções...</div>}>
       <PromotionsClient
         storeSlug={storeSlug}
         storeName={storeName}

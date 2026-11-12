@@ -1,4 +1,6 @@
 "use client";
+import { ShiftClosingModal } from './shift-closing-modal'
+import { Receipt } from 'lucide-react'
 
 import React, { useState, useMemo, useEffect } from "react";
 import {
@@ -12,6 +14,7 @@ import {
   ShoppingBag
 } from "lucide-react";
 import { generateFinancePDF } from "@/lib/generate-finance-pdf";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 
 // --- Types ---
 export interface LiveOrderData {
@@ -181,69 +184,6 @@ function normalizeMethod(methodStr?: string): "Crédito" | "Débito" | "PIX" | "
   return "Outros";
 }
 
-function HelpTooltip({
-  title,
-  description,
-  bullets,
-  size = "md",
-  align = "left",
-}: {
-  title?: string;
-  description: string;
-  bullets?: string[];
-  size?: "sm" | "md" | "lg";
-  align?: "left" | "right" | "center";
-}) {
-  const buttonDimensions =
-    size === "lg"
-      ? "w-5 h-5 text-[11px]"
-      : size === "sm"
-      ? "w-3.5 h-3.5 text-[9px]"
-      : "w-4 h-4 text-[10px]";
-
-  const popoverPosition =
-    align === "right"
-      ? "right-0"
-      : align === "center"
-      ? "left-1/2 -translate-x-1/2"
-      : "left-0";
-
-  return (
-    <div className="relative group inline-flex items-center align-middle">
-      <div
-        tabIndex={0}
-        aria-label="Ajuda e informações"
-        className={`${buttonDimensions} rounded-full bg-[#2E4233] text-white flex items-center justify-center font-black leading-none shadow-xs cursor-help hover:scale-110 transition-transform shrink-0 select-none`}
-      >
-        ?
-      </div>
-      <div
-        className={`absolute top-full ${popoverPosition} mt-2 w-72 sm:w-80 p-3.5 bg-[#2E4233] text-white border border-transparent dark:bg-[#FAF8F0] dark:text-[#1C2C22] dark:border-[#E5DFD1] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-[999] pointer-events-none text-left`}
-      >
-        {title && (
-          <p className="text-[12.5px] font-bold text-white dark:text-[#2E4233] mb-1 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#CB5A3C]" />
-            <span>{title}</span>
-          </p>
-        )}
-        <p className="text-[11.5px] text-[#2E4233] leading-relaxed font-normal">
-          {description}
-        </p>
-        {bullets && bullets.length > 0 && (
-          <div className="flex flex-col gap-1.5 pt-2 mt-2 border-t border-[#E5DFD1] text-[11px] text-[#2E4233]">
-            {bullets.map((b, i) => (
-              <div key={i} className="flex items-start gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-[#CB5A3C] shrink-0 mt-1.5" />
-                <span>{b}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 interface FinanceClientProps {
   initialOrders: LiveOrderData[];
   initialInventoryItems: InventoryItemData[];
@@ -258,6 +198,7 @@ export function FinanceClient({
   // Fee settings (persisted in localStorage)
   const [feeSettings, setFeeSettings] = useState<FeeSettings>(DEFAULT_FEES);
   const [tempFees, setTempFees] = useState<FeeSettings>(DEFAULT_FEES);
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
   const [savedSuccessAlert, setSavedSuccessAlert] = useState(false);
 
@@ -543,19 +484,38 @@ export function FinanceClient({
     });
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (selectedOrderDetails) {
+        setSelectedOrderDetails(null);
+      } else if (isFeeModalOpen) {
+        setIsFeeModalOpen(false);
+      } else if (isShiftModalOpen) {
+        setIsShiftModalOpen(false);
+      } else if (isPeriodOpen) {
+        setIsPeriodOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selectedOrderDetails, isFeeModalOpen, isShiftModalOpen, isPeriodOpen]);
+
   return (
-    <div className="w-full h-full min-h-screen lg:min-h-0 lg:h-full lg:max-h-full flex flex-col justify-between bg-[#FAF9F5] dark:bg-[#131A15] px-3.5 sm:px-6 lg:px-7 pt-3 pb-3 sm:pb-3.5 lg:pb-3.5 text-[#1C201A] dark:text-[#F2EFE9] font-sans antialiased overflow-x-hidden">
-      <div className="w-full flex-1 min-h-0 flex flex-col justify-between gap-2.5 sm:gap-3 lg:gap-3">
+    <div className="w-full min-h-screen lg:min-h-full flex flex-col bg-[#FAF9F5] dark:bg-[#131A15] px-3.5 sm:px-6 lg:px-7 pt-3 pb-24 lg:pb-8 text-[#1C201A] dark:text-[#F2EFE9] font-sans antialiased overflow-x-hidden">
+      <div className="w-full max-w-[1440px] mx-auto flex-1 flex flex-col gap-3 sm:gap-3.5">
         {/* Success Alert when fees are updated */}
         {savedSuccessAlert && (
-          <div className="shrink-0 bg-[#EDF6EC] border border-[#CDE3CA] text-[#2E7D32] text-xs px-3.5 py-1.5 rounded-xl flex items-center justify-between shadow-2xs transition-all">
+          <div className="shrink-0 bg-[#EDF6EC] dark:bg-[#1E3324] border border-[#CDE3CA] dark:border-[#2E543A] text-[#2E7D32] dark:text-[#86EFAC] text-xs px-3.5 py-2 rounded-xl flex items-center justify-between gap-2 shadow-2xs transition-all">
             <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-[#2E7D32]" />
+              <Check className="w-4 h-4 text-[#2E7D32] dark:text-[#86EFAC] shrink-0" />
               <span>Taxas bancárias atualizadas com sucesso! Os valores e deduções foram recalculados.</span>
             </div>
             <button
+              type="button"
               onClick={() => setSavedSuccessAlert(false)}
-              className="text-[#2E7D32] hover:opacity-75 cursor-pointer"
+              aria-label="Fechar aviso"
+              className="min-h-9 min-w-9 flex items-center justify-center rounded-lg text-[#2E7D32] dark:text-[#86EFAC] hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -566,7 +526,7 @@ export function FinanceClient({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0">
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="font-serif text-[30px] sm:text-[34px] md:text-[36px] text-[#CB5A3C] font-normal tracking-tight leading-tight">
+              <h1 className="font-serif text-[30px] sm:text-[34px] md:text-[36px] text-[#B4482D] dark:text-[#FF7D4F] font-normal tracking-tight leading-tight">
                 Financeiro
               </h1>
               <HelpTooltip
@@ -586,20 +546,22 @@ export function FinanceClient({
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             {/* Period Selector */}
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setIsPeriodOpen(!isPeriodOpen)}
-                className="flex items-center gap-2 bg-white dark:bg-[#1B241E] border border-[#E5E6E1] dark:border-[#2A382E] hover:border-[#D0D2C8] dark:hover:border-[#3B4D40] rounded-xl px-3.5 py-2 text-xs font-medium text-[#1C201A] dark:text-[#F2EFE9] shadow-2xs transition-all cursor-pointer"
+                aria-expanded={isPeriodOpen}
+                className="flex items-center gap-2 min-h-9 bg-white dark:bg-[#1B241E] border border-[#E5E6E1] dark:border-[#2A382E] hover:border-[#D0D2C8] dark:hover:border-[#3B4D40] rounded-xl px-3.5 py-2 text-xs font-medium text-[#1C201A] dark:text-[#F2EFE9] shadow-2xs transition-all cursor-pointer"
               >
-                <Calendar className="w-3.5 h-3.5 text-[#4A5547]" strokeWidth={1.8} />
+                <Calendar className="w-3.5 h-3.5 text-[#4A5547] dark:text-[#9CA79E]" strokeWidth={1.8} />
                 <span>{selectedPeriod}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-[#8C9388] ml-0.5" />
+                <ChevronDown className="w-3.5 h-3.5 text-[#8C9388] dark:text-[#9CA79E] ml-0.5" />
               </button>
 
               {isPeriodOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-[#1B241E] border border-[#E5E6E1] dark:border-[#2A382E] rounded-xl shadow-lg z-50 py-1 text-xs">
+                <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-48 bg-white dark:bg-[#1B241E] border border-[#E5E6E1] dark:border-[#2A382E] rounded-xl shadow-lg z-50 py-1 text-xs">
                   {[
                     "Dia (Hoje)",
                     "Esta semana",
@@ -608,14 +570,15 @@ export function FinanceClient({
                   ].map((period) => (
                     <button
                       key={period}
+                      type="button"
                       onClick={() => {
                         setSelectedPeriod(period);
                         setIsPeriodOpen(false);
                       }}
-                      className={`w-full text-left px-3 py-1.5 hover:bg-[#F5F6F0] transition-colors ${
+                      className={`w-full text-left px-3 py-2 min-h-9 hover:bg-[#F5F6F0] dark:hover:bg-[#25332A] transition-colors cursor-pointer ${
                         selectedPeriod === period
-                          ? "font-semibold text-[#1C201A] bg-[#FAFBF7]"
-                          : "text-[#4A5547]"
+                          ? "font-semibold text-[#1C201A] dark:text-[#F2EFE9] bg-[#FAFBF7] dark:bg-[#222C25]"
+                          : "text-[#4A5547] dark:text-[#9CA79E]"
                       }`}
                     >
                       {period}
@@ -625,23 +588,35 @@ export function FinanceClient({
               )}
             </div>
 
+            {/* Fechamento de Caixa do Turno */}
+            <button
+              type="button"
+              onClick={() => setIsShiftModalOpen(true)}
+              className="flex items-center gap-1.5 min-h-9 bg-[#2E4233] hover:bg-[#213125] text-white rounded-xl px-3.5 py-2 text-xs font-semibold shadow-2xs transition-all cursor-pointer active:scale-95"
+              title="Conferir gaveta e fechar o caixa do turno"
+            >
+              <Receipt className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
+              <span>Fechamento de Caixa</span>
+            </button>
+
             {/* Export Report Button (PDF) */}
             <button
+              type="button"
               onClick={handleExportPDF}
-              className="flex items-center gap-1.5 bg-[#CB5A3C] hover:bg-[#B84E32] text-white rounded-xl px-4 py-2 text-xs font-semibold shadow-2xs transition-all cursor-pointer active:scale-95"
+              className="flex items-center gap-1.5 min-h-9 bg-[#B4482D] hover:bg-[#9E3E26] dark:bg-[#E76F41] dark:hover:bg-[#FF7D4F] text-white dark:text-[#131A15] rounded-xl px-4 py-2 text-xs font-semibold shadow-2xs transition-all cursor-pointer active:scale-95"
               title="Baixar relatório executivo em PDF"
             >
-              <Download className="w-3.5 h-3.5 text-white" strokeWidth={2} />
+              <Download className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
               <span>Exportar relatório</span>
             </button>
           </div>
         </div>
 
-        {/* --- ROW 1: 5 KPI CARDS (PROPORÇÃO EQUILIBRADA QUE PREENCHE A ALTURA DA TELA) --- */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 lg:gap-3.5 shrink-0">
+        {/* --- ROW 1: 5 KPI CARDS --- */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3 lg:gap-3.5 shrink-0">
           {/* Card 1: Faturamento bruto */}
           <div className="bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
-            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
+            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#B4482D] dark:text-[#FF7D4F]">
               <span>Faturamento bruto</span>
               <HelpTooltip
                 title="Faturamento Bruto"
@@ -652,11 +627,11 @@ export function FinanceClient({
             </div>
 
             <div className="mt-1.5">
-              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] dark:text-[#F2EFE9] tracking-tight leading-none mb-1.5">
+              <div className="text-[20px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] dark:text-[#F2EFE9] tracking-tight leading-none mb-1.5">
                 {formatBRL(metrics.totalGross)}
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#EAF5E9] text-[#2E7D32] font-bold">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-[11.5px]">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#EAF5E9] dark:bg-[#1E3324] text-[#2E7D32] dark:text-[#86EFAC] font-bold">
                   <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                   +12,4%
                 </span>
@@ -667,7 +642,7 @@ export function FinanceClient({
 
           {/* Card 2: Taxas bancárias */}
           <div className="bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
-            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
+            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#B4482D] dark:text-[#FF7D4F]">
               <span>Taxas bancárias</span>
               <HelpTooltip
                 title="Taxas Bancárias e Operadoras"
@@ -678,11 +653,11 @@ export function FinanceClient({
             </div>
 
             <div className="mt-1.5">
-              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] dark:text-[#F2EFE9] tracking-tight leading-none mb-1.5">
+              <div className="text-[20px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] dark:text-[#F2EFE9] tracking-tight leading-none mb-1.5">
                 {formatBRL(metrics.totalFees)}
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#FDF2EC] text-[#CB5A3C] font-bold">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-[11.5px]">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#FDF2EC] dark:bg-[#3A2218] text-[#B4482D] dark:text-[#FF9E7A] font-bold">
                   {(metrics.totalGross > 0 ? (metrics.totalFees / metrics.totalGross) * 100 : 2.07).toFixed(2).replace(".", ",")}%
                 </span>
                 <span className="text-[#2D332B] dark:text-[#9CA79E] font-medium">taxa média retida</span>
@@ -692,7 +667,7 @@ export function FinanceClient({
 
           {/* Card 3: Receita líquida */}
           <div className="bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
-            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
+            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#B4482D] dark:text-[#FF7D4F]">
               <span>Receita líquida</span>
               <HelpTooltip
                 title="Receita Líquida Real"
@@ -703,11 +678,11 @@ export function FinanceClient({
             </div>
 
             <div className="mt-1.5">
-              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] dark:text-[#F2EFE9] tracking-tight leading-none mb-1.5">
+              <div className="text-[20px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] dark:text-[#F2EFE9] tracking-tight leading-none mb-1.5">
                 {formatBRL(metrics.totalNet)}
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#EAF5E9] text-[#2E7D32] font-bold">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-[11.5px]">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#EAF5E9] dark:bg-[#1E3324] text-[#2E7D32] dark:text-[#86EFAC] font-bold">
                   <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                   +13,1%
                 </span>
@@ -718,7 +693,7 @@ export function FinanceClient({
 
           {/* Card 4: Ticket médio */}
           <div className="bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
-            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
+            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#B4482D] dark:text-[#FF7D4F]">
               <span>Ticket médio</span>
               <HelpTooltip
                 title="Ticket Médio"
@@ -729,11 +704,11 @@ export function FinanceClient({
             </div>
 
             <div className="mt-1.5">
-              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] dark:text-[#F2EFE9] tracking-tight leading-none mb-1.5">
+              <div className="text-[20px] sm:text-[24px] lg:text-[26px] font-bold text-[#1C201A] dark:text-[#F2EFE9] tracking-tight leading-none mb-1.5">
                 {formatBRL(metrics.avgTicket)}
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#EFF6FF] text-[#2563EB] font-bold">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-[11.5px]">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#EFF6FF] dark:bg-[#1E2F44] text-[#2563EB] dark:text-[#93C5FD] font-bold">
                   <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                   +8,6%
                 </span>
@@ -743,8 +718,8 @@ export function FinanceClient({
           </div>
 
           {/* Card 5: Margem líquida */}
-          <div className="bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
-            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#CB5A3C]">
+          <div className="col-span-2 lg:col-span-1 bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[105px] lg:min-h-[112px]">
+            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-[#B4482D] dark:text-[#FF7D4F]">
               <span>Margem líquida</span>
               <HelpTooltip
                 title="Margem Líquida Real"
@@ -755,13 +730,13 @@ export function FinanceClient({
             </div>
 
             <div className="mt-1.5">
-              <div className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#059669] tracking-tight leading-none mb-1.5">
+              <div className="text-[20px] sm:text-[24px] lg:text-[26px] font-bold text-[#059669] dark:text-[#34D399] tracking-tight leading-none mb-1.5">
                 {metrics.totalGross > 0
                   ? `${((metrics.totalNet / metrics.totalGross) * 100).toFixed(1).replace(".", ",")}%`
                   : "100,0%"}
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#EAF5E9] text-[#2E7D32] font-bold">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-[11.5px]">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#EAF5E9] dark:bg-[#1E3324] text-[#2E7D32] dark:text-[#86EFAC] font-bold">
                   <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                   Efetiva
                 </span>
@@ -780,7 +755,7 @@ export function FinanceClient({
               <div className="flex items-center justify-between mb-1.5">
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <h2 className="text-[14px] sm:text-[15px] lg:text-[15.5px] font-semibold text-[#CB5A3C]">
+                    <h2 className="text-[14px] sm:text-[15px] lg:text-[15.5px] font-semibold text-[#B4482D] dark:text-[#FF7D4F]">
                       Evolução da receita
                     </h2>
                     <HelpTooltip
@@ -797,25 +772,25 @@ export function FinanceClient({
               </div>
 
               {/* Legend */}
-              <div className="flex items-center gap-3.5 text-xs font-medium mb-2 pt-0.5">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-3.5 text-xs font-medium mb-2 pt-0.5">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 bg-[#2563EB] rounded-xs inline-block"></span>
-                  <span className="text-[#2563EB] font-semibold">Vendas brutas</span>
+                  <span className="text-[#2563EB] dark:text-[#60A5FA] font-semibold">Vendas brutas</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 bg-[#059669] rounded-xs inline-block"></span>
-                  <span className="text-[#059669] font-semibold">Receita líquida</span>
+                  <span className="text-[#059669] dark:text-[#34D399] font-semibold">Receita líquida</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 bg-[#EA580C] rounded-xs inline-block"></span>
-                  <span className="text-[#EA580C] font-semibold">Taxa bancária</span>
+                  <span className="text-[#C2410C] dark:text-[#FB923C] font-semibold">Taxa bancária</span>
                 </div>
               </div>
             </div>
 
-            {/* 100% Width Responsive 3-Bar Chart (No horizontal letterboxing) */}
+            {/* 100% Width Responsive 3-Bar Chart */}
             <div className="w-full select-none mt-1">
-              <div className="relative w-full h-[145px] sm:h-[155px] lg:h-[162px] flex">
+              <div className="relative w-full h-[155px] sm:h-[165px] lg:h-[172px] flex">
                 {/* Y-axis Labels Column */}
                 <div className="w-12 sm:w-14 shrink-0 flex flex-col justify-between text-right pr-2 pb-5 text-[9px] sm:text-[9.5px] font-semibold text-[#1C201A]/80 dark:text-[#9CA79E]">
                   <span className="leading-none">R$ 2.500</span>
@@ -826,12 +801,12 @@ export function FinanceClient({
                   <span className="leading-none">R$ 0</span>
                 </div>
 
-                {/* Chart Grid & Bars Area (Takes 100% of remaining width!) */}
+                {/* Chart Grid & Bars Area */}
                 <div className="flex-1 relative flex flex-col justify-between pb-5">
                   {/* 6 Horizontal Grid Lines spanning 100% width */}
                   <div className="absolute inset-x-0 top-0 bottom-5 flex flex-col justify-between pointer-events-none">
                     {[0, 1, 2, 3, 4, 5].map((lvl) => (
-                      <div key={lvl} className="w-full border-b border-[#1C201A]/15" />
+                      <div key={lvl} className="w-full border-b border-[#1C201A]/15 dark:border-[#9CA79E]/20" />
                     ))}
                   </div>
 
@@ -846,13 +821,23 @@ export function FinanceClient({
                       return (
                         <div
                           key={d.date}
-                          className="flex-1 h-full flex flex-col justify-end items-center relative group cursor-pointer"
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`${d.date}: vendas brutas ${formatBRL(d.gross)}, líquida ${formatBRL(d.net)}`}
+                          className="flex-1 h-full flex flex-col justify-end items-center relative group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F] rounded-md"
                           onMouseEnter={() => setHoveredBarIndex(i)}
                           onMouseLeave={() => setHoveredBarIndex(null)}
+                          onClick={() => setHoveredBarIndex(hoveredBarIndex === i ? null : i)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setHoveredBarIndex(hoveredBarIndex === i ? null : i);
+                            }
+                          }}
                         >
                           {/* Hover Column Background */}
                           {isHovered && (
-                            <div className="absolute inset-0 -top-1 bg-[#F8F9F3] rounded-md pointer-events-none transition-opacity" />
+                            <div className="absolute inset-0 -top-1 bg-[#F8F9F3] dark:bg-[#222C25] rounded-md pointer-events-none transition-opacity" />
                           )}
 
                           {/* 3 Bars Side-by-Side (Azul, Verde, Laranja) */}
@@ -945,10 +930,10 @@ export function FinanceClient({
           {/* Card: Faturamento por forma de pagamento & Configuração de Taxas - Spans 5 cols */}
           <div className="lg:col-span-5 bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 lg:p-4.5 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
             <div>
-              {/* Header with Settings Button (Desktop: solid button, Mobile: elegant orange link) */}
-              <div className="flex items-center justify-between gap-2 mb-2">
+              {/* Header with Settings Button */}
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <h2 className="text-[14px] sm:text-[15px] lg:text-[15.5px] font-semibold text-[#CB5A3C] truncate">
+                  <h2 className="text-[14px] sm:text-[15px] lg:text-[15.5px] font-semibold text-[#B4482D] dark:text-[#FF7D4F]">
                     Faturamento por forma de pagamento
                   </h2>
                   <HelpTooltip
@@ -961,33 +946,35 @@ export function FinanceClient({
 
                 {/* Desktop: solid button */}
                 <button
+                  type="button"
                   onClick={() => {
                     setTempFees(feeSettings);
                     setIsFeeModalOpen(true);
                   }}
-                  className="hidden sm:inline-flex items-center text-xs text-white font-semibold bg-[#CB5A3C] hover:bg-[#B84E32] px-3.5 py-1.5 rounded-xl shadow-2xs transition-all cursor-pointer active:scale-95 shrink-0"
+                  className="hidden sm:inline-flex items-center min-h-9 text-xs text-white dark:text-[#131A15] font-semibold bg-[#B4482D] hover:bg-[#9E3E26] dark:bg-[#E76F41] dark:hover:bg-[#FF7D4F] px-3.5 py-1.5 rounded-xl shadow-2xs transition-all cursor-pointer active:scale-95 shrink-0"
                   title="Configurar taxas de cartão, PIX e banco"
                 >
                   Configurar taxas
                 </button>
 
-                {/* Mobile: elegant orange text link without solid background */}
+                {/* Mobile: accessible touch button */}
                 <button
+                  type="button"
                   onClick={() => {
                     setTempFees(feeSettings);
                     setIsFeeModalOpen(true);
                   }}
-                  className="sm:hidden inline-flex items-center text-[11.5px] font-semibold text-[#CB5A3C] hover:text-[#B84E32] hover:underline cursor-pointer shrink-0 transition-colors bg-transparent border-0 p-0"
+                  className="sm:hidden inline-flex items-center min-h-9 px-2.5 rounded-lg text-xs font-semibold text-[#B4482D] dark:text-[#FF7D4F] hover:bg-[#FDF2EC] dark:hover:bg-[#25332A] cursor-pointer shrink-0 transition-colors"
                   title="Configurar taxas de cartão, PIX e banco"
                 >
                   Configurar taxas
                 </button>
               </div>
 
-              {/* Donut Chart + Legend Grid */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3.5 my-1.5">
+              {/* Donut Chart + Legend Grid (stacked below xl:) */}
+              <div className="flex flex-col xl:flex-row items-center justify-between gap-4 my-2">
                 {/* Donut SVG with distinct high-contrast colors */}
-                <div className="relative w-26 h-26 sm:w-28 sm:h-28 lg:w-30 lg:h-30 shrink-0 flex items-center justify-center">
+                <div className="relative w-28 h-28 lg:w-30 lg:h-30 shrink-0 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                     {/* Crédito: Azul Royal #2563EB */}
                     <circle
@@ -1036,18 +1023,18 @@ export function FinanceClient({
                   </svg>
 
                   {/* Center Text inside Donut */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-                    <span className="text-[13px] sm:text-[13.5px] lg:text-[14px] font-bold text-[#1C201A] tracking-tight leading-tight">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-1">
+                    <span className="text-[13px] sm:text-[13.5px] lg:text-[14px] font-bold text-[#1C201A] dark:text-[#F2EFE9] tracking-tight leading-tight">
                       {formatBRL(metrics.totalGross)}
                     </span>
-                    <span className="text-[9.5px] text-[#82887D] leading-tight mt-0.5">
+                    <span className="text-[9.5px] text-[#6B7280] dark:text-[#9CA79E] leading-tight mt-0.5">
                       Total
                     </span>
                   </div>
                 </div>
 
                 {/* Legend List */}
-                <div className="space-y-1.5 text-xs lg:text-[12px] flex-1 w-full pl-0 sm:pl-2">
+                <div className="space-y-1.5 text-xs lg:text-[12px] flex-1 w-full pl-0 xl:pl-2">
                   {/* Crédito */}
                   <div className="flex items-center justify-between py-0.5 border-b border-[#F5F6F0] dark:border-[#2A382E]">
                     <div className="flex items-center gap-1.5">
@@ -1055,11 +1042,11 @@ export function FinanceClient({
                       <div>
                         <div className="font-medium text-[#1C201A] dark:text-[#F2EFE9] leading-tight">
                           Crédito{" "}
-                          <span className="text-[10px] text-[#7A8275] font-normal">
+                          <span className="text-[10px] text-[#6B7280] dark:text-[#9CA79E] font-normal">
                             ({feeSettings.credit}% taxa)
                           </span>
                         </div>
-                        <div className="text-[10px] text-[#82887D]">{donutSegments.credPct}%</div>
+                        <div className="text-[10px] text-[#6B7280] dark:text-[#9CA79E]">{donutSegments.credPct}%</div>
                       </div>
                     </div>
                     <div className="font-semibold text-[#1C201A] dark:text-[#F2EFE9] text-right">
@@ -1074,11 +1061,11 @@ export function FinanceClient({
                       <div>
                         <div className="font-medium text-[#1C201A] dark:text-[#F2EFE9] leading-tight">
                           Débito{" "}
-                          <span className="text-[10px] text-[#7A8275] font-normal">
+                          <span className="text-[10px] text-[#6B7280] dark:text-[#9CA79E] font-normal">
                             ({feeSettings.debit}% taxa)
                           </span>
                         </div>
-                        <div className="text-[10px] text-[#82887D]">{donutSegments.debPct}%</div>
+                        <div className="text-[10px] text-[#6B7280] dark:text-[#9CA79E]">{donutSegments.debPct}%</div>
                       </div>
                     </div>
                     <div className="font-semibold text-[#1C201A] dark:text-[#F2EFE9] text-right">
@@ -1093,11 +1080,11 @@ export function FinanceClient({
                       <div>
                         <div className="font-medium text-[#1C201A] dark:text-[#F2EFE9] leading-tight">
                           PIX{" "}
-                          <span className="text-[10px] text-[#7A8275] font-normal">
+                          <span className="text-[10px] text-[#6B7280] dark:text-[#9CA79E] font-normal">
                             ({feeSettings.pix}% taxa)
                           </span>
                         </div>
-                        <div className="text-[10px] text-[#82887D]">{donutSegments.pixPct}%</div>
+                        <div className="text-[10px] text-[#6B7280] dark:text-[#9CA79E]">{donutSegments.pixPct}%</div>
                       </div>
                     </div>
                     <div className="font-semibold text-[#1C201A] dark:text-[#F2EFE9] text-right">
@@ -1112,11 +1099,11 @@ export function FinanceClient({
                       <div>
                         <div className="font-medium text-[#1C201A] dark:text-[#F2EFE9] leading-tight">
                           Dinheiro{" "}
-                          <span className="text-[10px] text-[#7A8275] font-normal">
+                          <span className="text-[10px] text-[#6B7280] dark:text-[#9CA79E] font-normal">
                             (0% taxa)
                           </span>
                         </div>
-                        <div className="text-[10px] text-[#82887D]">{donutSegments.dinPct}%</div>
+                        <div className="text-[10px] text-[#6B7280] dark:text-[#9CA79E]">{donutSegments.dinPct}%</div>
                       </div>
                     </div>
                     <div className="font-semibold text-[#1C201A] dark:text-[#F2EFE9] text-right">
@@ -1128,25 +1115,25 @@ export function FinanceClient({
             </div>
 
             {/* Footer with visible average fee badge */}
-            <div className="pt-2 border-t border-[#F2F3EE] flex items-center justify-between">
-              <div className="inline-flex items-center gap-2 bg-[#EAF2E8] dark:bg-[#1E3324] border border-[#CFE0CE] dark:border-[#2E543A] px-3 py-1 rounded-xl text-xs">
-                <span className="w-2 h-2 rounded-full bg-[#2E4233]" />
+            <div className="pt-2 border-t border-[#F2F3EE] dark:border-[#2A382E] flex items-center justify-between">
+              <div className="inline-flex flex-wrap items-center gap-2 bg-[#EAF2E8] dark:bg-[#1E3324] border border-[#CFE0CE] dark:border-[#2E543A] px-3 py-1 rounded-xl text-xs">
+                <span className="w-2 h-2 rounded-full bg-[#2E4233] dark:bg-[#86EFAC]" />
                 <span className="font-bold text-[#2E4233] dark:text-[#86EFAC]">
                   Taxa média: {(metrics.totalGross > 0 ? (metrics.totalFees / metrics.totalGross) * 100 : 0).toFixed(2)}%
                 </span>
-                <span className="text-[10.5px] text-[#2E4233]/70 dark:text-[#86EFAC]/70 font-medium">(ponderada pelo volume)</span>
+                <span className="text-[10.5px] text-[#2E4233]/80 dark:text-[#86EFAC]/80 font-medium">(ponderada pelo volume)</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* --- ROW 3: TRANSAÇÕES (PAGINAÇÃO FIXA DE 4 EM 4, SEM SCROLLBAR NO DESKTOP, CARDS NO MOBILE) --- */}
-        <div className="w-full flex-1 min-h-0 bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 lg:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+        {/* --- ROW 3: TRANSAÇÕES (PAGINAÇÃO FIXA DE 4 EM 4, CARDS NO MOBILE) --- */}
+        <div className="w-full bg-white dark:bg-[#1B241E] rounded-[20px] p-3.5 sm:p-4 lg:p-4 border border-[#ECECE8] dark:border-[#2A382E] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           {/* Header Controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0 mb-1.5 sm:mb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0 mb-2">
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-[14px] sm:text-[15px] lg:text-[15.5px] font-semibold text-[#CB5A3C]">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-[14px] sm:text-[15px] lg:text-[15.5px] font-semibold text-[#B4482D] dark:text-[#FF7D4F]">
                   Transações dos Pedidos
                 </h2>
                 <span className="text-[11px] bg-[#EAF2E8] dark:bg-[#1E3324] text-[#2E4233] dark:text-[#86EFAC] border border-[#CFE0CE] dark:border-[#2E543A] font-bold px-2.5 py-0.5 rounded-full">
@@ -1164,7 +1151,7 @@ export function FinanceClient({
               </p>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
               {/* Search input */}
               <div className="relative flex-1 sm:flex-initial">
                 <input
@@ -1172,17 +1159,18 @@ export function FinanceClient({
                   placeholder="Buscar pedido, cliente..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-[#F8F9F5] dark:bg-[#222C25] border border-[#E5E6E1] dark:border-[#2A382E] focus:border-[#4A6B3A] dark:focus:border-[#FF7D4F] focus:outline-none rounded-xl pl-7.5 pr-2.5 py-1.5 text-xs text-[#1C201A] dark:text-[#F2EFE9] placeholder-[#9CA3AF] dark:placeholder-[#9CA79E] w-full sm:w-52 transition-all"
+                  className="bg-[#F8F9F5] dark:bg-[#222C25] border border-[#E5E6E1] dark:border-[#2A382E] focus:border-[#4A6B3A] dark:focus:border-[#FF7D4F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6B3A]/30 dark:focus-visible:ring-[#FF7D4F]/40 rounded-xl pl-8 pr-3 py-1.5 min-h-9 text-base lg:text-xs text-[#1C201A] dark:text-[#F2EFE9] placeholder-[#9CA3AF] dark:placeholder-[#9CA79E] w-full sm:w-52 transition-all"
                 />
-                <Search className="w-3.5 h-3.5 text-[#CB5A3C] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Search className="w-3.5 h-3.5 text-[#B4482D] dark:text-[#FF7D4F] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
 
               {/* Filter by Method */}
               <div className="relative shrink-0">
                 <select
+                  aria-label="Filtrar transações por meio de pagamento"
                   value={methodFilter}
                   onChange={(e) => setMethodFilter(e.target.value)}
-                  className="appearance-none bg-[#F8F9F5] dark:bg-[#222C25] border border-[#E5E6E1] dark:border-[#2A382E] rounded-xl pl-3 pr-7 py-1.5 text-xs text-[#1C201A] dark:text-[#F2EFE9] focus:outline-none focus:border-[#4A6B3A] cursor-pointer"
+                  className="w-full sm:w-auto appearance-none bg-[#F8F9F5] dark:bg-[#222C25] border border-[#E5E6E1] dark:border-[#2A382E] rounded-xl pl-3 pr-8 py-1.5 min-h-9 text-base lg:text-xs text-[#1C201A] dark:text-[#F2EFE9] focus:outline-none focus:border-[#4A6B3A] dark:focus:border-[#FF7D4F] focus-visible:ring-2 focus-visible:ring-[#4A6B3A]/30 dark:focus-visible:ring-[#FF7D4F]/40 cursor-pointer"
                 >
                   <option value="Todos">Todos os meios</option>
                   <option value="Crédito">Crédito</option>
@@ -1190,30 +1178,30 @@ export function FinanceClient({
                   <option value="PIX">PIX</option>
                   <option value="Dinheiro">Dinheiro</option>
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-[#7A8275] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-3.5 h-3.5 text-[#7A8275] dark:text-[#9CA79E] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
           </div>
 
-          {/* Table Container - Desktop: NO SCROLLBAR, Fixed Row Height of 42px */}
-          <div className="hidden md:flex flex-col flex-1 justify-between min-h-0 overflow-hidden">
-            <table className="w-full text-left border-collapse text-xs lg:text-[13px] table-fixed">
+          {/* Table Container - Desktop: Safe horizontal scroll with table-fixed widths totaling 100% */}
+          <div className="hidden md:block w-full overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left border-collapse text-xs lg:text-[13px] table-fixed">
               <thead>
                 <tr className="border-b border-[#E5E6E1] dark:border-[#2A382E]">
                   <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[10%]">Pedido</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[15%]">Data</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[18%]">Cliente</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[18%]">Forma de pagamento</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[13%]">Faturamento bruto</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[12%]">Taxa bancária</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[14%]">Receita líquida</th>
-                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[8%] text-center">Status</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[14%]">Data</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[16%]">Cliente</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[17%]">Forma de pagamento</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[12%]">Faturamento bruto</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[11%]">Taxa bancária</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[11%]">Receita líquida</th>
+                  <th className="pb-2 pt-1 font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[12px] lg:text-[12.5px] w-[9%] text-center">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F2F3EE] dark:divide-[#233026]">
                 {paginatedTransactions.length === 0 ? (
                   <tr className="h-[42px]">
-                    <td colSpan={8} className="py-2 text-center text-xs text-[#7A8275]">
+                    <td colSpan={8} className="py-3 text-center text-xs text-[#6B7280] dark:text-[#9CA79E]">
                       Nenhuma transação encontrada com os filtros selecionados.
                     </td>
                   </tr>
@@ -1221,18 +1209,27 @@ export function FinanceClient({
                   paginatedTransactions.map((tx) => (
                     <tr
                       key={tx.id}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`Ver detalhes do pedido ${tx.id} de ${tx.customer}`}
                       onClick={() => setSelectedOrderDetails(tx)}
-                      className="h-[42px] hover:bg-[#FAF9F5] dark:hover:bg-[#222C25] transition-colors cursor-pointer group"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedOrderDetails(tx);
+                        }
+                      }}
+                      className="h-[42px] hover:bg-[#FAF9F5] dark:hover:bg-[#222C25] focus-visible:outline-none focus-visible:bg-[#FAF9F5] dark:focus-visible:bg-[#222C25] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F] transition-colors cursor-pointer group"
                     >
-                      <td className="py-1.5 font-semibold text-[#1C201A] dark:text-[#F2EFE9] group-hover:text-[#4A6B3A] dark:group-hover:text-[#FF7D4F] transition-colors truncate">
+                      <td className="py-1.5 pr-2 font-semibold text-[#1C201A] dark:text-[#F2EFE9] group-hover:text-[#4A6B3A] dark:group-hover:text-[#FF7D4F] transition-colors truncate">
                         {tx.id}
                       </td>
-                      <td className="py-1.5 text-[#4B5563] dark:text-[#9CA79E] text-[11.5px] lg:text-[12px] truncate">{tx.date}</td>
-                      <td className="py-1.5 text-[#1C201A] dark:text-[#F2EFE9] truncate">{tx.customer}</td>
-                      <td className="py-1.5 text-[#4B5563] dark:text-[#9CA79E] truncate">
-                        <span className="inline-flex items-center gap-1.5">
+                      <td className="py-1.5 pr-2 text-[#4B5563] dark:text-[#9CA79E] text-[11.5px] lg:text-[12px] truncate">{tx.date}</td>
+                      <td className="py-1.5 pr-2 text-[#1C201A] dark:text-[#F2EFE9] truncate">{tx.customer}</td>
+                      <td className="py-1.5 pr-2 text-[#4B5563] dark:text-[#9CA79E] truncate">
+                        <span className="inline-flex items-center gap-1.5 max-w-full">
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${
+                            className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                               tx.method === "Crédito"
                                 ? "bg-[#2563EB]"
                                 : tx.method === "Débito"
@@ -1245,17 +1242,17 @@ export function FinanceClient({
                           <span className="truncate">{tx.brand ? `${tx.method} • ${tx.brand}` : tx.method}</span>
                         </span>
                       </td>
-                      <td className="py-1.5 font-medium text-[#1C201A] dark:text-[#F2EFE9] truncate">
+                      <td className="py-1.5 pr-2 font-medium text-[#1C201A] dark:text-[#F2EFE9] truncate">
                         {formatBRL(tx.gross)}
                       </td>
-                      <td className="py-1.5 text-[#6B7280] dark:text-[#9CA79E] truncate">
+                      <td className="py-1.5 pr-2 text-[#6B7280] dark:text-[#9CA79E] truncate">
                         {tx.fees === 0 ? "R$ 0,00" : `- ${formatBRL(Math.abs(tx.fees))}`}
                       </td>
-                      <td className="py-1.5 font-medium text-[#1C201A] dark:text-[#F2EFE9] truncate">
+                      <td className="py-1.5 pr-2 font-medium text-[#1C201A] dark:text-[#F2EFE9] truncate">
                         {formatBRL(tx.net)}
                       </td>
                       <td className="py-1.5 text-center">
-                        <span className="inline-block px-2.5 py-0.5 rounded-md bg-[#EAF5E9] text-[#2E7D32] text-[10.5px] font-semibold">
+                        <span className="inline-block px-2 py-0.5 rounded-md bg-[#EAF5E9] dark:bg-[#1E3324] text-[#2E7D32] dark:text-[#86EFAC] text-[10.5px] font-semibold">
                           {tx.status}
                         </span>
                       </td>
@@ -1263,40 +1260,43 @@ export function FinanceClient({
                   ))
                 )}
 
-                {/* Empty rows to complete exactly 4 rows and prevent layout jumps */}
+                {/* Empty rows to complete exactly 4 rows and keep alignment consistent */}
                 {Array.from({ length: emptyRowsCount }).map((_, idx) => (
-                  <tr key={`empty-${idx}`} className="h-[42px]">
-                    <td colSpan={8} className="py-1.5 text-transparent select-none">
-                      &nbsp;
-                    </td>
+                  <tr key={`empty-${idx}`} aria-hidden="true" className="h-[42px]">
+                    {Array.from({ length: 8 }).map((__, colIdx) => (
+                      <td key={colIdx} className="py-1.5 text-transparent select-none">
+                        &nbsp;
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          {/* Mobile View: Dedicated cards so nothing is squeezed or overlaps */}
-          <div className="md:hidden divide-y divide-[#F2F3EE]">
+          {/* Mobile View: Dedicated cards with complete Dark Mode and keyboard access */}
+          <div className="md:hidden divide-y divide-[#F2F3EE] dark:divide-[#2A382E]">
             {paginatedTransactions.length === 0 ? (
-              <div className="py-4 text-center text-xs text-[#7A8275]">
+              <div className="py-5 text-center text-xs text-[#6B7280] dark:text-[#9CA79E]">
                 Nenhuma transação encontrada com os filtros selecionados.
               </div>
             ) : (
               paginatedTransactions.map((tx) => (
-                <div
+                <button
                   key={tx.id}
+                  type="button"
                   onClick={() => setSelectedOrderDetails(tx)}
-                  className="py-2.5 px-1 hover:bg-[#FAF9F5] transition-colors cursor-pointer space-y-1.5 active:bg-[#F2F3EE] rounded-xl"
+                  className="w-full text-left py-3 px-2 hover:bg-[#FAF9F5] dark:hover:bg-[#222C25] active:bg-[#F2F3EE] dark:active:bg-[#25332A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4482D] dark:focus-visible:ring-[#FF7D4F] transition-colors cursor-pointer space-y-1.5 rounded-xl"
                 >
                   {/* Top row: Order ID, Method badge, Status badge */}
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-[#1C201A] text-[13px]">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-bold text-[#1C201A] dark:text-[#F2EFE9] text-[13px] shrink-0">
                         {tx.id}
                       </span>
-                      <span className="inline-flex items-center gap-1 text-[11px] text-[#4B5563] bg-[#F3F4EE] px-2 py-0.5 rounded-md font-medium">
+                      <span className="inline-flex items-center gap-1 text-[11px] text-[#4B5563] dark:text-[#D5DDD2] bg-[#F3F4EE] dark:bg-[#222C25] px-2 py-0.5 rounded-md font-medium truncate">
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                             tx.method === "Crédito"
                               ? "bg-[#2563EB]"
                               : tx.method === "Débito"
@@ -1306,53 +1306,53 @@ export function FinanceClient({
                               : "bg-[#D97706]"
                           }`}
                         />
-                        {tx.brand ? `${tx.method} • ${tx.brand}` : tx.method}
+                        <span className="truncate">{tx.brand ? `${tx.method} • ${tx.brand}` : tx.method}</span>
                       </span>
                     </div>
 
-                    <span className="inline-block px-2 py-0.5 rounded-md bg-[#EAF5E9] text-[#2E7D32] text-[10.5px] font-bold">
+                    <span className="inline-block px-2 py-0.5 rounded-md bg-[#EAF5E9] dark:bg-[#1E3324] text-[#2E7D32] dark:text-[#86EFAC] text-[10.5px] font-bold shrink-0">
                       {tx.status}
                     </span>
                   </div>
 
                   {/* Second row: Customer and Date */}
-                  <div className="flex items-center justify-between text-[11.5px] text-[#5A6357]">
-                    <span className="font-medium text-[#1C201A] truncate max-w-[55%]">
+                  <div className="flex items-center justify-between gap-2 text-[11.5px] text-[#5A6357] dark:text-[#9CA79E]">
+                    <span className="font-medium text-[#1C201A] dark:text-[#F2EFE9] truncate">
                       {tx.customer}
                     </span>
-                    <span className="text-[#7A8275] text-[11px] shrink-0">
+                    <span className="text-[#6B7280] dark:text-[#9CA79E] text-[11px] shrink-0">
                       {tx.date}
                     </span>
                   </div>
 
                   {/* Third row: Financial breakdown (Bruto, Taxa, Líquido) */}
-                  <div className="flex items-center justify-between pt-1 text-xs bg-[#FAF9F5] p-2 rounded-lg border border-[#F0F1ED]">
+                  <div className="flex items-center justify-between pt-1 text-xs bg-[#FAF9F5] dark:bg-[#151D17] p-2.5 rounded-lg border border-[#F0F1ED] dark:border-[#2A382E]">
                     <div>
-                      <span className="text-[10px] text-[#7A8275] block leading-none">Bruto</span>
-                      <span className="font-medium text-[#1C201A] text-[11.5px] mt-0.5 block">
+                      <span className="text-[10px] text-[#6B7280] dark:text-[#9CA79E] block leading-none">Bruto</span>
+                      <span className="font-medium text-[#1C201A] dark:text-[#F2EFE9] text-[11.5px] mt-0.5 block">
                         {formatBRL(tx.gross)}
                       </span>
                     </div>
                     <div className="text-center">
-                      <span className="text-[10px] text-[#7A8275] block leading-none">Taxa</span>
-                      <span className="font-medium text-[#CB5A3C] text-[11.5px] mt-0.5 block">
+                      <span className="text-[10px] text-[#6B7280] dark:text-[#9CA79E] block leading-none">Taxa</span>
+                      <span className="font-medium text-[#B4482D] dark:text-[#FF7D4F] text-[11.5px] mt-0.5 block">
                         {tx.fees === 0 ? "R$ 0,00" : `- ${formatBRL(Math.abs(tx.fees))}`}
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] text-[#7A8275] block leading-none">Líquido</span>
-                      <span className="font-bold text-[#059669] text-[12px] mt-0.5 block">
+                      <span className="text-[10px] text-[#6B7280] dark:text-[#9CA79E] block leading-none">Líquido</span>
+                      <span className="font-bold text-[#059669] dark:text-[#34D399] text-[12px] mt-0.5 block">
                         {formatBRL(tx.net)}
                       </span>
                     </div>
                   </div>
-                </div>
+                </button>
               ))
             )}
           </div>
 
           {/* Pagination Controls */}
-          <div className="shrink-0 pt-2 sm:pt-2.5 border-t border-[#F0F1ED] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#7A8275]">
+          <div className="shrink-0 pt-2.5 mt-1 border-t border-[#F0F1ED] dark:border-[#2A382E] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#5A6357] dark:text-[#9CA79E]">
             <span>
               Exibindo{" "}
               <strong className="text-[#1C201A] dark:text-[#F2EFE9]">
@@ -1365,11 +1365,12 @@ export function FinanceClient({
               de <strong className="text-[#1C201A] dark:text-[#F2EFE9]">{filteredTransactions.length}</strong> pedidos
             </span>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
               <button
+                type="button"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-2.5 py-1 rounded-lg border border-[#E5E6E1] dark:border-[#2A382E] text-[#1C201A] dark:text-white bg-white dark:bg-[#1B241E] hover:bg-[#F5F6F0] dark:hover:bg-[#25332A] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer text-xs"
+                className="min-h-9 px-3 py-1.5 rounded-lg border border-[#E5E6E1] dark:border-[#2A382E] text-[#1C201A] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] hover:bg-[#F5F6F0] dark:hover:bg-[#25332A] disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer text-xs font-medium"
               >
                 Anterior
               </button>
@@ -1377,11 +1378,14 @@ export function FinanceClient({
               {Array.from({ length: totalPages }).map((_, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={() => setCurrentPage(i + 1)}
-                  className={`w-6.5 h-6.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  aria-label={`Página ${i + 1}`}
+                  aria-current={currentPage === i + 1 ? "page" : undefined}
+                  className={`min-w-9 min-h-9 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     currentPage === i + 1
-                      ? "bg-[#CB5A3C] text-white shadow-xs"
-                      : "border border-[#E5E6E1] dark:border-[#2A382E] text-[#1C201A] dark:text-white bg-white dark:bg-[#1B241E] hover:bg-[#FEF2EE] dark:hover:bg-[#25332A] hover:text-[#CB5A3C] dark:hover:text-[#FF7D4F]"
+                      ? "bg-[#B4482D] dark:bg-[#E76F41] text-white dark:text-[#131A15] shadow-xs"
+                      : "border border-[#E5E6E1] dark:border-[#2A382E] text-[#1C201A] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] hover:bg-[#FEF2EE] dark:hover:bg-[#25332A] hover:text-[#B4482D] dark:hover:text-[#FF7D4F]"
                   }`}
                 >
                   {i + 1}
@@ -1389,9 +1393,10 @@ export function FinanceClient({
               ))}
 
               <button
+                type="button"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-2.5 py-1 rounded-lg border border-[#E5E6E1] dark:border-[#2A382E] text-[#1C201A] dark:text-white bg-white dark:bg-[#1B241E] hover:bg-[#F5F6F0] dark:hover:bg-[#25332A] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer text-xs"
+                className="min-h-9 px-3 py-1.5 rounded-lg border border-[#E5E6E1] dark:border-[#2A382E] text-[#1C201A] dark:text-[#F2EFE9] bg-white dark:bg-[#1B241E] hover:bg-[#F5F6F0] dark:hover:bg-[#25332A] disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer text-xs font-medium"
               >
                 Próxima
               </button>
@@ -1424,41 +1429,50 @@ export function FinanceClient({
 
       {/* --- MODAL: CONFIGURAR TAXAS BANCÁRIAS --- */}
       {isFeeModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-[24px] max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-[#E5E6E1]">
-            <div className="flex items-center justify-between pb-3.5 border-b border-[#F0F1ED]">
-              <div>
-                <h3 className="font-serif text-lg sm:text-xl font-bold text-[#CB5A3C]">
+        <div
+          className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4"
+          onClick={() => setIsFeeModalOpen(false)}
+        >
+          <div
+            className="bg-white dark:bg-[#1B241E] rounded-[24px] max-w-lg w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-[#E5E6E1] dark:border-[#2A382E] text-[#1C201A] dark:text-[#F2EFE9]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2 pb-3.5 border-b border-[#F0F1ED] dark:border-[#2A382E]">
+              <div className="min-w-0">
+                <h3 className="font-serif text-lg sm:text-xl font-bold text-[#B4482D] dark:text-[#FF7D4F]">
                   Configurar Taxas Bancárias
                 </h3>
-                <p className="text-xs text-[#1C201A] font-medium mt-0.5">
+                <p className="text-xs text-[#4A5547] dark:text-[#9CA79E] font-medium mt-0.5">
                   Defina o percentual que seu banco/maquininha cobra por venda
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setIsFeeModalOpen(false)}
-                className="p-1 rounded-full hover:bg-[#F2F3EE] text-[#7A8275] transition-colors cursor-pointer"
+                aria-label="Fechar configuração de taxas"
+                className="min-h-9 min-w-9 flex items-center justify-center rounded-full hover:bg-[#F2F3EE] dark:hover:bg-[#222C25] text-[#5A6357] dark:text-[#9CA79E] transition-colors cursor-pointer shrink-0"
               >
                 <X className="w-4.5 h-4.5" />
               </button>
             </div>
 
             <div className="my-4 space-y-3">
-              <div className="p-3 bg-[#FAF9F5] rounded-xl text-xs text-[#5A6357] border border-[#ECECE8]">
+              <div className="p-3 bg-[#FAF9F5] dark:bg-[#151D17] rounded-xl text-xs text-[#4A5547] dark:text-[#D5DDD2] border border-[#ECECE8] dark:border-[#2A382E]">
                 Ao alterar essas taxas, a <strong>Receita Líquida</strong> e as deduções em todas as transações serão recalculadas automaticamente.
               </div>
 
               {/* Crédito */}
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-[#ECECE8] hover:border-[#D0D2C8] transition-colors">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></span>
+              <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 rounded-xl border border-[#ECECE8] dark:border-[#2A382E] bg-white dark:bg-[#1F2922] hover:border-[#D0D2C8] dark:hover:border-[#3A4D3E] transition-colors">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#2563EB] shrink-0"></span>
                   <div>
                     <div className="text-xs sm:text-sm font-medium text-[#1C201A] dark:text-[#F2EFE9]">Cartão de Crédito</div>
-                    <div className="text-[11px] text-[#7A8275]">Taxa cobrada em transações à vista ou rotativo</div>
+                    <div className="text-[11px] text-[#5A6357] dark:text-[#9CA79E]">Taxa cobrada em transações à vista ou rotativo</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 ml-auto">
                   <input
+                    aria-label="Taxa Cartão de Crédito"
                     type="number"
                     step="0.01"
                     min="0"
@@ -1467,23 +1481,24 @@ export function FinanceClient({
                     onChange={(e) =>
                       setTempFees({ ...tempFees, credit: parseFloat(e.target.value) || 0 })
                     }
-                    className="w-18 text-right bg-[#F8F9F5] border border-[#D5D8CC] rounded-lg px-2 py-1 text-xs sm:text-sm font-semibold text-[#1C201A] focus:outline-none focus:border-[#4A6B3A]"
+                    className="w-20 min-h-9 text-right bg-[#F8F9F5] dark:bg-[#131A15] border border-[#D5D8CC] dark:border-[#2A382E] rounded-lg px-2 py-1 text-base lg:text-sm font-semibold text-[#1C201A] dark:text-[#F2EFE9] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6B3A]/40 dark:focus-visible:ring-[#FF7D4F]/40"
                   />
-                  <span className="text-xs font-bold text-[#CB5A3C]">%</span>
+                  <span className="text-xs font-bold text-[#B4482D] dark:text-[#FF7D4F]">%</span>
                 </div>
               </div>
 
               {/* Débito */}
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-[#ECECE8] hover:border-[#D0D2C8] transition-colors">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#059669]"></span>
+              <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 rounded-xl border border-[#ECECE8] dark:border-[#2A382E] bg-white dark:bg-[#1F2922] hover:border-[#D0D2C8] dark:hover:border-[#3A4D3E] transition-colors">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#059669] shrink-0"></span>
                   <div>
                     <div className="text-xs sm:text-sm font-medium text-[#1C201A] dark:text-[#F2EFE9]">Cartão de Débito</div>
-                    <div className="text-[11px] text-[#7A8275]">Taxa cobrada em compras no débito</div>
+                    <div className="text-[11px] text-[#5A6357] dark:text-[#9CA79E]">Taxa cobrada em compras no débito</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 ml-auto">
                   <input
+                    aria-label="Taxa Cartão de Débito"
                     type="number"
                     step="0.01"
                     min="0"
@@ -1492,23 +1507,24 @@ export function FinanceClient({
                     onChange={(e) =>
                       setTempFees({ ...tempFees, debit: parseFloat(e.target.value) || 0 })
                     }
-                    className="w-18 text-right bg-[#F8F9F5] border border-[#D5D8CC] rounded-lg px-2 py-1 text-xs sm:text-sm font-semibold text-[#1C201A] focus:outline-none focus:border-[#4A6B3A]"
+                    className="w-20 min-h-9 text-right bg-[#F8F9F5] dark:bg-[#131A15] border border-[#D5D8CC] dark:border-[#2A382E] rounded-lg px-2 py-1 text-base lg:text-sm font-semibold text-[#1C201A] dark:text-[#F2EFE9] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6B3A]/40 dark:focus-visible:ring-[#FF7D4F]/40"
                   />
-                  <span className="text-xs font-bold text-[#CB5A3C]">%</span>
+                  <span className="text-xs font-bold text-[#B4482D] dark:text-[#FF7D4F]">%</span>
                 </div>
               </div>
 
               {/* PIX */}
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-[#ECECE8] hover:border-[#D0D2C8] transition-colors">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#CB5A3C]"></span>
+              <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 rounded-xl border border-[#ECECE8] dark:border-[#2A382E] bg-white dark:bg-[#1F2922] hover:border-[#D0D2C8] dark:hover:border-[#3A4D3E] transition-colors">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#CB5A3C] shrink-0"></span>
                   <div>
                     <div className="text-xs sm:text-sm font-medium text-[#1C201A] dark:text-[#F2EFE9]">PIX</div>
-                    <div className="text-[11px] text-[#7A8275]">Taxa de gateway ou conta PJ</div>
+                    <div className="text-[11px] text-[#5A6357] dark:text-[#9CA79E]">Taxa de gateway ou conta PJ</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 ml-auto">
                   <input
+                    aria-label="Taxa PIX"
                     type="number"
                     step="0.01"
                     min="0"
@@ -1517,23 +1533,24 @@ export function FinanceClient({
                     onChange={(e) =>
                       setTempFees({ ...tempFees, pix: parseFloat(e.target.value) || 0 })
                     }
-                    className="w-18 text-right bg-[#F8F9F5] border border-[#D5D8CC] rounded-lg px-2 py-1 text-xs sm:text-sm font-semibold text-[#1C201A] focus:outline-none focus:border-[#4A6B3A]"
+                    className="w-20 min-h-9 text-right bg-[#F8F9F5] dark:bg-[#131A15] border border-[#D5D8CC] dark:border-[#2A382E] rounded-lg px-2 py-1 text-base lg:text-sm font-semibold text-[#1C201A] dark:text-[#F2EFE9] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6B3A]/40 dark:focus-visible:ring-[#FF7D4F]/40"
                   />
-                  <span className="text-xs font-bold text-[#CB5A3C]">%</span>
+                  <span className="text-xs font-bold text-[#B4482D] dark:text-[#FF7D4F]">%</span>
                 </div>
               </div>
 
               {/* Dinheiro */}
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-[#ECECE8] hover:border-[#D0D2C8] transition-colors">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#D97706]"></span>
+              <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 rounded-xl border border-[#ECECE8] dark:border-[#2A382E] bg-white dark:bg-[#1F2922] hover:border-[#D0D2C8] dark:hover:border-[#3A4D3E] transition-colors">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#D97706] shrink-0"></span>
                   <div>
                     <div className="text-xs sm:text-sm font-medium text-[#1C201A] dark:text-[#F2EFE9]">Dinheiro em Espécie</div>
-                    <div className="text-[11px] text-[#7A8275]">Sem taxa de banco (0%)</div>
+                    <div className="text-[11px] text-[#5A6357] dark:text-[#9CA79E]">Sem taxa de banco (0%)</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 ml-auto">
                   <input
+                    aria-label="Taxa Dinheiro em Espécie"
                     type="number"
                     step="0.01"
                     min="0"
@@ -1542,23 +1559,25 @@ export function FinanceClient({
                     onChange={(e) =>
                       setTempFees({ ...tempFees, cash: parseFloat(e.target.value) || 0 })
                     }
-                    className="w-18 text-right bg-[#F8F9F5] border border-[#D5D8CC] rounded-lg px-2 py-1 text-xs sm:text-sm font-semibold text-[#1C201A] focus:outline-none focus:border-[#4A6B3A]"
+                    className="w-20 min-h-9 text-right bg-[#F8F9F5] dark:bg-[#131A15] border border-[#D5D8CC] dark:border-[#2A382E] rounded-lg px-2 py-1 text-base lg:text-sm font-semibold text-[#1C201A] dark:text-[#F2EFE9] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6B3A]/40 dark:focus-visible:ring-[#FF7D4F]/40"
                   />
-                  <span className="text-xs font-bold text-[#CB5A3C]">%</span>
+                  <span className="text-xs font-bold text-[#B4482D] dark:text-[#FF7D4F]">%</span>
                 </div>
               </div>
             </div>
 
-            <div className="pt-3.5 border-t border-[#F0F1ED] flex items-center justify-end gap-2.5">
+            <div className="pt-3.5 border-t border-[#F0F1ED] dark:border-[#2A382E] flex flex-wrap items-center justify-end gap-2.5">
               <button
+                type="button"
                 onClick={() => setIsFeeModalOpen(false)}
-                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-[#5A6357] hover:bg-[#F2F3EE] transition-colors cursor-pointer"
+                className="min-h-9 px-3.5 py-2 rounded-xl text-xs font-semibold text-[#5A6357] dark:text-[#D5DDD2] hover:bg-[#F2F3EE] dark:hover:bg-[#222C25] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleSaveFees}
-                className="bg-[#CB5A3C] hover:bg-[#B84E32] text-white text-xs font-bold px-5 py-2 rounded-xl shadow-xs transition-colors cursor-pointer active:scale-95"
+                className="min-h-9 bg-[#B4482D] hover:bg-[#9E3E26] dark:bg-[#E76F41] dark:hover:bg-[#FF7D4F] text-white dark:text-[#131A15] text-xs font-bold px-5 py-2 rounded-xl shadow-xs transition-colors cursor-pointer active:scale-95"
               >
                 Salvar taxas
               </button>
@@ -1569,51 +1588,59 @@ export function FinanceClient({
 
       {/* --- MODAL: DETALHES DO PEDIDO SELECIONADO --- */}
       {selectedOrderDetails && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-[24px] max-w-md w-full p-5 sm:p-6 shadow-2xl border border-[#E5E6E1]">
-            <div className="flex items-center justify-between pb-3.5 border-b border-[#F0F1ED]">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#EFF4EC] flex items-center justify-center text-[#4A6B3A]">
+        <div
+          className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4"
+          onClick={() => setSelectedOrderDetails(null)}
+        >
+          <div
+            className="bg-white dark:bg-[#1B241E] rounded-[24px] max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-[#E5E6E1] dark:border-[#2A382E] text-[#1C201A] dark:text-[#F2EFE9]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2 pb-3.5 border-b border-[#F0F1ED] dark:border-[#2A382E]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-[#EFF4EC] dark:bg-[#222C25] flex items-center justify-center text-[#4A6B3A] dark:text-[#86EFAC] shrink-0">
                   <ShoppingBag className="w-4.5 h-4.5" />
                 </div>
-                <div>
-                  <h3 className="font-serif text-lg sm:text-xl text-[#1C201A]">
+                <div className="min-w-0">
+                  <h3 className="font-serif text-lg sm:text-xl text-[#1C201A] dark:text-[#F2EFE9] truncate">
                     Pedido {selectedOrderDetails.id}
                   </h3>
-                  <p className="text-[11px] text-[#7A8275]">
+                  <p className="text-[11px] text-[#5A6357] dark:text-[#9CA79E] truncate">
                     {selectedOrderDetails.date} • {selectedOrderDetails.customer}
                   </p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedOrderDetails(null)}
-                className="p-1 rounded-full hover:bg-[#F2F3EE] text-[#7A8275] transition-colors cursor-pointer"
+                aria-label="Fechar detalhes do pedido"
+                className="min-h-9 min-w-9 flex items-center justify-center rounded-full hover:bg-[#F2F3EE] dark:hover:bg-[#222C25] text-[#5A6357] dark:text-[#9CA79E] transition-colors cursor-pointer shrink-0"
               >
                 <X className="w-4.5 h-4.5" />
               </button>
             </div>
 
             <div className="my-4 space-y-3">
-              <div className="p-3 bg-[#FAF9F5] rounded-xl border border-[#ECECE8] space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#7A8275]">Forma de pagamento:</span>
-                  <span className="font-medium text-[#1C201A]">{selectedOrderDetails.method} {selectedOrderDetails.brand ? `(${selectedOrderDetails.brand})` : ""}</span>
+              <div className="p-3 bg-[#FAF9F5] dark:bg-[#151D17] rounded-xl border border-[#ECECE8] dark:border-[#2A382E] space-y-1.5">
+                <div className="flex justify-between gap-2 text-xs">
+                  <span className="text-[#5A6357] dark:text-[#9CA79E]">Forma de pagamento:</span>
+                  <span className="font-medium text-[#1C201A] dark:text-[#F2EFE9] text-right">{selectedOrderDetails.method} {selectedOrderDetails.brand ? `(${selectedOrderDetails.brand})` : ""}</span>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#7A8275]">Faturamento bruto:</span>
-                  <span className="font-semibold text-[#1C201A]">{formatBRL(selectedOrderDetails.gross)}</span>
+                <div className="flex justify-between gap-2 text-xs">
+                  <span className="text-[#5A6357] dark:text-[#9CA79E]">Faturamento bruto:</span>
+                  <span className="font-semibold text-[#1C201A] dark:text-[#F2EFE9]">{formatBRL(selectedOrderDetails.gross)}</span>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#7A8275]">Taxa aplicada:</span>
-                  <span className="text-[#CB5A3C] font-medium">{formatBRL(Math.abs(selectedOrderDetails.fees))}</span>
+                <div className="flex justify-between gap-2 text-xs">
+                  <span className="text-[#5A6357] dark:text-[#9CA79E]">Taxa aplicada:</span>
+                  <span className="text-[#B4482D] dark:text-[#FF7D4F] font-medium">{formatBRL(Math.abs(selectedOrderDetails.fees))}</span>
                 </div>
-                <div className="flex justify-between text-xs pt-1.5 border-t border-[#ECECE8]">
-                  <span className="font-semibold text-[#1C201A]">Receita líquida recebida:</span>
-                  <span className="font-bold text-[#3C7B38] text-sm">{formatBRL(selectedOrderDetails.net)}</span>
+                <div className="flex justify-between gap-2 text-xs pt-1.5 border-t border-[#ECECE8] dark:border-[#2A382E]">
+                  <span className="font-semibold text-[#1C201A] dark:text-[#F2EFE9]">Receita líquida recebida:</span>
+                  <span className="font-bold text-[#3C7B38] dark:text-[#34D399] text-sm">{formatBRL(selectedOrderDetails.net)}</span>
                 </div>
               </div>
 
-              <div className="text-xs font-semibold text-[#7A8275] pt-0.5">
+              <div className="text-xs font-semibold text-[#5A6357] dark:text-[#9CA79E] pt-0.5">
                 Itens incluídos no pedido:
               </div>
 
@@ -1622,24 +1649,25 @@ export function FinanceClient({
                   selectedOrderDetails.items.map((it, idx) => (
                     <div
                       key={idx}
-                      className="p-2 rounded-lg border border-[#ECECE8] flex items-center justify-between text-xs"
+                      className="p-2 rounded-lg border border-[#ECECE8] dark:border-[#2A382E] bg-white dark:bg-[#1F2922] flex items-center justify-between text-xs"
                     >
-                      <span className="text-[#1C201A]">{it.name}</span>
-                      <span className="font-semibold text-[#4A6B3A]">{it.qty}x</span>
+                      <span className="text-[#1C201A] dark:text-[#F2EFE9]">{it.name}</span>
+                      <span className="font-semibold text-[#4A6B3A] dark:text-[#86EFAC]">{it.qty}x</span>
                     </div>
                   ))
                 ) : (
-                  <div className="text-xs text-[#7A8275] italic p-2">
+                  <div className="text-xs text-[#5A6357] dark:text-[#9CA79E] italic p-2">
                     Item registrado no PDV
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="pt-3 border-t border-[#F0F1ED] flex justify-end">
+            <div className="pt-3 border-t border-[#F0F1ED] dark:border-[#2A382E] flex justify-end">
               <button
+                type="button"
                 onClick={() => setSelectedOrderDetails(null)}
-                className="bg-[#1C2417] text-white text-xs font-medium px-4 py-1.5 rounded-xl hover:bg-[#2A3523] transition-colors cursor-pointer"
+                className="min-h-9 bg-[#1C2417] dark:bg-[#E76F41] text-white dark:text-[#131A15] text-xs font-semibold px-4 py-1.5 rounded-xl hover:bg-[#2A3523] dark:hover:bg-[#FF7D4F] transition-colors cursor-pointer"
               >
                 Fechar
               </button>
@@ -1647,6 +1675,14 @@ export function FinanceClient({
           </div>
         </div>
       )}
+
+      {/* Modal de Fechamento de Caixa do Turno */}
+      <ShiftClosingModal
+        isOpen={isShiftModalOpen}
+        onClose={() => setIsShiftModalOpen(false)}
+        storeName={storeName}
+        orders={initialOrders}
+      />
     </div>
   );
 }

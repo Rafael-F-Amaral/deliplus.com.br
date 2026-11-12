@@ -47,15 +47,15 @@ export function AutomaticProvisioning() {
 
   if (state.kind === "idle" || pending) {
     return (
-      <Card aria-live="polite" aria-busy="true">
+      <Card aria-live="polite" aria-busy="true" className="bg-white dark:bg-[#1B241E] border-[#E9E4D4] dark:border-[#2A382E] shadow-sm">
         <CardHeader>
-          <CardTitle>Preparando seu espaço no Deli Plus...</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-[#1F2E22] dark:text-[#F2EFE9]">Preparando seu espaço no Deli Plus...</CardTitle>
+          <CardDescription className="text-[#525B4E] dark:text-[#9CA79E]">
             Isso deve levar apenas alguns instantes.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-[#525B4E] dark:text-[#9CA79E]">
             Mantenha esta página aberta enquanto concluímos a configuração.
           </p>
         </CardContent>
@@ -69,22 +69,28 @@ export function AutomaticProvisioning() {
       : failureMessages[state.status]
 
   return (
-    <Card>
+    <Card className="bg-white dark:bg-[#1B241E] border-[#E9E4D4] dark:border-[#2A382E] shadow-sm">
       <CardHeader>
-        <CardTitle>Não foi possível continuar</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-[#1F2E22] dark:text-[#F2EFE9]">Não foi possível continuar</CardTitle>
+        <CardDescription className="text-[#525B4E] dark:text-[#9CA79E]">
           Sua conta permanece segura e nenhuma assinatura foi iniciada.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Alert role="alert" variant="destructive">
-          <AlertTitle>Configuração interrompida</AlertTitle>
-          <AlertDescription>{message}</AlertDescription>
+        <Alert role="alert" variant="destructive" className="dark:bg-[#251A14]/40 dark:border-red-900/50">
+          <AlertTitle className="dark:text-red-300">Configuração interrompida</AlertTitle>
+          <AlertDescription className="dark:text-red-200/90">{message}</AlertDescription>
         </Alert>
       </CardContent>
       <CardFooter>
         <form action={action}>
-          <Button type="submit" disabled={pending} aria-disabled={pending}>
+          <Button
+            type="submit"
+            size="lg"
+            className="min-h-10 bg-[#B4482D] hover:bg-[#9E3E26] dark:bg-[#E76F41] dark:hover:bg-[#FF7D4F] text-white dark:text-[#131A15] font-semibold cursor-pointer"
+            disabled={pending}
+            aria-disabled={pending}
+          >
             {pending ? "Tentando novamente..." : "Tentar novamente"}
           </Button>
         </form>
